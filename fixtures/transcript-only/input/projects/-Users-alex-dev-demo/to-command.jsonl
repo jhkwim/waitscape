@@ -1,0 +1,3 @@
+{"type": "user", "timestamp": "2026-10-20T17:59:29.000Z", "sessionId": "to-command", "cwd": "/Users/alex/dev/demo", "uuid": "to-command-u1", "isSidechain": false, "message": {"role": "user", "content": "Caveat: meta"}, "isMeta": true}
+{"type": "user", "timestamp": "2026-10-20T17:59:30.000Z", "sessionId": "to-command", "cwd": "/Users/alex/dev/demo", "uuid": "to-command-u2", "isSidechain": false, "message": {"role": "user", "content": "<command-name>/review</command-name>\n<command-args>PR 42</command-args>"}}
+{"type": "user", "timestamp": "2026-10-20T17:59:31.000Z", "sessionId": "to-command", "cwd": "/Users/alex/dev/demo", "uuid": "to-command-u3", "isSidechain": false, "message": {"role": "user", "content": "<local-command-stdout>ok</local-command-stdout>"}}

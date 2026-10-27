@@ -1,0 +1,210 @@
+{
+ "body": {
+  "big": [
+   {
+    "job": "큰 리팩터링",
+    "project": "bigrepo",
+    "provider": "claude",
+    "run": 2900,
+    "sid": "fx-big",
+    "t": 1792519100
+   },
+   {
+    "job": "API 구조 조사해줘",
+    "project": "api-server",
+    "provider": "claude",
+    "run": 890,
+    "sid": "fx-party",
+    "t": 1792519190
+   },
+   {
+    "by_ai": true,
+    "job": "환불 로직 분리",
+    "project": "shop-api",
+    "provider": "codex",
+    "run": 770,
+    "sid": "codex-4821-1792518300000-0a1b2c3d",
+    "t": 1792519080
+   },
+   {
+    "job": "어제 하던 것",
+    "project": "yesterday",
+    "provider": "claude",
+    "run": 600,
+    "sid": "fx-yday",
+    "t": 1792505400
+   },
+   {
+    "by_ai": true,
+    "job": "로그인 버그 고쳐줘",
+    "project": "report-cheer",
+    "provider": "claude",
+    "run": 360,
+    "sid": "fx-mcp-cheer",
+    "t": 1792518860
+   }
+  ],
+  "big_count": 5,
+  "cheers": [
+   {
+    "provider": "claude",
+    "sid": "fx-mcp-cheer",
+    "t": 1792518860,
+    "text": "세션 만료까지 깔끔히 정리했어요"
+   },
+   {
+    "provider": "codex",
+    "sid": "codex-4821-1792518300000-0a1b2c3d",
+    "t": 1792519080,
+    "text": "환불 버그까지 잡았어요"
+   }
+  ],
+  "day": "2026-10-20",
+  "done": 12,
+  "end": 1792522800.0,
+  "first": 1792504800,
+  "last": 1792519195,
+  "last_call": {
+   "project": "login-app",
+   "provider": "claude",
+   "sid": "fx-read",
+   "t": 1792519195
+  },
+  "limits": {
+   "peak": 63.0,
+   "resets": [],
+   "samples": [
+    {
+     "five_hour": 63.0,
+     "five_hour_resets": 1792530600.0,
+     "seven_day": 27.0,
+     "seven_day_resets": 1792929600.0,
+     "t": 1792519200
+    }
+   ],
+   "weekly": {
+    "from": 27.0,
+    "to": 27.0
+   }
+  },
+  "mvp": {
+   "done": 2,
+   "project": "shop-api",
+   "provider": "claude",
+   "sid": "fx-flow",
+   "work": 110
+  },
+  "now": 1792519260,
+  "outage_count": 0,
+  "outages": [],
+  "prev": {
+   "day": "2026-10-19",
+   "done": 0,
+   "ready": false,
+   "ready_at": null,
+   "seen": null,
+   "unseen": false
+  },
+  "quiet": 65,
+  "ready": false,
+  "ready_at": null,
+  "reason": null,
+  "rule": {
+   "after_hour": 12,
+   "big_min": 10,
+   "day_hour": 4,
+   "keep_days": 14,
+   "quiet_min": 45
+  },
+  "seen": null,
+  "start": 1792436400.0,
+  "today": true,
+  "unseen": false,
+  "v": 1,
+  "wait": {
+   "avg": 51.5,
+   "n": 2
+  },
+  "work": 5980,
+  "workers": [
+   {
+    "done": 2,
+    "project": "shop-api",
+    "provider": "claude",
+    "sid": "fx-flow",
+    "work": 110
+   },
+   {
+    "done": 1,
+    "project": "bigrepo",
+    "provider": "claude",
+    "sid": "fx-big",
+    "work": 2900
+   },
+   {
+    "done": 1,
+    "project": "api-server",
+    "provider": "claude",
+    "sid": "fx-party",
+    "work": 890
+   },
+   {
+    "done": 1,
+    "project": "shop-api",
+    "provider": "codex",
+    "sid": "codex-4821-1792518300000-0a1b2c3d",
+    "work": 770
+   },
+   {
+    "done": 1,
+    "project": "yesterday",
+    "provider": "claude",
+    "sid": "fx-yday",
+    "work": 600
+   },
+   {
+    "done": 1,
+    "project": "report-cheer",
+    "provider": "claude",
+    "sid": "fx-mcp-cheer",
+    "work": 360
+   },
+   {
+    "done": 1,
+    "project": "notes",
+    "provider": "claude",
+    "sid": "fx-idle",
+    "work": 200
+   },
+   {
+    "done": 1,
+    "project": "blog",
+    "provider": "claude",
+    "sid": "fx-done",
+    "work": 70
+   },
+   {
+    "done": 1,
+    "project": "cmux-app",
+    "provider": "claude",
+    "sid": "fx-cmux",
+    "work": 50
+   },
+   {
+    "done": 1,
+    "project": "ghosts",
+    "provider": "claude",
+    "sid": "fx-stale",
+    "work": 20
+   },
+   {
+    "done": 1,
+    "project": "cmd",
+    "provider": "claude",
+    "sid": "fx-cmd",
+    "work": 10
+   }
+  ]
+ },
+ "status": 200
+}

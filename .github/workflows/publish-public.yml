@@ -1,0 +1,91 @@
+name: Publish Public
+
+# 코드 저장소(본 저장소)의 릴리스를 사람이 게시(Publish)하면 → 배포 전용 공개 저장소에 같은 태그·노트·파일로 복사한다.
+# 코드 저장소도 공개지만 설치·업데이트 공식 위치는 계속 배포 전용 저장소다(이미 설치된 앱의 업데이터 엔드포인트가 거기를 가리킴).
+# 설치된 앱은 공개 저장소의 releases/latest/download/latest.json만 읽는다(tauri.conf.json plugins.updater.endpoints).
+# 공개 저장소 쓰기 토큰: mirror 환경 시크릿 RELEASES_REPO_TOKEN(fine-grained PAT, 그 저장소만 Contents 읽기·쓰기). 없으면 경고만 남기고 건너뛴다.
+# 다시 복사하려면 수동 실행(태그 입력). 이미 있으면 파일은 덮어쓰고 노트는 갱신한다. Latest 표시는 본 저장소의 Latest를 따른다. 흐름 전체: docs/RELEASE.md §6
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "복사할 릴리스 태그 (예: v0.3.0, 게시된 것만)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  RELEASES_REPO: jhkwim/waitscape-releases # release.yml의 RELEASES_REPO와 같게
+
+concurrency:
+  group: publish-public
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: 공개 저장소로 복사
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # RELEASES_REPO_TOKEN은 mirror 환경에만 둔다(배포 브랜치 규칙: 태그 v*·main). docs/RELEASE.md §6
+    environment: mirror
+    steps:
+      - name: 토큰 확인
+        id: tok
+        env:
+          HAS_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != true ]; then
+            echo "::warning::시크릿 RELEASES_REPO_TOKEN이 없어 공개 저장소($RELEASES_REPO)로 복사하지 않는다 (docs/RELEASE.md §6)"
+            exit 0
+          fi
+          echo "on=true" >> "$GITHUB_OUTPUT"
+
+      - name: 본 저장소 릴리스 내려받기 + 확인
+        if: steps.tok.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          [ -n "$TAG" ] || { echo "::error::태그가 없다"; exit 1; }
+          meta=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,name,body)
+          [ "$(jq -r .isDraft <<<"$meta")" = false ] || { echo "::error::$TAG 는 아직 초안이다. 게시한 뒤 복사한다"; exit 1; }
+          jq -r .body <<<"$meta" > notes.md
+          jq -r .name <<<"$meta" > title.txt
+          jq -r .isPrerelease <<<"$meta" > pre.txt
+          # 본 저장소에서 Latest인 릴리스만 공개 저장소에서도 Latest로 (옛 태그를 다시 복사해도 Latest가 뒤로 가지 않게)
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)
+          if [ "$latest" = "$TAG" ]; then echo true > latest.txt; else echo false > latest.txt; fi
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dl
+          cd dl
+          sha256sum -c SHA256SUMS.txt
+          # latest.json은 공개 저장소 주소를 가리켜야 앱이 받을 수 있다 (release.yml이 --repo "$RELEASES_REPO"로 만든다)
+          if [ -f latest.json ]; then
+            jq -e --arg p "https://github.com/$RELEASES_REPO/releases/download/" \
+              '[.platforms[].url | startswith($p)] | all' latest.json >/dev/null \
+              || { echo "::error::latest.json 주소가 $RELEASES_REPO 를 가리키지 않는다"; exit 1; }
+          fi
+          ls -l
+
+      - name: 공개 저장소에 릴리스 만들기 / 갱신
+        if: steps.tok.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          shopt -s nullglob
+          files=(dl/*)
+          flags=()
+          if [ "$(cat pre.txt)" = true ]; then flags+=(--prerelease); fi
+          flags+=("--latest=$(cat latest.txt)")
+          if gh release view "$TAG" --repo "$RELEASES_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$RELEASES_REPO" --clobber -- "${files[@]}"
+            gh release edit "$TAG" --repo "$RELEASES_REPO" --title "$(cat title.txt)" --notes-file notes.md "${flags[@]}"
+          else
+            gh release create "$TAG" --repo "$RELEASES_REPO" --target main \
+              --title "$(cat title.txt)" --notes-file notes.md "${flags[@]}" -- "${files[@]}"
+          fi
+          echo "### 공개 저장소: https://github.com/$RELEASES_REPO/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"

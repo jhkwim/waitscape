@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python 참조 구현·fixture·스키마
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # 액션은 커밋 SHA로 고정 (주석은 태그)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: 검사 도구 설치 (버전 고정)
+        run: python -m pip install --disable-pip-version-check "jsonschema==4.23.0"
+
+      - name: 시크릿·개인 경로 패턴 검사
+        run: python scripts/check_secrets.py
+
+      - name: fixture 생성기 결정성 (다시 만들어도 변경 없음)
+        run: |
+          python fixtures/make_fixtures.py
+          git diff --exit-code -- fixtures/
+          test -z "$(git status --porcelain -- fixtures/)"
+
+      - name: 기준 결과 스냅샷 결정성 (server.py ↔ fixtures/expected, 2회 실행)
+        run: python scripts/snapshot.py --check
+
+      - name: 마스킹 유출 검사 (커밋된 기준 결과에 가짜 시크릿 원문 없음)
+        run: python scripts/check_secrets.py --leak
+
+      - name: 퇴근 일보 일지 회귀 (4시 경계·퇴근 판정·seen·보존 정리·동시 쓰기·HTTP CSRF, 임시 폴더만)
+        run: python scripts/test_daylog.py
+
+      - name: MCP 보고 회귀 (정화 규칙·hook.py 골든·reports.jsonl 리더, 임시 폴더만)
+        run: python scripts/test_mcp_reports.py
+
+      - name: 트랜스크립트 전용 규칙 검사기 자체 점검
+        # 실제 엔진 결과 검사(python scripts/check_transcript_only.py <state.json>)는 P1 Rust 잡에서
+        run: python scripts/selftest_transcript_only.py
+
+      - name: 시크릿·경로 탐지 패턴 회귀 테스트
+        run: python scripts/selftest_check_secrets.py
+
+      - name: mode.json 스키마 검증 (types/mode.schema.json)
+        run: python scripts/validate_modes.py
+
+      - name: 앱 버전 일치 (Cargo.toml = tauri.conf.json = Cargo.lock 워크스페이스 패키지)
+        run: python scripts/version.py check
+
+      - name: 릴리스 스크립트 회귀 테스트 (version.py bump·CHANGELOG, latest.json)
+        run: python scripts/test_release_scripts.py
+
+  authors:
+    name: 커밋 작성자 이메일 검사
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # 특정 이메일을 강제하지 않는다(권장: GitHub noreply, CONTRIBUTING §2). 포크 PR에는 시크릿이 전달되지 않아 목록이 비면 건너뛴다.
+      - name: 차단 도메인 이메일로 만든 커밋이 없는지 (도메인은 저장소 시크릿)
+        env:
+          BLOCKED_EMAIL_DOMAINS: ${{ secrets.BLOCKED_EMAIL_DOMAINS }}
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            RANGE="$PR_BASE..$PR_HEAD"
+          elif case "$PUSH_BEFORE" in *[!0]*) false ;; *) true ;; esac || ! git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+            # 새 브랜치(before가 0000…)이거나 강제 push로 before가 없으면 이번 커밋 하나만 검사
+            RANGE="$PUSH_SHA^!"
+          else
+            RANGE="$PUSH_BEFORE..$PUSH_SHA"
+          fi
+          python3 scripts/check_commit_emails.py "$RANGE"

@@ -1,0 +1,305 @@
+/* 🏟️ 전광판 모드 — 모든 규칙은 body[data-mode="board"] 접두사, keyframes는 bd- 접두사 */
+
+/* ---------- 토큰: 다크(기본) ---------- */
+body[data-mode="board"] {
+  --led: #ffb000; --led2: #ff6a2a; --grn: #3dff8a; --cyn: #33e0ff; --red: #ff3b3b; --vio: #c08cff;
+  --pnk: #ff6fb5; --blu: #6aa8ff; --lim: #c8f05a; --yel: #ffd400;
+  --bg: #070707; --panel: #0f0f10; --line: #1f1f22; --mute: #6b6b70; --text: #eeeeee; --sub: #a8a8ad;
+  --cell: #1d1d20; --dash: #1e1e22; --chipbg: 12%;
+  --glow: 0 0 6px currentColor, 0 0 18px color-mix(in srgb, currentColor 50%, transparent);
+  --dotmask: #0008;
+  color-scheme: dark;
+  background: var(--bg); color: var(--text);
+  font: 14px/1.3 -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+}
+/* 라이트 OS: "낮 경기" 팔레트 (LED 시계 패널만 어두운 전광판 그대로) */
+@media (prefers-color-scheme: light) {
+  body[data-mode="board"] {
+    --led: #b87000; --led2: #d9480f; --grn: #138a4a; --cyn: #0b84a5; --red: #d61f1f; --vio: #7b4dd1;
+    --pnk: #c2307a; --blu: #2f63c9; --lim: #5f8a00; --yel: #b88f00;
+    --bg: #e9e7e2; --panel: #fbfaf7; --line: #d8d4cc; --mute: #7d7a73; --text: #17171a; --sub: #55534e;
+    --cell: #e3e0d9; --dash: #e2ded6; --chipbg: 10%;
+    --glow: none; --dotmask: transparent;
+    color-scheme: light;
+  }
+}
+
+body[data-mode="board"] .c-led { color: var(--led); } body[data-mode="board"] .c-red { color: var(--red); }
+body[data-mode="board"] .c-cyn { color: var(--cyn); } body[data-mode="board"] .c-vio { color: var(--vio); }
+body[data-mode="board"] .c-grn { color: var(--grn); } body[data-mode="board"] .c-pnk { color: var(--pnk); }
+body[data-mode="board"] .c-blu { color: var(--blu); } body[data-mode="board"] .c-lim { color: var(--lim); }
+
+body[data-mode="board"] .bd-mono { font-family: Menlo, "SF Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+body[data-mode="board"] .bd-glow { text-shadow: var(--glow); }
+body[data-mode="board"] .bd-dim { color: var(--mute); }
+body[data-mode="board"] [hidden] { display: none !important; }
+
+/* ---------- 큰 틀 ---------- */
+body[data-mode="board"] .bd {
+  height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; padding: 14px 16px 0;
+}
+body[data-mode="board"] .bd-box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+body[data-mode="board"] .bd-lbl { font-size: 10px; letter-spacing: .2em; color: var(--mute); }
+
+/* ---------- 헤더 ---------- */
+body[data-mode="board"] .bd-head { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: stretch; }
+body[data-mode="board"] .bd-head.no-pace { grid-template-columns: minmax(0, 1fr) auto; }
+body[data-mode="board"] .bd-league { display: flex; align-items: center; gap: 12px; min-width: 0; }
+body[data-mode="board"] .bd-live {
+  background: var(--red); color: #fff; font-weight: 800; font-size: 12px; padding: 3px 8px; border-radius: 4px;
+  letter-spacing: .1em; animation: bd-blink 1.2s steps(1) infinite; flex: none;
+}
+body[data-mode="board"] .bd-live.stale { background: var(--mute); animation: none; }
+body[data-mode="board"] .bd-lg-txt { min-width: 0; flex: 1; }
+body[data-mode="board"] .bd-lg-txt small { display: block; color: var(--mute); font-size: 11px; letter-spacing: .12em; }
+body[data-mode="board"] .bd-lg-txt > b { font-size: 20px; letter-spacing: .02em; }
+body[data-mode="board"] .bd-today { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--mute); margin-top: 3px; letter-spacing: .04em; }
+body[data-mode="board"] .bd-today:empty { display: none; }
+body[data-mode="board"] .bd-today b { color: var(--sub); font-weight: 600; font-family: Menlo, "SF Mono", monospace; }
+body[data-mode="board"] .bd-ctl { display: flex; flex-direction: column; gap: 5px; align-items: stretch; flex: none; }
+body[data-mode="board"] .bd-btn,
+body[data-mode="board"] .core-switch select.bd-btn {
+  font: 600 11px/1 -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif; letter-spacing: .04em; color: var(--sub);
+  background: transparent; border: 1px solid var(--line); border-radius: 5px; padding: 5px 9px; cursor: pointer; white-space: nowrap;
+}
+body[data-mode="board"] .core-switch select.bd-btn { padding-right: 22px; width: 100%; }
+body[data-mode="board"] .core-switch::after { color: var(--mute); right: 8px; }
+body[data-mode="board"] .core-switch select option { background: var(--panel); color: var(--text); }
+body[data-mode="board"] .bd-btn:hover { color: var(--text); border-color: var(--mute); }
+body[data-mode="board"] .bd-btn.on { color: var(--led); border-color: var(--led); }
+body[data-mode="board"] .bd-btn:focus-visible, body[data-mode="board"] .core-switch select:focus-visible { outline: 2px solid var(--led); outline-offset: 1px; }
+
+/* LED 시계: 라이트에서도 어두운 전광판 패널 그대로 */
+body[data-mode="board"] .bd-clock {
+  --led: #ffb000; text-align: center; padding: 6px 28px; background: #0c0c0d; border-color: #1f1f22; color: #eee; min-width: 300px;
+}
+body[data-mode="board"] .bd-dots { position: relative; }
+body[data-mode="board"] .bd-dots::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(circle, transparent 55%, #0008 62%) 0 0 / 4px 4px;
+}
+body[data-mode="board"] .bd-clock .bd-lbl { color: #999; position: relative; z-index: 1; letter-spacing: .2em; font-size: 11px; }
+body[data-mode="board"] .bd-clock .bd-t {
+  font-size: 54px; color: var(--led); line-height: 1; margin: 4px 0 2px; letter-spacing: .04em;
+  text-shadow: 0 0 6px currentColor, 0 0 18px currentColor;  /* color-mix 미지원(Safari 16.2 미만) 폴백 */
+  text-shadow: 0 0 6px currentColor, 0 0 18px color-mix(in srgb, currentColor 50%, transparent);
+}
+body[data-mode="board"] .bd-clock.warn .bd-t { color: #ff3b3b; animation: bd-blink 1s steps(1) infinite; }
+body[data-mode="board"] .bd-clock .bd-q { font-size: 12px; color: #aaa; position: relative; z-index: 1; }
+body[data-mode="board"] .bd-clock .bd-q span { color: var(--led); }
+
+body[data-mode="board"] .bd-pace { display: flex; gap: 22px; align-items: center; justify-content: space-around; flex-wrap: wrap; position: relative; min-width: 0; }
+body[data-mode="board"] .bd-stat { text-align: right; --tone: var(--led); }
+body[data-mode="board"] [data-tone="led"] { --tone: var(--led); } body[data-mode="board"] [data-tone="led2"] { --tone: var(--led2); }
+body[data-mode="board"] [data-tone="red"] { --tone: var(--red); } body[data-mode="board"] [data-tone="grn"] { --tone: var(--grn); }
+body[data-mode="board"] .bd-pace .bd-stat:first-child { --tone: inherit; }
+body[data-mode="board"] .bd-pace .bd-stat .bd-v { color: var(--tone); }
+body[data-mode="board"] .bd-stat .bd-v { font-size: 30px; line-height: 1.05; }
+body[data-mode="board"] .bd-bar { height: 6px; background: var(--cell); border-radius: 3px; margin-top: 5px; position: relative; width: 150px; }
+body[data-mode="board"] .bd-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--tone); transition: width .6s; }
+body[data-mode="board"] .bd-bar u { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); margin-left: -1px; }
+body[data-mode="board"] .bd-gap-txt { font-size: 11px; color: var(--sub); margin-top: 4px; }
+body[data-mode="board"] .bd-note { flex-basis: 100%; text-align: center; font-size: 10.5px; color: var(--mute); }
+body[data-mode="board"] .bd-note:empty { display: none; }
+
+/* ---------- 경기장 ---------- */
+body[data-mode="board"] .bd-field { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 10px; min-height: 0; }
+body[data-mode="board"] .bd-lanes { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+
+body[data-mode="board"] .bd-lane {
+  display: grid; grid-template-columns: 8px minmax(130px, 210px) minmax(0, 1fr) minmax(80px, auto) 100px;
+  align-items: center; column-gap: 14px; padding: 12px 16px 12px 0; position: relative; overflow: hidden;
+  flex: 1 0 auto; min-height: 92px; max-height: 190px; transition: border-color .3s, box-shadow .3s;
+}
+body[data-mode="board"] .bd-lanes.many .bd-lane { min-height: 76px; }
+body[data-mode="board"] .bd-stripe { align-self: stretch; border-radius: 0 4px 4px 0; background: currentColor; }
+body[data-mode="board"] .bd-team { min-width: 0; }
+body[data-mode="board"] .bd-team b { font-size: 19px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-mode="board"] .bd-team small { color: var(--mute); font-size: 11px; letter-spacing: .04em; display: block; margin-top: 2px; }
+body[data-mode="board"] .bd-memo-btn {
+  margin-top: 6px; font: 600 10px/1 -apple-system, system-ui, sans-serif; letter-spacing: .08em; color: var(--mute);
+  background: none; border: 1px dashed var(--line); border-radius: 4px; padding: 3px 6px; cursor: pointer;
+}
+body[data-mode="board"] .bd-memo-btn:hover { color: var(--text); border-color: var(--mute); }
+body[data-mode="board"] .bd-memo-btn.has { color: var(--sub); border-style: solid; }
+body[data-mode="board"] .bd-memo-btn.ready { color: #000; background: var(--led); border-color: var(--led); animation: bd-blink 1.2s steps(1) 4; }
+
+body[data-mode="board"] .bd-play { min-width: 0; color: currentColor; }
+body[data-mode="board"] .bd-now { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: currentColor; }
+body[data-mode="board"] .bd-now + .bd-now { margin-top: 6px; }
+body[data-mode="board"] .bd-cmd { font-size: 13px; color: color-mix(in srgb, var(--led) 70%, var(--text)); }
+body[data-mode="board"] .bd-why, body[data-mode="board"] .bd-say { font-size: 12px; color: var(--sub); }
+body[data-mode="board"] .st-done .bd-now:first-child, body[data-mode="board"] .st-idle .bd-now:first-child,
+body[data-mode="board"] .injury .bd-now:first-child { color: var(--text); }
+body[data-mode="board"] .bd-flag {
+  display: inline-block; background: var(--led); color: #000; font-weight: 800; font-size: 11px; padding: 2px 7px;
+  border-radius: 3px; margin-left: 6px; vertical-align: 2px; letter-spacing: .08em; text-shadow: none;
+}
+body[data-mode="board"] .bd-flag.red { background: var(--red); color: #fff; }
+body[data-mode="board"] .bd-flag.yel { background: var(--yel); color: #000; }
+body[data-mode="board"] .bd-flag.fin { background: var(--text); color: var(--bg); margin: 0 4px 0 0; }
+
+body[data-mode="board"] .bd-yard { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+body[data-mode="board"] .bd-cells { display: flex; gap: 3px; flex: 1; max-width: 420px; }
+body[data-mode="board"] .bd-cells i { flex: 1; height: 8px; border-radius: 2px; background: var(--cell); }
+body[data-mode="board"] .bd-cells i.on { background: currentColor; box-shadow: 0 0 6px color-mix(in srgb, currentColor 60%, transparent); }
+body[data-mode="board"] .bd-cells i.cur { background: currentColor; animation: bd-blink 1s steps(1) infinite; }
+body[data-mode="board"] .bd-yard .bd-mono { font-size: 11px; color: var(--mute); }
+
+body[data-mode="board"] .bd-players { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; max-height: 52px; overflow: hidden; }
+body[data-mode="board"] .bd-pl {
+  font-size: 11.5px; border: 1px solid color-mix(in srgb, var(--vio) 45%, transparent); color: var(--vio);
+  padding: 2px 8px; border-radius: 20px; background: color-mix(in srgb, var(--vio) var(--chipbg), transparent);
+  white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+}
+body[data-mode="board"] .bd-pl::before { content: "● "; animation: bd-blink 1s steps(1) infinite; }
+body[data-mode="board"] .bd-pl i { font-style: normal; opacity: .7; font-family: Menlo, monospace; font-size: 10.5px; }
+body[data-mode="board"] .bd-pl.yel { color: var(--yel); border-color: color-mix(in srgb, var(--yel) 55%, transparent); background: color-mix(in srgb, var(--yel) var(--chipbg), transparent); }
+body[data-mode="board"] .bd-pl.yel::before { content: "▮ "; }
+body[data-mode="board"] .bd-pl.red { color: var(--red); border-color: color-mix(in srgb, var(--red) 60%, transparent); background: color-mix(in srgb, var(--red) var(--chipbg), transparent); }
+body[data-mode="board"] .bd-pl.red::before { content: "▮ "; }
+body[data-mode="board"] .bd-pl.out { color: var(--mute); border-color: var(--line); background: none; }
+body[data-mode="board"] .bd-pl.out::before { content: none; }
+
+body[data-mode="board"] .bd-side-stat { text-align: right; }
+body[data-mode="board"] .bd-side-stat small { font-size: 10px; color: var(--mute); letter-spacing: .15em; display: block; }
+body[data-mode="board"] .bd-side-stat div { font-size: 22px; white-space: nowrap; }
+body[data-mode="board"] .bd-score { text-align: right; }
+body[data-mode="board"] .bd-n { font-size: 44px; line-height: 1; display: inline-flex; perspective: 300px; }
+body[data-mode="board"] .bd-n span { display: inline-block; }
+body[data-mode="board"] .bd-n span.bd-flip { animation: bd-flip .45s cubic-bezier(.2, .8, .3, 1.2); }
+body[data-mode="board"] .bd-score small { display: block; font-size: 10px; color: var(--mute); letter-spacing: .2em; }
+
+/* 상태: 타임아웃 / 부상 / 느림 / 종료 / 휴식 */
+body[data-mode="board"] .bd-lane.timeout { border-color: var(--led); box-shadow: 0 0 0 1px var(--led) inset, 0 0 40px color-mix(in srgb, var(--led) 15%, transparent); }
+body[data-mode="board"] .bd-lane.timeout::after {
+  content: "TIMEOUT"; position: absolute; right: 240px; top: 50%; transform: translateY(-50%) rotate(-4deg); pointer-events: none;
+  font: 900 44px/1 Menlo, monospace; color: color-mix(in srgb, var(--led) 14%, transparent); letter-spacing: .1em;
+}
+body[data-mode="board"] .bd-lane.injury { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+body[data-mode="board"] .bd-lane.injury .bd-team b { color: var(--text); }
+body[data-mode="board"] .bd-lane.injury .bd-n { color: color-mix(in srgb, var(--red) 55%, transparent); text-shadow: none; }
+body[data-mode="board"] .bd-lane.slow { border-color: color-mix(in srgb, var(--yel) 40%, var(--line)); }
+body[data-mode="board"] .bd-lane.st-done .bd-n { text-shadow: none; }
+body[data-mode="board"] .bd-lane.st-idle { opacity: .55; min-height: 0; flex-grow: 0; padding-top: 8px; padding-bottom: 8px; }
+body[data-mode="board"] .bd-lane.st-idle .bd-n { font-size: 28px; text-shadow: none; }
+body[data-mode="board"] .bd-lane.st-idle .bd-memo-btn { display: none; }
+body[data-mode="board"] .bd-lane.st-idle.memo-open .bd-memo-btn, body[data-mode="board"] .bd-lane.st-idle .bd-memo-btn.has { display: inline-block; }
+
+/* 작전판(메모) */
+body[data-mode="board"] .bd-memo { grid-column: 2 / -1; display: none; gap: 8px; align-items: center; margin-top: 10px; }
+body[data-mode="board"] .bd-lane.memo-open { max-height: none; }
+body[data-mode="board"] .bd-lane.memo-open .bd-memo { display: flex; flex-wrap: wrap; }
+body[data-mode="board"] .bd-memo textarea {
+  flex: 1 1 260px; min-height: 38px; height: 38px; resize: vertical; font: 13px/1.4 -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+  color: var(--text); background: color-mix(in srgb, var(--bg) 60%, var(--panel)); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+}
+body[data-mode="board"] .bd-memo textarea:focus { outline: none; border-color: var(--led); }
+body[data-mode="board"] .bd-memo.ready textarea { border-color: var(--led); box-shadow: 0 0 0 1px var(--led); }
+body[data-mode="board"] .bd-memo-hint { font-size: 10.5px; color: var(--mute); flex-basis: 100%; }
+
+/* 골 세리머니: 기본은 안 보임 → 애니메이션 중에만 등장 (회의 모드면 애니메이션이 꺼져 안 보임) */
+body[data-mode="board"] .bd-goal { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; opacity: 0; z-index: 2; }
+body[data-mode="board"] .bd-goal span {
+  font: 900 64px/1 Menlo, monospace; letter-spacing: .25em; color: var(--led); padding-left: .25em;
+  text-shadow: 0 0 10px currentColor, 0 0 40px currentColor;
+}
+body[data-mode="board"] .bd-lane.goal .bd-goal { animation: bd-goal 3s ease-out; background: color-mix(in srgb, var(--panel) 55%, transparent); }
+body[data-mode="board"] .bd-lane.goal { animation: bd-flash .5s steps(2) 3; }
+body[data-mode="board"] .bd-lane.whistle { animation: bd-shake .4s 2; }
+body[data-mode="board"] .bd-lane.bd-bump .bd-n { animation: bd-bump .5s ease-out; }
+
+/* ---------- 사이드: 문자중계 · MVP ---------- */
+body[data-mode="board"] .bd-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+body[data-mode="board"] .bd-side h4 { font-size: 10px; letter-spacing: .3em; color: var(--mute); font-weight: 600; margin: 0 0 8px; }
+body[data-mode="board"] .bd-pbp { flex: 1; min-height: 0; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+body[data-mode="board"] .bd-pbp ul { margin: 0; padding: 0; overflow: hidden; flex: 1;
+  mask-image: linear-gradient(#000 85%, transparent); -webkit-mask-image: linear-gradient(#000 85%, transparent); }
+body[data-mode="board"] .bd-pbp li {
+  list-style: none; display: grid; grid-template-columns: 40px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--dash); font-size: 12.5px;
+}
+body[data-mode="board"] .bd-pbp li .bd-mono { color: var(--mute); font-size: 11px; padding-top: 1px; }
+body[data-mode="board"] .bd-pbp li p { margin: 0; min-width: 0; overflow-wrap: anywhere; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+body[data-mode="board"] .bd-pbp li b { font-weight: 600; }
+body[data-mode="board"] .bd-pbp li em { font-style: normal; color: var(--sub); font-size: 11px; letter-spacing: .04em; }
+body[data-mode="board"] .bd-pbp li .bd-fin { color: var(--led); letter-spacing: .1em; }
+body[data-mode="board"] .bd-pbp li.bd-new { animation: bd-in .7s ease-out; }
+body[data-mode="board"] .bd-pbp li.bd-empty { display: block; color: var(--mute); border: 0; }
+body[data-mode="board"] .bd-mvp { display: flex; gap: 12px; align-items: center; }
+body[data-mode="board"] .bd-medal {
+  width: 44px; height: 44px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 900; font-size: 12px; color: #2a1800;
+  background: radial-gradient(circle at 35% 35%, #fff6, #ffb000 40%, #7a4b00);
+}
+body[data-mode="board"] .bd-mvp-txt { min-width: 0; }
+body[data-mode="board"] .bd-mvp-txt b { display: block; }
+body[data-mode="board"] .bd-mvp-txt small { color: var(--mute); font-size: 11px; }
+
+/* ---------- 빈 경기장 ---------- */
+body[data-mode="board"] .bd-nogame { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+body[data-mode="board"] .bd-nogame .bd-mono { font-size: 64px; color: var(--led); }
+body[data-mode="board"] .bd-nogame b { font-size: 18px; letter-spacing: .2em; }
+body[data-mode="board"] .bd-nogame small { color: var(--mute); }
+
+/* ---------- 티커 ---------- */
+body[data-mode="board"] .bd-ticker {
+  margin: 0 -16px; background: #1a1a1c; color: #ddd; height: 34px; display: flex; align-items: center; overflow: hidden; font-weight: 700; white-space: nowrap;
+}
+body[data-mode="board"] .bd-ticker.urgent { background: var(--led); color: #000; }
+body[data-mode="board"] .bd-tag { background: #000; color: var(--led); padding: 0 14px; height: 100%; display: flex; align-items: center; letter-spacing: .2em; font-size: 12px; flex: none; }
+body[data-mode="board"] .bd-ticker:not(.urgent) .bd-tag { color: #aaa; }
+body[data-mode="board"] .bd-ticker.urgent .bd-tag { animation: bd-blink 1s steps(1) infinite; }
+body[data-mode="board"] .bd-track { flex: 1; min-width: 0; overflow: hidden; height: 100%; display: flex; align-items: center; }
+body[data-mode="board"] .bd-run { display: flex; width: max-content; animation: bd-tick 40s linear infinite; font-size: 14px; }
+body[data-mode="board"] .bd-run > div { flex: none; padding-left: 20px; }
+body[data-mode="board"] .bd-run span { margin-right: 40px; }
+body[data-mode="board"] .bd-ticker .hot { color: var(--led); }
+body[data-mode="board"] .bd-ticker.urgent .hot { color: #000; }
+body.quiet[data-mode="board"] .bd-run > div + div { display: none; }
+@media (prefers-color-scheme: light) {
+  body[data-mode="board"] .bd-ticker { background: #222; }
+  body[data-mode="board"] .bd-ticker .hot, body[data-mode="board"] .bd-tag { color: #ffb000; }
+  body[data-mode="board"] .bd-ticker.urgent { background: #ffb000; }
+}
+
+/* ---------- 키프레임 ---------- */
+@keyframes bd-blink { 50% { opacity: .4; } }
+@keyframes bd-tick { to { transform: translateX(-50%); } }
+@keyframes bd-flip { 0% { transform: rotateX(90deg); filter: brightness(2.5); } 60% { filter: brightness(1.8); } 100% { transform: none; } }
+@keyframes bd-bump { 0% { transform: scale(1); } 30% { transform: scale(1.12); filter: brightness(1.8); } 100% { transform: scale(1); } }
+@keyframes bd-in { 0% { background: color-mix(in srgb, var(--led) 25%, transparent); transform: translateX(10px); opacity: 0; } 30% { opacity: 1; transform: none; } 100% { background: transparent; } }
+@keyframes bd-goal { 0% { opacity: 0; } 10% { opacity: 1; } 15%, 70% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes bd-flash { 50% { border-color: var(--led); box-shadow: 0 0 0 2px var(--led) inset, 0 0 50px color-mix(in srgb, var(--led) 35%, transparent); } }
+@keyframes bd-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+body[data-mode="board"] .bd-lane.goal .bd-goal span { animation: bd-goaltxt 3s ease-out; }
+@keyframes bd-goaltxt { 0% { transform: scale(2.4); letter-spacing: .6em; } 20% { transform: scale(1); letter-spacing: .25em; } 100% { transform: scale(1); } }
+
+/* ---------- 좁은 화면 ---------- */
+@media (max-width: 1180px) {
+  body[data-mode="board"] .bd { height: auto; min-height: 100vh; }
+  body[data-mode="board"] .bd-head { grid-template-columns: 1fr 1fr; }
+  body[data-mode="board"] .bd-league { grid-column: 1 / -1; }
+  body[data-mode="board"] .bd-ctl { flex-direction: row; }
+  body[data-mode="board"] .bd-clock { min-width: 0; }
+  body[data-mode="board"] .bd-head.no-pace .bd-clock { grid-column: 1 / -1; }
+  body[data-mode="board"] .bd-field { grid-template-columns: 1fr; }
+  body[data-mode="board"] .bd-lanes { overflow: visible; }
+  body[data-mode="board"] .bd-pbp { max-height: 340px; }
+  body[data-mode="board"] .bd-ticker { position: sticky; bottom: 0; z-index: 5; }
+}
+@media (max-width: 860px) {
+  body[data-mode="board"] .bd-lane { grid-template-columns: 6px minmax(0, 1fr) auto 76px; row-gap: 8px; padding-right: 12px; max-height: none; }
+  body[data-mode="board"] .bd-stripe { grid-row: 1 / span 2; }
+  body[data-mode="board"] .bd-play { grid-column: 2 / -1; grid-row: 2; }
+  body[data-mode="board"] .bd-lane.timeout::after { right: 14px; top: auto; bottom: 10px; transform: rotate(-4deg); font-size: 30px; }
+  body[data-mode="board"] .bd-memo { grid-column: 2 / -1; }
+  body[data-mode="board"] .bd-n { font-size: 36px; }
+  body[data-mode="board"] .bd-clock .bd-t { font-size: 44px; }
+  body[data-mode="board"] .bd-goal span { font-size: 40px; }
+}
+@media (max-width: 560px) {
+  body[data-mode="board"] .bd-head { grid-template-columns: 1fr; }
+  body[data-mode="board"] .bd-league { flex-wrap: wrap; }
+  body[data-mode="board"] .bd-side-stat { display: none; }
+  body[data-mode="board"] .bd-lane { grid-template-columns: 6px minmax(0, 1fr) 64px; }
+}

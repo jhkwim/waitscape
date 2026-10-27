@@ -1,0 +1,12 @@
+{
+  "$comment": "내장 모드 목록과 고정 순서(숫자키 기본 순서). 앱 빌드 때는 이 파일을 생성한다(ARCHITECTURE.md §4.2).",
+  "builtin": [
+    "studio",
+    "hamster",
+    "work",
+    "pocket",
+    "board",
+    "orbit",
+    "flow"
+  ]
+}

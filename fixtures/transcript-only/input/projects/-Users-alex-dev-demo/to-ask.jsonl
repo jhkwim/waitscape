@@ -1,0 +1,2 @@
+{"type": "user", "timestamp": "2026-10-20T17:59:40.000Z", "sessionId": "to-ask", "cwd": "/Users/alex/dev/demo", "uuid": "to-ask-u1", "isSidechain": false, "message": {"role": "user", "content": "어떤 방식이 좋을까?"}}
+{"type": "assistant", "timestamp": "2026-10-20T17:59:58.000Z", "sessionId": "to-ask", "cwd": "/Users/alex/dev/demo", "uuid": "to-ask-u2", "isSidechain": false, "message": {"role": "assistant", "id": "to-ask-m2", "content": [{"type": "tool_use", "id": "q1", "name": "AskUserQuestion", "input": {"questions": [{"question": "A? B?"}]}}], "stop_reason": "tool_use"}}

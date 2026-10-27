@@ -1,0 +1,141 @@
+name: Release Prep
+
+# 릴리스 준비 (흐름 전체: docs/RELEASE.md)
+# 1) 수동 실행: Actions → Release Prep → Run workflow (main, 입력: 0.2.0 또는 major / minor / patch)
+#    → scripts/version.py bump가 버전(Cargo.toml·tauri.conf.json·Cargo.lock)과 CHANGELOG.md를 한 번에 올리고
+#      release/vX.Y.Z 브랜치로 PR을 만든다. 커밋 작성자는 github-actions[bot].
+# 2) 그 PR이 main에 병합되면: 병합 커밋에 태그 vX.Y.Z를 붙이고 release.yml을 그 태그로 실행한다(빌드 → 초안 릴리스).
+#    GITHUB_TOKEN으로 만든 태그는 push 이벤트로 다른 워크플로를 깨우지 않아서 workflow_dispatch로 직접 부른다.
+# 주의: GITHUB_TOKEN으로 만든 PR에는 CI(ci.yml·rust.yml)가 저절로 돌지 않는다 → 병합 전에 사람이 PR을 닫았다 다시 열거나
+#       빈 커밋을 push해서 CI를 돌린다(docs/RELEASE.md '버전 PR에 CI 돌리기'). 개인 토큰은 이 파일에 넣지 않는다.
+# 두 잡 모두 Linux 러너 1개, 빌드 없음(수십 초).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "새 버전 (예: 0.2.0) 또는 major / minor / patch"
+        type: string
+        required: true
+        default: minor
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# 수동 실행끼리는 하나씩, PR 병합은 PR마다 따로 (다른 PR이 닫혀도 태그 잡이 취소되지 않게)
+concurrency:
+  group: release-prep-${{ github.event_name == 'workflow_dispatch' && 'dispatch' || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: 버전 PR 만들기
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # release/vX.Y.Z 브랜치 push (이 잡에서만)
+      pull-requests: write # PR 만들기 (이 잡에서만)
+    steps:
+      - name: main에서만
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          [ "$REF" = refs/heads/main ] || { echo "::error::Release Prep은 main 브랜치에서 실행하세요 (지금: $REF)"; exit 1; }
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # CHANGELOG 자동 채우기: 지난 v* 태그 이후 커밋 제목
+          persist-credentials: true # 이 잡만 브랜치를 push한다 (GITHUB_TOKEN, 잡이 끝나면 만료)
+
+      - name: 버전 올리기 + CHANGELOG
+        id: bump
+        env:
+          WANT: ${{ inputs.version }}
+        run: |
+          cur=$(python3 scripts/version.py show)
+          new=$(python3 scripts/version.py bump "$WANT" --date "$(date -u +%F)")
+          python3 scripts/version.py check
+          git status --short
+          echo "cur=$cur" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+
+      - name: 브랜치·커밋·PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CUR: ${{ steps.bump.outputs.cur }}
+          NEW: ${{ steps.bump.outputs.new }}
+        run: |
+          branch="release/v$NEW"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "::error::브랜치 ${branch}가 이미 있다. 열린 버전 PR을 병합하거나 브랜치를 지운 뒤 다시 실행하세요"; exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "v$NEW" >/dev/null; then
+            echo "::error::태그 v${NEW}가 이미 있다"; exit 1
+          fi
+          # 작성자 = GitHub Actions 봇 기본 신원 (개인 이메일을 쓰지 않는다)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add Cargo.toml Cargo.lock app/src-tauri/tauri.conf.json CHANGELOG.md
+          git commit -m "chore(release): v$NEW"
+          git push origin "$branch"
+          {
+            echo "버전 v$CUR → **v$NEW** (Actions의 Release Prep이 만든 PR)"
+            echo
+            echo "- 바뀐 파일: \`Cargo.toml\`(원본) · \`app/src-tauri/tauri.conf.json\` · \`Cargo.lock\` · \`CHANGELOG.md\`"
+            echo "- **병합하면** 태그 \`v$NEW\`가 붙고 release.yml이 맥·윈도우를 빌드해 **초안(draft) 릴리스**를 만든다. 확인한 뒤 직접 게시."
+            echo "- 이 PR은 GITHUB_TOKEN으로 만들어져 CI가 저절로 돌지 않는다. 병합 전에 **PR을 닫았다 다시 열기**(또는 빈 커밋 push)로 CI를 돌린다."
+            echo "- CHANGELOG 문구를 고치고 싶으면 이 브랜치에서 \`CHANGELOG.md\`를 수정해 push."
+            echo
+            echo "## v$NEW 바뀐 점"
+            echo
+            python3 scripts/version.py notes "$NEW"
+          } > "$RUNNER_TEMP/pr.md"
+          gh pr create --base main --head "$branch" --title "chore(release): v$NEW" --body-file "$RUNNER_TEMP/pr.md"
+          {
+            echo "### 버전 PR: v$CUR → v$NEW"
+            echo "브랜치 \`$branch\`. 병합하면 태그 + 릴리스 빌드가 시작된다."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  tag:
+    name: 태그 + 릴리스 빌드 시작
+    # 같은 저장소의 release/v* 브랜치 PR이 병합됐을 때만 (포크 PR·일반 PR은 건너뜀 = 러너를 쓰지 않음)
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/v') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # 태그 만들기 (이 잡에서만)
+      actions: write # release.yml 실행 (workflow_dispatch)
+    steps:
+      - name: 태그 vX.Y.Z (병합 커밋) + release.yml 실행
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          tag="${HEAD_REF#release/}"
+          if ! [[ "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::브랜치 이름($HEAD_REF)이 release/vX.Y.Z 형식이 아니다"; exit 1
+          fi
+          # 병합된 커밋의 원본 버전(Cargo.toml [workspace.package])이 태그와 같은지
+          ver=$(gh api "repos/$GH_REPO/contents/Cargo.toml?ref=$SHA" -H "Accept: application/vnd.github.raw" \
+            | sed -n '/^\[workspace\.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' | head -1)
+          if [ "v$ver" != "$tag" ]; then
+            echo "::error::병합 커밋의 Cargo.toml 버전(v$ver)이 브랜치($tag)와 다르다"; exit 1
+          fi
+          gh api "repos/$GH_REPO/git/refs" -f ref="refs/tags/$tag" -f sha="$SHA" >/dev/null
+          echo "태그 $tag → $SHA"
+          gh workflow run release.yml --ref "$tag"
+          {
+            echo "### 태그 $tag"
+            echo "병합 커밋 \`$SHA\`. release.yml을 이 태그로 실행했다 → 빌드가 끝나면 초안 릴리스를 확인하고 게시."
+          } >> "$GITHUB_STEP_SUMMARY"

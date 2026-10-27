@@ -1,0 +1,5 @@
+# 줄 끝을 LF로 고정 (Windows 체크아웃에서 fixture·스크립트가 CRLF로 바뀌어 동등성 테스트가 깨지는 것을 막음)
+* text=auto eol=lf
+*.png binary
+*.icns binary
+*.ico binary

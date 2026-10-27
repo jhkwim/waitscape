@@ -1,0 +1,415 @@
+{
+ "$comment": "MCP 보고 정화 규칙 공유 fixture. Rust wr-core report.rs 테스트와 scripts/test_mcp_reports.py(mcp_report.py)가 같은 결과를 내야 한다. @@FAKE_*@@는 fake_secrets.json으로 치환. 출력은 server.py redact를 쓴 결과. 형식 문자(Cf 표)를 토큰 사이에 끼운 사례는 지운 뒤 마스킹돼야 한다. 문자열은 NFC로 정규화한다(NFD 한글·결합 악센트 → 완성형, 국기·피부톤 이모지는 그대로).",
+ "clean": [
+  {
+   "in": "  결제   모듈\n리팩터\t중  ",
+   "n": 60,
+   "out": "결제 모듈 리팩터 중"
+  },
+  {
+   "in": "a‮b⁦c​d﻿e‍f",
+   "n": 60,
+   "out": "abcdef"
+  },
+  {
+   "in": "bell\u0007 esc\u001b[31m red\u0000",
+   "n": 60,
+   "out": "bell esc[31m red"
+  },
+  {
+   "in": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가",
+   "n": 60,
+   "out": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"
+  },
+  {
+   "in": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가나",
+   "n": 60,
+   "out": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가…"
+  },
+  {
+   "in": "토큰 @@FAKE_GH@@ 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "키 @@FAKE_SK@@ 와 password=hunter2 정리",
+   "n": 32,
+   "out": "키 <REDACTED> 와 password=<REDACT…"
+  },
+  {
+   "in": " 줄　바꿈\u001c끝",
+   "n": 60,
+   "out": "줄 바꿈끝"
+  },
+  {
+   "in": "🎉👩‍💻 이모지 결합",
+   "n": 8,
+   "out": "🎉👩💻 이모지…"
+  },
+  {
+   "in": "",
+   "n": 60,
+   "out": ""
+  },
+  {
+   "in": "   \n\t ",
+   "n": 60,
+   "out": ""
+  },
+  {
+   "in": "토큰 gh⁠p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh­p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh‎p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh‏p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh؜p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh⁤p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh⁪p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh￹p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh󠁁p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "토큰 gh᠎p_Zq7Zq7Zq7Zq7Zq7Zq7 교체",
+   "n": 60,
+   "out": "토큰 <REDACTED> 교체"
+  },
+  {
+   "in": "한글 보드 café",
+   "n": 60,
+   "out": "한글 보드 café"
+  },
+  {
+   "in": "ẹ́ Ồ 🇰🇷👍🏽",
+   "n": 60,
+   "out": "ẹ́ Ồ 🇰🇷👍🏽"
+  },
+  {
+   "in": "가나다라마바사아자차카",
+   "n": 6,
+   "out": "가나다라마…"
+  }
+ ],
+ "status": [
+  {
+   "in": {
+    "state": "working",
+    "title": "결제 모듈 리팩터",
+    "step": 3,
+    "total": 5
+   },
+   "out": {
+    "state": "working",
+    "title": "결제 모듈 리팩터",
+    "step": 3,
+    "total": 5
+   }
+  },
+  {
+   "in": {
+    "state": "asking",
+    "title": "어느 쪽으로 할까요?\n",
+    "big": true,
+    "cheer": "x"
+   },
+   "out": {
+    "state": "asking",
+    "title": "어느 쪽으로 할까요?"
+   }
+  },
+  {
+   "in": {
+    "state": "done",
+    "title": "끝",
+    "big": true,
+    "cheer": "  환불 버그까지 잡았어요  "
+   },
+   "out": {
+    "state": "done",
+    "title": "끝",
+    "big": true,
+    "cheer": "환불 버그까지 잡았어요"
+   }
+  },
+  {
+   "in": {
+    "state": "done",
+    "big": "yes",
+    "cheer": ""
+   },
+   "out": {
+    "state": "done"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "step": 6,
+    "total": 5
+   },
+   "out": {
+    "state": "working"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "step": 0,
+    "total": 5
+   },
+   "out": {
+    "state": "working"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "step": 1,
+    "total": 100
+   },
+   "out": {
+    "state": "working"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "step": 2.0,
+    "total": 5
+   },
+   "out": {
+    "state": "working"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "step": true,
+    "total": 5
+   },
+   "out": {
+    "state": "working"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "step": 2
+   },
+   "out": {
+    "state": "working"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "title": 42
+   },
+   "out": {
+    "state": "working"
+   }
+  },
+  {
+   "in": {
+    "state": "working",
+    "title": "@@FAKE_AWS@@ 키 회전"
+   },
+   "out": {
+    "state": "working",
+    "title": "<REDACTED> 키 회전"
+   }
+  },
+  {
+   "in": {
+    "state": "started"
+   },
+   "out": {
+    "error": "state must be one of: working, asking, done"
+   }
+  },
+  {
+   "in": {
+    "title": "상태 없음"
+   },
+   "out": {
+    "error": "state must be one of: working, asking, done"
+   }
+  },
+  {
+   "in": {
+    "state": null
+   },
+   "out": {
+    "error": "state must be one of: working, asking, done"
+   }
+  }
+ ],
+ "board": [
+  {
+   "in": {
+    "lines": [
+     "결제 API 타입 정리",
+     "환불 로직 분리",
+     "테스트 추가",
+     "PR 설명 쓰기",
+     "다섯째 줄"
+    ],
+    "done": [
+     0,
+     1
+    ]
+   },
+   "out": {
+    "lines": [
+     "결제 API 타입 정리",
+     "환불 로직 분리",
+     "테스트 추가",
+     "PR 설명 쓰기"
+    ],
+    "done": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "in": {
+    "lines": [
+     "a",
+     "b"
+    ],
+    "done": [
+     1,
+     1,
+     5,
+     -1,
+     true,
+     0.0,
+     "0"
+    ]
+   },
+   "out": {
+    "lines": [
+     "a",
+     "b"
+    ],
+    "done": [
+     1
+    ]
+   }
+  },
+  {
+   "in": {
+    "lines": [
+     "이 줄은 서른두 글자를 넘어가서 잘려야 하는 아주 긴 계획 한 줄입니다"
+    ]
+   },
+   "out": {
+    "lines": [
+     "이 줄은 서른두 글자를 넘어가서 잘려야 하는 아주 긴 계…"
+    ],
+    "done": []
+   }
+  },
+  {
+   "in": {
+    "lines": [
+     1,
+     "둘째"
+    ],
+    "done": [
+     0,
+     1
+    ]
+   },
+   "out": {
+    "lines": [
+     "",
+     "둘째"
+    ],
+    "done": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "in": {
+    "lines": []
+   },
+   "out": {
+    "error": "lines must be an array of 1-4 short strings"
+   }
+  },
+  {
+   "in": {
+    "lines": [
+     "",
+     "  "
+    ]
+   },
+   "out": {
+    "error": "lines must be an array of 1-4 short strings"
+   }
+  },
+  {
+   "in": {
+    "lines": "한 줄"
+   },
+   "out": {
+    "error": "lines must be an array of 1-4 short strings"
+   }
+  },
+  {
+   "in": {},
+   "out": {
+    "error": "lines must be an array of 1-4 short strings"
+   }
+  },
+  {
+   "in": {
+    "lines": [
+     "Bearer abcdefgh12345678 쓰기"
+    ]
+   },
+   "out": {
+    "lines": [
+     "Bearer <REDACTED> 쓰기"
+    ],
+    "done": []
+   }
+  }
+ ]
+}

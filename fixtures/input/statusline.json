@@ -1,0 +1,25 @@
+{
+ "limits": {
+  "five_hour": {
+   "used_percentage": 63,
+   "resets_at": 1792530600
+  },
+  "seven_day": {
+   "used_percentage": 27,
+   "resets_at": 1792929600
+  }
+ },
+ "limits_ts": 1792519170,
+ "sessions": {
+  "fx-read": {
+   "ts": 1792519200,
+   "ctx": 34,
+   "model": "Opus"
+  },
+  "fx-bash": {
+   "ts": 1792519200,
+   "ctx": 71,
+   "model": "Opus"
+  }
+ }
+}

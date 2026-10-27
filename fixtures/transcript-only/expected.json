@@ -1,0 +1,330 @@
+{
+ "$comment": "트랜스크립트 전용 판정 기대값(손으로 씀). 규칙: RULES.md. 적힌 필드만 비교(부분 비교). now/tz/home은 fixtures/fixture.json.",
+ "input": "fixtures/transcript-only/input",
+ "cases": {
+  "to-working-prompt": {
+   "status": "working",
+   "since": 1792519197,
+   "started": 1792519197,
+   "confidence": "sure",
+   "prompt": "README 정리해줘",
+   "health": null,
+   "tools": 0,
+   "say": "",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-working-read": {
+   "status": "working",
+   "since": 1792519160,
+   "started": 1792519160,
+   "confidence": "sure",
+   "health": null,
+   "tools": 1,
+   "say": "",
+   "tokens": {
+    "new": 1000,
+    "cached": 0,
+    "out": 20,
+    "total": 1020
+   },
+   "activity": [
+    {
+     "ts": 1792519180,
+     "icon": "📖",
+     "text": "app.py 읽는 중"
+    }
+   ],
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-working-result": {
+   "status": "working",
+   "since": 1792519170,
+   "started": 1792519170,
+   "confidence": "sure",
+   "health": null,
+   "tools": 1,
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-done": {
+   "status": "done",
+   "since": 1792519110,
+   "started": null,
+   "confidence": "sure",
+   "run": 30,
+   "tools": 1,
+   "tokens": {
+    "new": 500,
+    "cached": 0,
+    "out": 30,
+    "total": 530
+   },
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-input-edit": {
+   "status": "needs_input",
+   "since": 1792519185,
+   "started": 1792519170,
+   "confidence": "guess",
+   "note": "Edit 승인을 기다리는 중일 수 있어요",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-bash-short": {
+   "status": "working",
+   "since": 1792519190,
+   "started": 1792519190,
+   "confidence": "sure",
+   "health": null,
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-bash-long": {
+   "status": "needs_input",
+   "since": 1792519000,
+   "started": 1792518940,
+   "confidence": "guess",
+   "note": "Bash 승인을 기다리는 중일 수 있어요",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-bash-bg": {
+   "status": "needs_input",
+   "since": 1792519110,
+   "started": 1792519100,
+   "confidence": "guess",
+   "note": "Bash 승인을 기다리는 중일 수 있어요",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-ask": {
+   "status": "needs_input",
+   "since": 1792519198,
+   "started": 1792519180,
+   "confidence": "sure",
+   "note": "질문에 답을 기다리는 중",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-plan": {
+   "status": "needs_input",
+   "since": 1792519196,
+   "started": 1792519140,
+   "confidence": "sure",
+   "note": "계획 승인을 기다리는 중",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-interrupted": {
+   "status": "done",
+   "since": 1792519170,
+   "started": null,
+   "confidence": "sure",
+   "prompt": "리팩터링해줘",
+   "run": 20,
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-stall-model": {
+   "status": "working",
+   "since": 1792518700,
+   "confidence": "sure",
+   "health": {
+    "level": "stall",
+    "tool": null,
+    "secs": 400
+   },
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-slow-tool": {
+   "status": "working",
+   "since": 1792519000,
+   "confidence": "sure",
+   "health": {
+    "level": "slow",
+    "tool": "Grep",
+    "secs": 150
+   },
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-null-stop-recent": {
+   "status": "working",
+   "since": 1792519160,
+   "confidence": "sure",
+   "say": "설명 중입니다…",
+   "health": null,
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-null-stop-old": {
+   "status": "done",
+   "since": 1792519100,
+   "started": null,
+   "confidence": "guess",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-agents-bg": {
+   "status": "agents",
+   "since": 1792518920,
+   "started": null,
+   "confidence": "sure",
+   "tokens": {
+    "new": 3000,
+    "cached": 0,
+    "out": 40,
+    "total": 3040
+   },
+   "agents": [
+    {
+     "aid": "bg1",
+     "type": "Explore",
+     "desc": "로그 조사",
+     "bg": true,
+     "status": "running",
+     "since": 1792518911,
+     "tokens": 3040,
+     "health": null
+    }
+   ],
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-agents-joined": {
+   "status": "done",
+   "since": 1792519110,
+   "started": null,
+   "confidence": "sure",
+   "agents": [
+    {
+     "aid": "bg2",
+     "type": "Explore",
+     "desc": "API 조사",
+     "status": "done",
+     "ended": 1792519090
+    }
+   ],
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-agent-sync": {
+   "status": "working",
+   "since": 1792519100,
+   "started": 1792519100,
+   "confidence": "sure",
+   "health": null,
+   "agents": [
+    {
+     "aid": "sy1",
+     "type": "Explore",
+     "desc": "코드 탐색",
+     "bg": false,
+     "status": "running",
+     "since": 1792519111,
+     "health": null
+    }
+   ],
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-stale": {
+   "listed": false
+  },
+  "to-partial": {
+   "status": "done",
+   "since": 1792519150,
+   "started": null,
+   "confidence": "sure",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-mask": {
+   "status": "working",
+   "since": 1792519180,
+   "prompt": "이 키 써: <REDACTED> 그리고 password=<REDACTED>",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-todos": {
+   "status": "working",
+   "since": 1792519140,
+   "tools": 2,
+   "kinds": {
+    "todo": 1,
+    "read": 1
+   },
+   "todos": [
+    {
+     "text": "구조 파악",
+     "status": "completed"
+    },
+    {
+     "text": "수정하는 중",
+     "status": "in_progress"
+    },
+    {
+     "text": "테스트",
+     "status": "pending"
+    }
+   ],
+   "activity": [
+    {
+     "ts": 1792519150,
+     "icon": "🗒️",
+     "text": "할 일 정리 중"
+    },
+    {
+     "ts": 1792519197,
+     "icon": "📖",
+     "text": "main.py 읽는 중"
+    }
+   ],
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-command": {
+   "status": "idle",
+   "since": 1792519170,
+   "prompt": "",
+   "confidence": "sure",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  },
+  "to-command-run": {
+   "status": "working",
+   "since": 1792519180,
+   "prompt": "/review PR 42",
+   "say": "PR 42를 리뷰할게요.",
+   "listed": true,
+   "source": "transcript",
+   "project": "demo"
+  }
+ }
+}

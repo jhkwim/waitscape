@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mode.schema.json",
+  "title": "Mode API v1 — mode.json",
+  "description": "모드 패키지 매니페스트. 타입 설명은 ctx.d.ts의 ModeManifest. 검증 구현: web/core/core.js validate()",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "version",
+    "apiVersion"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+      "description": "폴더 이름과 같아야 함. 내장 id와 겹치면 거부"
+    },
+    "name": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ko": {
+              "type": "string"
+            },
+            "en": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        }
+      ]
+    },
+    "icon": {
+      "type": "string",
+      "description": "이모지(최대 4글자) 또는 패키지 안 .svg/.png"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+([-+][0-9A-Za-z.-]+)?$"
+    },
+    "apiVersion": {
+      "type": "string",
+      "pattern": "^\\d{1,3}\\.\\d{1,4}$",
+      "description": "기대하는 최소 Mode API (major.minor). 호스트 1.0"
+    },
+    "entry": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$))[A-Za-z0-9._/-]{1,125}\\.js$"
+    },
+    "styles": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$))[A-Za-z0-9._/-]{1,124}\\.css$"
+      }
+    },
+    "author": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "description": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ko": {
+              "type": "string"
+            },
+            "en": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        }
+      ]
+    },
+    "license": {
+      "type": "string"
+    },
+    "needs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "trace",
+          "memo",
+          "notify",
+          "clipboard"
+        ]
+      }
+    },
+    "uses": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "subagents",
+          "hooks",
+          "limits",
+          "todos",
+          "thinking",
+          "trace",
+          "tokens"
+        ]
+      },
+      "description": "안내용: 화면이 쓰는 프로바이더 기능"
+    },
+    "locale": {
+      "enum": [
+        "ko",
+        "en"
+      ]
+    },
+    "chimeWave": {
+      "enum": [
+        "sine",
+        "square",
+        "triangle",
+        "sawtooth"
+      ]
+    },
+    "widget": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

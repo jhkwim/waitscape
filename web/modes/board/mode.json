@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../types/mode.schema.json",
+  "id": "board",
+  "name": {
+    "ko": "전광판",
+    "en": "Scoreboard"
+  },
+  "icon": "🏟️",
+  "version": "1.0.0",
+  "apiVersion": "1.0",
+  "entry": "mode.js",
+  "styles": [
+    "mode.css"
+  ],
+  "author": {
+    "name": "built-in"
+  },
+  "description": {
+    "ko": "스포츠 중계 LED 전광판: 팀 레인·문자중계·속보 티커·MVP",
+    "en": "Sports LED scoreboard: team lanes, play-by-play, breaking ticker, MVP"
+  },
+  "license": "MIT",
+  "locale": "ko",
+  "needs": [],
+  "uses": [
+    "subagents",
+    "limits",
+    "tokens"
+  ],
+  "chimeWave": "triangle"
+}

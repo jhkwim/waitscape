@@ -1,0 +1,30 @@
+{
+  "$schema": "../../../types/mode.schema.json",
+  "id": "orbit",
+  "name": {
+    "ko": "궤도",
+    "en": "Orbit"
+  },
+  "icon": "🪐",
+  "version": "1.0.0",
+  "apiVersion": "1.0",
+  "entry": "mode.js",
+  "styles": [
+    "mode.css"
+  ],
+  "author": {
+    "name": "built-in"
+  },
+  "description": {
+    "ko": "한도 태양 + 세션 행성/서브에이전트 달 앰비언트 화면",
+    "en": "Ambient view: a usage-limit sun, session planets and sub-agent moons"
+  },
+  "license": "MIT",
+  "locale": "ko",
+  "needs": [],
+  "uses": [
+    "subagents",
+    "limits"
+  ],
+  "chimeWave": "sine"
+}

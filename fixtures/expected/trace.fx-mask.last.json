@@ -1,0 +1,45 @@
+{
+ "cursor": "1.0.2335",
+ "full": true,
+ "lanes": [
+  {
+   "desc": "메인 Claude",
+   "fail": 0,
+   "id": "main",
+   "status": "running",
+   "t_end": 1792519187.0,
+   "t_start": 1792519120.0,
+   "type": "main"
+  }
+ ],
+ "now": 1792519200,
+ "older": null,
+ "project": "secrets",
+ "prompt": {
+  "i": 0,
+  "last": true,
+  "t": 1792519120.0,
+  "t_next": null,
+  "text": "키 교체: <REDACTED> 로 바꿔"
+ },
+ "prompts": [
+  {
+   "i": 0,
+   "t": 1792519120.0,
+   "text": "키 교체: <REDACTED> 로 바꿔"
+  }
+ ],
+ "session": "fx-mask",
+ "steps": [
+  {
+   "claim": "note",
+   "kind": "say",
+   "lane": "main",
+   "phase": "understand",
+   "s": 0,
+   "t": 1792519187.0,
+   "text": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가 <REDACTE…"
+  }
+ ],
+ "total": 1
+}

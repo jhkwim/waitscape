@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../types/mode.schema.json",
+  "id": "work",
+  "name": {
+    "ko": "업무",
+    "en": "Work"
+  },
+  "icon": "💼",
+  "version": "1.0.0",
+  "apiVersion": "1.0",
+  "entry": "mode.js",
+  "styles": [
+    "mode.css"
+  ],
+  "author": {
+    "name": "built-in"
+  },
+  "description": {
+    "ko": "KPI 행 + 사용 한도 + 세션 테이블 관측 대시보드",
+    "en": "Observability dashboard: KPI row, usage limits, session table"
+  },
+  "license": "MIT",
+  "locale": "ko",
+  "needs": [
+    "memo"
+  ],
+  "uses": [
+    "subagents",
+    "todos",
+    "limits",
+    "tokens"
+  ],
+  "chimeWave": "sine"
+}

@@ -1,0 +1,982 @@
+{
+ "$comment": "멀티플렉서 이동 정보 골든(#37 cmux · #40 Orca): 같은 훅 입력(in)을 env별로 hook.py와 wr-hook(summarize + with_term)이 같은 줄(ts=0.5 고정)로 써야 한다. 어댑터 표의 env(ORCA_TERMINAL_HANDLE·ORCA_WORKTREE_PATH·CMUX_WORKSPACE_ID·CMUX_SURFACE_ID) 말고 다른 env(가짜 토큰·비밀번호·소켓 경로·Orca 탭/패널/작업공간 ID)는 기록되면 안 된다. 둘 다 있으면 Orca가 먼저. scripts/test_mcp_reports.py · wr-hook 테스트 jump_cases: 기록된 term → 세션 jump (server.py mux_jump = wr-core term::jump_of 재검증).",
+ "in": {
+  "session_id": "s1",
+  "cwd": "/Users/alex/dev/shop",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "결제 모듈 고쳐줘"
+ },
+ "cases": [
+  {
+   "env": {
+    "CMUX_SOCKET_PASSWORD": "pw-not-recorded-1",
+    "CMUX_API_TOKEN": "tok-not-recorded-2",
+    "CMUX_SOCKET_PATH": "/tmp/not-recorded.sock",
+    "CMUX_PANEL_ID": "surface:9",
+    "CMUX_WORKSPACE_ID": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0",
+    "CMUX_SURFACE_ID": "9A8B7C6D-5E4F-3A2B-1C0D-E9F8A7B6C5D4"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"cmux\", \"workspace\": \"0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0\", \"surface\": \"9A8B7C6D-5E4F-3A2B-1C0D-E9F8A7B6C5D4\"}}}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "workspace:2",
+    "CMUX_SURFACE_ID": "surface:5"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"cmux\", \"workspace\": \"workspace:2\", \"surface\": \"surface:5\"}}}"
+  },
+  {
+   "env": {
+    "CMUX_SOCKET_PASSWORD": "pw-not-recorded-1",
+    "CMUX_API_TOKEN": "tok-not-recorded-2",
+    "CMUX_SOCKET_PATH": "/tmp/not-recorded.sock",
+    "CMUX_PANEL_ID": "surface:9",
+    "CMUX_WORKSPACE_ID": "workspace:3",
+    "CMUX_SURFACE_ID": "surface:5; rm -rf ~"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"cmux\", \"workspace\": \"workspace:3\"}}}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "--help",
+    "CMUX_SURFACE_ID": "surface:5"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "workspace:2\n",
+    "CMUX_SURFACE_ID": "surface:5"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "",
+    "CMUX_SURFACE_ID": "surface:5"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_SURFACE_ID": "surface:5"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_SOCKET_PASSWORD": "pw-not-recorded-1",
+    "CMUX_API_TOKEN": "tok-not-recorded-2",
+    "CMUX_SOCKET_PATH": "/tmp/not-recorded.sock",
+    "CMUX_PANEL_ID": "surface:9"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "\nworkspace:2",
+    "CMUX_SURFACE_ID": "surface:5"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "workspace:٢",
+    "CMUX_SURFACE_ID": "surface:5"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "workspace:２"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "abcdefghijklmnop:123456",
+    "CMUX_SURFACE_ID": "abcdefghijklmnopq:1"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"cmux\", \"workspace\": \"abcdefghijklmnop:123456\"}}}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "abcdefghijklmnopq:1"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "workspace:1234567"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "workspace:2\r",
+    "CMUX_SURFACE_ID": "--password"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "--workspace=workspace:2"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "CMUX_WORKSPACE_ID": "İ:1"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_AGENT_HOOK_TOKEN": "tok-not-recorded-3",
+    "ORCA_AGENT_LAUNCH_TOKEN": "tok-not-recorded-4",
+    "ORCA_WORKTREE_ID": "wt-not-recorded-5",
+    "ORCA_WORKSPACE_ID": "ws-not-recorded-6",
+    "ORCA_TAB_ID": "tab-not-recorded-7",
+    "ORCA_PANE_KEY": "pane-not-recorded-8",
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "/Users/alex/dev/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\", \"path\": \"/Users/alex/dev/shop\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_0123456789abcdef0123456789abcdef"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_0123456789abcdef0123456789abcdef\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3F2B1C0D-9E8F-4A7B-8C6D-5E4F3A2B1C0D",
+    "ORCA_WORKTREE_PATH": "/Users/알렉스/작업 폴더/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3F2B1C0D-9E8F-4A7B-8C6D-5E4F3A2B1C0D\", \"path\": \"/Users/알렉스/작업 폴더/shop\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_AGENT_HOOK_TOKEN": "tok-not-recorded-3",
+    "ORCA_AGENT_LAUNCH_TOKEN": "tok-not-recorded-4",
+    "ORCA_WORKTREE_ID": "wt-not-recorded-5",
+    "ORCA_WORKSPACE_ID": "ws-not-recorded-6",
+    "ORCA_TAB_ID": "tab-not-recorded-7",
+    "ORCA_PANE_KEY": "pane-not-recorded-8",
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "dev/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "/Users/alex\n; rm -rf ~"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "/Users/alex/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\", \"path\": \"/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "--worktree=active"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "C:\\Users\\alex\\dev\\shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\", \"path\": \"C:\\\\Users\\\\alex\\\\dev\\\\shop\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "C:/Users/알렉스/작업 폴더/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\", \"path\": \"C:/Users/알렉스/작업 폴더/shop\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "\\\\nas\\share\\shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\", \"path\": \"\\\\\\\\nas\\\\share\\\\shop\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "C:dev\\shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "dev\\shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "\\\\"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_AGENT_HOOK_TOKEN": "tok-not-recorded-3",
+    "ORCA_AGENT_LAUNCH_TOKEN": "tok-not-recorded-4",
+    "ORCA_WORKTREE_ID": "wt-not-recorded-5",
+    "ORCA_WORKSPACE_ID": "ws-not-recorded-6",
+    "ORCA_TAB_ID": "tab-not-recorded-7",
+    "ORCA_PANE_KEY": "pane-not-recorded-8",
+    "ORCA_TERMINAL_HANDLE": "term_abc123",
+    "ORCA_WORKTREE_PATH": "/Users/alex/dev/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "--terminal",
+    "ORCA_WORKTREE_PATH": "/Users/alex/dev/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "TERM_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\n"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_0123456789abcdef0123456789abcdef0"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "",
+    "ORCA_WORKTREE_PATH": "/Users/alex/dev/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_AGENT_HOOK_TOKEN": "tok-not-recorded-3",
+    "ORCA_AGENT_LAUNCH_TOKEN": "tok-not-recorded-4",
+    "ORCA_WORKTREE_ID": "wt-not-recorded-5",
+    "ORCA_WORKSPACE_ID": "ws-not-recorded-6",
+    "ORCA_TAB_ID": "tab-not-recorded-7",
+    "ORCA_PANE_KEY": "pane-not-recorded-8",
+    "ORCA_WORKTREE_PATH": "/Users/alex/dev/shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "ORCA_WORKTREE_PATH": "/Users/alex/dev/shop",
+    "CMUX_WORKSPACE_ID": "workspace:7",
+    "CMUX_SURFACE_ID": "surface:8"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d\", \"path\": \"/Users/alex/dev/shop\"}}}"
+  },
+  {
+   "env": {
+    "ORCA_TERMINAL_HANDLE": "term_abc123",
+    "CMUX_WORKSPACE_ID": "workspace:7",
+    "CMUX_SURFACE_ID": "surface:8"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"cmux\", \"workspace\": \"workspace:7\", \"surface\": \"surface:8\"}}}"
+  }
+ ],
+ "jump_cases": [
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0",
+     "surface": "surface:5",
+     "token": "x"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0",
+     "surface": "surface:5"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "workspace:2",
+     "surface": 5
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "workspace:2"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "workspace:2",
+     "surface": [
+      "surface:5"
+     ]
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "workspace:2"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": [
+      "cmux"
+     ],
+     "workspace": "workspace:2"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "CMUX",
+     "workspace": "workspace:2"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "unknown",
+     "workspace": "workspace:2"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "workspace": "workspace:2"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "\nworkspace:2"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "workspace:2\n"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "workspace:٢"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "abcdefghijklmnop:123456"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "abcdefghijklmnop:123456"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": "abcdefghijklmnopq:1"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "workspace": null
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": "workspace:2"
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "cmux": {
+     "workspace": "workspace:2"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": "mux",
+   "jump": null
+  },
+  {
+   "term": null,
+   "jump": null
+  },
+  {
+   "term": [],
+   "jump": null
+  },
+  {
+   "term": 3,
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "/Users/alex/dev/shop",
+     "token": "tok-x",
+     "workspace": "workspace:1"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "/Users/alex/dev/shop"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_0123456789abcdef0123456789abcdef"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_0123456789abcdef0123456789abcdef"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": 3
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "dev/shop"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "C:\\Users\\alex\\dev\\shop"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "C:\\Users\\alex\\dev\\shop"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\nas\\share\\shop"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\nas\\share\\shop"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "C:dev\\shop"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\C:\\Users\\alex"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\C:\\Users\\alex"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\UNC\\nas\\share\\shop"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\UNC\\nas\\share\\shop"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\nas\\s"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\nas\\s"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "C:\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "C:\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\\\server"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\shop"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "C:"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "1:/x"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "CD:\\x"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\.\\pipe\\x"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\.\\PhysicalDrive0"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\GLOBALROOT\\Device\\x"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\C:/x"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\UNC\\nas"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\?\\UNC\\.\\pipe\\x"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\a"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\a\\"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "\\\\a/b"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "C:\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "/a\nb"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "surface": "term_abc123",
+     "path": "/Users/alex/dev/shop"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "path": "/Users/alex/dev/shop"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "orca",
+     "workspace": "workspace:2"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "Orca",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "cmux",
+     "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+     "path": "/Users/alex/dev/shop"
+    }
+   },
+   "jump": null
+  }
+ ]
+}

@@ -1,0 +1,23 @@
+/* 스타터 모드 스타일 — 라이트/다크 토큰. 규칙은 body[data-mode="starter"] 접두사로 */
+body[data-mode="starter"] {
+  --st-bg: #f6f7f9; --st-fg: #1b1f24; --st-mute: #6b7280; --st-line: #e3e6ea; --st-card: #fff; --st-acc: #3b82f6;
+  background: var(--st-bg); color: var(--st-fg); font: 14px/1.5 system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  body[data-mode="starter"] { --st-bg: #0f1115; --st-fg: #e6e8eb; --st-mute: #9aa3ad; --st-line: #262a31; --st-card: #161920; --st-acc: #60a5fa; }
+}
+body[data-mode="starter"] .st-head { display: flex; align-items: baseline; justify-content: space-between; padding: 20px 24px 8px; }
+body[data-mode="starter"] h1 { margin: 0; font-size: 20px; transition: color .3s; }
+body[data-mode="starter"] h1.st-flash { color: var(--st-acc); }
+body[data-mode="starter"] .st-clock { color: var(--st-mute); font-variant-numeric: tabular-nums; }
+body[data-mode="starter"] .st-main { padding: 8px 24px 64px; }
+body[data-mode="starter"] table { width: 100%; border-collapse: collapse; background: var(--st-card); border: 1px solid var(--st-line); border-radius: 10px; overflow: hidden; }
+body[data-mode="starter"] th, body[data-mode="starter"] td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--st-line); }
+body[data-mode="starter"] th { color: var(--st-mute); font-weight: 500; font-size: 12px; }
+body[data-mode="starter"] .st-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--st-mute); }
+body[data-mode="starter"] .st-working, body[data-mode="starter"] .st-agents { background: var(--st-acc); }
+body[data-mode="starter"] .st-needs_input { background: #f59e0b; }
+body[data-mode="starter"] .st-done { background: #10b981; }
+body[data-mode="starter"] .st-memo { width: 100%; font: inherit; color: inherit; background: transparent; border: 1px solid var(--st-line); border-radius: 6px; padding: 3px 6px; }
+body[data-mode="starter"] .st-load { font: inherit; color: inherit; background: transparent; border: 1px solid var(--st-line); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+body[data-mode="starter"] .st-empty { color: var(--st-mute); }

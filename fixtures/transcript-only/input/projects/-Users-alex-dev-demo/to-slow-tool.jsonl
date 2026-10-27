@@ -1,0 +1,2 @@
+{"type": "user", "timestamp": "2026-10-20T17:56:40.000Z", "sessionId": "to-slow-tool", "cwd": "/Users/alex/dev/demo", "uuid": "to-slow-tool-u1", "isSidechain": false, "message": {"role": "user", "content": "읽어줘"}}
+{"type": "assistant", "timestamp": "2026-10-20T17:57:30.000Z", "sessionId": "to-slow-tool", "cwd": "/Users/alex/dev/demo", "uuid": "to-slow-tool-u2", "isSidechain": false, "message": {"role": "assistant", "id": "to-slow-tool-m2", "content": [{"type": "tool_use", "id": "s1", "name": "Grep", "input": {"pattern": "TODO"}}], "stop_reason": "tool_use"}}

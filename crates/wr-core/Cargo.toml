@@ -1,0 +1,21 @@
+[package]
+name = "wr-core"
+description = "Waitscape core: session state/trace engine with provider adapters (Claude first)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["usage"]
+# 사용 한도 조회(HTTP 클라이언트). 끄면 네트워크 코드가 빌드에서 빠진다.
+usage = ["dep:ureq"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true
+indexmap.workspace = true
+chrono.workspace = true
+zeroize.workspace = true
+icu_normalizer.workspace = true
+ureq = { workspace = true, optional = true }

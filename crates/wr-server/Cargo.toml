@@ -1,0 +1,12 @@
+[package]
+name = "wr-server"
+description = "Waitscape browser server: 127.0.0.1 HTTP for /state, /trace and static files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+wr-core = { path = "../wr-core" }
+serde_json.workspace = true
+tiny_http.workspace = true
+

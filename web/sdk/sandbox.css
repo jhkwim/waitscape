@@ -1,0 +1,8 @@
+/* 외부 모드 샌드박스 기본 스타일 (core.css의 리셋·회의 모드와 같은 규칙) */
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+html { min-height: 100%; }
+body { margin: 0; min-height: 100vh; overflow-x: hidden; }
+.mode-root { display: contents; }
+body.quiet *, body.quiet *::before, body.quiet *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }

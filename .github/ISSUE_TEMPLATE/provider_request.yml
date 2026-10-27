@@ -1,0 +1,64 @@
+name: "🧩 프로바이더 요청 / Provider request"
+description: "다른 AI 코딩 도구 지원 요청 / Request support for another AI coding agent"
+labels: ["provider"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        프로바이더 = Claude Code 외의 AI 코딩 도구(예: Codex CLI, Gemini CLI). 세션 데이터 모양은 `types/state.d.ts`의 `provider`·`providers`(@since 1.1), 기능 목록은 [MODES.md](https://github.com/jhkwim/waitscape/blob/main/MODES.md) §6.
+        A provider is an AI coding tool other than Claude Code. See `types/state.d.ts` and MODES.md §6.
+
+        ⚠️ 실제 기록 파일 내용을 붙일 때는 프롬프트·코드·토큰·경로를 지운 **합성 예시**로 바꿔 주세요.
+        If you paste session log samples, replace them with **synthetic** examples (no real prompts, code, tokens or paths).
+  - type: input
+    id: tool
+    attributes:
+      label: "AI 도구 / AI tool"
+      placeholder: "Codex CLI 0.x, Gemini CLI, Aider, ..."
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: "공식 문서·저장소 / Official docs or repository"
+  - type: textarea
+    id: logs
+    attributes:
+      label: "세션 기록 파일 위치·형식 / Session log location & format"
+      description: "OS별 경로, 파일 형식(JSONL 등), 한 세션 = 파일 하나인지 / Path per OS, format, one file per session?"
+      placeholder: |
+        macOS/Linux: ~/.codex/sessions/YYYY/MM/DD/*.jsonl
+        Windows: %USERPROFILE%\.codex\sessions\...
+        형식 / format: JSONL, 한 줄 = 이벤트 하나
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: "합성 기록 예시 / Synthetic log sample"
+      render: json
+  - type: checkboxes
+    id: caps
+    attributes:
+      label: "도구가 제공하는 기능 / Capabilities the tool exposes"
+      description: "`capabilities` 키와 대응 / Maps to provider capabilities"
+      options:
+        - label: "tokens — 토큰 사용량 / token usage"
+        - label: "subagents — 서브에이전트 / sub-agents"
+        - label: "todos — 할 일 목록 / todo list"
+        - label: "thinking — 생각 단계 / reasoning steps"
+        - label: "trace — 도구 호출 기록 / tool call history"
+        - label: "hooks — 훅·이벤트 알림 / hooks or event callbacks"
+        - label: "limits — 사용 한도 조회 / usage limits"
+  - type: textarea
+    id: status
+    attributes:
+      label: "상태 판정 단서 / Status signals"
+      description: "작업 중·끝남·입력 필요를 기록에서 어떻게 알 수 있나요? / How can working / done / needs-input be detected?"
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: "기여 / Contribution"
+      options:
+        - label: "합성 fixture를 만들어 줄 수 있어요 / I can provide synthetic fixtures"
+        - label: "구현에 참여하고 싶어요 / I'd like to help implement"

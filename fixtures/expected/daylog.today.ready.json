@@ -1,0 +1,137 @@
+{
+ "body": {
+  "big": [
+   {
+    "job": "재시도 로그 정리",
+    "project": "daily-api",
+    "provider": "claude",
+    "run": 900,
+    "sid": "fx-day",
+    "t": 1792556100
+   },
+   {
+    "job": "웹훅 재시도 고쳐줘 token=<REDACTED>",
+    "project": "daily-api",
+    "provider": "claude",
+    "run": 800.0,
+    "sid": "fx-day",
+    "t": 1792524000.0
+   }
+  ],
+  "big_count": 2,
+  "cheers": [],
+  "day": "2026-10-21",
+  "done": 5,
+  "end": 1792609200.0,
+  "first": 1792522799.5,
+  "last": 1792556100,
+  "last_call": {
+   "project": "daily-api",
+   "provider": "claude",
+   "sid": "fx-day",
+   "t": 1792556100
+  },
+  "limits": {
+   "peak": 100.0,
+   "resets": [
+    1792530600.0,
+    1792548600.0
+   ],
+   "samples": [
+    {
+     "five_hour": 100.0,
+     "five_hour_resets": 1792530600.0,
+     "seven_day": 40.0,
+     "seven_day_resets": 1792929600.0,
+     "t": 1792524300.0
+    },
+    {
+     "five_hour": 12.0,
+     "five_hour_resets": 1792548600.0,
+     "seven_day": 41.0,
+     "seven_day_resets": 1792929600.0,
+     "t": 1792530900.0
+    },
+    {
+     "five_hour": null,
+     "five_hour_resets": null,
+     "seven_day": 41.0,
+     "seven_day_resets": 1792929600.0,
+     "t": 1792558799
+    }
+   ],
+   "weekly": {
+    "from": 40.0,
+    "to": 41.0
+   }
+  },
+  "mvp": {
+   "done": 2,
+   "project": "daily-api",
+   "provider": "claude",
+   "sid": "fx-day",
+   "work": 1700.0
+  },
+  "now": 1792558800,
+  "outage_count": 1,
+  "outages": [
+   {
+    "t0": 1792524300.0,
+    "t1": 1792530600.0
+   }
+  ],
+  "prev": {
+   "day": "2026-10-20",
+   "done": 13,
+   "ready": true,
+   "ready_at": 1792522800.0,
+   "seen": 1792530960,
+   "unseen": false
+  },
+  "quiet": 2700,
+  "ready": true,
+  "ready_at": 1792558800,
+  "reason": "quiet",
+  "rule": {
+   "after_hour": 12,
+   "big_min": 10,
+   "day_hour": 4,
+   "keep_days": 14,
+   "quiet_min": 45
+  },
+  "seen": null,
+  "start": 1792522800.0,
+  "today": true,
+  "unseen": true,
+  "v": 1,
+  "wait": {
+   "avg": 80.0,
+   "n": 1
+  },
+  "work": 2060.5,
+  "workers": [
+   {
+    "done": 2,
+    "project": "daily-api",
+    "provider": "claude",
+    "sid": "fx-day",
+    "work": 1700.0
+   },
+   {
+    "done": 2,
+    "project": "ui-kit",
+    "provider": "claude",
+    "sid": "fx-ui",
+    "work": 360.0
+   },
+   {
+    "done": 1,
+    "project": "night-batch",
+    "provider": "claude",
+    "sid": "fx-night",
+    "work": 0.5
+   }
+  ]
+ },
+ "status": 200
+}

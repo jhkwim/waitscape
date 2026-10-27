@@ -1,0 +1,108 @@
+{"ts": 1792490400, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "SubagentStart", "aid": "txnew", "atype": "general-purpose"}
+{"ts": 1792490405, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "PreToolUse", "aid": "txnew", "atype": "general-purpose", "icon": "📖", "text": "notes.md 읽는 중", "kind": "read"}
+{"ts": 1792494000, "sid": "fx-stale", "cwd": "/Users/alex/dev/old", "event": "UserPromptSubmit", "text": "오래된 작업"}
+{"ts": 1792494000, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "SubagentStart", "aid": "txold", "atype": "general-purpose"}
+{"ts": 1792494005, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "PreToolUse", "aid": "txold", "atype": "general-purpose", "icon": "📖", "text": "notes.md 읽는 중", "kind": "read"}
+{"ts": 1792497540, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "SubagentStart", "aid": "s61", "atype": "general-purpose"}
+{"ts": 1792497545, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "PreToolUse", "aid": "s61", "atype": "general-purpose", "icon": "📖", "text": "notes.md 읽는 중", "kind": "read"}
+{"ts": 1792497660, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "SubagentStart", "aid": "s59", "atype": "general-purpose"}
+{"ts": 1792497665, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "PreToolUse", "aid": "s59", "atype": "general-purpose", "icon": "📖", "text": "notes.md 읽는 중", "kind": "read"}
+{"ts": 1792504800, "sid": "fx-yday", "cwd": "/Users/alex/dev/yesterday", "event": "UserPromptSubmit", "text": "어제 하던 것"}
+{"ts": 1792505100, "sid": "fx-yday", "cwd": "/Users/alex/dev/yesterday", "event": "PreToolUse", "icon": "📖", "text": "todo.md 읽는 중", "kind": "read"}
+{"ts": 1792505400, "sid": "fx-yday", "cwd": "/Users/alex/dev/yesterday", "event": "Stop"}
+{"ts": 1792515600, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "UserPromptSubmit", "text": "주문 목록 API에 페이지네이션 추가해줘"}
+{"ts": 1792515660, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "Stop"}
+{"ts": 1792516200, "sid": "fx-big", "cwd": "/Users/alex/dev/bigrepo", "event": "UserPromptSubmit", "text": "큰 리팩터링"}
+{"ts": 1792517200, "sid": "fx-idle", "cwd": "/Users/alex/dev/notes", "event": "UserPromptSubmit", "text": "회의록 요약해줘"}
+{"ts": 1792517300, "sid": "fx-idle", "cwd": "/Users/alex/dev/notes", "event": "PreToolUse", "icon": "📖", "text": "meeting.md 읽는 중", "kind": "read"}
+{"ts": 1792517400, "sid": "fx-idle", "cwd": "/Users/alex/dev/notes", "event": "Stop"}
+{"ts": 1792518300, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "UserPromptSubmit", "text": "API 구조 조사해줘"}
+{"ts": 1792518300, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "UserPromptSubmit", "text": "결제 실패율이 왜 올랐는지 조사하고 고쳐줘. 키는 @@FAKE_SK@@ 야"}
+{"ts": 1792518320, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 라우터와 미들웨어 구조 조사", "kind": "agent", "agent_desc": "라우터와 미들웨어 구조 조사", "bg": true, "agent_req": "Explore"}
+{"ts": 1792518321, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "SubagentStart", "aid": "p0", "atype": "Explore"}
+{"ts": 1792518321, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: DB 스키마 비교", "kind": "agent", "agent_desc": "DB 스키마 비교", "bg": true, "agent_req": "Explore"}
+{"ts": 1792518322, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "SubagentStart", "aid": "p1", "atype": "Explore"}
+{"ts": 1792518322, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 인증 흐름 조사", "kind": "agent", "agent_desc": "인증 흐름 조사", "bg": true, "agent_req": "Explore"}
+{"ts": 1792518323, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "SubagentStart", "aid": "p2", "atype": "Explore"}
+{"ts": 1792518339.5, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 결제 로그 분석", "kind": "agent", "agent_desc": "결제 로그 분석", "bg": true, "agent_req": "Explore"}
+{"ts": 1792518340, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "SubagentStart", "aid": "a1x", "atype": "Explore"}
+{"ts": 1792518341.5, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: PG 응답 코드 조사", "kind": "agent", "agent_desc": "PG 응답 코드 조사", "bg": true, "agent_req": "Explore"}
+{"ts": 1792518342, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "SubagentStart", "aid": "a2x", "atype": "Explore"}
+{"ts": 1792518343.5, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 재시도 로직 테스트 작성", "kind": "agent", "agent_desc": "재시도 로직 테스트 작성", "bg": true, "agent_req": "general-purpose"}
+{"ts": 1792518344, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "SubagentStart", "aid": "a3x", "atype": "general-purpose"}
+{"ts": 1792518350, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "Stop"}
+{"ts": 1792518500, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "UserPromptSubmit", "text": "작업 셋 만들어"}
+{"ts": 1792518500, "sid": "fx-mcp-cheer", "cwd": "/Users/alex/dev/report-cheer", "event": "UserPromptSubmit", "text": "로그인 버그 고쳐줘"}
+{"ts": 1792518510, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PreToolUse", "icon": "🔧", "text": "TaskCreate", "kind": "todo"}
+{"ts": 1792518510.5, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_new": {"id": "1", "text": "설계"}}
+{"ts": 1792518511, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PreToolUse", "icon": "🔧", "text": "TaskCreate", "kind": "todo"}
+{"ts": 1792518511.5, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_new": {"id": "2", "text": "구현"}}
+{"ts": 1792518512, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PreToolUse", "icon": "🔧", "text": "TaskCreate", "kind": "todo"}
+{"ts": 1792518512.5, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_new": {"id": "3", "text": "문서"}}
+{"ts": 1792518596, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "SubagentStop", "aid": "a1x", "atype": "Explore"}
+{"ts": 1792518600, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_upd": {"id": "1", "status": "in_progress", "text": "설계하는 중"}}
+{"ts": 1792518600, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "Resume"}
+{"ts": 1792518700, "sid": "fx-ended", "cwd": "/Users/alex/dev/gone", "event": "UserPromptSubmit", "text": "정리해줘"}
+{"ts": 1792518700, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_upd": {"id": "1", "status": "completed", "text": ""}}
+{"ts": 1792518710, "sid": "fx-ended", "cwd": "/Users/alex/dev/gone", "event": "SubagentStart", "aid": "e0", "atype": "Explore"}
+{"ts": 1792518720, "sid": "fx-ended", "cwd": "/Users/alex/dev/gone", "event": "SessionEnd"}
+{"ts": 1792518780, "sid": "fx-bash", "cwd": "/Users/alex/dev/payment", "event": "UserPromptSubmit", "text": "결제 테스트 전부 돌려줘"}
+{"ts": 1792518800, "sid": "fx-bash", "cwd": "/Users/alex/dev/payment", "event": "PreToolUse", "icon": "🗒️", "text": "할 일 정리 중", "kind": "todo", "todos": [{"text": "구조 파악", "status": "completed"}, {"text": "테스트 수정", "status": "completed"}, {"text": "전체 테스트 돌리는 중", "status": "in_progress"}, {"text": "리포트", "status": "pending"}]}
+{"ts": 1792518800, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "aid": "p0", "atype": "Explore", "icon": "🔍", "text": "'router' 찾는 중", "kind": "search"}
+{"ts": 1792518800, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_upd": {"id": "3", "status": "deleted", "text": ""}}
+{"ts": 1792518800, "sid": "fx-mcp-cheer", "cwd": "/Users/alex/dev/report-cheer", "event": "PreToolUse", "report": {"tool": "status", "state": "done", "title": "로그인 버그 수정", "big": true, "cheer": "세션 만료까지 깔끔히 정리했어요"}}
+{"ts": 1792518860, "sid": "fx-mcp-cheer", "cwd": "/Users/alex/dev/report-cheer", "event": "Stop"}
+{"ts": 1792518900, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "SubagentStop", "aid": "p2", "atype": "Explore"}
+{"ts": 1792518900, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_upd": {"id": "2", "status": "in_progress", "text": "구현하는 중"}}
+{"ts": 1792518900, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "UserPromptSubmit", "text": "결제 모듈 리팩터해줘"}
+{"ts": 1792518910, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "PreToolUse", "report": {"tool": "status", "state": "working", "title": "결제 모듈 리팩터", "step": 1, "total": 4}}
+{"ts": 1792518915, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "PreToolUse", "report": {"tool": "board", "lines": ["타입 정리", "환불 분리", "테스트", "PR"], "done": [0]}}
+{"ts": 1792518920, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "PreToolUse", "icon": "📖", "text": "refund.py 읽는 중", "kind": "read"}
+{"ts": 1792518924, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "SubagentStart", "aid": "r0", "atype": "Explore"}
+{"ts": 1792518925, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "PreToolUse", "aid": "r0", "atype": "Explore", "report": {"tool": "board", "lines": ["서브에이전트 보드"], "done": []}}
+{"ts": 1792518930, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "PreToolUse", "report": {"tool": "status", "state": "bogus"}}
+{"ts": 1792518940, "sid": "fx-mcp-hook", "cwd": "/Users/alex/dev/report-hook", "event": "PreToolUse", "report": {"tool": "status", "state": "working", "title": "토큰 @@FAKE_GH@@ 교체", "step": 2, "total": 4}}
+{"ts": 1792519000, "sid": "fx-partial", "cwd": "/Users/alex/dev/partial", "event": "UserPromptSubmit", "text": "부분 기록 테스트"}
+{"ts": 1792519000, "sid": "fx-mcp-fb", "cwd": "/Users/alex/dev/report-fb", "event": "UserPromptSubmit", "text": "문서 정리"}
+{"ts": 1792519010, "sid": "fx-partial", "cwd": "/Users/alex/dev/partial", "event": "PreToolUse", "icon": "⚡", "text": "ls", "kind": "bash"}
+{"ts": 1792519050, "sid": "fx-cmd", "cwd": "/Users/alex/dev/cmd", "event": "UserPromptSubmit", "text": "/review 결제 모듈"}
+{"ts": 1792519060, "sid": "fx-cmd", "cwd": "/Users/alex/dev/cmd", "event": "Stop"}
+{"ts": 1792519070, "sid": "fx-bash", "cwd": "/Users/alex/dev/payment", "event": "PreToolUse", "icon": "⚡", "text": "xcodebuild test", "kind": "bash"}
+{"ts": 1792519080, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "UserPromptSubmit", "text": "백그라운드 조사 맡겨둘게"}
+{"ts": 1792519080, "sid": "fx-twin-a", "cwd": "/Users/alex/dev/twins", "event": "UserPromptSubmit", "text": "쌍둥이 작업"}
+{"ts": 1792519080, "sid": "fx-twin-b", "cwd": "/Users/alex/dev/twins", "event": "UserPromptSubmit", "text": "쌍둥이 작업"}
+{"ts": 1792519100, "sid": "fx-start", "cwd": "/Users/alex/dev/empty", "event": "SessionStart"}
+{"ts": 1792519100, "sid": "fx-big", "cwd": "/Users/alex/dev/bigrepo", "event": "Stop"}
+{"ts": 1792519100, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "Stop"}
+{"ts": 1792519100, "sid": "fx-mcp-fb", "cwd": "/Users/alex/dev/report-fb", "event": "PreToolUse", "icon": "📖", "text": "README.md 읽는 중", "kind": "read"}
+{"ts": 1792519110, "sid": "fx-done", "cwd": "/Users/alex/dev/blog", "event": "UserPromptSubmit", "text": "글 오타 고쳐줘"}
+{"ts": 1792519120, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "UserPromptSubmit", "text": "cmux에서 작업", "term": {"mux": {"kind": "cmux", "workspace": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0", "surface": "9A8B7C6D-5E4F-3A2B-1C0D-E9F8A7B6C5D4"}}}
+{"ts": 1792519120, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "UserPromptSubmit", "text": "키 교체: @@FAKE_SK@@ 로 바꿔"}
+{"ts": 1792519125, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "PreToolUse", "icon": "🗒️", "text": "할 일 정리 중", "kind": "todo", "todos": [{"text": "password=@@FAKE_PW@@ 지우기", "status": "in_progress"}]}
+{"ts": 1792519130, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "SubagentStart", "aid": "cm1", "atype": "Explore", "term": {"mux": {"kind": "cmux", "workspace": "workspace:2", "surface": "surface:5", "token": "x"}}}
+{"ts": 1792519130, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: @@FAKE_GH@@ 점검", "kind": "agent", "agent_desc": "@@FAKE_GH@@ 점검", "bg": true, "agent_req": "Explore"}
+{"ts": 1792519131, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "SubagentStart", "aid": "m0", "atype": "Explore"}
+{"ts": 1792519140, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "aid": "p1", "atype": "Explore", "icon": "🔍", "text": "'migration' 찾는 중", "kind": "search"}
+{"ts": 1792519140, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "PreToolUse", "icon": "📖", "text": "app.py 읽는 중", "kind": "read", "term": {"mux": {"kind": "cmux", "workspace": "; rm -rf ~", "surface": "surface:6"}}}
+{"ts": 1792519140, "sid": "fx-done", "cwd": "/Users/alex/dev/blog", "event": "PreToolUse", "icon": "✏️", "text": "post.md 읽는 중", "kind": "read"}
+{"ts": 1792519140, "sid": "fx-done", "cwd": "/Users/alex/dev/blog", "event": "PreToolUse", "icon": "✏️", "text": "post.md 고치는 중", "kind": "edit"}
+{"ts": 1792519140, "sid": "fx-done", "cwd": "/Users/alex/dev/blog", "event": "PreToolUse", "icon": "✏️", "text": "post.md 고치는 중", "kind": "edit"}
+{"ts": 1792519140, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "PreToolUse", "aid": "m0", "atype": "Explore", "icon": "⚡", "text": "export API_KEY=@@FAKE_PW@@", "kind": "bash"}
+{"ts": 1792519145, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "PreToolUse", "icon": "📖", "text": "b.py 읽는 중", "kind": "read", "term": {"mux": {"kind": "unknown", "workspace": "workspace:9"}}}
+{"ts": 1792519150, "sid": "fx-input", "cwd": "/Users/alex/dev/infra", "event": "UserPromptSubmit", "text": "배포 스크립트 정리"}
+{"ts": 1792519150, "sid": "fx-cmux-bad", "cwd": "/Users/alex/dev/cmux-app", "event": "UserPromptSubmit", "text": "잘못된 cmux 값", "term": {"mux": {"kind": "cmux", "workspace": "workspace:2\n"}}}
+{"ts": 1792519155, "sid": "fx-input", "cwd": "/Users/alex/dev/infra", "event": "PreToolUse", "icon": "⚡", "text": "terraform plan", "kind": "bash"}
+{"ts": 1792519160, "sid": "fx-read", "cwd": "/Users/alex/dev/login-app", "event": "UserPromptSubmit", "text": "로그인 버그 고쳐줘"}
+{"ts": 1792519160, "sid": "fx-input", "cwd": "/Users/alex/dev/infra", "event": "Notification", "text": "Claude needs your permission to use Bash"}
+{"ts": 1792519170, "sid": "fx-read", "cwd": "/Users/alex/dev/login-app", "event": "PreToolUse", "icon": "🔍", "text": "'session' 찾는 중", "kind": "search"}
+{"ts": 1792519170, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "Stop"}
+{"ts": 1792519170, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PreToolUse", "icon": "✏️", "text": "main.py 고치는 중", "kind": "edit"}
+{"ts": 1792519180, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "aid": "p1", "atype": "Explore", "icon": "📖", "text": "schema.sql 읽는 중", "kind": "read"}
+{"ts": 1792519180, "sid": "fx-done", "cwd": "/Users/alex/dev/blog", "event": "Stop"}
+{"ts": 1792519180, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "PreToolUse", "icon": "⚡", "text": "Run full test suite", "kind": "bash"}
+{"ts": 1792519185, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "Notification", "text": "token=@@FAKE_PW@@ 확인 필요 (키@@FAKE_AWS@@)"}
+{"ts": 1792519188, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "PreToolUse", "icon": "⚡", "text": "Authorization: Bearer @@FAKE_BEARER@@", "kind": "bash"}
+{"ts": 1792519190, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "Stop"}
+{"ts": 1792519195, "sid": "fx-read", "cwd": "/Users/alex/dev/login-app", "event": "PreToolUse", "icon": "📖", "text": "Login.swift 읽는 중", "kind": "read"}
+{"ts": 1792519195, "sid": "fx-obs", "cwd": "/Users/alex/.claude-mem/observer-sessions", "event": "UserPromptSubmit", "text": "<observation>…</observation>"}
+{"ts": 1792519196, "sid": "fx-obs", "cwd": "/Users/alex/.claude-mem/observer-sessions", "event": "PreToolUse", "icon": "📖", "text": "x 읽는 중", "kind": "read"}

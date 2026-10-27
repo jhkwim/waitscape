@@ -1,0 +1,1365 @@
+{
+ "done_today": 11,
+ "limits": {
+  "five_hour": {
+   "resets_at": 1792530600,
+   "used_percentage": 63
+  },
+  "seven_day": {
+   "resets_at": 1792929600,
+   "used_percentage": 27
+  }
+ },
+ "limits_src": "statusline",
+ "limits_ts": 1792519170,
+ "mcp": {
+  "last_report_age": 45
+ },
+ "now": 1792519215,
+ "poll": {
+  "err": null,
+  "on": false
+ },
+ "sessions": [
+  {
+   "activity": [],
+   "agents": [],
+   "confidence": "sure",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/shop-api",
+   "jump": {
+    "mux": {
+     "kind": "cmux",
+     "surface": "surface:11",
+     "workspace": "workspace:4"
+    }
+   },
+   "kinds": {},
+   "last": 1792519080,
+   "project": "shop-api",
+   "prompt": "환불 로직 분리",
+   "report": {
+    "big": {
+     "title": "환불 로직 분리",
+     "ts": 1792519080
+    },
+    "board": {
+     "done": [
+      0,
+      1,
+      2
+     ],
+     "lines": [
+      "타입 정리",
+      "환불 로직 분리",
+      "테스트 추가"
+     ],
+     "ts": 1792519070
+    },
+    "cheer": "환불 버그까지 잡았어요",
+    "source": "mcp",
+    "state": "done",
+    "title": "환불 로직 분리",
+    "ts": 1792519080
+   },
+   "run": 770,
+   "sid": "codex-4821-1792518300000-0a1b2c3d",
+   "since": 1792519080,
+   "source": "mcp",
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "🗒️",
+     "text": "할 일 정리 중",
+     "ts": 1792518800
+    },
+    {
+     "icon": "⚡",
+     "text": "xcodebuild test",
+     "ts": 1792519070
+    }
+   ],
+   "agents": [],
+   "ctx": 71,
+   "cwd": "/Users/alex/dev/payment",
+   "health": {
+    "level": "slow",
+    "secs": 145.0,
+    "tool": "Bash"
+   },
+   "kind": "bash",
+   "kinds": {
+    "bash": 1,
+    "todo": 1
+   },
+   "last": 1792519070,
+   "project": "payment",
+   "prompt": "결제 테스트 전부 돌려줘",
+   "prompt_ts": 1792518780,
+   "run": 0,
+   "say": "실패한 테스트 2개를 고쳤어요. 이제 전체 테스트를 돌려볼게요.",
+   "sid": "fx-bash",
+   "since": 1792518780,
+   "started": 1792518780,
+   "status": "working",
+   "todos": [
+    {
+     "status": "completed",
+     "text": "구조 파악"
+    },
+    {
+     "status": "completed",
+     "text": "테스트 수정"
+    },
+    {
+     "status": "in_progress",
+     "text": "전체 테스트 돌리는 중"
+    },
+    {
+     "status": "pending",
+     "text": "리포트"
+    }
+   ],
+   "tokens": {
+    "cached": 84500,
+    "new": 42580,
+    "out": 580,
+    "total": 43160
+   },
+   "tools": 2,
+   "trail": [
+    [
+     "todo",
+     "🗒️",
+     "할 일 정리 중"
+    ],
+    [
+     "bash",
+     "⚡",
+     "xcodebuild test"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/bigrepo",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519100,
+   "project": "bigrepo",
+   "prompt": "큰 리팩터링",
+   "prompt_ts": 1792516200,
+   "run": 2900,
+   "sid": "fx-big",
+   "since": 1792519100,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tokens": {
+    "cached": 900000,
+    "new": 5000,
+    "out": 20000,
+    "total": 25000
+   },
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/cmd",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519060,
+   "project": "cmd",
+   "prompt": "/review 결제 모듈",
+   "prompt_ts": 1792519050,
+   "run": 10,
+   "sid": "fx-cmd",
+   "since": 1792519060,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 300,
+    "out": 30,
+    "total": 330
+   },
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "📖",
+     "text": "app.py 읽는 중",
+     "ts": 1792519140
+    },
+    {
+     "icon": "📖",
+     "text": "b.py 읽는 중",
+     "ts": 1792519145
+    }
+   ],
+   "agents": [
+    {
+     "aid": "cm1",
+     "bg": false,
+     "desc": "",
+     "last": 1792519130,
+     "now": null,
+     "recent": [],
+     "since": 1792519130,
+     "status": "running",
+     "tools": 0,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/cmux-app",
+   "jump": {
+    "mux": {
+     "kind": "cmux",
+     "surface": "surface:5",
+     "workspace": "workspace:2"
+    }
+   },
+   "kind": "read",
+   "kinds": {
+    "read": 2
+   },
+   "last": 1792519170,
+   "project": "cmux-app",
+   "prompt": "cmux에서 작업",
+   "prompt_ts": 1792519120,
+   "run": 50,
+   "sid": "fx-cmux",
+   "since": 1792519170,
+   "started": null,
+   "status": "agents",
+   "todos": [],
+   "tools": 2,
+   "trail": [
+    [
+     "read",
+     "📖",
+     "app.py 읽는 중"
+    ],
+    [
+     "read",
+     "📖",
+     "b.py 읽는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/cmux-app",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519150,
+   "project": "cmux-app",
+   "prompt": "잘못된 cmux 값",
+   "prompt_ts": 1792519150,
+   "run": 0,
+   "sid": "fx-cmux-bad",
+   "since": 1792519150,
+   "started": 1792519150,
+   "status": "working",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "✏️",
+     "text": "post.md 읽는 중",
+     "ts": 1792519140
+    },
+    {
+     "icon": "✏️",
+     "text": "post.md 고치는 중",
+     "ts": 1792519140
+    },
+    {
+     "icon": "✏️",
+     "text": "post.md 고치는 중",
+     "ts": 1792519140
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/blog",
+   "kind": "edit",
+   "kinds": {
+    "edit": 2,
+    "read": 1
+   },
+   "last": 1792519180,
+   "project": "blog",
+   "prompt": "글 오타 고쳐줘",
+   "prompt_ts": 1792519110,
+   "run": 70,
+   "sid": "fx-done",
+   "since": 1792519180,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tokens": {
+    "cached": 2100,
+    "new": 2100,
+    "out": 90,
+    "total": 2190
+   },
+   "tools": 3,
+   "trail": [
+    [
+     "read",
+     "✏️",
+     "post.md 읽는 중"
+    ],
+    [
+     "edit",
+     "✏️",
+     "post.md 고치는 중"
+    ],
+    [
+     "edit",
+     "✏️",
+     "post.md 고치는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 결제 로그 분석",
+     "ts": 1792518339.5
+    },
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: PG 응답 코드 조사",
+     "ts": 1792518341.5
+    },
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 재시도 로직 테스트 작성",
+     "ts": 1792518343.5
+    },
+    {
+     "icon": "⚡",
+     "text": "Run full test suite",
+     "ts": 1792519180
+    }
+   ],
+   "agents": [
+    {
+     "aid": "a1x",
+     "bg": true,
+     "desc": "결제 로그 분석",
+     "ended": 1792518596,
+     "last": 1792518596,
+     "now": null,
+     "recent": [],
+     "say": "done",
+     "since": 1792518340,
+     "status": "done",
+     "tokens": 12250,
+     "tools": 0,
+     "type": "Explore"
+    },
+    {
+     "aid": "a2x",
+     "bg": true,
+     "desc": "PG 응답 코드 조사",
+     "health": null,
+     "last": 1792518342,
+     "now": null,
+     "recent": [],
+     "say": "응답 코드 4012가 재시도 불가 코드인데 재시도 목록에 들어 있는 것 같아요.",
+     "since": 1792518342,
+     "status": "running",
+     "tokens": 9080,
+     "tools": 0,
+     "type": "Explore"
+    },
+    {
+     "aid": "a3x",
+     "bg": true,
+     "desc": "재시도 로직 테스트 작성",
+     "health": null,
+     "last": 1792518344,
+     "now": null,
+     "recent": [],
+     "say": "Edge cases written; now verifying they fail on the old code as expected.",
+     "since": 1792518344,
+     "status": "running",
+     "tokens": 7060,
+     "tools": 0,
+     "type": "general-purpose"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/shop-api",
+   "health": null,
+   "kind": "bash",
+   "kinds": {
+    "agent": 3,
+    "bash": 1
+   },
+   "last": 1792519180,
+   "project": "shop-api",
+   "prompt": "결제 실패율이 왜 올랐는지 조사하고 고쳐줘. 키는 <REDACTED> 야",
+   "prompt_ts": 1792518300,
+   "run": 50,
+   "say": "전체 테스트 64개가 통과했어요. 결제 재시도 문제를 고쳤습니다.",
+   "sid": "fx-flow",
+   "since": 1792518600,
+   "started": 1792518600,
+   "status": "working",
+   "todos": [],
+   "tokens": {
+    "cached": 72000,
+    "new": 66200,
+    "out": 890,
+    "total": 67090
+   },
+   "tools": 4,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 결제 로그 분석"
+    ],
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: PG 응답 코드 조사"
+    ],
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 재시도 로직 테스트 작성"
+    ],
+    [
+     "bash",
+     "⚡",
+     "Run full test suite"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "📖",
+     "text": "meeting.md 읽는 중",
+     "ts": 1792517300
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/notes",
+   "kind": "read",
+   "kinds": {
+    "read": 1
+   },
+   "last": 1792517400,
+   "project": "notes",
+   "prompt": "회의록 요약해줘",
+   "prompt_ts": 1792517200,
+   "run": 200,
+   "sid": "fx-idle",
+   "since": 1792517400,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "read",
+     "📖",
+     "meeting.md 읽는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "⚡",
+     "text": "terraform plan",
+     "ts": 1792519155
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/infra",
+   "kind": "bash",
+   "kinds": {
+    "bash": 1
+   },
+   "last": 1792519160,
+   "note": "Claude needs your permission to use Bash",
+   "project": "infra",
+   "prompt": "배포 스크립트 정리",
+   "prompt_ts": 1792519150,
+   "run": 0,
+   "sid": "fx-input",
+   "since": 1792519160,
+   "started": 1792519150,
+   "status": "needs_input",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "bash",
+     "⚡",
+     "terraform plan"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🗒️",
+     "text": "할 일 정리 중",
+     "ts": 1792519125
+    },
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: <REDACTED> 점검",
+     "ts": 1792519130
+    },
+    {
+     "icon": "⚡",
+     "text": "Authorization: <REDACTED> <REDACTED>",
+     "ts": 1792519188
+    }
+   ],
+   "agents": [
+    {
+     "aid": "m0",
+     "bg": true,
+     "desc": "<REDACTED> 점검",
+     "health": null,
+     "last": 1792519140,
+     "now": {
+      "icon": "⚡",
+      "kind": "bash",
+      "text": "export API_KEY=<REDACTED>"
+     },
+     "recent": [
+      {
+       "icon": "⚡",
+       "kind": "bash",
+       "text": "export API_KEY=<REDACTED>"
+      }
+     ],
+     "say": "secret: <REDACTED> 발견",
+     "since": 1792519131,
+     "status": "running",
+     "tokens": 55,
+     "tools": 1,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/secrets",
+   "health": null,
+   "kind": "bash",
+   "kinds": {
+    "agent": 1,
+    "bash": 1,
+    "todo": 1
+   },
+   "last": 1792519188,
+   "note": "token=<REDACTED> 확인 필요 (키<REDACTED>)",
+   "project": "secrets",
+   "prompt": "키 교체: <REDACTED> 로 바꿔",
+   "prompt_ts": 1792519120,
+   "run": 0,
+   "say": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가 <REDACTED",
+   "sid": "fx-mask",
+   "since": 1792519188,
+   "started": 1792519120,
+   "status": "working",
+   "todos": [
+    {
+     "status": "in_progress",
+     "text": "password=<REDACTED> 지우기"
+    }
+   ],
+   "tokens": {
+    "cached": 0,
+    "new": 150,
+    "out": 15,
+    "total": 165
+   },
+   "tools": 3,
+   "trail": [
+    [
+     "todo",
+     "🗒️",
+     "할 일 정리 중"
+    ],
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: <REDACTED> 점검"
+    ],
+    [
+     "bash",
+     "⚡",
+     "Authorization: <REDACTED> <REDACTED>"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/report-cheer",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792518860,
+   "project": "report-cheer",
+   "prompt": "로그인 버그 고쳐줘",
+   "prompt_ts": 1792518500,
+   "report": {
+    "big": {
+     "title": "로그인 버그 수정",
+     "ts": 1792518800
+    },
+    "cheer": "세션 만료까지 깔끔히 정리했어요",
+    "source": "mcp",
+    "state": "done",
+    "title": "로그인 버그 수정",
+    "ts": 1792518800
+   },
+   "run": 360,
+   "sid": "fx-mcp-cheer",
+   "since": 1792518860,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "📖",
+     "text": "README.md 읽는 중",
+     "ts": 1792519100
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/report-fb",
+   "kind": "read",
+   "kinds": {
+    "read": 1
+   },
+   "last": 1792519100,
+   "project": "report-fb",
+   "prompt": "문서 정리",
+   "prompt_ts": 1792519000,
+   "run": 0,
+   "sid": "fx-mcp-fb",
+   "since": 1792519000,
+   "started": 1792519000,
+   "status": "working",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "read",
+     "📖",
+     "README.md 읽는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "📖",
+     "text": "refund.py 읽는 중",
+     "ts": 1792518920
+    }
+   ],
+   "agents": [
+    {
+     "aid": "r0",
+     "bg": false,
+     "desc": "",
+     "last": 1792518924,
+     "now": null,
+     "recent": [],
+     "since": 1792518924,
+     "status": "running",
+     "tools": 0,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/report-hook",
+   "kind": "read",
+   "kinds": {
+    "read": 1
+   },
+   "last": 1792518940,
+   "project": "report-hook",
+   "prompt": "결제 모듈 리팩터해줘",
+   "prompt_ts": 1792518900,
+   "report": {
+    "board": {
+     "done": [
+      0
+     ],
+     "lines": [
+      "타입 정리",
+      "환불 분리",
+      "테스트",
+      "PR"
+     ],
+     "ts": 1792518915
+    },
+    "source": "mcp",
+    "state": "working",
+    "step": 2,
+    "title": "토큰 <REDACTED> 교체",
+    "total": 4,
+    "ts": 1792518940
+   },
+   "run": 0,
+   "sid": "fx-mcp-hook",
+   "since": 1792518900,
+   "started": 1792518900,
+   "status": "working",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "read",
+     "📖",
+     "refund.py 읽는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "⚡",
+     "text": "ls",
+     "ts": 1792519010
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/partial",
+   "health": {
+    "level": "slow",
+    "secs": 195.0,
+    "tool": null
+   },
+   "kind": "bash",
+   "kinds": {
+    "bash": 1
+   },
+   "last": 1792519010,
+   "project": "partial",
+   "prompt": "부분 기록 테스트",
+   "prompt_ts": 1792519000,
+   "run": 0,
+   "say": "목록을 봤어요.",
+   "sid": "fx-partial",
+   "since": 1792519000,
+   "started": 1792519000,
+   "status": "working",
+   "todos": [],
+   "tokens": {
+    "cached": 700,
+    "new": 710,
+    "out": 25,
+    "total": 735
+   },
+   "tools": 1,
+   "trail": [
+    [
+     "bash",
+     "⚡",
+     "ls"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 라우터와 미들웨어 구조 조사",
+     "ts": 1792518320
+    },
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: DB 스키마 비교",
+     "ts": 1792518321
+    },
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 인증 흐름 조사",
+     "ts": 1792518322
+    }
+   ],
+   "agents": [
+    {
+     "aid": "p0",
+     "bg": true,
+     "desc": "라우터와 미들웨어 구조 조사",
+     "health": {
+      "level": "slow",
+      "secs": 415.0,
+      "tool": "Grep"
+     },
+     "last": 1792518800,
+     "now": {
+      "icon": "🔍",
+      "kind": "search",
+      "text": "'router' 찾는 중"
+     },
+     "recent": [
+      {
+       "icon": "🔍",
+       "kind": "search",
+       "text": "'router' 찾는 중"
+      }
+     ],
+     "say": "라우터는 src/routes 아래에 있네요. 미들웨어 순서를 확인해볼게요.",
+     "since": 1792518321,
+     "status": "running",
+     "tokens": 30500,
+     "tools": 1,
+     "type": "Explore"
+    },
+    {
+     "aid": "p1",
+     "bg": true,
+     "desc": "DB 스키마 비교",
+     "health": null,
+     "last": 1792519180,
+     "now": {
+      "icon": "📖",
+      "kind": "read",
+      "text": "schema.sql 읽는 중"
+     },
+     "recent": [
+      {
+       "icon": "🔍",
+       "kind": "search",
+       "text": "'migration' 찾는 중"
+      },
+      {
+       "icon": "📖",
+       "kind": "read",
+       "text": "schema.sql 읽는 중"
+      }
+     ],
+     "say": "스키마 파일 3개를 찾았어요. 마이그레이션 히스토리와 비교 중입니다.",
+     "since": 1792518322,
+     "status": "running",
+     "tokens": 18390,
+     "tools": 2,
+     "type": "Explore"
+    },
+    {
+     "aid": "p2",
+     "bg": true,
+     "desc": "인증 흐름 조사",
+     "ended": 1792518900,
+     "last": 1792518900,
+     "now": null,
+     "recent": [],
+     "say": "인증은 미들웨어 한 곳에서 처리해요.",
+     "since": 1792518323,
+     "status": "done",
+     "tokens": 7150,
+     "tools": 0,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/api-server",
+   "kind": "agent",
+   "kinds": {
+    "agent": 3
+   },
+   "last": 1792519190,
+   "project": "api-server",
+   "prompt": "API 구조 조사해줘",
+   "prompt_ts": 1792518300,
+   "run": 890,
+   "sid": "fx-party",
+   "since": 1792519190,
+   "started": null,
+   "status": "agents",
+   "todos": [],
+   "tokens": {
+    "cached": 27500,
+    "new": 64300,
+    "out": 1320,
+    "total": 65620
+   },
+   "tools": 3,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 라우터와 미들웨어 구조 조사"
+    ],
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: DB 스키마 비교"
+    ],
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 인증 흐름 조사"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🔍",
+     "text": "'session' 찾는 중",
+     "ts": 1792519170
+    },
+    {
+     "icon": "📖",
+     "text": "Login.swift 읽는 중",
+     "ts": 1792519195
+    }
+   ],
+   "agents": [],
+   "ctx": 34,
+   "cwd": "/Users/alex/dev/login-app",
+   "health": null,
+   "kind": "read",
+   "kinds": {
+    "read": 1,
+    "search": 1
+   },
+   "last": 1792519195,
+   "project": "login-app",
+   "prompt": "로그인 버그 고쳐줘",
+   "prompt_ts": 1792519160,
+   "run": 0,
+   "say": "세션 만료 처리 부분부터 볼게요.",
+   "sid": "fx-read",
+   "since": 1792519160,
+   "started": 1792519160,
+   "status": "working",
+   "todos": [],
+   "tokens": {
+    "cached": 18700,
+    "new": 9600,
+    "out": 160,
+    "total": 9760
+   },
+   "tools": 2,
+   "trail": [
+    [
+     "search",
+     "🔍",
+     "'session' 찾는 중"
+    ],
+    [
+     "read",
+     "📖",
+     "Login.swift 읽는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [
+    {
+     "aid": "txnew",
+     "bg": false,
+     "desc": "",
+     "health": null,
+     "last": 1792490405,
+     "now": {
+      "icon": "📖",
+      "kind": "read",
+      "text": "notes.md 읽는 중"
+     },
+     "recent": [
+      {
+       "icon": "📖",
+       "kind": "read",
+       "text": "notes.md 읽는 중"
+      }
+     ],
+     "say": "아직 조사 중이에요.",
+     "since": 1792490400,
+     "status": "running",
+     "tokens": 220,
+     "tools": 1,
+     "type": "general-purpose"
+    },
+    {
+     "aid": "txold",
+     "bg": false,
+     "desc": "",
+     "ended": 1792495800.0,
+     "last": 1792494005,
+     "now": {
+      "icon": "📖",
+      "kind": "read",
+      "text": "notes.md 읽는 중"
+     },
+     "recent": [
+      {
+       "icon": "📖",
+       "kind": "read",
+       "text": "notes.md 읽는 중"
+      }
+     ],
+     "say": "여기까지 조사했어요.",
+     "since": 1792494000,
+     "stale": true,
+     "status": "done",
+     "tokens": 330,
+     "tools": 1,
+     "type": "general-purpose"
+    },
+    {
+     "aid": "s61",
+     "bg": false,
+     "desc": "",
+     "ended": 1792497545,
+     "last": 1792497545,
+     "now": {
+      "icon": "📖",
+      "kind": "read",
+      "text": "notes.md 읽는 중"
+     },
+     "recent": [
+      {
+       "icon": "📖",
+       "kind": "read",
+       "text": "notes.md 읽는 중"
+      }
+     ],
+     "say": "",
+     "since": 1792497540,
+     "stale": true,
+     "status": "done",
+     "tokens": 0,
+     "tools": 1,
+     "type": "general-purpose"
+    },
+    {
+     "aid": "s59",
+     "bg": false,
+     "desc": "",
+     "last": 1792497665,
+     "now": {
+      "icon": "📖",
+      "kind": "read",
+      "text": "notes.md 읽는 중"
+     },
+     "recent": [
+      {
+       "icon": "📖",
+       "kind": "read",
+       "text": "notes.md 읽는 중"
+      }
+     ],
+     "say": "",
+     "since": 1792497660,
+     "status": "running",
+     "tokens": 0,
+     "tools": 1,
+     "type": "general-purpose"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ghosts",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519100,
+   "project": "ghosts",
+   "prompt": "백그라운드 조사 맡겨둘게",
+   "prompt_ts": 1792519080,
+   "run": 20,
+   "sid": "fx-stale",
+   "since": 1792519100,
+   "started": null,
+   "status": "agents",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 300,
+    "out": 30,
+    "total": 330
+   },
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/empty",
+   "kinds": {},
+   "last": 1792519100,
+   "project": "empty",
+   "prompt": "",
+   "run": 0,
+   "sid": "fx-start",
+   "since": 1792519100,
+   "started": null,
+   "status": "idle",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "🔧",
+     "text": "TaskCreate",
+     "ts": 1792518510
+    },
+    {
+     "icon": "🔧",
+     "text": "TaskCreate",
+     "ts": 1792518511
+    },
+    {
+     "icon": "🔧",
+     "text": "TaskCreate",
+     "ts": 1792518512
+    },
+    {
+     "icon": "✏️",
+     "text": "main.py 고치는 중",
+     "ts": 1792519170
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/tasks",
+   "kind": "edit",
+   "kinds": {
+    "edit": 1,
+    "todo": 3
+   },
+   "last": 1792519170,
+   "project": "tasks",
+   "prompt": "작업 셋 만들어",
+   "prompt_ts": 1792518500,
+   "run": 0,
+   "sid": "fx-tasks",
+   "since": 1792518500,
+   "started": 1792518500,
+   "status": "working",
+   "todos": [
+    {
+     "id": "1",
+     "status": "completed",
+     "text": "설계하는 중"
+    },
+    {
+     "id": "2",
+     "status": "in_progress",
+     "text": "구현하는 중"
+    }
+   ],
+   "tools": 4,
+   "trail": [
+    [
+     "todo",
+     "🔧",
+     "TaskCreate"
+    ],
+    [
+     "todo",
+     "🔧",
+     "TaskCreate"
+    ],
+    [
+     "todo",
+     "🔧",
+     "TaskCreate"
+    ],
+    [
+     "edit",
+     "✏️",
+     "main.py 고치는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/twins",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519080,
+   "project": "twins",
+   "prompt": "쌍둥이 작업",
+   "prompt_ts": 1792519080,
+   "run": 0,
+   "sid": "fx-twin-a",
+   "since": 1792519080,
+   "started": 1792519080,
+   "status": "working",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/twins",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519080,
+   "project": "twins",
+   "prompt": "쌍둥이 작업",
+   "prompt_ts": 1792519080,
+   "run": 0,
+   "sid": "fx-twin-b",
+   "since": 1792519080,
+   "started": 1792519080,
+   "status": "working",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "📖",
+     "text": "todo.md 읽는 중",
+     "ts": 1792505100
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/yesterday",
+   "kind": "read",
+   "kinds": {
+    "read": 1
+   },
+   "last": 1792505400,
+   "project": "yesterday",
+   "prompt": "어제 하던 것",
+   "prompt_ts": 1792504800,
+   "run": 600,
+   "sid": "fx-yday",
+   "since": 1792505400,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "read",
+     "📖",
+     "todo.md 읽는 중"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "confidence": "guess",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/docs-site",
+   "kinds": {},
+   "last": 1792517000,
+   "project": "docs-site",
+   "prompt": "password=<REDACTED> 바꾸기",
+   "report": {
+    "board": {
+     "done": [
+      1
+     ],
+     "lines": [
+      "둘째 보드 줄바꿈",
+      "<REDACTED>"
+     ],
+     "ts": 1792517000
+    },
+    "source": "mcp",
+    "state": "working",
+    "title": "password=<REDACTED> 바꾸기",
+    "ts": 1792517000
+   },
+   "run": 0,
+   "sid": "gemini-77-1792511000000-ffff0001",
+   "since": 1792516900,
+   "source": "mcp",
+   "started": 1792516900,
+   "status": "working",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "confidence": "sure",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/misc",
+   "kinds": {},
+   "last": 1792519150,
+   "project": "misc",
+   "prompt": "",
+   "run": 0,
+   "sid": "other-5-1792519000000-00000005",
+   "since": 1792519150,
+   "source": "mcp",
+   "started": null,
+   "status": "idle",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  }
+ ],
+ "today_agents": 10,
+ "today_kinds": {
+  "agent": 7,
+  "bash": 6,
+  "edit": 3,
+  "read": 8,
+  "search": 3,
+  "todo": 5
+ },
+ "today_tokens": {
+  "cached": 1131500,
+  "new": 217740,
+  "out": 23740,
+  "total": 241480
+ },
+ "waited_today": 5380.0
+}

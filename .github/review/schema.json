@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "waitscape/review/schema.json",
+  "title": "Waitscape 교차 리뷰 결과",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "findings", "checked"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "PR 전체에 대한 한두 문장 판단(한국어). 칭찬 금지. 예: '배포 차단 사유 1건(🔴), 수정 후 배포 2건(🟡).'"
+    },
+    "checked": {
+      "type": "array",
+      "description": "실제로 열어 읽은 파일 경로(근거 추적용). diff만 보고 판단한 파일은 넣지 않는다.",
+      "items": { "type": "string" }
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 15,
+      "description": "심각도순(critical → warning → info → question), 같은 원인은 한 항목으로 병합.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "file", "line", "severity", "category", "title", "scenario", "evidence", "suggestion", "confidence"],
+        "properties": {
+          "id": { "type": "string", "description": "F1, F2, … (출력 순서대로)" },
+          "file": { "type": "string", "description": "저장소 루트 기준 경로 (PR 헤드 기준)" },
+          "line": { "type": "integer", "minimum": 1, "description": "PR 헤드 파일의 실제 줄 번호(diff 줄 번호 아님)" },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "warning", "info", "question"],
+            "description": "critical=🔴 배포 차단, warning=🟡 수정 후 배포, info=🔵 개선 권장, question=확신 없음(확인 요청)"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["secret", "auth", "injection", "path-traversal", "sandbox", "privacy-masking", "permission", "crypto", "data-loss", "correctness", "concurrency", "resource", "parity", "ci", "docs-policy", "network-policy", "test-gap", "other"]
+          },
+          "title": { "type": "string", "maxLength": 120, "description": "한 줄 요약(한국어)" },
+          "scenario": { "type": "string", "description": "구체적 실패 시나리오: 어떤 입력/상황 → 어떤 잘못된 결과. '~할 수 있다' 같은 일반론 금지." },
+          "evidence": { "type": "string", "description": "근거: 해당 코드 인용(짧게) + 왜 그 시나리오가 실제로 일어나는지. 다른 파일·문서 규칙과의 대조 포함." },
+          "suggestion": { "type": "string", "description": "최소 수정 방향(코드 조각 가능, 짧게)" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"], "description": "low이면 severity는 question이어야 한다" }
+        }
+      }
+    }
+  }
+}

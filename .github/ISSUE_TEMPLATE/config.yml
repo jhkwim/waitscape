@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "🔒 보안 취약점 신고 / Report a security vulnerability"
+    url: https://github.com/jhkwim/waitscape/security/advisories/new
+    about: "공개 이슈 대신 비공개로 신고해 주세요 / Please report privately, not in a public issue"
+  - name: "📘 모드 만들기 가이드 / Mode API guide"
+    url: https://github.com/jhkwim/waitscape/blob/main/MODES.md
+    about: "모드 패키지 형식·권한·샌드박스 / Package format, permissions, sandbox"
+  - name: "🤝 기여 안내 / Contributing guide"
+    url: https://github.com/jhkwim/waitscape/blob/main/CONTRIBUTING.md
+    about: "브랜치·커밋 규칙, AI 사용 공개 / Branch & commit rules, AI disclosure"

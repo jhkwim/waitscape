@@ -1,0 +1,2 @@
+{"type": "user", "timestamp": "2026-10-20T17:59:20.000Z", "sessionId": "to-null-stop-recent", "cwd": "/Users/alex/dev/demo", "uuid": "to-null-stop-recent-u1", "isSidechain": false, "message": {"role": "user", "content": "설명해줘"}}
+{"type": "assistant", "timestamp": "2026-10-20T17:59:50.000Z", "sessionId": "to-null-stop-recent", "cwd": "/Users/alex/dev/demo", "uuid": "to-null-stop-recent-u2", "isSidechain": false, "message": {"role": "assistant", "id": "to-null-stop-recent-m2", "content": [{"type": "text", "text": "설명 중입니다…"}], "stop_reason": null}}

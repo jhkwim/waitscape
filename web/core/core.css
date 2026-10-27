@@ -1,0 +1,49 @@
+/* 코어 공통: 리셋 + 모드 전환기 기본 모양 + 회의 모드 + 외부 모드 iframe·안내 토스트·프로바이더 배지. 모드 고유 스타일은 modes/<id>/mode.css에 */
+* { box-sizing: border-box; }
+html { min-height: 100%; }
+body { margin: 0; min-height: 100vh; overflow-x: hidden; }
+/* 모드 컨테이너는 레이아웃에 끼지 않음: 모드 CSS의 `body > X` 규칙은 `body > :where(.mode-root) > X`로 쓰면 됨 */
+.mode-root { display: contents; }
+
+/* 모드 전환기: 중립적이고 작게. 모드가 자기 톤으로 덮어씀 (예: select에 .btn 클래스 추가).
+   :where()로 감싸 명시도 0 → 모드 CSS의 어떤 규칙으로도 덮어쓸 수 있음 */
+:where(.core-switch) { position: relative; display: inline-flex; align-items: center; }
+:where(.core-switch select) { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; cursor: pointer;
+  margin: 0; padding: 3px 24px 3px 9px; border: 1px solid rgba(127, 127, 127, .45); border-radius: 6px; background: transparent; }
+:where(.core-switch)::after { content: "▾"; position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+  font-size: 10px; line-height: 1; pointer-events: none; }
+:where(.core-switch.floating) { position: fixed; right: 12px; bottom: 12px; z-index: 50; font: 12px system-ui, sans-serif; }
+:where(.core-switch.floating select) { background: Canvas; color: CanvasText; }
+
+/* "+N개 숨김" 토글 (전환기 옆). 모드가 덮어쓸 수 있게 명시도 0 */
+:where(.core-hidden) { font: inherit; font-size: .85em; color: inherit; cursor: pointer; margin: 0 0 0 6px; padding: 2px 8px;
+  border: 1px dashed rgba(127, 127, 127, .55); border-radius: 999px; background: transparent; opacity: .8; white-space: nowrap; }
+:where(.core-hidden:hover) { opacity: 1; }
+.core-hidden[hidden] { display: none; }
+
+/* 회의 모드: 움직임 끔 (소리는 코어가 끔) */
+body.quiet *, body.quiet *::before, body.quiet *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+
+/* 외부 모드(샌드박스 iframe): 메인 화면 전체를 채움. 전환기(.core-switch.floating)는 iframe 위에 뜸 */
+.core-xframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: transparent; color-scheme: light dark; z-index: 1; }
+.core-xmsg { position: fixed; inset: 0; display: grid; place-items: center; font: 14px system-ui, sans-serif; color: GrayText; pointer-events: none; }
+/* 안내 토스트 (외부 모드를 끈 이유 등) */
+.core-toast { position: fixed; left: 50%; bottom: 56px; transform: translateX(-50%); z-index: 60; max-width: min(520px, calc(100vw - 32px));
+  padding: 10px 14px; border-radius: 10px; font: 13px/1.45 system-ui, sans-serif; background: CanvasText; color: Canvas; box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+/* 새 버전 알림 배너 (앱 메인 창, core.js renderUpdateBanner). 스튜디오는 사장님 말풍선으로 대신 알려서 숨긴다(studio/mode.css) */
+.core-update { position: fixed; left: 12px; bottom: 12px; z-index: 55; display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px);
+  padding: 6px 6px 6px 12px; border-radius: 999px; font: 600 13px/1.3 system-ui, sans-serif; background: #2e2040; color: #fff;
+  box-shadow: 0 6px 20px rgba(0,0,0,.28); border: 2px solid #ffd23f; }
+.core-update button { font: inherit; border: 0; border-radius: 999px; padding: 4px 10px; cursor: pointer; background: #ffd23f; color: #2e2040; }
+.core-update button[data-act="later"] { background: transparent; color: #fff; opacity: .75; padding: 4px 8px; }
+.core-update button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+body.quiet .core-update { box-shadow: none; }
+/* 프로바이더 배지 (Core.providerBadge). :where()로 명시도 0 → 모드가 쉽게 덮어씀 */
+:where(.core-provider) { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 999px; font-size: .78em; line-height: 1.6;
+  border: 1px solid rgba(127, 127, 127, .4); white-space: nowrap; vertical-align: middle; }
+
+/* 데스크톱 앱 포켓 위젯 창(widget.html): 투명 창 위에 모드 카드만 보이게 */
+html.wr-widget { background: transparent; }
+html.wr-widget body { -webkit-user-select: none; user-select: none; cursor: default; }
+html.wr-widget textarea { -webkit-user-select: text; user-select: text; }

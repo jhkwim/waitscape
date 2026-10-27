@@ -1,0 +1,2 @@
+{"type": "user", "timestamp": "2026-10-20T17:53:31.000Z", "sessionId": "to-agents-joined", "cwd": "/Users/alex/dev/demo", "uuid": "to-agents-joined-u1", "isSidechain": true, "message": {"role": "user", "content": "API 조사"}}
+{"type": "assistant", "timestamp": "2026-10-20T17:58:10.000Z", "sessionId": "to-agents-joined", "cwd": "/Users/alex/dev/demo", "uuid": "to-agents-joined-u2", "isSidechain": true, "message": {"role": "assistant", "id": "to-agents-joined-m2", "content": [{"type": "text", "text": "끝"}], "stop_reason": "end_turn"}}

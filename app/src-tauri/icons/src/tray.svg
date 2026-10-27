@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">
+  <!-- 메뉴바 템플릿 아이콘(검정 + 투명, macOS가 밝기에 맞춰 칠함): 창틀 -->
+  <rect x="7" y="7" width="30" height="30" rx="5" fill="none" stroke="#000" stroke-width="3.5"/>
+  <path d="M22 9 V35 M9 22 H35" stroke="#000" stroke-width="3"/>
+</svg>

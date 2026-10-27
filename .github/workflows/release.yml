@@ -1,0 +1,304 @@
+name: Release
+
+# 태그 v* 푸시 → 빌드 + 초안(draft) 릴리스. 수동 실행은 기본으로 아티팩트만 만든다(publish=false).
+# 보통은 release-prep.yml이 부른다: 버전 PR 병합 → 태그 vX.Y.Z → 이 워크플로를 그 태그로 workflow_dispatch(ref_type=tag라 초안까지 만듦).
+# 이 워크플로가 만드는 설치 파일은 미서명이다(Apple·Windows 코드 서명은 시크릿이 있을 때만). 안내: docs/INSTALL.md
+# 업데이터 서명(minisign)·latest.json도 시크릿이 있을 때만 만든다. 흐름 전체: docs/RELEASE.md
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "초안 릴리스까지 만들기 (기본 false = 아티팩트만)"
+        type: boolean
+        default: false
+      tag:
+        description: "publish=true일 때 릴리스 태그 (예: v0.1.0)"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  # 배포 전용 공개 저장소(설치 파일·latest.json만). 앱의 설치·업데이트 공식 위치는 여기다(업데이터 엔드포인트 고정).
+  # 코드 저장소 릴리스를 게시하면 publish-public.yml이 복사
+  RELEASES_REPO: jhkwim/waitscape-releases
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # 수동 실행을 태그(v*)·main으로 제한하는 실수 방지용 검사다. 보안 경계는 release 환경의 배포 규칙(태그 v*·main)이고, 이 잡은 그 앞에서 이유를 보여 줄 뿐이다.
+  guard:
+    name: 실행 ref 확인
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: 태그 v* 또는 main인지
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          case "$REF" in
+            refs/tags/v* | refs/heads/main) echo "ref: $REF" ;;
+            *) echo "::error::release.yml은 태그 v* 또는 main에서만 실행한다 (지금: $REF)"; exit 1 ;;
+          esac
+
+  build:
+    name: 빌드 (${{ matrix.name }})
+    needs: guard
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    # 서명 시크릿은 release 환경에만 둔다(배포 브랜치 규칙: 태그 v*·main). docs/RELEASE.md §5
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS universal
+            os: macos-latest
+            args: --target universal-apple-darwin --bundles app,dmg
+            bundle_dir: target/universal-apple-darwin/release/bundle
+          - name: Windows x64
+            os: windows-latest
+            args: --bundles nsis,msi
+            bundle_dir: target/release/bundle
+    env:
+      RUST_TOOLCHAIN: "1.90.0" # ci.yml과 같이 올린다
+      TAURI_CLI_VERSION: "2.12.4" # npm @tauri-apps/cli (tauri 크레이트 버전과 맞춤). Dependabot이 보지 않으니 tauri 크레이트를 올릴 때 손으로 같이 올린다
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 버전 일치 검사 (Cargo workspace = tauri.conf.json, 태그 푸시면 태그도)
+        shell: bash
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          cargo_v=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          conf_v=$(node -p "require('./app/src-tauri/tauri.conf.json').version")
+          echo "Cargo=$cargo_v tauri.conf=$conf_v"
+          [ "$cargo_v" = "$conf_v" ] || { echo "::error::Cargo.toml($cargo_v)과 tauri.conf.json($conf_v) 버전이 다르다"; exit 1; }
+          if [ "$REF_TYPE" = tag ]; then
+            [ "v$cargo_v" = "$REF_NAME" ] || { echo "::error::태그($REF_NAME)와 앱 버전(v$cargo_v)이 다르다"; exit 1; }
+          fi
+
+      - name: Rust 툴체인 고정
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          if [ "$RUNNER_OS" = macOS ]; then rustup target add aarch64-apple-darwin x86_64-apple-darwin; fi
+          rustc -V
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      # 서명 자리: release 환경 시크릿이 있을 때만 켠다. 없으면 미서명(맥은 ad-hoc)으로 빌드한다.
+      # 맥: APPLE_CERTIFICATE(base64 .p12), APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
+      #     공증은 APPLE_ID·APPLE_PASSWORD(앱 암호)·APPLE_TEAM_ID 추가. 윈도우 코드 서명은 아직 자리만(docs/INSTALL.md '한계').
+      # 이 스텝은 있는지만 보고 on/notarize를 출력한다(시크릿 값은 받지 않음). 값은 Tauri 빌드 스텝 env:에서만 조건부로 넣는다.
+      - name: 서명 설정 (시크릿이 있을 때만)
+        id: apple
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          HAS_CERT: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_SIGNING_IDENTITY != '' }}
+          HAS_NOTARIZE: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+        run: |
+          if [ "$HAS_CERT" = true ]; then
+            echo "on=true" >> "$GITHUB_OUTPUT"
+            if [ "$HAS_NOTARIZE" = true ]; then echo "notarize=true" >> "$GITHUB_OUTPUT"; fi
+            echo "서명: 켜짐 (공증: ${HAS_NOTARIZE})"
+          else
+            echo "서명: 시크릿 없음 -> 미서명(ad-hoc)으로 빌드"
+          fi
+
+      # 업데이터 서명(tauri-plugin-updater, minisign 키) — 위의 Apple 코드 서명과 별개다.
+      # release 환경 시크릿 TAURI_SIGNING_PRIVATE_KEY(+ TAURI_SIGNING_PRIVATE_KEY_PASSWORD)가 있고 tauri.conf.json의 plugins.updater.pubkey가
+      # 실제 공개 키일 때만 updater 산출물(.app.tar.gz·.sig, .exe.sig·.msi.sig)을 만든다. 아니면 이 부분만 건너뛰고 빌드는 그대로 성공한다.
+      - name: 업데이터 서명 설정 (시크릿이 있을 때만)
+        id: updater
+        shell: bash
+        env:
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          pk=$(node -p "((require('./app/src-tauri/tauri.conf.json').plugins || {}).updater || {}).pubkey || ''")
+          if [ "$HAS_KEY" != true ]; then
+            echo "업데이터 서명: 시크릿 없음 -> 건너뜀 (latest.json 없음)"
+            exit 0
+          fi
+          case "$pk" in
+            "" | *REPLACE_WITH*)
+              echo "::warning::TAURI_SIGNING_PRIVATE_KEY는 있지만 tauri.conf.json의 plugins.updater.pubkey가 자리표시자다. 공개 키를 넣기 전에는 업데이터 서명을 건너뛴다 (docs/RELEASE.md)"
+              exit 0
+              ;;
+          esac
+          # tauri.conf.json의 기본값(false, 로컬 빌드가 키 없이 되게)을 이 빌드에서만 덮어쓴다
+          printf '{"bundle":{"createUpdaterArtifacts":true}}\n' > app/src-tauri/ci-updater.conf.json
+          echo "on=true" >> "$GITHUB_OUTPUT"
+          echo "업데이터 서명: 켜짐"
+
+      # wr-hook sidecar는 tauri.conf.json의 beforeBuildCommand(scripts/build_sidecar.sh)가 대상 triple별로 만든다.
+      - name: Tauri 빌드
+        shell: bash
+        working-directory: app/src-tauri
+        env:
+          UPDATER_ON: ${{ steps.updater.outputs.on }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ steps.updater.outputs.on == 'true' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ steps.updater.outputs.on == 'true' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
+          # Apple 코드 서명·공증: 판정 스텝이 켰을 때만 값이 들어간다. base64 인증서의 줄바꿈은 Tauri(tauri-macos-sign)가 디코딩 전에 지운다.
+          APPLE_ON: ${{ steps.apple.outputs.on }}
+          APPLE_NOTARIZE: ${{ steps.apple.outputs.notarize }}
+          APPLE_CERTIFICATE: ${{ steps.apple.outputs.on == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ steps.apple.outputs.on == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.apple.outputs.on == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ steps.apple.outputs.notarize == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ steps.apple.outputs.notarize == 'true' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.apple.outputs.notarize == 'true' && secrets.APPLE_TEAM_ID || '' }}
+        run: |
+          # Tauri는 빈 문자열도 "설정됨"으로 본다(빈 APPLE_SIGNING_IDENTITY가 ad-hoc "-"를 덮어씀). 꺼진 쪽은 변수 자체를 지운다.
+          # 인증서 암호는 서명이 켜졌으면 비어 있어도 남긴다(암호 없는 .p12).
+          if [ "$APPLE_ON" != true ]; then unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY; fi
+          if [ "$APPLE_NOTARIZE" != true ]; then unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; fi
+          extra=()
+          if [ "$UPDATER_ON" = true ]; then extra=(--config ci-updater.conf.json); fi
+          npx --yes "@tauri-apps/cli@${TAURI_CLI_VERSION}" build ${{ matrix.args }} "${extra[@]}"
+
+      - name: 산출물 모으기 + SHA-256
+        shell: bash
+        env:
+          BUNDLE_DIR: ${{ matrix.bundle_dir }}
+          PLATFORM: ${{ matrix.name }}
+          UPDATER_ON: ${{ steps.updater.outputs.on }}
+          APPLE_ON: ${{ steps.apple.outputs.on }}
+          APPLE_NOTARIZE: ${{ steps.apple.outputs.notarize }}
+        run: |
+          mkdir -p out
+          if [ "$RUNNER_OS" = macOS ]; then
+            cp "$BUNDLE_DIR"/dmg/*.dmg out/
+            ditto -c -k --keepParent "$BUNDLE_DIR"/macos/Waitscape.app out/Waitscape-macos-universal.app.zip
+            if [ "$UPDATER_ON" = true ]; then
+              # 업데이터가 내려받는 묶음 + 서명 (latest.json의 darwin-* 항목)
+              cp "$BUNDLE_DIR"/macos/Waitscape.app.tar.gz out/Waitscape-macos-universal.app.tar.gz
+              cp "$BUNDLE_DIR"/macos/Waitscape.app.tar.gz.sig out/Waitscape-macos-universal.app.tar.gz.sig
+            fi
+          else
+            cp "$BUNDLE_DIR"/nsis/*.exe "$BUNDLE_DIR"/msi/*.msi out/
+            if [ "$UPDATER_ON" = true ]; then
+              # v2 방식: 설치 파일 자체가 업데이트 묶음이고 옆에 .sig (latest.json의 windows-* 항목)
+              cp "$BUNDLE_DIR"/nsis/*.exe.sig "$BUNDLE_DIR"/msi/*.msi.sig out/
+            fi
+          fi
+          cd out
+          if command -v sha256sum >/dev/null; then sha256sum -- * > ../sums.tmp; else shasum -a 256 -- * > ../sums.tmp; fi
+          mv ../sums.tmp "SHA256SUMS-$RUNNER_OS.part"
+          cat "SHA256SUMS-$RUNNER_OS.part"
+          {
+            echo "### $PLATFORM"
+            echo '| 파일 | 크기 |'
+            echo '|---|---|'
+            for f in *; do case "$f" in *.part) continue ;; esac; printf '| %s | %s |\n' "$f" "$(du -h "$f" | cut -f1)"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+          # 맥 서명 상태를 초안 잡에 넘긴다(릴리스 노트 문구용, 릴리스에 올리지 않음). none | signed | notarized
+          if [ "$RUNNER_OS" = macOS ]; then
+            st=none
+            if [ "$APPLE_ON" = true ]; then st=signed; fi
+            if [ "$APPLE_ON" = true ] && [ "$APPLE_NOTARIZE" = true ]; then st=notarized; fi
+            echo "$st" > macos-signing.flag
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: waitscape-${{ runner.os }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 14
+
+  draft-release:
+    name: 초안 릴리스 만들기
+    needs: build
+    # 태그 푸시거나, 수동 실행에서 publish=true일 때만
+    if: github.ref_type == 'tag' || inputs.publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # 이 잡에서만
+    steps:
+      # 릴리스 노트(CHANGELOG)와 latest.json 생성 스크립트만 쓴다 (빌드한 커밋 그대로)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: src
+          persist-credentials: false
+          sparse-checkout: |
+            /scripts/
+            /CHANGELOG.md
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dl
+          merge-multiple: true
+
+      - name: 체크섬 합치기 + 초안 릴리스
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          [ -n "$TAG" ] || { echo "::error::publish=true면 tag 입력이 필요하다"; exit 1; }
+          cd dl
+          cat -- *.part > SHA256SUMS.txt
+          rm -f -- *.part
+          sha256sum -c SHA256SUMS.txt
+          mac_sign=$(cat macos-signing.flag 2>/dev/null || echo none)
+          rm -f -- *.flag
+          # 바뀐 점: CHANGELOG.md의 그 버전 절 (scripts/version.py bump가 만든 것). 없으면 비워 둔다
+          python3 ../src/scripts/version.py --root ../src notes "$TAG" > ../changes.md
+          # 앱 안 업데이트 매니페스트: 서명(.sig)이 있을 때만. 종료 코드 3 = 서명 없는 빌드라 건너뜀
+          rc=0
+          python3 ../src/scripts/make_latest_json.py --dir . --tag "$TAG" --repo "$RELEASES_REPO" \
+            --notes-file ../changes.md --out latest.json || rc=$?
+          if [ "$rc" = 3 ]; then echo "latest.json: 업데이터 서명 없음 -> 건너뜀"; elif [ "$rc" != 0 ]; then exit "$rc"; fi
+          {
+            # 서명 안내: 맥은 이번 빌드의 Apple 서명·공증 여부에 따라, 윈도우는 아직 항상 미서명
+            case "$mac_sign" in
+              notarized)
+                echo "> macOS 설치 파일은 **Developer ID로 서명·공증됐다.** Windows 설치 파일은 서명되지 않아 처음 열 때 SmartScreen 경고가 나온다."
+                echo ">"
+                echo "> The macOS build is **signed and notarized**. The Windows build is unsigned (SmartScreen may warn)." ;;
+              signed)
+                echo "> macOS 설치 파일은 **서명됐지만 공증되지 않았다**(Gatekeeper 경고가 나올 수 있다). Windows 설치 파일은 서명되지 않아 SmartScreen 경고가 나온다."
+                echo ">"
+                echo "> The macOS build is **signed but not notarized**; the Windows build is unsigned." ;;
+              *)
+                echo "> 이 설치 파일은 **서명·공증되지 않았다.** 처음 열 때 macOS Gatekeeper / Windows SmartScreen 경고가 나온다."
+                echo ">"
+                echo "> This build is **unsigned and not notarized**." ;;
+            esac
+            cat <<'NOTES'
+          > 여는 방법과 SHA-256 확인법은 [설치 안내](https://github.com/jhkwim/waitscape-releases#readme) / See the install guide for how to open it and verify checksums.
+
+          파일: macOS universal(.dmg, .app.zip) · Windows x64(NSIS .exe, .msi) · SHA256SUMS.txt
+          NOTES
+            if [ -f latest.json ]; then
+              echo
+              echo "앱 안 업데이트: latest.json·.app.tar.gz·.sig 포함. **게시(Publish)하면** publish-public.yml이 공개 저장소로 복사하고, 그때부터 설치된 앱이 이 버전을 찾는다(초안은 보이지 않음)."
+            fi
+            if [ -s ../changes.md ]; then
+              echo
+              echo "## 바뀐 점"
+              echo
+              cat ../changes.md
+            fi
+          } > notes.md
+          shopt -s nullglob
+          files=(*.dmg *.zip *.exe *.msi *.tar.gz *.sig SHA256SUMS.txt)
+          if [ -f latest.json ]; then files+=(latest.json); fi
+          printf '올릴 파일: %s\n' "${files[@]}"
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --target "$SHA" \
+            --title "Waitscape $TAG" --notes-file notes.md -- "${files[@]}"

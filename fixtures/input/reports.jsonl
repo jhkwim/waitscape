@@ -1,0 +1,26 @@
+{"v": 1, "ts": 1792518300, "type": "hello", "key": "codex-4821-1792518300000-0a1b2c3d", "provider": "codex", "cwd": "/Users/alex/dev/shop-api", "wr": "0.1.0", "client": {"name": "codex-mcp-client", "version": "0.9"}, "proto": "2025-06-18"}
+{"v": 1, "ts": 1792518310, "type": "status", "key": "codex-4821-1792518300000-0a1b2c3d", "provider": "codex", "cwd": "/Users/alex/dev/shop-api", "wr": "0.1.0", "state": "working", "title": "결제 API 정리", "step": 1, "total": 3, "term": {"mux": {"kind": "cmux", "workspace": "workspace:4", "surface": "surface:11"}}}
+{"v": 1, "ts": 1792518320, "type": "board", "key": "codex-4821-1792518300000-0a1b2c3d", "provider": "codex", "cwd": "/Users/alex/dev/shop-api", "wr": "0.1.0", "lines": ["타입 정리", "환불 로직 분리", "테스트 추가"], "done": [], "term": {"mux": {"kind": "cmux", "workspace": "--socket-password"}}}
+{"v": 1, "ts": 1792518600, "type": "status", "key": "codex-4821-1792518300000-0a1b2c3d", "provider": "codex", "cwd": "/Users/alex/dev/shop-api", "wr": "0.1.0", "state": "asking", "title": "DB 마이그레이션 할까요?"}
+{"v": 1, "ts": 1792518700, "type": "status", "key": "codex-4821-1792518300000-0a1b2c3d", "provider": "codex", "cwd": "/Users/alex/dev/shop-api", "wr": "0.1.0", "state": "working", "title": "환불 로직 분리", "step": 2, "total": 3}
+{"v": 1, "ts": 1792519070, "type": "board", "key": "codex-4821-1792518300000-0a1b2c3d", "provider": "codex", "cwd": "/Users/alex/dev/shop-api", "wr": "0.1.0", "lines": ["타입 정리", "환불 로직 분리", "테스트 추가"], "done": [0, 1, 2, 7]}
+{"v": 1, "ts": 1792519080, "type": "status", "key": "codex-4821-1792518300000-0a1b2c3d", "provider": "codex", "cwd": "/Users/alex/dev/shop-api", "wr": "0.1.0", "state": "done", "big": true, "cheer": "환불 버그까지 잡았어요"}
+{"v": 1, "ts": 1792516800, "type": "hello", "key": "gemini-77-1792511000000-ffff0001", "provider": "gemini", "cwd": "/Users/alex/dev/docs-site", "wr": "0.1.0", "client": {"name": "gemini-cli-mcp-client", "version": "0.58.0"}}
+{"v": 1, "ts": 1792516900, "type": "status", "key": "gemini-77-1792511000000-ffff0001", "provider": "gemini", "cwd": "/Users/alex/dev/docs-site", "wr": "0.1.0", "state": "working", "title": "password=@@FAKE_PW@@ 바꾸기"}
+{"v": 1, "ts": 1792516910, "type": "board", "key": "gemini-77-1792511000000-ffff0001", "provider": "gemini", "cwd": "/Users/alex/dev/docs-site", "wr": "0.1.0", "lines": ["첫 보드"], "done": []}
+{"v": 1, "ts": 1792517000, "type": "board", "key": "gemini-77-1792511000000-ffff0001", "provider": "gemini", "cwd": "/Users/alex/dev/docs-site", "wr": "0.1.0", "lines": ["둘째 보드\n줄바꿈", "@@FAKE_SLACK@@"], "done": [1]}
+{"v": 1, "ts": 1792519150, "type": "hello", "key": "other-5-1792519000000-00000005", "provider": "other", "cwd": "/Users/alex/dev/misc", "wr": "0.1.0", "client": {"name": "cursor", "version": "1"}}
+{"v": 1, "ts": 1792518800, "type": "status", "key": "codex-9-1792518000000-00000009", "provider": "codex", "cwd": "/Users/alex/dev/gone", "wr": "0.1.0", "state": "working", "title": "곧 끝남"}
+{"v": 1, "ts": 1792518810, "type": "bye", "key": "codex-9-1792518000000-00000009", "provider": "codex", "cwd": "/Users/alex/dev/gone", "wr": "0.1.0"}
+{"v": 1, "ts": 1792494000, "type": "status", "key": "codex-8-1792490000000-00000008", "provider": "codex", "cwd": "/Users/alex/dev/old", "wr": "0.1.0", "state": "working", "title": "오래된 보고"}
+{"v": 1, "ts": 1792519170, "type": "status", "key": "codex-6-1792518900000-00000006", "provider": "codex", "cwd": "/Users/alex/.claude-mem/observer-sessions", "wr": "0.1.0", "state": "working", "title": "관찰"}
+{"v": 1, "ts": 1792518950, "type": "status", "key": "claude-11-1792518800000-0000000b", "provider": "claude", "cwd": "/Users/alex/dev/report-hook", "wr": "0.1.0", "state": "working", "title": "사이드카 쪽"}
+{"v": 1, "ts": 1792519050, "type": "status", "key": "claude-12-1792518800000-0000000c", "provider": "claude", "cwd": "/Users/alex/dev/report-fb", "wr": "0.1.0", "state": "working", "title": "훅 없이 보고", "step": 1, "total": 2}
+{"v": 1, "ts": 1792519060, "type": "board", "key": "claude-12-1792518800000-0000000c", "provider": "claude", "cwd": "/Users/alex/dev/report-fb", "wr": "0.1.0", "lines": ["읽기", "정리"], "done": [0]}
+{"v": 1, "ts": 1792519090, "type": "status", "key": "claude-13-1792518800000-0000000d", "provider": "claude", "cwd": "/Users/alex/dev/twins", "wr": "0.1.0", "state": "working", "title": "누구 것?"}
+{"v": 2, "ts": 1792519190, "type": "hello", "key": "codex-1-1-00000001", "provider": "codex", "cwd": "/Users/alex/dev/bad", "wr": "0.1.0"}
+{"v": 1, "ts": 1792519190, "type": "ping", "key": "codex-1-1-00000001", "provider": "codex", "cwd": "/Users/alex/dev/bad", "wr": "0.1.0"}
+{"v": 1, "ts": 1792519190, "type": "hello", "key": "../etc/passwd", "provider": "codex", "cwd": "/Users/alex/dev/bad", "wr": "0.1.0"}
+{"v": 1, "ts": 1792519190, "type": "status", "key": "codex-2-2-00000002", "provider": "codex", "cwd": "/Users/alex/dev/bad", "wr": "0.1.0", "state": "started"}
+{"v": 1, "ts": 1792519190, "type": "board", "key": "codex-3-3-00000003", "provider": "codex", "cwd": "/Users/alex/dev/bad", "wr": "0.1.0", "lines": "한 줄"}
+{not json

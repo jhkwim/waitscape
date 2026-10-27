@@ -1,0 +1,1 @@
+{"type": "user", "timestamp": "2026-10-20T17:59:40.000Z", "sessionId": "to-mask", "cwd": "/Users/alex/dev/demo", "uuid": "to-mask-u1", "isSidechain": false, "message": {"role": "user", "content": "이 키 써: @@FAKE_SK@@ 그리고 password=@@FAKE_PW@@"}}

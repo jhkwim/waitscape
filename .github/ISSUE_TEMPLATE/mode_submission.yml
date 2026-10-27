@@ -1,0 +1,80 @@
+name: "🎨 모드 제출 / Mode submission"
+description: "새 화면 모드를 공유하거나 내장 모드로 제안 / Share a screen mode or propose it as built-in"
+labels: ["mode"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        작성법은 [MODES.md](https://github.com/jhkwim/waitscape/blob/main/MODES.md)를 참고하세요. 스타터: `web/modes/_template/`.
+        See MODES.md for the Mode API v1 guide. Starter: `web/modes/_template/`.
+  - type: input
+    id: id
+    attributes:
+      label: "모드 id / Mode id"
+      description: "폴더 이름 = mode.json `id` (`^[a-z0-9][a-z0-9-]{0,31}$`) / Folder name = mode.json id"
+      placeholder: "aquarium"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "제출 종류 / Submission type"
+      options:
+        - "외부 모드 공유 (링크) / Share as external mode (link)"
+        - "내장 모드로 추가 제안 (PR 예정) / Propose as built-in (PR to follow)"
+    validations:
+      required: true
+  - type: textarea
+    id: manifest
+    attributes:
+      label: "mode.json"
+      description: "전체 내용을 붙여 주세요 / Paste the full manifest"
+      render: json
+    validations:
+      required: true
+  - type: checkboxes
+    id: needs
+    attributes:
+      label: "요청 권한 (`needs`) / Requested permissions"
+      description: "필요한 것만 선언하세요 (MODES.md §4) / Declare only what you need"
+      options:
+        - label: "trace — 흐름 기록 읽기 / read session trace"
+        - label: "memo — 세션 메모 읽기·쓰기 / read & write session memos"
+        - label: "notify — 알림 보내기 / send notifications"
+        - label: "clipboard — 클립보드 쓰기 / write to clipboard"
+        - label: "없음 / none"
+  - type: textarea
+    id: why
+    attributes:
+      label: "권한이 필요한 이유 / Why each permission?"
+  - type: input
+    id: source
+    attributes:
+      label: "소스 위치 / Source"
+      description: "저장소·zip 링크 / Repository or archive link"
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "스크린샷 / Screenshots"
+      description: "라이트·다크, 가능하면 회의 모드도 (실제 프롬프트·경로가 보이지 않게) / Light & dark, quiet mode if possible (no real prompts/paths)"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "체크리스트 (MODES.md §11) / Checklist"
+      options:
+        - label: "`python3 scripts/validate_modes.py <경로>/mode.json` 통과 / passes schema validation"
+          required: true
+        - label: "**외부 모드로 설치해 샌드박스에서** 동작 확인, 외부 리소스 요청 0건 / Works in the sandbox as an external mode, zero external requests"
+          required: true
+        - label: "`fetch` 직접 호출·전역 `document`/`window`/`localStorage` 직접 사용 없음 / No direct fetch or globals"
+          required: true
+        - label: "다른 모드로 10번 왕복해도 타이머·핸들러 수가 늘지 않음 / No leaks after 10 round trips"
+          required: true
+        - label: "한국어·영어, 라이트·다크 확인 / Checked ko/en, light/dark"
+        - label: "문구에 \"Claude\"를 박지 않고 프로바이더 이름을 씀 / Uses provider name, not hard-coded \"Claude\""
+        - label: "폰트·이미지는 패키지 `assets/` 안에 있고 라이선스가 명확함 / Assets bundled with clear licenses"
+          required: true

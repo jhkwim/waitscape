@@ -1,0 +1,9 @@
+{
+  "$comment": "앱 이름·식별자를 한 곳에서 정한다. 다른 코드·설정(tauri.conf.json, User-Agent, 문서 제목)은 여기서 읽거나 생성한다.",
+  "name": "Waitscape",
+  "identifier": "io.github.jhkwim.waitscape",
+  "repo": "https://github.com/jhkwim/waitscape",
+  "userAgent": "Waitscape/<VERSION>",
+  "tagline": "Make the wait worth watching.",
+  "description": "Claude Code용 비공식 세션 대시보드 · Unofficial session dashboard for Claude Code"
+}

@@ -1,0 +1,2 @@
+{"type": "user", "timestamp": "2026-10-20T17:59:00.000Z", "sessionId": "to-plan", "cwd": "/Users/alex/dev/demo", "uuid": "to-plan-u1", "isSidechain": false, "message": {"role": "user", "content": "계획 세워줘"}}
+{"type": "assistant", "timestamp": "2026-10-20T17:59:56.000Z", "sessionId": "to-plan", "cwd": "/Users/alex/dev/demo", "uuid": "to-plan-u2", "isSidechain": false, "message": {"role": "assistant", "id": "to-plan-m2", "content": [{"type": "tool_use", "id": "p1", "name": "ExitPlanMode", "input": {"plan": "1. ..."}}], "stop_reason": "tool_use"}}

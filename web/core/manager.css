@@ -1,0 +1,117 @@
+/* 설정 화면 (manager.js). Shadow DOM 안에서 쓰여 모드 CSS와 섞이지 않는다. 자체 토큰, 라이트/다크 */
+:host { all: initial; }
+.mg-dlg {
+  --mg-bg: #ffffff; --mg-fg: #17191d; --mg-mute: #6b7280; --mg-line: #e4e7eb; --mg-soft: #f4f5f7; --mg-acc: #2563eb; --mg-acc-fg: #fff;
+  --mg-warn-bg: #fff7e6; --mg-warn-fg: #7a4b00; --mg-err: #c0262d; --mg-info-bg: #eef4ff;
+  color-scheme: light; background: var(--mg-bg); color: var(--mg-fg);
+  font: 14px/1.5 system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  border: 1px solid var(--mg-line); border-radius: 14px; padding: 0; box-shadow: 0 20px 60px rgba(0, 0, 0, .28);
+  width: min(760px, calc(100vw - 32px)); max-height: min(86vh, 900px);
+}
+@media (prefers-color-scheme: dark) {
+  .mg-dlg { --mg-bg: #17191e; --mg-fg: #e7e9ec; --mg-mute: #9aa2ad; --mg-line: #2b2f37; --mg-soft: #20232a; --mg-acc: #5b8cff; --mg-acc-fg: #0b0d12;
+    --mg-warn-bg: #3a2c10; --mg-warn-fg: #f6d48b; --mg-err: #ff7b7f; --mg-info-bg: #1c2740; color-scheme: dark; }
+}
+.mg-dlg::backdrop { background: rgba(10, 12, 16, .45); }
+.mg-dlg * { box-sizing: border-box; }
+.mg-dlg h2 { margin: 0; font-size: 17px; }
+.mg-dlg h3 { margin: 0 0 8px; font-size: 14px; }
+.mg-dlg p { margin: 6px 0; }
+.mg-dlg code { font: 12px ui-monospace, Menlo, Consolas, monospace; background: var(--mg-soft); padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+.mg-main { display: flex; flex-direction: column; overflow: hidden; }
+.mg-main[open] { display: flex; }
+.mg-main header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 8px; }
+.mg-x { font: inherit; font-size: 16px; color: inherit; background: none; border: 0; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+.mg-x:hover { background: var(--mg-soft); }
+.mg-tabs { display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--mg-line); }
+.mg-tabs button { font: inherit; color: var(--mg-mute); background: none; border: 0; padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+.mg-tabs button[aria-selected="true"] { color: var(--mg-fg); border-bottom-color: var(--mg-acc); font-weight: 600; }
+.mg-body { padding: 14px 18px 18px; overflow: auto; }
+.mg-mute { color: var(--mg-mute); }
+.mg-small { font-size: 12px; }
+.mg-note { color: var(--mg-acc); font-size: 12px; }
+.mg-card { border: 1px solid var(--mg-line); border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; }
+.mg-modes { list-style: none; margin: 0 0 14px; padding: 0; border: 1px solid var(--mg-line); border-radius: 10px; }
+.mg-mode { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: start; padding: 10px 12px; border-top: 1px solid var(--mg-line); }
+.mg-mode:first-child { border-top: 0; }
+.mg-mode:not(.on) .mg-mode-ico, .mg-mode:not(.on) .mg-mode-top b { opacity: .55; }
+.mg-mode-ico { font-size: 24px; line-height: 1.2; text-align: center; }
+.mg-icon-img { width: 26px; height: 26px; }
+.mg-mode-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mg-desc { font-size: 12.5px; }
+.mg-mode-ctl { display: flex; align-items: center; gap: 6px; }
+.mg-badge { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 999px; background: var(--mg-soft); color: var(--mg-mute); border: 1px solid var(--mg-line); line-height: 1.6; }
+.mg-src-user, .mg-src-dev { color: var(--mg-warn-fg); background: var(--mg-warn-bg); border-color: transparent; }
+.mg-cur { color: var(--mg-acc); }
+.mg-chip { font: 11px ui-monospace, Menlo, Consolas, monospace; padding: 0 6px; border-radius: 6px; background: var(--mg-soft); border: 1px solid var(--mg-line); }
+.mg-warn { margin-top: 6px; padding: 7px 10px; border-radius: 8px; background: var(--mg-warn-bg); color: var(--mg-warn-fg); font-size: 12.5px; }
+.mg-err { margin-top: 4px; color: var(--mg-err); font-size: 12.5px; }
+.mg-info { padding: 8px 10px; border-radius: 8px; background: var(--mg-info-bg); font-size: 12.5px; }
+.mg-perms { margin: 4px 0 8px; padding-left: 18px; }
+.mg-btn { font: inherit; font-size: 13px; color: inherit; background: var(--mg-soft); border: 1px solid var(--mg-line); border-radius: 8px; padding: 4px 12px; cursor: pointer; }
+.mg-btn:hover { border-color: var(--mg-mute); }
+.mg-primary { background: var(--mg-acc); color: var(--mg-acc-fg); border-color: var(--mg-acc); }
+.mg-ico-btn { font: inherit; color: inherit; background: none; border: 1px solid var(--mg-line); border-radius: 6px; width: 26px; height: 26px; cursor: pointer; }
+.mg-ico-btn:disabled { opacity: .3; cursor: default; }
+.mg-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; }
+.mg-toggle { position: relative; display: inline-block; width: 36px; height: 20px; flex: none; }
+.mg-toggle input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.mg-toggle span { position: absolute; inset: 0; border-radius: 999px; background: var(--mg-line); transition: background .15s; pointer-events: none; }
+.mg-toggle span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .15s; }
+.mg-toggle input:checked + span { background: var(--mg-acc); }
+.mg-toggle input:checked + span::after { transform: translateX(16px); }
+.mg-toggle input:disabled + span { opacity: .45; }
+.mg-toggle input:focus-visible + span { outline: 2px solid var(--mg-acc); outline-offset: 2px; }
+.mg-dlg select { font: inherit; color: inherit; background: var(--mg-soft); border: 1px solid var(--mg-line); border-radius: 8px; padding: 4px 8px; }
+.mg-pre { font: 11px ui-monospace, Menlo, Consolas, monospace; background: var(--mg-soft); padding: 8px; border-radius: 8px; overflow: auto; max-height: 260px; margin: 0; }
+.mg-confirm { width: min(480px, calc(100vw - 32px)); padding: 18px 20px; }
+.mg-confirm h2 { margin-bottom: 10px; }
+.mg-upd h3 { margin: 12px 0 6px; font-size: 13px; }
+.mg-upd-notes { font: 12px/1.5 system-ui, sans-serif; white-space: pre-wrap; max-height: 220px; }
+.mg-upd-st:empty { display: none; }
+/* MCP 보고 연결 (AI 연결 탭) */
+.mg-mcp-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mg-mcp-tbl { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+.mg-mcp-tbl th { text-align: left; font-weight: 600; font-size: 12px; color: var(--mg-mute); padding: 4px 8px; border-bottom: 1px solid var(--mg-line); }
+.mg-mcp-tbl td { padding: 7px 8px; border-bottom: 1px solid var(--mg-line); vertical-align: top; }
+.mg-mcp-tbl tr:last-child td { border-bottom: 0; }
+.mg-mcp-tbl code { font-size: 11px; padding: 0 4px; }
+.mg-mcp-act { text-align: right; white-space: nowrap; }
+.mg-mcp-act .mg-btn:disabled { opacity: .45; cursor: default; }
+.mg-mcp-connected { color: #137a3b; background: #e7f6ec; border-color: transparent; font-weight: 600; }
+.mg-mcp-other, .mg-mcp-error { color: var(--mg-warn-fg); background: var(--mg-warn-bg); border-color: transparent; }
+.mg-mcp-why code { font-size: 10.5px; }
+.mg-mcp-prev { border: 1px dashed var(--mg-line); border-radius: 8px; padding: 8px 10px; margin: 8px 0; background: var(--mg-soft); }
+.mg-mcp-prev h4 { margin: 0 0 6px; font-size: 13px; }
+.mg-diff { background: var(--mg-bg); white-space: pre; max-height: 220px; }
+.mg-d-add { color: #137a3b; }
+.mg-d-del { color: var(--mg-err); }
+.mg-d-head { color: var(--mg-acc); font-weight: 600; }
+.mg-d-ctx { color: var(--mg-mute); }
+/* 방금 연결한 줄: 배지가 한 번 톡 (작은 반응) */
+.mg-pop { animation: mg-pop .55s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes mg-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .mg-pop { animation: none; } }
+/* 온보딩 ② 훅: 단계 표시 · 접힌 자세히 보기 · 성공 한 줄 */
+.mg-step { margin: 0 0 .2em; font-size: .78em; letter-spacing: .04em; opacity: .65; }
+.mg-onb-more { margin: .6em 0; }
+.mg-onb-more summary { cursor: pointer; font-size: .88em; opacity: .8; }
+.mg-onb-more[open] summary { margin-bottom: .4em; }
+.mg-onb-ok { font-weight: 600; }
+.mg-onb-ok .mg-pop { display: inline-block; color: #137a3b; }
+@media (prefers-color-scheme: dark) {
+  .mg-onb-ok .mg-pop { color: #7fe0a0; }
+  .mg-mcp-connected { color: #7fe0a0; background: #163222; }
+  .mg-d-add { color: #7fe0a0; }
+}
+.mg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+@media (max-width: 560px) {
+  .mg-mode { grid-template-columns: 28px 1fr; }
+  .mg-mode-ctl { grid-column: 1 / -1; justify-content: flex-end; }
+}
+.mg-kbd { display: inline-block; min-width: 2.2em; padding: 1px 7px; border: 1px solid var(--mg-line); border-bottom-width: 2px; border-radius: 6px; background: var(--mg-soft); font: 600 12px/1.6 ui-monospace, Menlo, Consolas, monospace; text-align: center; }
+.mg-inapp { display: flex; align-items: center; gap: 8px; }
+.mg-nxkey.off { opacity: .45; }
+.mg-nxkey.off .mg-kbd { text-decoration: line-through; }
+.mg-back { margin: 0 18px 4px; }
+.mg-back[hidden] { display: none; }

@@ -1,0 +1,16 @@
+{"ts": 1792522680, "sid": "fx-night", "cwd": "/Users/alex/dev/night-batch", "event": "UserPromptSubmit", "text": "새벽 배치 점검"}
+{"ts": 1792522700, "sid": "fx-night", "cwd": "/Users/alex/dev/night-batch", "event": "PreToolUse", "icon": "⚡", "text": "배치 로그 확인", "kind": "bash"}
+{"ts": 1792522799, "sid": "fx-night", "cwd": "/Users/alex/dev/night-batch", "event": "Stop"}
+{"ts": 1792522799.5, "sid": "fx-night", "cwd": "/Users/alex/dev/night-batch", "event": "UserPromptSubmit", "text": "경계 확인"}
+{"ts": 1792522800, "sid": "fx-night", "cwd": "/Users/alex/dev/night-batch", "event": "Stop"}
+{"ts": 1792523200, "sid": "fx-day", "cwd": "/Users/alex/dev/daily-api", "event": "UserPromptSubmit", "text": "웹훅 재시도 고쳐줘 token=@@FAKE_PW@@"}
+{"ts": 1792523210, "sid": "fx-day", "cwd": "/Users/alex/dev/daily-api", "event": "PreToolUse", "icon": "⚡", "text": "테스트 실행", "kind": "bash"}
+{"ts": 1792523220, "sid": "fx-day", "cwd": "/Users/alex/dev/daily-api", "event": "Notification", "text": "Claude needs your permission to use Bash"}
+{"ts": 1792523230, "sid": "fx-day", "cwd": "/Users/alex/dev/daily-api", "event": "Notification", "text": "Claude needs your permission to use Bash"}
+{"ts": 1792523300, "sid": "fx-day", "cwd": "/Users/alex/dev/daily-api", "event": "PreToolUse", "icon": "✏️", "text": "retry.py 고치는 중", "kind": "edit"}
+{"ts": 1792523400, "sid": "fx-ui", "cwd": "/Users/alex/dev/ui-kit", "event": "UserPromptSubmit", "text": "버튼 색 바꿔줘"}
+{"ts": 1792523700, "sid": "fx-ui", "cwd": "/Users/alex/dev/ui-kit", "event": "Stop"}
+{"ts": 1792523760, "sid": "fx-ui", "cwd": "/Users/alex/dev/ui-kit", "event": "Notification", "text": "Claude is waiting for your input"}
+{"ts": 1792523900, "sid": "fx-ui", "cwd": "/Users/alex/dev/ui-kit", "event": "UserPromptSubmit", "text": "여백도 줄여줘"}
+{"ts": 1792523960, "sid": "fx-ui", "cwd": "/Users/alex/dev/ui-kit", "event": "Stop"}
+{"ts": 1792524000, "sid": "fx-day", "cwd": "/Users/alex/dev/daily-api", "event": "Stop"}

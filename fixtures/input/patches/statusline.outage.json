@@ -1,0 +1,13 @@
+{
+ "limits": {
+  "five_hour": {
+   "used_percentage": 100,
+   "resets_at": 1792530600
+  },
+  "seven_day": {
+   "used_percentage": 40,
+   "resets_at": 1792929600
+  }
+ },
+ "limits_ts": 1792524200
+}

@@ -1,0 +1,126 @@
+name: Rust
+
+# 러너 시간·대기 줄이기: Rust와 그 결과에 영향을 주는 파일이 바뀔 때만 돈다(공개 저장소라 표준 러너는 무료지만 빌드가 길다).
+# main push도 같은 경로일 때만 돈다 — PR은 main의 캐시만 읽을 수 있어서, main에서 한 번 돌아야 다음 PR이 캐시를 쓴다.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/**"
+      - "app/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "fixtures/**"
+      - "server.py"
+      - "daylog.py"
+      - "statusline_tap.py"
+      - "mcp_report.py"
+      - "scripts/rust_parity.sh"
+      - "scripts/compare.py"
+      - "scripts/snapshot.py"
+      - "scripts/build_sidecar.sh"
+      - "scripts/check_transcript_only.py"
+      - "web/fonts/**"
+      - "web/modes/index.json"
+      - ".github/workflows/rust.yml"
+  pull_request:
+    paths:
+      - "crates/**"
+      - "app/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "fixtures/**"
+      - "server.py"
+      - "daylog.py"
+      - "statusline_tap.py"
+      - "mcp_report.py"
+      - "scripts/rust_parity.sh"
+      - "scripts/compare.py"
+      - "scripts/snapshot.py"
+      - "scripts/build_sidecar.sh"
+      - "scripts/check_transcript_only.py"
+      - "web/fonts/**"
+      - "web/modes/index.json"
+      - ".github/workflows/rust.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]   # macOS 앱 빌드는 release.yml이 맥에서 한다(PR 검사는 Linux·Windows로 충분하고 맥 러너는 대기가 길다)
+    env:
+      # 앱 크레이트(app/src-tauri)의 rust-version(1.90)에 맞춰 고정. 올릴 때는 여기와 release.yml을 같이 바꾼다.
+      RUST_TOOLCHAIN: "1.90.0"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Rust 툴체인 고정 (rustup, 러너에 기본 설치됨)
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt --component clippy
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -V
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      # --- Linux: 앱(Tauri) 포함 워크스페이스 전체 ---
+      - name: Tauri 시스템 의존성 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libssl-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: runner.os == 'Linux'
+        with:
+          python-version: "3.12"
+
+      - name: wr-hook sidecar 만들기 (tauri-build가 externalBin 파일을 요구함)
+        if: runner.os == 'Linux'
+        run: sh scripts/build_sidecar.sh
+
+      - name: cargo fmt --check
+        if: runner.os == 'Linux'
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy (경고 = 실패)
+        if: runner.os == 'Linux'
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo clippy 앱 기능 끈 빌드 (updater·terminal-jump 없이, docs/RELEASE.md '빌드 플레이버')
+        if: runner.os == 'Linux'
+        run: cargo clippy -p waitscape --all-targets --no-default-features -- -D warnings
+
+      - name: cargo test --workspace
+        if: runner.os == 'Linux'
+        run: cargo test --workspace
+
+      - name: Python 기준 결과와 동등성 (23/23, MCP 보고 포함) + 트랜스크립트 전용 (24/24)
+        if: runner.os == 'Linux'
+        run: sh scripts/rust_parity.sh
+
+      # --- Windows: 앱을 뺀 코어 크레이트만 (앱은 릴리스 워크플로가 빌드) ---
+      # 기준 결과(fixtures/expected)는 Asia/Seoul 기준 '오늘'이다. Unix는 테스트가 TZ 환경변수를 읽지만 Windows의 chrono는 시스템 시간대를 쓰므로 맞춰 준다.
+      - name: 시스템 시간대를 fixture와 같게 (Windows)
+        if: runner.os == 'Windows'
+        run: tzutil /s "Korea Standard Time"
+
+      - name: cargo test (wr-core·wr-hook·wr-server)
+        if: runner.os != 'Linux'
+        run: cargo test -p wr-core -p wr-hook -p wr-server

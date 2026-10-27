@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title></title>
+<!-- 얇은 셸: 공통 코어만 싣는다. 화면 모드(modes/<id>/mode.json·mode.js·mode.css)는 코어가 발견해서 선택될 때 불러옴.
+     제목(앱 이름)은 brand.json에서 코어가 채운다. MODES.md 참고 -->
+<link rel="icon" href="data:,">  <!-- favicon 404 콘솔 에러 방지 -->
+<link rel="stylesheet" href="core/core.css">
+<link rel="stylesheet" href="core/nunchi.css">
+<script src="core/i18n.js" defer></script>
+<script src="core/core-lib.js" defer></script>
+<script src="core/api.js" defer></script>
+<script src="core/nunchi.js" defer></script>
+<script src="core/core.js" defer></script>
+</head>
+<body>
+<div id="app" class="mode-root"></div>
+</body>
+</html>

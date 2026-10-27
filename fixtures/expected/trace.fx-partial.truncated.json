@@ -1,0 +1,35 @@
+{
+ "cursor": "2.0.2338",
+ "full": true,
+ "lanes": [
+  {
+   "desc": "메인 Claude",
+   "fail": 0,
+   "id": "main",
+   "status": "running",
+   "t_end": 1792519000.0,
+   "t_start": 1792519000.0,
+   "type": "main"
+  }
+ ],
+ "now": 1792519200,
+ "older": null,
+ "project": "partial",
+ "prompt": {
+  "i": 0,
+  "last": true,
+  "t": 1792519000.0,
+  "t_next": null,
+  "text": "부분 기록 테스트"
+ },
+ "prompts": [
+  {
+   "i": 0,
+   "t": 1792519000.0,
+   "text": "부분 기록 테스트"
+  }
+ ],
+ "session": "fx-partial",
+ "steps": [],
+ "total": 0
+}

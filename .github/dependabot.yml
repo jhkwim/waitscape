@@ -1,0 +1,28 @@
+# 의존성 업데이트 PR (주 1회, 종류별 열린 PR 최대 5개).
+# 액션은 커밋 SHA로 고정돼 있다 — Dependabot이 SHA와 버전 주석(# vX.Y.Z)을 함께 올린다.
+# Cargo는 워크스페이스 루트 하나로 crates/*·app/src-tauri를 모두 본다. Tauri PR을 병합할 때 release.yml TAURI_CLI_VERSION(npm CLI)은 손으로 맞춘다.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    # tauri·tauri-build·tauri-plugin-* 는 한 PR로 같이 올린다(버전이 서로 맞아야 함). 메이저는 손으로.
+    groups:
+      tauri:
+        patterns: ["tauri*"]
+    ignore:
+      - dependency-name: "tauri*"
+        update-types: ["version-update:semver-major"]

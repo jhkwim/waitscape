@@ -1,0 +1,2 @@
+{"type": "user", "timestamp": "2026-10-20T11:00:00.000Z", "sessionId": "to-stale", "cwd": "/Users/alex/dev/demo", "uuid": "to-stale-u1", "isSidechain": false, "message": {"role": "user", "content": "옛날 일"}}
+{"type": "assistant", "timestamp": "2026-10-20T11:00:10.000Z", "sessionId": "to-stale", "cwd": "/Users/alex/dev/demo", "uuid": "to-stale-u2", "isSidechain": false, "message": {"role": "assistant", "id": "to-stale-m2", "content": [{"type": "text", "text": "끝"}], "stop_reason": "end_turn"}}

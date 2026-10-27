@@ -1,0 +1,83 @@
+name: "🐞 버그 신고 / Bug report"
+description: "동작이 이상하거나 깨진 화면 신고 / Something is broken or behaves unexpectedly"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        신고해 주셔서 고맙습니다. **보안 취약점은 여기 쓰지 말고** [SECURITY.md](https://github.com/jhkwim/waitscape/blob/main/SECURITY.md)의 비공개 신고를 이용해 주세요.
+        Thanks for reporting! **Do not file security vulnerabilities here** — use private reporting described in SECURITY.md.
+
+        ⚠️ 로그·스크린샷에 프롬프트, 토큰, 개인 경로, 회사 정보가 없는지 확인해 주세요.
+        Please make sure logs/screenshots contain no prompts, tokens, personal paths, or company info.
+  - type: textarea
+    id: what
+    attributes:
+      label: "무슨 일이 있었나요? / What happened?"
+      description: "기대한 동작과 실제 동작 / Expected vs. actual behavior"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "재현 방법 / Steps to reproduce"
+      placeholder: |
+        1. python3 server.py
+        2. http://localhost:7777/#flow 열기 / open
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: "영역 / Area"
+      multiple: true
+      options:
+        - "모드 화면 / Mode (hamster, work, pocket, board, orbit, flow, studio, external)"
+        - "코어 (알림·설정·전환) / Core (notifications, settings, switching)"
+        - "백엔드 (server.py·/state·/trace) / Backend"
+        - "훅 (hook.py) / Hook"
+        - "프로바이더 / Provider"
+        - "데스크톱 앱 (Tauri) / Desktop app"
+        - "문서 / Docs"
+        - "모름 / Not sure"
+    validations:
+      required: true
+  - type: input
+    id: mode
+    attributes:
+      label: "모드 / Mode"
+      placeholder: "예: flow, hamster, 외부 모드 id / e.g. flow, or external mode id"
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: "실행 방식 / How are you running it?"
+      options:
+        - "브라우저 + python3 server.py"
+        - "개발 서버 / Dev server (bun tools/dev.ts)"
+        - "데스크톱 앱 / Desktop app"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: "환경 / Environment"
+      description: "OS·브라우저·Python·AI 도구 버전 / OS, browser, Python, AI tool versions"
+      placeholder: "macOS 15.1, Safari 18.1, Python 3.12, Claude Code 2.x"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "로그·스크린샷 / Logs & screenshots"
+      description: "콘솔 오류, 서버 출력 (민감 정보는 지워 주세요) / Console errors, server output (redact sensitive data)"
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "확인 / Checklist"
+      options:
+        - label: "비슷한 이슈가 이미 있는지 찾아봤어요 / I searched existing issues"
+          required: true
+        - label: "첨부물에 시크릿·프롬프트·개인 정보가 없어요 / Attachments contain no secrets, prompts, or personal data"
+          required: true

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jhkwim/waitscape/main/types/mode.schema.json",
+  "id": "starter",
+  "name": { "ko": "스타터", "en": "Starter" },
+  "icon": "🧪",
+  "version": "0.1.0",
+  "apiVersion": "1.0",
+  "entry": "mode.js",
+  "styles": ["mode.css"],
+  "author": { "name": "<YOUR_NAME>" },
+  "description": { "ko": "최소 예제: 세션 표 + 타이머 + 메모 + 흐름 기록 단계 수", "en": "Minimal example: session table, timer, memo, trace step count" },
+  "license": "MIT",
+  "needs": ["memo", "trace"],
+  "uses": ["subagents"]
+}

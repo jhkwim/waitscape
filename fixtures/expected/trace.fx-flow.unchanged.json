@@ -1,0 +1,73 @@
+{
+ "cursor": "1.1.2335",
+ "full": false,
+ "lanes": [
+  {
+   "desc": "메인 Claude",
+   "fail": 2,
+   "id": "main",
+   "status": "running",
+   "t_end": 1792519180.0,
+   "t_start": 1792518300.0,
+   "type": "main"
+  },
+  {
+   "desc": "결제 로그 분석",
+   "fail": 0,
+   "from": 17,
+   "id": "a1x",
+   "status": "done",
+   "t_end": 1792518596.0,
+   "t_join": 1792518600.0,
+   "t_start": 1792518340.0,
+   "type": "Explore"
+  },
+  {
+   "desc": "PG 응답 코드 조사",
+   "fail": 0,
+   "from": 18,
+   "id": "a2x",
+   "status": "running",
+   "t_end": 1792519103.0,
+   "t_join": null,
+   "t_start": 1792518342.0,
+   "type": "Explore"
+  },
+  {
+   "desc": "재시도 로직 테스트 작성",
+   "fail": 1,
+   "from": 19,
+   "id": "a3x",
+   "status": "running",
+   "t_end": 1792519186.5,
+   "t_join": null,
+   "t_start": 1792518344.0,
+   "type": "general-purpose"
+  }
+ ],
+ "now": 1792519200,
+ "older": null,
+ "project": "shop-api",
+ "prompt": {
+  "i": 1,
+  "last": true,
+  "t": 1792518300.0,
+  "t_next": null,
+  "text": "결제 실패율이 왜 올랐는지 조사하고 고쳐줘. 키는 <REDACTED> 야"
+ },
+ "prompts": [
+  {
+   "i": 0,
+   "t": 1792515600.0,
+   "text": "주문 목록 API에 페이지네이션 추가해줘"
+  },
+  {
+   "i": 1,
+   "t": 1792518300.0,
+   "text": "결제 실패율이 왜 올랐는지 조사하고 고쳐줘. 키는 <REDACTED> 야"
+  }
+ ],
+ "session": "fx-flow",
+ "steps": [],
+ "total": 62
+}

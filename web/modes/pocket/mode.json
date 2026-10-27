@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../types/mode.schema.json",
+  "id": "pocket",
+  "name": {
+    "ko": "포켓",
+    "en": "Pocket"
+  },
+  "icon": "📌",
+  "version": "1.0.0",
+  "apiVersion": "1.0",
+  "entry": "mode.js",
+  "styles": [
+    "mode.css"
+  ],
+  "author": {
+    "name": "built-in"
+  },
+  "description": {
+    "ko": "3단계 크기 위젯, 다른 앱 위에 띄우기(Document PiP)",
+    "en": "Three-size widget that can float above other apps (Document PiP)"
+  },
+  "license": "MIT",
+  "locale": "ko",
+  "needs": [
+    "memo",
+    "clipboard"
+  ],
+  "uses": [
+    "subagents",
+    "limits"
+  ],
+  "chimeWave": "sine",
+  "widget": true
+}

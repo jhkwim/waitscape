@@ -1,0 +1,112 @@
+{
+ "body": {
+  "big": [
+   {
+    "job": "웹훅 재시도 고쳐줘 token=<REDACTED>",
+    "project": "daily-api",
+    "provider": "claude",
+    "run": 800,
+    "sid": "fx-day",
+    "t": 1792524000
+   }
+  ],
+  "big_count": 1,
+  "cheers": [],
+  "day": "2026-10-21",
+  "done": 4,
+  "end": 1792609200.0,
+  "first": 1792522799.5,
+  "last": 1792524000,
+  "last_call": {
+   "project": "daily-api",
+   "provider": "claude",
+   "sid": "fx-day",
+   "t": 1792524000
+  },
+  "limits": {
+   "peak": 100.0,
+   "resets": [],
+   "samples": [
+    {
+     "five_hour": 100.0,
+     "five_hour_resets": 1792530600.0,
+     "seven_day": 40.0,
+     "seven_day_resets": 1792929600.0,
+     "t": 1792524300
+    }
+   ],
+   "weekly": {
+    "from": 40.0,
+    "to": 40.0
+   }
+  },
+  "mvp": {
+   "done": 2,
+   "project": "ui-kit",
+   "provider": "claude",
+   "sid": "fx-ui",
+   "work": 360
+  },
+  "now": 1792524300,
+  "outage_count": 1,
+  "outages": [
+   {
+    "t0": 1792524300,
+    "t1": null
+   }
+  ],
+  "prev": {
+   "day": "2026-10-20",
+   "done": 13,
+   "ready": true,
+   "ready_at": 1792522800.0,
+   "seen": null,
+   "unseen": true
+  },
+  "quiet": 300,
+  "ready": false,
+  "ready_at": null,
+  "reason": null,
+  "rule": {
+   "after_hour": 12,
+   "big_min": 10,
+   "day_hour": 4,
+   "keep_days": 14,
+   "quiet_min": 45
+  },
+  "seen": null,
+  "start": 1792522800.0,
+  "today": true,
+  "unseen": false,
+  "v": 1,
+  "wait": {
+   "avg": 80.0,
+   "n": 1
+  },
+  "work": 1160.5,
+  "workers": [
+   {
+    "done": 2,
+    "project": "ui-kit",
+    "provider": "claude",
+    "sid": "fx-ui",
+    "work": 360
+   },
+   {
+    "done": 1,
+    "project": "daily-api",
+    "provider": "claude",
+    "sid": "fx-day",
+    "work": 800
+   },
+   {
+    "done": 1,
+    "project": "night-batch",
+    "provider": "claude",
+    "sid": "fx-night",
+    "work": 0.5
+   }
+  ]
+ },
+ "status": 200
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "widget",
+  "description": "위젯 창(미니 보기): 읽기(상태·일보) + 회의 모드·눈치 모드 토글 + 자기 창 크기·끌기 + 닫기(= 큰 화면 복귀)만. 세션으로 이동(open_terminal, sid만 받음). 설치·훅·알림·일보 seen 명령은 없음.",
+  "windows": ["widget"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-start-dragging",
+    "allow-get-state",
+    "allow-get-daylog",
+    "allow-get-settings",
+    "allow-set-settings",
+    "allow-get-brand",
+    "allow-list-modes",
+    "allow-close-widget",
+    "allow-widget-ack",
+    "allow-app-info",
+    "allow-widget-resize",
+    "allow-open-terminal",
+    "allow-context-menu",
+    "allow-menu-action"
+  ]
+}

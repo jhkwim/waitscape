@@ -1,0 +1,16 @@
+[package]
+name = "wr-hook"
+description = "Waitscape hook CLI: Claude Code hook stdin -> summarized event line (never fails)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# Windows에서 콘솔 창이 깜빡이면 이 기능으로 GUI 서브시스템 exe를 만든다(ARCHITECTURE §5.2 PoC).
+windows-gui = []
+
+[dependencies]
+serde_json.workspace = true
+icu_normalizer.workspace = true
+serde = "1"
+regex = { version = "1", default-features = false, features = ["std", "unicode-perl", "unicode-case"] }

@@ -1,0 +1,194 @@
+{
+ "cursor": "1.0.2333",
+ "full": true,
+ "lanes": [
+  {
+   "desc": "메인 Claude",
+   "fail": 0,
+   "id": "main",
+   "status": "waiting",
+   "t_end": 1792519190.0,
+   "t_start": 1792518300.0,
+   "type": "main"
+  },
+  {
+   "desc": "라우터와 미들웨어 구조 조사",
+   "fail": 0,
+   "from": 1,
+   "id": "p0",
+   "status": "running",
+   "t_end": 1792518800.0,
+   "t_join": null,
+   "t_start": 1792518320.0,
+   "type": "Explore"
+  },
+  {
+   "desc": "DB 스키마 비교",
+   "fail": 0,
+   "from": 2,
+   "id": "p1",
+   "status": "running",
+   "t_end": 1792519180.0,
+   "t_join": null,
+   "t_start": 1792518321.0,
+   "type": "Explore"
+  },
+  {
+   "desc": "인증 흐름 조사",
+   "fail": 0,
+   "from": 3,
+   "id": "p2",
+   "status": "done",
+   "t_end": 1792518899.0,
+   "t_join": null,
+   "t_start": 1792518322.0,
+   "type": "Explore"
+  }
+ ],
+ "now": 1792519200,
+ "older": null,
+ "project": "api-server",
+ "prompt": {
+  "i": 0,
+  "last": true,
+  "t": 1792518300.0,
+  "t_next": null,
+  "text": "API 구조 조사해줘"
+ },
+ "prompts": [
+  {
+   "i": 0,
+   "t": 1792518300.0,
+   "text": "API 구조 조사해줘"
+  }
+ ],
+ "session": "fx-party",
+ "steps": [
+  {
+   "claim": "decision",
+   "kind": "say",
+   "lane": "main",
+   "phase": "plan",
+   "s": 0,
+   "t": 1792518315.0,
+   "text": "세 갈래로 나눠서 조사할게요."
+  },
+  {
+   "act": "agent",
+   "aid": "p0",
+   "atype": "Explore",
+   "dur_ms": 500,
+   "kind": "tool",
+   "lane": "main",
+   "ok": true,
+   "phase": "delegate",
+   "s": 1,
+   "t": 1792518320.0,
+   "target": "라우터와 미들웨어 구조 조사",
+   "tool": "Agent"
+  },
+  {
+   "act": "agent",
+   "aid": "p1",
+   "atype": "Explore",
+   "dur_ms": 500,
+   "kind": "tool",
+   "lane": "main",
+   "ok": true,
+   "phase": "delegate",
+   "s": 2,
+   "t": 1792518321.0,
+   "target": "DB 스키마 비교",
+   "tool": "Agent"
+  },
+  {
+   "act": "agent",
+   "aid": "p2",
+   "atype": "Explore",
+   "dur_ms": 500,
+   "kind": "tool",
+   "lane": "main",
+   "ok": true,
+   "phase": "delegate",
+   "s": 3,
+   "t": 1792518322.0,
+   "target": "인증 흐름 조사",
+   "tool": "Agent"
+  },
+  {
+   "claim": "check",
+   "kind": "say",
+   "lane": "p0",
+   "phase": "plan",
+   "s": 0,
+   "t": 1792518799.0,
+   "text": "라우터는 src/routes 아래에 있네요. 미들웨어 순서를 확인해볼게요."
+  },
+  {
+   "act": "search",
+   "files": [
+    "src/"
+   ],
+   "kind": "tool",
+   "lane": "p0",
+   "phase": "understand",
+   "s": 1,
+   "t": 1792518800.0,
+   "target": "router",
+   "tool": "Grep"
+  },
+  {
+   "claim": "note",
+   "kind": "say",
+   "lane": "p2",
+   "phase": "understand",
+   "s": 0,
+   "t": 1792518899.0,
+   "text": "인증은 미들웨어 한 곳에서 처리해요."
+  },
+  {
+   "act": "search",
+   "dur_ms": 1000,
+   "kind": "tool",
+   "lane": "p1",
+   "ok": true,
+   "phase": "understand",
+   "s": 0,
+   "t": 1792519140.0,
+   "target": "migration",
+   "tool": "Grep"
+  },
+  {
+   "claim": "note",
+   "kind": "say",
+   "lane": "p1",
+   "phase": "understand",
+   "s": 1,
+   "t": 1792519179.0,
+   "text": "스키마 파일 3개를 찾았어요. 마이그레이션 히스토리와 비교 중입니다."
+  },
+  {
+   "act": "read",
+   "files": [
+    "db/schema.sql"
+   ],
+   "kind": "tool",
+   "lane": "p1",
+   "phase": "understand",
+   "s": 2,
+   "t": 1792519180.0,
+   "target": "db/schema.sql",
+   "tool": "Read"
+  },
+  {
+   "claim": "decision",
+   "kind": "say",
+   "lane": "main",
+   "phase": "plan",
+   "s": 4,
+   "t": 1792519190.0,
+   "text": "에이전트 세 개가 조사 중이에요. 결과가 오면 정리할게요."
+  }
+ ],
+ "total": 11
+}

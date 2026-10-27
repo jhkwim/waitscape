@@ -1,0 +1,149 @@
+{
+ "$comment": "훅 경로 MCP 보고 골든: hook.py와 wr-hook summarize()가 같은 줄(ts=0.5로 고정)을 내야 한다. out이 null이면 기록하지 않음. 시크릿 없는 입력만(hook.py는 마스킹하지 않음). scripts/test_mcp_reports.py · wr-hook 테스트",
+ "cases": [
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_status",
+    "tool_input": {
+     "state": "working",
+     "title": "결제 모듈\n리팩터",
+     "step": 2,
+     "total": 5
+    }
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"PreToolUse\", \"report\": {\"tool\": \"status\", \"state\": \"working\", \"title\": \"결제 모듈 리팩터\", \"step\": 2, \"total\": 5}}"
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_status",
+    "tool_input": {
+     "state": "done",
+     "title": "끝",
+     "big": true,
+     "cheer": "잘했어요",
+     "step": 9,
+     "total": 3
+    }
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"PreToolUse\", \"report\": {\"tool\": \"status\", \"state\": \"done\", \"title\": \"끝\", \"big\": true, \"cheer\": \"잘했어요\"}}"
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_status",
+    "tool_input": {
+     "state": "asking",
+     "big": true,
+     "cheer": "무시됨"
+    }
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"PreToolUse\", \"report\": {\"tool\": \"status\", \"state\": \"asking\"}}"
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_status",
+    "tool_input": {
+     "state": "bogus"
+    }
+   },
+   "out": null
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_status",
+    "tool_input": null
+   },
+   "out": null
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_board",
+    "tool_input": {
+     "lines": [
+      "타입‮ 정리",
+      "환불",
+      "",
+      "PR",
+      "다섯째"
+     ],
+     "done": [
+      3,
+      0,
+      0,
+      9
+     ]
+    }
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"PreToolUse\", \"report\": {\"tool\": \"board\", \"lines\": [\"타입 정리\", \"환불\", \"\", \"PR\"], \"done\": [0, 3]}}"
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_board",
+    "tool_input": {
+     "lines": [
+      "서브에이전트 보드"
+     ]
+    },
+    "agent_id": "a1",
+    "agent_type": "Explore"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"PreToolUse\", \"aid\": \"a1\", \"atype\": \"Explore\", \"report\": {\"tool\": \"board\", \"lines\": [\"서브에이전트 보드\"], \"done\": []}}"
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__waitscape_board",
+    "tool_input": {
+     "lines": "한 줄"
+    }
+   },
+   "out": null
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__waitscape__other_tool",
+    "tool_input": {
+     "x": 1
+    }
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"PreToolUse\", \"icon\": \"🔌\", \"text\": \"other_tool\", \"kind\": \"web\"}"
+  },
+  {
+   "in": {
+    "session_id": "s1",
+    "cwd": "/Users/alex/dev/shop",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__github__create_issue",
+    "tool_input": {
+     "title": "x"
+    }
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"PreToolUse\", \"icon\": \"🔌\", \"text\": \"create_issue\", \"kind\": \"web\"}"
+  }
+ ]
+}
