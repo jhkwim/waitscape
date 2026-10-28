@@ -238,7 +238,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     check_secrets.py    커밋된 파일의 실제 형태 시크릿(AKIA·ghp_·xox·sk-ant)·개인 경로 검사 (--leak: 기준 결과 마스킹 유출)
     validate_modes.py   web/modes/*/mode.json을 types/mode.schema.json으로 검증 (jsonschema 필요)
     selftest_check_secrets.py  check_secrets.py 탐지 패턴 회귀 테스트 (점·하이픈 사용자명 경로, 대시 인코딩 홈 경로, 비ASCII 인접 시크릿)
-    check_platform_advisories.py  배포 대상에서 쓰이지 않아 닫은 보안 경고(.github/platform-advisories.json)가 release.yml 빌드 대상(OS·Linux 번들)에 들어오면 실패 (selftest_platform_advisories.py)
+    check_platform_advisories.py  배포 대상에서 쓰이지 않아 닫은 보안 경고(.github/platform-advisories.json)가 배포 대상(release.yml 앱 빌드 잡의 러너·번들, tauri.conf.json bundle.targets)에 들어오면 실패 (selftest_platform_advisories.py)
     check_commit_emails.py  커밋 작성자·커미터 이메일이 차단 도메인이면 실패 (환경변수 BLOCKED_EMAIL_DOMAINS, CI에선 저장소 시크릿)
     version.py          앱 버전 한 곳 관리: show / check [--tag] / bump X.Y.Z|major|minor|patch [--dry-run] / notes (CHANGELOG 절)
     make_latest_json.py 업데이터 매니페스트 latest.json 생성 (서명 .sig가 있을 때만, release.yml)
