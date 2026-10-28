@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-28
+
 ### 바뀜
 - 설치·앱 안 업데이트 위치를 코드 저장소 [jhkwim/waitscape 릴리스](https://github.com/jhkwim/waitscape/releases)로 옮겼다. 이 버전은 옛 배포 저장소(`jhkwim/waitscape-releases`)에도 마지막으로 올려, 0.4.0 이하 앱도 한 번 업데이트하면 새 위치를 따라온다(jhkwim/waitscape#22)
 
