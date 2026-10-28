@@ -100,10 +100,38 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
 - [ ] **release 환경 시크릿 등록** (저장소 시크릿이 아니라 **Environments**에. 아래 「배포 환경」 참고): GitHub → Settings → Environments → `release` → Environment secrets → Add secret
   - `TAURI_SIGNING_PRIVATE_KEY` = `~/.tauri/waitscape.key` 파일 **내용 전체**
   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` = 키 암호 (암호 없이 만들었으면 등록하지 않아도 됨)
-  - (선택) Apple 코드 서명·공증도 같은 `release` 환경에: `APPLE_CERTIFICATE`(base64 .p12, 줄바꿈 있어도 됨), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, 공증은 `APPLE_ID`·`APPLE_PASSWORD`(앱 암호)·`APPLE_TEAM_ID`
+  - (선택) Apple 코드 서명·공증도 같은 `release` 환경에: 아래 「5.1 macOS 서명·공증」
   - 예전에 저장소 시크릿(Settings → Secrets and variables → Actions)에 넣었다면 환경으로 옮기고 저장소 시크릿은 지운다
 - [x] **공개 키 붙여넣기**: `~/.tauri/waitscape.key.pub` 내용(한 줄)을 `app/src-tauri/tauri.conf.json`의 `plugins.updater.pubkey` 자리표시자 대신 넣고 PR로 병합한다.
 - [ ] 비밀 키 파일을 저장소 안에 두지 않았는지 확인 (`.gitignore`가 `*.key`를 막지만, 애초에 `~/.tauri/`에 둔다).
+
+### 5.1 macOS 서명·공증 (Developer ID, 사람이 한 번만)
+
+미서명 앱은 macOS 15부터 첫 실행 때 "열지 않음" 창만 뜬다(docs/INSTALL.md). **개인** Apple Developer 계정으로 Developer ID 서명 + 공증을 하면 경고 없이 열린다
+(회사·팀 계정을 쓰지 않는다 — 서명에 그 이름이 박힌다). 시크릿이 없으면 release.yml은 지금처럼 ad-hoc으로 빌드한다.
+
+1. **Developer ID Application 인증서** (맥에서)
+   - Xcode → Settings → Accounts → 개인 팀 → Manage Certificates → ＋ → **Developer ID Application** (또는 developer.apple.com → Certificates에서 CSR로)
+   - 키체인 접근 → 내 인증서 → "Developer ID Application: 이름 (TEAMID)" 우클릭 → 내보내기 → `.p12` + 내보내기 암호
+   - 서명 이름 확인: `security find-identity -v -p codesigning` → `"Developer ID Application: 이름 (TEAMID)"` 그대로가 `APPLE_SIGNING_IDENTITY`
+2. **공증용 App Store Connect API 키** (권장, 앱 암호보다 권한이 좁고 따로 폐기 가능)
+   - App Store Connect → 사용자 및 액세스 → 통합 → **App Store Connect API** → 팀 키 생성(역할 **Developer**)
+   - `AuthKey_<키 ID>.p8`는 **한 번만** 내려받을 수 있다. 키 ID와 Issuer ID(페이지 위쪽)를 적어 둔다
+3. **`release` 환경 시크릿** (값은 화면·대화에 남기지 않게 파일에서 바로 넣는다)
+
+   | 시크릿 | 값 |
+   |---|---|
+   | `APPLE_CERTIFICATE` | `.p12`를 base64로: `base64 -i 인증서.p12 \| gh secret set APPLE_CERTIFICATE --env release` |
+   | `APPLE_CERTIFICATE_PASSWORD` | `.p12` 내보내기 암호 |
+   | `APPLE_SIGNING_IDENTITY` | `Developer ID Application: 이름 (TEAMID)` |
+   | `APPLE_API_ISSUER` | Issuer ID |
+   | `APPLE_API_KEY` | 키 ID |
+   | `APPLE_API_KEY_P8` | `.p8` 파일 내용: `gh secret set APPLE_API_KEY_P8 --env release < AuthKey_<키 ID>.p8` |
+
+   (대신 `APPLE_ID`·`APPLE_PASSWORD`(앱 전용 암호)·`APPLE_TEAM_ID`를 넣어도 공증된다. 둘 다 있으면 API 키를 쓴다.)
+4. **확인**: Actions → Release → Run workflow(main, publish 끔). 빌드 로그의 「맥 서명·공증 확인」이 `codesign` 검증, hardened runtime,
+   `stapler validate`, `spctl`의 **Notarized Developer ID**, 업데이트 묶음(.app.tar.gz) 안 앱의 공증 티켓까지 본다. 아티팩트의 `.dmg`를 받아 다른 맥에서 열어 본다.
+5. `.p12`·`.p8` 파일은 안전한 곳(비밀번호 관리자)에 보관하고 작업 폴더에서 지운다. 인증서는 5년, API 키는 폐기 전까지 유효하다.
 
 ### 배포 환경 (GitHub Environments)
 
