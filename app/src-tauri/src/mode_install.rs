@@ -329,7 +329,7 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
         .iter()
         .map(|f| {
             let h = std::fs::read(st.dir.join(f))
-                .map(|b| format!("{:x}", Sha256::digest(&b)))
+                .map(|b| Sha256::digest(&b).iter().map(|x| format!("{x:02x}")).collect::<String>())
                 .unwrap_or_default();
             (f.clone(), json!(h))
         })
@@ -413,6 +413,12 @@ mod tests {
         assert_eq!(st.info["addedNeeds"], json!(["memo"]));
         commit(&st, &modes).unwrap();
         assert!(modes.join("demo/mode.js").is_file() && modes.join("demo/.install.json").is_file());
+        // 설치 기록의 SHA-256은 소문자 16진 64자 (sha2 0.11에서 출력 방식을 바꿔도 예전 기록과 같은 값)
+        let rec: Value = serde_json::from_slice(&std::fs::read(modes.join("demo/.install.json")).unwrap()).unwrap();
+        assert_eq!(
+            rec["sha256"]["assets/a.svg"],
+            "d4dc56669143034f31aa309635d4113d9ad76a02b1739da22c965ed2049be9e6"
+        );
         assert!(!modes.join("demo/.DS_Store").exists());
         let st2 = prepare(&src, &t.join("stage"), &[], &modes, "ko").unwrap();
         assert_eq!(st2.info["replaces"], "1.0.0");
