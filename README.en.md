@@ -100,7 +100,7 @@ Jump-to-terminal works for sessions opened in **cmux** (macOS) and **Orca** (mac
 
 Get the `.dmg` (macOS) or the `.exe` / `.msi` (Windows) from the [latest release](https://github.com/jhkwim/waitscape/releases/latest).
 
-- **macOS:** from 0.4.2 the app is notarized by Apple and **opens right away**. On 0.4.1 and earlier, if you see "Not Opened", click **Done** (don't move it to the Trash), then go to **System Settings → Privacy & Security → Open Anyway**.
+- **macOS:** from 0.4.2 the app is notarized by Apple; macOS only asks once to confirm opening an app downloaded from the internet (click **Open**). On 0.4.1 and earlier, if you see "Not Opened", click **Done** (don't move it to the Trash), then go to **System Settings → Privacy & Security → Open Anyway**.
 - **Windows:** not code-signed yet, so SmartScreen may warn once. Click **More info → Run anyway**.
 
 Checksums and uninstall steps are in the [install guide](docs/INSTALL.md).

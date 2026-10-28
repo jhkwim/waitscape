@@ -1,8 +1,9 @@
 # 설치 · 제거 / Install · Uninstall
 
-**macOS**: 0.4.2부터 설치 파일이 **Developer ID로 서명되고 Apple 공증**을 받아 경고 없이 열립니다. 0.4.1 이하는 미서명이라 아래 방법으로 엽니다.
+**macOS**: 0.4.2부터 설치 파일이 **Developer ID로 서명되고 Apple 공증**을 받아, 처음 한 번 "인터넷에서 다운로드한 앱" 확인 창에서 [열기]만 누르면 됩니다. 0.4.1 이하는 미서명이라 아래 방법으로 엽니다.<br>
 **Windows**: 아직 코드 서명이 없어 처음 실행할 때 SmartScreen 경고가 나옵니다.
-**macOS**: from 0.4.2 the app is **signed with a Developer ID and notarized by Apple**, so it opens without a warning (0.4.1 and earlier: see below). **Windows**: not code-signed yet, so SmartScreen may warn on first launch.
+
+**macOS**: from 0.4.2 the app is **signed with a Developer ID and notarized by Apple**, so macOS only asks once to confirm opening an app downloaded from the internet (0.4.1 and earlier: see below). **Windows**: not code-signed yet, so SmartScreen may warn on first launch.
 
 받는 곳 / Download: [Releases](https://github.com/jhkwim/waitscape/releases/latest) (`.dmg` macOS, `.exe`·`.msi` Windows, `SHA256SUMS.txt`)
 
@@ -15,7 +16,7 @@
 - Linux: `sha256sum -c SHA256SUMS.txt --ignore-missing`
 
 ### 1. macOS (13 이상, Apple 칩·Intel 공용)
-0.4.2 이상은 `.dmg`를 열고 응용 프로그램 폴더로 끌어다 놓은 뒤 바로 열면 됩니다. 아래 2~4번은 0.4.1 이하(미서명) 또는 경고가 뜰 때만입니다.
+0.4.2 이상은 `.dmg`를 열고 응용 프로그램 폴더로 끌어다 놓은 뒤 열고, "인터넷에서 다운로드한 앱" 확인 창에서 **열기**를 누르면 됩니다. 아래 2~4번은 0.4.1 이하(미서명) 또는 경고가 뜰 때만입니다.
 
 1. `.dmg`를 열고 Waitscape를 응용 프로그램 폴더로 끌어다 놓습니다.
 2. 처음 열 때 "'Waitscape.app'을(를) 열지 않음"(버튼은 [휴지통으로 이동]·[완료]) 경고가 나오면 **완료**를 누르고(휴지통으로 옮기지 마세요), **시스템 설정 → 개인정보 보호 및 보안** 아래쪽의 Waitscape가 차단되었다는 문구 옆 **그래도 열기** → 암호(또는 Touch ID). 이 버튼은 앱을 열려고 한 뒤 1시간쯤만 보이니 안 보이면 앱을 한 번 더 열어 보세요. 다시 열 때 확인 창이 한 번 더 뜨면 **열기**를 누릅니다.
@@ -78,7 +79,7 @@ Put `SHA256SUMS.txt` next to the download and run:
 - Linux: `sha256sum -c SHA256SUMS.txt --ignore-missing`
 
 ### 1. macOS (13+, universal: Apple silicon and Intel)
-From 0.4.2, open the `.dmg`, drag Waitscape to Applications and open it. Steps 2–4 are only for 0.4.1 and earlier (unsigned) or if you still see a warning.
+From 0.4.2, open the `.dmg`, drag Waitscape to Applications, open it and click **Open** when macOS asks to confirm an app downloaded from the internet. Steps 2–4 are only for 0.4.1 and earlier (unsigned) or if you still see a warning.
 
 1. Open the `.dmg` and drag Waitscape to Applications.
 2. If macOS says “Waitscape.app” Not Opened (buttons: Move to Trash / Done), click **Done** (do not move it to the Trash), then go to **System Settings → Privacy & Security**, find “Waitscape.app” was blocked to protect your Mac., and click **Open Anyway** (password or Touch ID). The button only shows for about an hour after you try to open the app, so open it once more if you don't see it. If a confirmation appears when you reopen the app, click **Open**.

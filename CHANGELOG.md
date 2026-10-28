@@ -7,7 +7,7 @@
 ## [Unreleased]
 
 ### 바뀜
-- **macOS 설치 파일이 Developer ID 서명과 Apple 공증을 받아 첫 실행 때 경고 없이 열린다**(앱·dmg 모두 공증, jhkwim/waitscape#27)
+- **macOS 설치 파일이 Developer ID 서명과 Apple 공증을 받는다.** 첫 실행 때 "열지 않음" 차단 대신 "인터넷에서 다운로드한 앱" 확인 창에서 [열기]만 누르면 된다(앱·dmg 모두 공증, jhkwim/waitscape#27). 0.4.1 이하에서 올리면 사용 한도 조회의 키체인 허용을 한 번 다시 물을 수 있다(서명 신원이 바뀜)
 - 릴리스 빌드가 macOS Developer ID 서명·공증을 할 수 있게 했다(공증 인증은 App Store Connect API 키 또는 Apple ID, 빌드 뒤 Gatekeeper 검사, jhkwim/waitscape#27)
 
 ### 고침

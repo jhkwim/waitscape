@@ -141,7 +141,7 @@ GitHub 시크릿은 **넣을 수만 있고 다시 꺼내 볼 수 없다.** 로�
 | 항목 | 시크릿 | 잃어버리면 | 사용자 영향 |
 |---|---|---|---|
 | **업데이터 키** `~/.tauri/waitscape.key` + 암호 | `TAURI_SIGNING_PRIVATE_KEY`(`_PASSWORD`) | **되돌릴 수 없다.** 새 키를 만들 수는 있지만 설치된 앱은 앱 안의 옛 공개 키로 검증하므로 새 키로 서명한 업데이트를 거부한다 | 모든 사용자가 새 설치 파일을 **손으로 다시 설치** |
-| Developer ID 인증서 `.p12` + 내보내기 암호 | `APPLE_CERTIFICATE`(`_PASSWORD`) | Xcode에서 새로 발급(계정당 여러 개) → 다시 내보내 등록 | 없음(같은 Team ID) |
+| Developer ID 인증서 `.p12` + 내보내기 암호 | `APPLE_CERTIFICATE`(`_PASSWORD`) | Xcode에서 새로 발급(계정 소유자만, 개수 제한 있음) → 다시 내보내 등록 | 없음(같은 Team ID) |
 | 서명 이름 | `APPLE_SIGNING_IDENTITY` | `security find-identity -v -p codesigning`으로 다시 확인 | 없음 |
 | App Store Connect API 키 `.p8` | `APPLE_API_KEY_P8` | 그 키를 폐기하고 새로 만들어 등록(`.p8`은 한 번만 내려받음) | 없음 |
 | Issuer ID·키 ID | `APPLE_API_ISSUER`·`APPLE_API_KEY` | App Store Connect 화면에서 언제든 다시 봄 | 없음 |
@@ -150,10 +150,10 @@ GitHub 시크릿은 **넣을 수만 있고 다시 꺼내 볼 수 없다.** 로�
 - 유효기간: Developer ID 인증서 5년(만료 전에 새로 발급해 시크릿 교체. 이미 서명·공증된 옛 버전은 만료 뒤에도 열린다), API 키는 폐기 전까지.
 
 **새어 나갔을 때**
-- 업데이터 키: 누구나 가짜 업데이트에 서명할 수 있다 → 즉시 새 키로 바꾼 버전을 내고(옛 앱은 손으로 다시 설치) 릴리스 노트·README로 알린다. 옛 키로 서명된 파일이 돌지 않게 옛 릴리스의 `.sig`·`latest.json`을 내린다.
-- Developer ID 인증서: developer.apple.com → Certificates에서 폐기(revoke) → 새로 발급. 폐기한 인증서로 서명된 배포판은 Gatekeeper가 막을 수 있으니 새 인증서로 다시 빌드해 낸다.
-- API 키: App Store Connect에서 폐기 → 새 키 등록. 공증 권한만 있는 키라 피해는 공증 요청에 그친다.
-- GitHub 계정·저장소 권한: 2단계 인증 복구 코드를 따로 보관한다(시크릿을 바꿀 수 있는 유일한 경로).
+- 업데이터 키: 남이 가짜 업데이트에 서명할 수 있다. 우리도 옛 키를 갖고 있으니 **회전**한다 — 옛 키로 서명하되 `tauri.conf.json` `plugins.updater.pubkey`를 새 공개 키로 바꾼 버전을 바로 낸다(사용자는 평소처럼 앱 안 업데이트로 넘어가고 다시 설치할 필요 없음). 그다음 릴리스부터 새 키로 서명하고 시크릿을 바꾼다. 회전 버전으로 올리기 전의 앱은 여전히 옛 키를 믿는다는 점을 릴리스 노트에 적는다. 가짜 업데이트를 퍼뜨리려면 키 말고도 엔드포인트(이 저장소의 GitHub 릴리스)를 장악해야 하므로 GitHub 계정 보안이 2차 방어선이다.
+- Developer ID 인증서: 폐기(revoke)하면 그 인증서로 서명한 **이미 배포된 버전도 Gatekeeper가 막는 것이 원칙**이다(폐기는 Apple Developer Support를 통해, 효력 시점은 Apple과 상의 — 진행 전에 Apple 문서로 확인). 새 인증서로 다시 빌드한 버전을 먼저 내고 옛 버전 사용자에게 다시 설치를 안내한다. 재발급은 계정 소유자만, 팀당 개수 제한이 있다.
+- API 키: App Store Connect에서 폐기 → 새 키 등록. Developer 역할 키라 피해는 공증 요청과 그 역할로 할 수 있는 App Store Connect 작업에 그친다(이 키로 Developer ID 서명은 못 한다).
+- GitHub 계정: 2단계 인증을 켜고 복구 코드를 따로 보관한다(계정을 잃으면 시크릿·릴리스를 바꿀 수 없다). 시크릿을 바꿀 수 있는 PAT·협업자는 최소로 둔다.
 
 ### 배포 환경 (GitHub Environments)
 
