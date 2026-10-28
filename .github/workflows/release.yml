@@ -49,7 +49,7 @@ jobs:
     name: 빌드 (${{ matrix.name }})
     needs: guard
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 90 # 공증(앱·dmg) 대기 포함
     # 서명 시크릿은 release 환경에만 둔다(배포 브랜치 규칙: 태그 v*·main). docs/RELEASE.md §5
     environment: release
     strategy:
@@ -102,8 +102,9 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # 서명 자리: release 환경 시크릿이 있을 때만 켠다. 없으면 미서명(맥은 ad-hoc)으로 빌드한다.
-      # 맥: APPLE_CERTIFICATE(base64 .p12), APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
-      #     공증은 APPLE_ID·APPLE_PASSWORD(앱 암호)·APPLE_TEAM_ID 추가. 윈도우 코드 서명은 아직 자리만(docs/INSTALL.md '한계').
+      # 맥: APPLE_CERTIFICATE(base64 Developer ID Application .p12), APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
+      #     공증은 App Store Connect API 키(권장: APPLE_API_ISSUER·APPLE_API_KEY·APPLE_API_KEY_P8) 또는 APPLE_ID·APPLE_PASSWORD(앱 암호)·APPLE_TEAM_ID.
+      #     윈도우 코드 서명은 아직 자리만(docs/INSTALL.md '한계'). 절차: docs/RELEASE.md §5.1
       # 이 스텝은 있는지만 보고 on/notarize를 출력한다(시크릿 값은 받지 않음). 값은 Tauri 빌드 스텝 env:에서만 조건부로 넣는다.
       - name: 서명 설정 (시크릿이 있을 때만)
         id: apple
@@ -111,12 +112,16 @@ jobs:
         shell: bash
         env:
           HAS_CERT: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_SIGNING_IDENTITY != '' }}
-          HAS_NOTARIZE: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+          HAS_API: ${{ secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY != '' && secrets.APPLE_API_KEY_P8 != '' }}
+          HAS_APPLEID: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
         run: |
           if [ "$HAS_CERT" = true ]; then
             echo "on=true" >> "$GITHUB_OUTPUT"
-            if [ "$HAS_NOTARIZE" = true ]; then echo "notarize=true" >> "$GITHUB_OUTPUT"; fi
-            echo "서명: 켜짐 (공증: ${HAS_NOTARIZE})"
+            # 공증 인증: API 키가 있으면 그것(앱 암호보다 권한이 좁고 따로 폐기 가능), 없으면 Apple ID
+            how=none
+            if [ "$HAS_API" = true ]; then how=api; elif [ "$HAS_APPLEID" = true ]; then how=appleid; fi
+            if [ "$how" != none ]; then echo "notarize=true" >> "$GITHUB_OUTPUT"; echo "notarize_how=$how" >> "$GITHUB_OUTPUT"; fi
+            echo "서명: 켜짐 (공증: $how)"
           else
             echo "서명: 시크릿 없음 -> 미서명(ad-hoc)으로 빌드"
           fi
@@ -156,21 +161,86 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ steps.updater.outputs.on == 'true' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
           # Apple 코드 서명·공증: 판정 스텝이 켰을 때만 값이 들어간다. base64 인증서의 줄바꿈은 Tauri(tauri-macos-sign)가 디코딩 전에 지운다.
           APPLE_ON: ${{ steps.apple.outputs.on }}
-          APPLE_NOTARIZE: ${{ steps.apple.outputs.notarize }}
+          BUNDLE_DIR: ${{ matrix.bundle_dir }}
           APPLE_CERTIFICATE: ${{ steps.apple.outputs.on == 'true' && secrets.APPLE_CERTIFICATE || '' }}
           APPLE_CERTIFICATE_PASSWORD: ${{ steps.apple.outputs.on == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
           APPLE_SIGNING_IDENTITY: ${{ steps.apple.outputs.on == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
-          APPLE_ID: ${{ steps.apple.outputs.notarize == 'true' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ steps.apple.outputs.notarize == 'true' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ steps.apple.outputs.notarize == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          NOTARIZE_HOW: ${{ steps.apple.outputs.notarize_how }}
+          APPLE_ID: ${{ steps.apple.outputs.notarize_how == 'appleid' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ steps.apple.outputs.notarize_how == 'appleid' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.apple.outputs.notarize_how == 'appleid' && secrets.APPLE_TEAM_ID || '' }}
+          APPLE_API_ISSUER: ${{ steps.apple.outputs.notarize_how == 'api' && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_KEY: ${{ steps.apple.outputs.notarize_how == 'api' && secrets.APPLE_API_KEY || '' }}
+          APPLE_API_KEY_P8: ${{ steps.apple.outputs.notarize_how == 'api' && secrets.APPLE_API_KEY_P8 || '' }}
         run: |
           # Tauri는 빈 문자열도 "설정됨"으로 본다(빈 APPLE_SIGNING_IDENTITY가 ad-hoc "-"를 덮어씀). 꺼진 쪽은 변수 자체를 지운다.
           # 인증서 암호는 서명이 켜졌으면 비어 있어도 남긴다(암호 없는 .p12).
           if [ "$APPLE_ON" != true ]; then unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY; fi
-          if [ "$APPLE_NOTARIZE" != true ]; then unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; fi
+          if [ "$NOTARIZE_HOW" != appleid ]; then unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; fi
+          if [ "$NOTARIZE_HOW" = api ]; then
+            # Tauri는 API 키를 파일 경로(APPLE_API_KEY_PATH)로 받는다. 러너 임시 폴더에만 두고 빌드 뒤 지운다
+            # umask는 키 파일에만(빌드 전체에 걸면 앱 파일 권한이 소유자 전용이 됨)
+            key="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+            trap 'rm -f "$key"' EXIT
+            ( umask 077; printf '%s\n' "$APPLE_API_KEY_P8" > "$key" )
+            export APPLE_API_KEY_PATH="$key"
+          else
+            unset APPLE_API_ISSUER APPLE_API_KEY
+          fi
+          unset APPLE_API_KEY_P8
           extra=()
           if [ "$UPDATER_ON" = true ]; then extra=(--config ci-updater.conf.json); fi
           npx --yes "@tauri-apps/cli@${TAURI_CLI_VERSION}" build ${{ matrix.args }} "${extra[@]}"
+          # Tauri는 .app만 공증·스테이플하고 .dmg는 서명만 한다. 가장 바깥 용기(dmg)도 공증해 내려받은 dmg가 바로 통과하게 한다
+          if [ "$RUNNER_OS" = macOS ] && [ -n "$NOTARIZE_HOW" ]; then
+            dmg=$(ls "../../$BUNDLE_DIR"/dmg/*.dmg)
+            if [ "$NOTARIZE_HOW" = api ]; then
+              auth=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER")
+            else
+              auth=(--apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID")
+            fi
+            res=$(xcrun notarytool submit "$dmg" "${auth[@]}" --wait --output-format json)
+            st=$(jq -r .status <<<"$res")
+            echo "dmg 공증: $st ($(jq -r .id <<<"$res"))"
+            [ "$st" = Accepted ] || { echo "::error::dmg 공증 실패: $st (xcrun notarytool log <id>로 이유 확인)"; exit 1; }
+            xcrun stapler staple "$dmg"
+          fi
+
+      # 서명·공증이 실제로 됐는지 빌드 결과로 확인한다(시크릿이 있는데 조용히 미서명으로 나가지 않게)
+      - name: 맥 서명·공증 확인
+        if: runner.os == 'macOS' && steps.apple.outputs.on == 'true'
+        shell: bash
+        env:
+          APP: ${{ matrix.bundle_dir }}/macos/Waitscape.app
+          APPLE_NOTARIZE: ${{ steps.apple.outputs.notarize }}
+        run: |
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign --verify --strict "$APP/Contents/MacOS/wr-hook"
+          codesign -dv --verbose=4 "$APP" 2>&1 | grep -E '^(Authority|TeamIdentifier|Timestamp|CodeDirectory)' || true
+          # grep -q가 파이프를 일찍 닫으면 pipefail로 거짓 실패하므로 출력을 먼저 받는다
+          info=$(codesign -dv "$APP" 2>&1)
+          grep -q 'flags=.*runtime' <<<"$info" || { echo "::error::hardened runtime이 꺼져 있다(공증 불가)"; exit 1; }
+          spctl --status || true
+          if [ "$APPLE_NOTARIZE" = true ]; then
+            xcrun stapler validate "$APP"
+            out=$(spctl -a -vv -t exec "$APP" 2>&1) || true
+            echo "$out"
+            grep -q 'source=Notarized Developer ID' <<<"$out" || { echo "::error::Gatekeeper가 공증된 앱으로 보지 않는다"; exit 1; }
+            dmg=$(ls "$(dirname "$(dirname "$APP")")"/dmg/*.dmg)
+            xcrun stapler validate "$dmg"
+            out=$(spctl -a -vv -t open --context context:primary-signature "$dmg" 2>&1) || true
+            echo "$out"
+            grep -q 'source=Notarized Developer ID' <<<"$out" || { echo "::error::dmg가 공증된 것으로 보이지 않는다"; exit 1; }
+            # 앱 안 업데이트 묶음(.app.tar.gz)에 든 앱도 공증 티켓이 붙은 것인지 (묶음을 공증 전에 만들면 업데이트한 앱이 막힘)
+            tgz="$(dirname "$APP")/Waitscape.app.tar.gz"
+            if [ -f "$tgz" ]; then
+              t="$RUNNER_TEMP/upd"; rm -rf "$t"; mkdir -p "$t"; tar -xzf "$tgz" -C "$t"
+              xcrun stapler validate "$t/Waitscape.app"
+              codesign --verify --deep --strict "$t/Waitscape.app"
+            fi
+          else
+            spctl -a -vv -t exec "$APP" || echo "::warning::서명은 됐지만 공증이 없어 Gatekeeper는 여전히 막는다"
+          fi
 
       - name: 산출물 모으기 + SHA-256
         shell: bash

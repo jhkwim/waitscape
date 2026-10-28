@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### 바뀜
+- 릴리스 빌드가 macOS Developer ID 서명·공증을 할 수 있게 했다(공증 인증은 App Store Connect API 키 또는 Apple ID, 빌드 뒤 Gatekeeper 검사, jhkwim/waitscape#27)
+
 ### 고침
 - macOS 첫 실행 안내: macOS 15부터 우클릭 → 열기가 막혀 "열지 않음" 창만 뜨므로 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 먼저 안내(README·설치 안내, jhkwim/waitscape#25)
 
