@@ -23,5 +23,6 @@
 | 2026-10-28 | #12 | 6a564c2 | ci (Flash) + Claude 전문가 | 37 | 0/1/1/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 CHANGELOG 같은 절 중복·주석 2곳 (Flash medium·Claude) |
 | 2026-10-28 | #14 | 98e6c2a | ci (Flash) + Claude 전문가 | 227 | 0/0/4/0 | 100% | 75% | 100% | 25% | apt 캐시는 허용 액션 밖·효과 작음 | - | Flash 0건 → Claude가 린트 잡의 불필요한 sidecar 빌드·릴리스 캐시 기대치 등 4건 (Flash medium·Claude) |
 | 2026-10-28 | #16 | cca88e7 | ci (Flash) + Claude 전문가 | 219 | 1/1/1/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 Linux 배포 추가 방식 9가지 놓침(🔴)·문서 과장·프리릴리스 비교 (Flash medium·Claude) |
+| 2026-10-28 | #18 | 138341d | rust (Flash) + Claude 전문가 | 90 | 0/0/1/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 같은 16진 변환 두 곳(공용으로) 1건 (Flash medium·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
