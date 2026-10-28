@@ -133,6 +133,28 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
    `stapler validate`, `spctl`의 **Notarized Developer ID**, 업데이트 묶음(.app.tar.gz) 안 앱의 공증 티켓까지 본다. `.dmg`도 공증·스테이플한다(Tauri는 앱만 공증하므로 워크플로가 따로). 확인은 **브라우저로 내려받은** `.dmg`로 한다(AirDrop·USB로 옮긴 파일은 Gatekeeper 검사를 안 거친다).
 5. `.p12`·`.p8` 파일은 안전한 곳(비밀번호 관리자)에 보관하고 작업 폴더에서 지운다. 인증서는 5년, API 키는 폐기 전까지 유효하다.
 
+### 5.2 키·인증서 보관과 분실·유출 대응
+
+GitHub 시크릿은 **넣을 수만 있고 다시 꺼내 볼 수 없다.** 로컬 파일을 잃어도 등록된 시크릿으로 릴리스는 계속 되지만, 시크릿을 다시 넣어야 할 때(실수로 지움·저장소 이전·만료)는 원본이 필요하다.
+원본은 **비밀번호 관리자**(1Password·iCloud 키체인 등)에 파일과 암호를 함께 두고, 다운로드 폴더·작업 폴더에는 남기지 않는다.
+
+| 항목 | 시크릿 | 잃어버리면 | 사용자 영향 |
+|---|---|---|---|
+| **업데이터 키** `~/.tauri/waitscape.key` + 암호 | `TAURI_SIGNING_PRIVATE_KEY`(`_PASSWORD`) | **되돌릴 수 없다.** 새 키를 만들 수는 있지만 설치된 앱은 앱 안의 옛 공개 키로 검증하므로 새 키로 서명한 업데이트를 거부한다 | 모든 사용자가 새 설치 파일을 **손으로 다시 설치** |
+| Developer ID 인증서 `.p12` + 내보내기 암호 | `APPLE_CERTIFICATE`(`_PASSWORD`) | Xcode에서 새로 발급(계정당 여러 개) → 다시 내보내 등록 | 없음(같은 Team ID) |
+| 서명 이름 | `APPLE_SIGNING_IDENTITY` | `security find-identity -v -p codesigning`으로 다시 확인 | 없음 |
+| App Store Connect API 키 `.p8` | `APPLE_API_KEY_P8` | 그 키를 폐기하고 새로 만들어 등록(`.p8`은 한 번만 내려받음) | 없음 |
+| Issuer ID·키 ID | `APPLE_API_ISSUER`·`APPLE_API_KEY` | App Store Connect 화면에서 언제든 다시 봄 | 없음 |
+
+- **업데이터 키는 꼭 백업한다.** 이것만 잃으면 회복할 길이 없다(암호를 잊어도 같다).
+- 유효기간: Developer ID 인증서 5년(만료 전에 새로 발급해 시크릿 교체. 이미 서명·공증된 옛 버전은 만료 뒤에도 열린다), API 키는 폐기 전까지.
+
+**새어 나갔을 때**
+- 업데이터 키: 누구나 가짜 업데이트에 서명할 수 있다 → 즉시 새 키로 바꾼 버전을 내고(옛 앱은 손으로 다시 설치) 릴리스 노트·README로 알린다. 옛 키로 서명된 파일이 돌지 않게 옛 릴리스의 `.sig`·`latest.json`을 내린다.
+- Developer ID 인증서: developer.apple.com → Certificates에서 폐기(revoke) → 새로 발급. 폐기한 인증서로 서명된 배포판은 Gatekeeper가 막을 수 있으니 새 인증서로 다시 빌드해 낸다.
+- API 키: App Store Connect에서 폐기 → 새 키 등록. 공증 권한만 있는 키라 피해는 공증 요청에 그친다.
+- GitHub 계정·저장소 권한: 2단계 인증 복구 코드를 따로 보관한다(시크릿을 바꿀 수 있는 유일한 경로).
+
 ### 배포 환경 (GitHub Environments)
 
 공개 저장소에서는 누구나 PR을 열 수 있으므로, 서명·배포 시크릿은 **환경 시크릿**으로만 두고 정해진 ref에서만 열리게 한다.

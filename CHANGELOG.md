@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### 바뀜
+- **macOS 설치 파일이 Developer ID 서명과 Apple 공증을 받아 첫 실행 때 경고 없이 열린다**(앱·dmg 모두 공증, jhkwim/waitscape#27)
 - 릴리스 빌드가 macOS Developer ID 서명·공증을 할 수 있게 했다(공증 인증은 App Store Connect API 키 또는 Apple ID, 빌드 뒤 Gatekeeper 검사, jhkwim/waitscape#27)
 
 ### 고침
