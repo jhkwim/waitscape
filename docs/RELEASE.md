@@ -162,7 +162,7 @@ GitHub 시크릿은 **넣을 수만 있고 다시 꺼내 볼 수 없다.** 로�
 |---|---|---|---|
 | `release` | `release.yml` build | `TAURI_SIGNING_PRIVATE_KEY`(`_PASSWORD`), `APPLE_*`(선택) | 태그 `v*`, 브랜치 `main` |
 
-- 환경이 없으면 GitHub가 첫 실행 때 규칙 없는 빈 환경을 만든다 → 시크릿이 없어 서명·복사만 건너뛴다. 처음 한 번 위 표대로 만들고 규칙을 건다.
+- 환경이 없으면 GitHub가 첫 실행 때 규칙 없는 빈 환경을 만든다 → 시크릿이 없어 서명만 건너뛴다. 처음 한 번 위 표대로 만들고 규칙을 건다.
 - release.yml의 `guard` 잡은 태그 `v*`·`main`이 아닌 수동 실행을 일찍 실패시키는 **실수 방지용**이다. 보안 경계는 위 환경 배포 규칙이다(규칙을 반드시 건다).
 - 포크 PR 워크플로에는 시크릿이 전달되지 않고(GitHub 기본), ci.yml·rust.yml은 시크릿을 쓰지 않는다(ci.yml의 `BLOCKED_EMAIL_DOMAINS`만 예외, 포크 PR에서는 건너뜀).
 
@@ -187,7 +187,7 @@ GitHub 시크릿은 **넣을 수만 있고 다시 꺼내 볼 수 없다.** 로�
 
 코드 저장소가 비공개였던 동안 Release 파일을 인증 없이 받을 수 없어 따로 두었다. 0.4.0까지의 앱은 거기의 `latest.json`을 읽는다.
 공개 뒤 다리 버전 0.4.1로 옮겼다(#22): 앱 엔드포인트·`latest.json` 주소를 이 저장소로 바꾸고, 0.4.1·0.4.2를 옛 저장소에도 복사했다
-(옛 앱은 그 `latest.json` — 내려받기 주소는 이 저장소 — 으로 업데이트한 뒤 이 저장소를 읽는다). 그 뒤 복사 워크플로(`publish-public.yml`)·`mirror` 환경·`RELEASES_REPO_TOKEN`을 지우고 옛 저장소를 이사 안내 README와 함께 보관(Archive)했다.
+(옛 앱은 그 `latest.json` — 내려받기 주소는 이 저장소 — 으로 업데이트한 뒤 이 저장소를 읽는다). 그 뒤 복사 워크플로(`publish-public.yml`)·`mirror` 환경·`RELEASES_REPO_TOKEN`과 그 토큰(fine-grained PAT) 자체를 지우고 옛 저장소를 이사 안내 README와 함께 보관(Archive)했다.
 옛 저장소의 Latest는 0.4.2에 머물러 늦게 켜는 옛 앱도 넘어온다. **지우지 않는다**(보관해도 릴리스 파일은 계속 내려받힌다).
 
 엔드포인트는 `tauri.conf.json`의 `plugins.updater.endpoints`다. `latest`는 초안·사전 릴리스를 건너뛰므로, 게시 전에는 사용자에게 보이지 않는다.
