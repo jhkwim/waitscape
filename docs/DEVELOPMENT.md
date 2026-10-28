@@ -8,9 +8,9 @@ Waitscape 소스에서 실행·빌드·테스트하는 방법과 구조·API를 
 python3 server.py   # → http://localhost:7777
 ```
 포트 변경: `WAITING_ROOM_PORT=8000 python3 server.py` (환경변수 목록: [`.env.example`](../.env.example))
-브라우저 주소는 `http://localhost:<포트>` 또는 `http://127.0.0.1:<포트>`만 받는다(Host 검사, 아래 '안전'). 빌드에는 Rust 1.88 이상이 필요하다(`Cargo.lock` 의존성 기준).
+브라우저 주소는 `http://localhost:<포트>` 또는 `http://127.0.0.1:<포트>`만 받는다(Host 검사, 아래 '안전'). 빌드에는 Rust 1.89 이상(데스크톱 앱은 1.90 이상)이 필요하다(`Cargo.toml` `rust-version`).
 
-> 데스크톱 앱(Tauri 2) + 모드 플랫폼으로 옮기는 중이다. 설계: [`ARCHITECTURE.md`](../ARCHITECTURE.md). 앱 이름은 **Waitscape**(최종 확인 전)이고 [`brand.json`](../brand.json) 한 곳에서 정한다.
+> 데스크톱 앱(Tauri 2) + 모드 플랫폼으로 옮기는 중이다. 설계: [`ARCHITECTURE.md`](../ARCHITECTURE.md). 앱 이름은 **Waitscape**이고 [`brand.json`](../brand.json) 한 곳에서 정한다.
 
 ### 데스크톱 앱 (Tauri 2, `app/src-tauri`)
 필요: Rust 1.90+ (CI·릴리스는 1.90.0 고정), Tauri CLI 2(`cargo install tauri-cli --version "^2" --locked`), macOS 13+ (Windows 10 1809+는 P4에서 실기 점검).
@@ -254,6 +254,9 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     review/     (메인테이너 전용·선택) AI 교차 리뷰(Gemini) 프롬프트·프로젝트 요약·영역별 체크리스트·실행기(run_review.sh — PR 크기·민감도로 Flash/Argon 자동 선택, 규칙은 TRIAGE §5)·판정 규칙(TRIAGE)·보정 기록(CALIBRATION)·지표(metrics)
   docs/INSTALL.md     미서명 설치 안내(Gatekeeper·SmartScreen)·체크섬 확인·훅은 선택·업데이트·제거 방법 (한/영)
   docs/RELEASE.md     릴리스 흐름(버튼 → PR → 태그 → 빌드 → 앱 알림), 업데이터 서명 키 만들기·배포 환경(release·mirror) 시크릿 등록, 배포 전용 공개 저장소, 빌드 플레이버·스토어 계획
+  docs/DEVELOPMENT.md 이 문서: 실행·빌드·구조·API·테스트·훅 수동 등록·MCP 보고
+  docs/assets/        README 소개 이미지·움짤(가짜 데이터로 찍은 화면, 앱 아이콘 사본)
+  README.md / README.en.md  사용자용 소개 페이지 (한국어 / 영어)
   CHANGELOG.md        앱 변경 내역 (릴리스 때 scripts/version.py가 [Unreleased]를 새 버전 절로)
   CONTRIBUTING.md     개발 환경·브랜치/커밋 규칙·이슈→PR·모드/프로바이더 기여·AI 사용 공개
   SECURITY.md         취약점 비공개 신고 (GitHub Security Advisories)

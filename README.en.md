@@ -26,7 +26,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 ## Why
 
 - **Waiting stops being boring.** When an agent works for 10 or 30 minutes, there's something to watch. Seven kinds of animal staff type away with every tool call, and subagents gather in the meeting room.
-- **Nothing slips by.** A question triggers an OS notification and the staff member walks to the boss's office. Click to jump straight to that session's terminal (cmux or Orca).
+- **Nothing slips by.** A question triggers an OS notification and the staff member walks to the boss's office. With the hook on, one click jumps to that session's terminal (cmux or Orca).
 - **Limits at a glance.** Your Claude 5-hour usage limit is the building's clock. The more you use, the later the day gets. Hit 100% and the power goes out.
 
 ## How it works
@@ -54,10 +54,10 @@ Your 5-hour usage drives the building's day. From 50% the sun sets and lights co
 </tr>
 <tr>
 <td width="56%" valign="middle">
-<h3>🙈 Stealth mode</h3>
+<h3>🙈 Low-profile mode</h3>
 Looks too much like a game at the office? Press <b>⌃Q</b> (Windows <b>Alt+`</b>), even while using another app. The blinds drop and you get "Agent Sessions", a plain work tool with a session table, progress and limit bars. Notifications turn plain too. Press again and the staff walk back in with coffee.
 </td>
-<td width="44%" align="center"><img src="docs/assets/nunchi.png" width="420" alt="Stealth mode — a plain Agent Sessions work-tool screen"></td>
+<td width="44%" align="center"><img src="docs/assets/nunchi.png" width="420" alt="Low-profile mode — a plain Agent Sessions work-tool screen"></td>
 </tr>
 <tr>
 <td width="44%" align="center"><img src="docs/assets/modes.png" width="420" alt="Hamster · Scoreboard · Orbit · Work modes"></td>
@@ -70,9 +70,9 @@ Besides Studio there's 🐹 Hamster (one hamster per session), 🏟️ Scoreboar
 
 ## And more
 
-- **Jump to the session**: click a staff member with a question, a done banner or a floor tag to open that cmux pane or Orca terminal. For other terminals it opens the session folder.
+- **Jump to the session**: click a staff member with a question, a done banner or a floor tag to open that cmux pane or Orca terminal. Otherwise it opens a terminal (or editor) in the session folder. Jumping needs the hook turned on.
 - **👆 Click reactions**: staff and props (monitors, coffee, plants, vending machine, elevator…) react when clicked. There are 8 hidden easter eggs.
-- **📋 End-of-day report**: when everything has been quiet for about 45 minutes in the afternoon, the boss waves a sheet: "The report is in!" It announces today's finished work, hours and MVP, then makes a shareable card (PNG).
+- **📋 Daily report**: when everything has been quiet for about 45 minutes in the afternoon, the boss waves a sheet: "The report is in!" It announces today's finished work, hours and MVP, then makes a shareable card (PNG).
 - **🎨 Decorate floors**: spend the funds you earn from finished work on props for each project's floor. Each animal has favorites. No real payments.
 - **Subagent meetings**: subagents show up as baby animals in the meeting room, writing tasks on the whiteboard and checking them off.
 - **🔕 Meeting mode**: no sound, no flashing. It also follows your OS "reduce motion" setting.
@@ -84,10 +84,10 @@ Besides Studio there's 🐹 Hamster (one hamster per session), 🏟️ Scoreboar
 | Tool | Sessions | How to connect | Usage limits |
 |---|---|---|---|
 | **Claude Code** | ✅ | Hook (recommended) or automatic session-log reading | ✅ 5-hour · weekly (opt-in) |
-| **Codex CLI** | ✅ (experimental) | Settings → AI connections → MCP reports | — |
-| **Antigravity CLI** | ✅ (experimental) | Settings → AI connections → MCP reports | — |
+| **Codex CLI** | ✅ (experimental) | Settings → AI tools → MCP reports | — |
+| **Antigravity CLI** | ✅ (experimental) | Settings → AI tools → MCP reports | — |
 
-Jump-to-terminal works for sessions opened in **cmux** and **Orca** (macOS and Windows).
+Jump-to-terminal works for sessions opened in **cmux** (macOS) and **Orca** (macOS and Windows). Antigravity sessions show up as Gemini.
 
 ## Install
 
@@ -123,10 +123,11 @@ For the browser version (`python3 server.py`), tests and the API, see the [devel
 ## Privacy
 
 - **Everything is read locally.** Session logs and hook events come from local files and never leave your machine. Prompts and tool descriptions are scrubbed of tokens and passwords before they're shown.
-- **Only two kinds of outbound requests:**
-  - `api.anthropic.com`: Claude usage limits. Off by default; you have to opt in. The token stays in memory only.
-  - `github.com/jhkwim/waitscape-releases`: update checks (`latest.json`). You can turn this off in Settings.
-- **Config changes are shown first.** Hook and MCP setup preview the change, back up the original file and add only Waitscape's entries. Disconnecting removes only what was added.
+- **The app talks to only two places:**
+  - `api.anthropic.com`: Claude usage limits. Off by default; you have to opt in. It sends your Claude Code login token as a header, and the token stays in memory only.
+  - `github.com/jhkwim/waitscape-releases`: update checks (`latest.json`). The installer is downloaded from the same place only when you click [Update now]. You can turn checks off in Settings.
+  - On Windows, if WebView2 is missing, the installer downloads it from Microsoft.
+- **Config changes are shown to you.** Turning on the hook copies the `wr-hook` binary to `~/.claude/waiting-room/bin/`, backs up `~/.claude/settings.json` and adds only Waitscape's entries ("Show details" shows the change). MCP setup previews and backs up before applying, and disconnecting removes only what was added.
 - **Diagnostic logs** never contain tokens or prompt text, and home paths are shortened to `~`.
 
 ## Project layout

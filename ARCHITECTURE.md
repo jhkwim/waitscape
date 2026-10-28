@@ -355,7 +355,7 @@ interface CoreApi {
 - state 필드 안정성: `.d.ts`에서 **stable**(계약)과 `/** @unstable */`(내장 모드 전용, 예고 없이 바뀔 수 있음)로 나눈다. 초안:
   - stable: `now, sessions[].{sid, project, status, since, started, prompt, note, tools, tokens, ctx, todos, agents[].{aid,type,desc,status,since,ended,tokens,health,say,now}, activity, health, say, source}, waited_today, done_today, today_tokens, today_kinds, today_agents, limits, limits_ts, limits_src, poll, hooks`
   - unstable: `trail, kinds, kind, run, last, cwd`(cwd는 개인정보이므로 외부 모드에는 `project`만 준다 — 아래 §4.4)
-- trace 스키마(`trace.d.ts`)는 README의 `/trace` 응답 명세를 그대로 타입으로 옮기고 `needs: ["trace"]` 모드에만 제공한다.
+- trace 스키마(`trace.d.ts`)는 docs/DEVELOPMENT.md의 `/trace` 응답 명세를 그대로 타입으로 옮기고 `needs: ["trace"]` 모드에만 제공한다.
 
 ### 4.4 `ctx` v1 명세와 권한
 

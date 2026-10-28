@@ -1,4 +1,4 @@
-//! MCP 보고 연결 설정의 순수 변환 — 앱 설정 화면(`app/src-tauri/src/mcp_connect.rs`)과 README의 수동 연결 안내가 같은 값을 쓴다.
+//! MCP 보고 연결 설정의 순수 변환 — 앱 설정 화면(`app/src-tauri/src/mcp_connect.rs`)과 docs/DEVELOPMENT.md의 수동 연결 안내가 같은 값을 쓴다.
 //! 파일 읽기·백업·쓰기·연결 기록은 앱 쪽, 여기는 JSON 값 → JSON 값 변환만(테스트하기 쉽게).
 //!
 //! - Claude Code 등록: `claude mcp add -s user waitscape -- <bin> mcp --reports <절대 경로>` (`~/.claude.json`은 Claude Code가 수시로
