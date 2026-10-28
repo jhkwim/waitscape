@@ -102,12 +102,14 @@ jobs:
             libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.task == 'test'
         with:
           python-version: "3.12"
 
-      - name: wr-hook sidecar 만들기 (tauri-build가 externalBin 파일을 요구함)
-        if: runner.os == 'Linux'
+      # 린트는 필요 없다(clippy는 링크하지 않고, 파일이 없으면 build.rs가 자리표시를 만든다).
+      # 테스트는 진짜 wr-hook이 필요하다: tauri-build가 sidecar를 target/debug/wr-hook로 복사하고 mcp 테스트가 그걸 실행한다
+      - name: wr-hook sidecar 만들기 (테스트가 실제 wr-hook을 실행함)
+        if: runner.os == 'Linux' && matrix.task == 'test'
         run: sh scripts/build_sidecar.sh
 
       - name: cargo fmt --check

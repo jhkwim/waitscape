@@ -96,7 +96,8 @@ jobs:
           if [ "$RUNNER_OS" = macOS ]; then rustup target add aarch64-apple-darwin x86_64-apple-darwin; fi
           rustc -V
 
-      # 태그 실행이 저장한 캐시는 다음 태그가 읽을 수 없다(캐시는 같은 ref·기본 브랜치에서만 공유). 저장은 main 수동 실행에서만
+      # 태그 실행이 저장한 캐시는 다음 태그가 읽을 수 없다(캐시는 같은 ref·기본 브랜치에서만 공유). 저장은 main 수동 실행에서만.
+      # 보통 흐름(release-prep → 태그로 dispatch)에서는 저장하지 않으므로 릴리스 빌드는 대개 캐시 없이 돈다
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
