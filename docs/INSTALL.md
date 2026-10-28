@@ -15,10 +15,9 @@ Installers are **not code-signed or notarized yet**, so the OS shows a warning o
 
 ### 1. macOS (13 이상, Apple 칩·Intel 공용)
 1. `.dmg`를 열고 Waitscape를 응용 프로그램 폴더로 끌어다 놓습니다.
-2. 처음 열 때 "확인되지 않은 개발자" 또는 "손상되었기 때문에 열 수 없음" 경고가 나오면 아래 중 하나로 엽니다.
-   - 응용 프로그램에서 Waitscape를 **우클릭(Control-클릭) → 열기 → 열기**.
-   - 또는 **시스템 설정 → 개인정보 보호 및 보안**으로 가서 아래쪽의 "Waitscape이(가) 차단되었습니다" 옆 **그래도 열기**.
-3. (macOS 15 이후 우클릭이 안 먹는 경우) 위 2번의 두 번째 방법을 쓰세요. 한 번 허용하면 다음부터는 경고가 없습니다.
+2. 처음 열 때 "'Waitscape.app'을(를) 열지 않음"(버튼은 [휴지통으로 이동]·[완료]) 경고가 나오면 **[완료]**를 누르고(휴지통으로 옮기지 마세요):
+   - **시스템 설정 → 개인정보 보호 및 보안**으로 가서 아래쪽의 "'Waitscape.app'이(가) 차단되었습니다" 옆 **그래도 열기** → 암호(또는 Touch ID).
+3. macOS 14 이하는 응용 프로그램에서 Waitscape를 **우클릭(Control-클릭) → 열기 → 열기**로도 됩니다(macOS 15부터는 이 방법이 막혔어요). 한 번 허용하면 다음부터는 경고가 없고, 앱 안 업데이트로 받은 새 버전에는 다시 뜨지 않습니다.
 4. 그래도 "손상되었다"고 나오면 격리 표시를 지웁니다: `xattr -dr com.apple.quarantine /Applications/Waitscape.app`
 
 ### 2. Windows (10 1809 이상, x64)
@@ -78,10 +77,9 @@ Put `SHA256SUMS.txt` next to the download and run:
 
 ### 1. macOS (13+, universal: Apple silicon and Intel)
 1. Open the `.dmg` and drag Waitscape to Applications.
-2. If macOS says it is from an unidentified developer or "is damaged", either:
-   - **Right-click (Control-click) Waitscape in Applications → Open → Open**, or
-   - go to **System Settings → Privacy & Security**, find "Waitscape was blocked", and click **Open Anyway**.
-3. On recent macOS versions the right-click route may not offer "Open"; use Open Anyway. After one approval the warning will not return.
+2. If macOS says "'Waitscape.app' Not Opened" (buttons: [Move to Trash] / [Done]), click **Done** (do not move it to the Trash), then:
+   - go to **System Settings → Privacy & Security**, find "'Waitscape.app' was blocked", and click **Open Anyway** (password or Touch ID).
+3. On macOS 14 and earlier you can also **right-click (Control-click) Waitscape in Applications → Open → Open** (macOS 15 removed this route). After one approval the warning will not return, including for versions installed through in-app updates.
 4. If it still reports "damaged", clear the quarantine flag: `xattr -dr com.apple.quarantine /Applications/Waitscape.app`
 
 ### 2. Windows (10 1809+, x64)
