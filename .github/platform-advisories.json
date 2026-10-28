@@ -1,0 +1,13 @@
+{
+  "$comment": "배포 대상에서 쓰이지 않아 닫은 Dependabot 경고 기록. scripts/check_platform_advisories.py가 release.yml 빌드 대상과 Cargo.lock을 보고, 영향 플랫폼이 배포 대상에 들어오면 CI를 실패시킨다(경고를 다시 열 것).",
+  "advisories": [
+    {
+      "id": "GHSA-wrw7-89jp-8q8g",
+      "alert": 1,
+      "package": "glib",
+      "fixed": "0.20.0",
+      "platforms": ["linux"],
+      "reason": "Tauri의 Linux 화면 계층(gtk 0.18 → wry·tao·muda)으로만 들어온다. macOS·Windows 빌드에는 없음. Tauri가 gtk 0.18에 묶여 있어 올릴 수 없음 (#15)"
+    }
+  ]
+}

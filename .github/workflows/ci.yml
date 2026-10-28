@@ -58,6 +58,11 @@ jobs:
       - name: 시크릿·경로 탐지 패턴 회귀 테스트
         run: python scripts/selftest_check_secrets.py
 
+      - name: 닫은 플랫폼 한정 보안 경고가 배포 대상에 들어오지 않았는지 (.github/platform-advisories.json)
+        run: |
+          python scripts/selftest_platform_advisories.py
+          python scripts/check_platform_advisories.py
+
       - name: mode.json 스키마 검증 (types/mode.schema.json)
         run: python scripts/validate_modes.py
 
