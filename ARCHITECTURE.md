@@ -513,7 +513,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
   - `windows-latest` → NSIS `.exe`(사용자 단위 설치, 관리자 권한 불필요) + `.msi`
   - 결과물은 **draft release**로 올리고 SHA-256 체크섬 파일을 첨부한다. 사람이 확인한 뒤 공개한다.
   - 업데이터 서명 시크릿(`TAURI_SIGNING_PRIVATE_KEY`·`_PASSWORD`)이 있고 `tauri.conf.json`의 공개 키가 실제 값이면 `--config`로 `createUpdaterArtifacts`를 켜서 `.app.tar.gz`·`.sig`를 만들고, 초안 잡이 `scripts/make_latest_json.py`로 `latest.json`을 올린다. 없으면 그 부분만 건너뛴다.
-- 시크릿: 모두 선택. GitHub Environments 시크릿에만 둔다 — `release`(`APPLE_*`, `TAURI_SIGNING_PRIVATE_KEY` 등, release.yml build 잡), `mirror`(`RELEASES_REPO_TOKEN`, publish-public.yml). 두 환경 모두 배포 규칙은 태그 `v*`·`main`(docs/RELEASE.md §5). release.yml의 `guard` 잡(수동 실행을 태그·main으로)은 실수 방지용이고 보안 경계는 환경 배포 규칙이다. 저장소에는 `<REPLACE_WITH_SECRET_MANAGER>` 플레이스홀더만 둔다(업데이터 공개 키는 비밀이 아니어서 `tauri.conf.json`에 실제 값이 들어 있다. 비밀 키는 관리자 기기와 release 환경 시크릿에만).
+- 시크릿: 모두 선택. GitHub Environments 시크릿에만 둔다 — `release`(`APPLE_*`, `TAURI_SIGNING_PRIVATE_KEY` 등, release.yml build 잡). 배포 규칙은 태그 `v*`·`main`(docs/RELEASE.md §5). release.yml의 `guard` 잡(수동 실행을 태그·main으로)은 실수 방지용이고 보안 경계는 환경 배포 규칙이다. 저장소에는 `<REPLACE_WITH_SECRET_MANAGER>` 플레이스홀더만 둔다(업데이터 공개 키는 비밀이 아니어서 `tauri.conf.json`에 실제 값이 들어 있다. 비밀 키는 관리자 기기와 release 환경 시크릿에만).
 
 ### 6.3 미서명 배포 안내문(릴리스 노트 템플릿)
 - **macOS**: "'Waitscape.app'을(를) 열지 않음" 경고가 뜨면 [완료] 뒤 **시스템 설정 → 개인정보 보호 및 보안 → '그래도 열기'**를 누른다. macOS 15부터 Control-클릭(우클릭 → 열기) 우회가 없어졌다(2026-10-28 실기기 확인, jhkwim/waitscape#25). 고급 사용자는 `xattr -dr com.apple.quarantine "/Applications/<앱>.app"`을 써도 된다.
@@ -524,7 +524,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
 - 앱 버전은 semver 하나로 관리한다. **원본 = `Cargo.toml` `[workspace.package] version`**, 따라가는 곳(`tauri.conf.json`, `Cargo.lock` 워크스페이스 패키지)은 `scripts/version.py bump`가 함께 바꾼다. 일치 검사는 세 겹: `version.py check`(CI python 잡), `build.rs`(tauri.conf.json ≠ `CARGO_PKG_VERSION`이면 빌드 중단), release.yml(태그 = 버전). Mode API 버전은 따로 둔다(§4.3).
 - `CHANGELOG.md`(앱, Keep a Changelog)와 `types/CHANGELOG.md`(API)를 분리한다. 릴리스 때 `[Unreleased]`가 새 버전 절이 되고, 비어 있으면 지난 태그 이후 PR 제목으로 채운다.
 - **앱 안 업데이트**(`tauri-plugin-updater` 2.14, `app/src-tauri/src/updater.rs`): 시작 15초 뒤 + 하루 1번(1시간마다 깨어 24시간 경과 확인) `…/releases/latest/download/latest.json` 확인 → 새 버전이면 OS 알림 1회 + 트레이 항목 + `update` 이벤트(코어 배너, 스튜디오는 사장님 말풍선). 설치는 사용자가 대화상자에서 누를 때만(`update_install`, 메인 창 전용): 내려받기 → minisign 서명 검증 → 설치 → `restart()`. 몰래 설치하지 않는다. 설정 `updateCheck`(기본 켜짐)로 자동 확인을 끈다.
-  - 확인 주소는 코드 저장소 `jhkwim/waitscape`의 GitHub Releases다. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`였고, 0.4.1(다리 버전)을 거기에도 마지막으로 복사해 옛 앱이 새 주소로 넘어오게 했다(#22). 실패(오프라인·아직 게시 전 404)는 로그만, 화면에는 "지금은 확인할 수 없어요" 정도로만. 공개 키가 자리표시자인 빌드는 확인하지 않는다(`updater::ready`). 켜는 순서는 docs/RELEASE.md §5·§6.
+  - 확인 주소는 코드 저장소 `jhkwim/waitscape`의 GitHub Releases다. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`였고, 0.4.1(다리 버전)·0.4.2를 거기에도 복사해 옛 앱이 새 주소로 넘어오게 한 뒤 보관했다(#22). 실패(오프라인·아직 게시 전 404)는 로그만, 화면에는 "지금은 확인할 수 없어요" 정도로만. 공개 키가 자리표시자인 빌드는 확인하지 않는다(`updater::ready`). 켜는 순서는 docs/RELEASE.md §5·§6.
 
 ### 6.5 빌드 플레이버 (구조만)
 - 앱 크레이트 cargo feature `updater`·`terminal-jump`(기본 켜짐). 끄면 해당 코드(플러그인·네트워크, 다른 앱 실행)가 컴파일에서 빠지고, 웹은 `app_info.features`를 보고 UI를 숨긴다(`core.js applyAppInfo` → `ctx.api.openTerminal` 없음, 설정 카드·배너 없음). 명령·capabilities 목록은 플레이버와 관계없이 같다(빠진 기능은 `disabled`/`unsupported` 응답). CI가 `--no-default-features` clippy로 깨지지 않게 지킨다.
