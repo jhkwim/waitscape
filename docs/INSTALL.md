@@ -15,8 +15,7 @@ Installers are **not code-signed or notarized yet**, so the OS shows a warning o
 
 ### 1. macOS (13 이상, Apple 칩·Intel 공용)
 1. `.dmg`를 열고 Waitscape를 응용 프로그램 폴더로 끌어다 놓습니다.
-2. 처음 열 때 "'Waitscape.app'을(를) 열지 않음"(버튼은 [휴지통으로 이동]·[완료]) 경고가 나오면 **[완료]**를 누르고(휴지통으로 옮기지 마세요):
-   - **시스템 설정 → 개인정보 보호 및 보안**으로 가서 아래쪽의 "'Waitscape.app'이(가) 차단되었습니다" 옆 **그래도 열기** → 암호(또는 Touch ID).
+2. 처음 열 때 "'Waitscape.app'을(를) 열지 않음"(버튼은 [휴지통으로 이동]·[완료]) 경고가 나오면 **완료**를 누르고(휴지통으로 옮기지 마세요), **시스템 설정 → 개인정보 보호 및 보안** 아래쪽의 Waitscape가 차단되었다는 문구 옆 **그래도 열기** → 암호(또는 Touch ID). 이 버튼은 앱을 열려고 한 뒤 1시간쯤만 보이니 안 보이면 앱을 한 번 더 열어 보세요. 다시 열 때 확인 창이 한 번 더 뜨면 **열기**를 누릅니다.
 3. macOS 14 이하는 응용 프로그램에서 Waitscape를 **우클릭(Control-클릭) → 열기 → 열기**로도 됩니다(macOS 15부터는 이 방법이 막혔어요). 한 번 허용하면 다음부터는 경고가 없고, 앱 안 업데이트로 받은 새 버전에는 다시 뜨지 않습니다.
 4. 그래도 "손상되었다"고 나오면 격리 표시를 지웁니다: `xattr -dr com.apple.quarantine /Applications/Waitscape.app`
 
@@ -32,7 +31,7 @@ Installers are **not code-signed or notarized yet**, so the OS shows a warning o
 ### 4. 업데이트
 - 앱이 **시작할 때 + 하루 1번** 새 버전을 확인합니다(`jhkwim/waitscape` 릴리스의 `latest.json`만 읽어요. 보내는 것: IP·User-Agent. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`를 읽었어요).
 - 새 버전이 있으면 OS 알림 **"새 버전 나왔어요!"**, 트레이(메뉴바)에 **🎁 업데이트 있음**, 창 아래 배너(스튜디오 모드에서는 1층 사장님 말풍선)가 나옵니다.
-- 눌러서 **[지금 업데이트하고 다시 시작]**을 고를 때만 내려받고, 서명(minisign)을 확인한 뒤 설치하고 다시 시작합니다. 몰래 설치하지 않습니다. 설정·사용자 모드·메모는 그대로입니다.
+- 눌러서 **지금 업데이트하고 다시 시작**을 고를 때만 내려받고, 서명(minisign)을 확인한 뒤 설치하고 다시 시작합니다. 몰래 설치하지 않습니다. 설정·사용자 모드·메모는 그대로입니다.
 - 끄기: **설정 → 일반 → 업데이트 → 새 버전 확인** 끄기. [지금 확인]으로 직접 확인할 수도 있습니다.
 - v0.3.0보다 옛 버전은 앱 안 업데이트가 동작하지 않습니다(서명 키가 없던 빌드). 한 번만 Releases에서 새 설치 파일을 받아 그대로 덮어 설치하세요(1·2번과 같음, 데이터는 유지). 그 다음부터는 앱이 알려 줍니다.
 
@@ -77,8 +76,7 @@ Put `SHA256SUMS.txt` next to the download and run:
 
 ### 1. macOS (13+, universal: Apple silicon and Intel)
 1. Open the `.dmg` and drag Waitscape to Applications.
-2. If macOS says "'Waitscape.app' Not Opened" (buttons: [Move to Trash] / [Done]), click **Done** (do not move it to the Trash), then:
-   - go to **System Settings → Privacy & Security**, find "'Waitscape.app' was blocked", and click **Open Anyway** (password or Touch ID).
+2. If macOS says “Waitscape.app” Not Opened (buttons: Move to Trash / Done), click **Done** (do not move it to the Trash), then go to **System Settings → Privacy & Security**, find “Waitscape.app” was blocked to protect your Mac., and click **Open Anyway** (password or Touch ID). The button only shows for about an hour after you try to open the app, so open it once more if you don't see it. If a confirmation appears when you reopen the app, click **Open**.
 3. On macOS 14 and earlier you can also **right-click (Control-click) Waitscape in Applications → Open → Open** (macOS 15 removed this route). After one approval the warning will not return, including for versions installed through in-app updates.
 4. If it still reports "damaged", clear the quarantine flag: `xattr -dr com.apple.quarantine /Applications/Waitscape.app`
 

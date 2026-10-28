@@ -516,7 +516,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
 - 시크릿: 모두 선택. GitHub Environments 시크릿에만 둔다 — `release`(`APPLE_*`, `TAURI_SIGNING_PRIVATE_KEY` 등, release.yml build 잡), `mirror`(`RELEASES_REPO_TOKEN`, publish-public.yml). 두 환경 모두 배포 규칙은 태그 `v*`·`main`(docs/RELEASE.md §5). release.yml의 `guard` 잡(수동 실행을 태그·main으로)은 실수 방지용이고 보안 경계는 환경 배포 규칙이다. 저장소에는 `<REPLACE_WITH_SECRET_MANAGER>` 플레이스홀더만 둔다(업데이터 공개 키는 비밀이 아니어서 `tauri.conf.json`에 실제 값이 들어 있다. 비밀 키는 관리자 기기와 release 환경 시크릿에만).
 
 ### 6.3 미서명 배포 안내문(릴리스 노트 템플릿)
-- **macOS**: "확인되지 않은 개발자" 경고가 뜨면 **시스템 설정 → 개인정보 보호 및 보안 → '그래도 열기'**를 누른다. [추정: macOS 15부터 Control-클릭 우회가 없어짐] 고급 사용자는 `xattr -dr com.apple.quarantine "/Applications/<앱>.app"`을 써도 된다.
+- **macOS**: "'Waitscape.app'을(를) 열지 않음" 경고가 뜨면 [완료] 뒤 **시스템 설정 → 개인정보 보호 및 보안 → '그래도 열기'**를 누른다. macOS 15부터 Control-클릭(우클릭 → 열기) 우회가 없어졌다(2026-10-28 실기기 확인, jhkwim/waitscape#25). 고급 사용자는 `xattr -dr com.apple.quarantine "/Applications/<앱>.app"`을 써도 된다.
 - **Windows**: SmartScreen이 막으면 "추가 정보 → 실행"을 누른다. WebView2가 없는 PC에서는 설치 프로그램이 내려받는다(인터넷 필요).
 - 체크섬 확인 방법을 안내한다(`shasum -a 256`, `Get-FileHash`).
 

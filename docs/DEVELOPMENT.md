@@ -62,7 +62,7 @@ cargo tauri build --target universal-apple-darwin   # 배포용 universal (.app�
 - 진단 로그: `~/Library/Logs/io.github.jhkwim.waitscape/waitscape.log` (Windows `%LOCALAPPDATA%\io.github.jhkwim.waitscape\logs\`, 1MB면 `waitscape.old.log`로 한 번 돌림). 설정 → 일반 → 앱 정보 → [로그 폴더 열기]. 토큰·프롬프트 내용은 남기지 않고 홈 경로는 `~`로 줄인다
   경로 환경변수(`CLAUDE_CONFIG_DIR`, `WAITING_ROOM_*`)는 wr-server와 같다 — 시험할 때 임시 폴더를 주면 실제 `~/.claude`를 건드리지 않는다.
 - 앱 아이콘: ☕ 커피잔 햄찌 — 매끈한 머그·배경 + 도트 햄찌(하이브리드). 원본은 `app/src-tauri/icons/src/app-icon/`(배경 SVG·햄찌 도트, 작은 크기는 별도 손도트), 결과 PNG/icns/ico는 커밋됨. 트레이 아이콘 다시 만들기: `sh scripts/make_icons.sh` (rsvg-convert 필요)
-- 미서명 앱 첫 실행: "확인되지 않은 개발자" → 시스템 설정 → 개인정보 보호 및 보안 → '그래도 열기'. Windows는 SmartScreen '추가 정보 → 실행'. 자세한 안내·체크섬 확인·제거: [`docs/INSTALL.md`](INSTALL.md)
+- 미서명 앱 첫 실행: "'Waitscape.app'을(를) 열지 않음" → [완료] → 시스템 설정 → 개인정보 보호 및 보안 → '그래도 열기'. Windows는 SmartScreen '추가 정보 → 실행'. 자세한 안내·체크섬 확인·제거: [`docs/INSTALL.md`](INSTALL.md)
 
 설치·업데이트(사용자):
 - 설치: [Releases](https://github.com/jhkwim/waitscape/releases/latest)에서 `.dmg`(맥) 또는 `.exe`·`.msi`(윈도우). 안내: [`docs/INSTALL.md`](INSTALL.md)
