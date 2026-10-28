@@ -67,11 +67,11 @@ cargo tauri build --target universal-apple-darwin   # 배포용 universal (.app�
 설치·업데이트(사용자):
 - 설치: [Releases](https://github.com/jhkwim/waitscape/releases/latest)에서 `.dmg`(맥) 또는 `.exe`·`.msi`(윈도우). 안내: [`docs/INSTALL.md`](INSTALL.md)
 - **업데이트**: 앱이 시작할 때 + 하루 1번 새 버전을 확인한다(이 저장소 릴리스의 `latest.json`만 읽음. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`). 새 버전이면 OS 알림 "새 버전 나왔어요!" + 트레이 **🎁 업데이트 있음** + 창 배너(스튜디오 모드는 사장님 말풍선). 눌러서 **[지금 업데이트하고 다시 시작]**을 고를 때만 내려받아 서명(minisign)을 확인하고 설치한다 — 몰래 설치하지 않는다. 설정 → 일반 → 업데이트에서 확인을 끄거나 [지금 확인]
-- 설치 파일·`latest.json`의 공식 위치는 이 저장소의 GitHub Releases다(앱의 업데이터도 여기만 본다). 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`였고, 0.4.1을 마지막으로 거기에도 복사해 옛 앱이 넘어오게 했다: [`docs/RELEASE.md`](RELEASE.md) §6. 업데이터 공개 키가 없는 옛 빌드(0.3.0 이전)는 새 설치 파일을 한 번 받아 덮어 설치한다(설정·모드는 그대로).
+- 설치 파일·`latest.json`의 공식 위치는 이 저장소의 GitHub Releases다(앱의 업데이터도 여기만 본다). 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`였고, 0.4.1·0.4.2를 거기에도 복사해 옛 앱이 넘어오게 한 뒤 보관했다: [`docs/RELEASE.md`](RELEASE.md) §6. 업데이터 공개 키가 없는 옛 빌드(0.3.0 이전)는 새 설치 파일을 한 번 받아 덮어 설치한다(설정·모드는 그대로).
 
 릴리스(관리자, 자세히: [`docs/RELEASE.md`](RELEASE.md)):
 - **Actions → Release Prep → Run workflow**(버전 `0.2.0` 또는 `major`/`minor`/`patch`) → `scripts/version.py bump`가 버전(원본 `Cargo.toml` → `tauri.conf.json`·`Cargo.lock`)과 `CHANGELOG.md`를 올린 PR을 만든다 → 병합하면 태그 `vX.Y.Z` + `release.yml`이 macOS universal(`.dmg`·`.app.zip`)·Windows x64(NSIS `.exe`·`.msi`)를 빌드해 `SHA256SUMS.txt`와 함께 **초안(draft) 릴리스** → 확인 후 직접 게시.
-- 업데이터 서명 시크릿(`TAURI_SIGNING_PRIVATE_KEY`)이 있으면 `.app.tar.gz`·`.sig`·`latest.json`도 올라간다. 초안을 게시하면 그때부터 앱이 새 버전을 찾는다(0.4.1까지는 `publish-public.yml`이 옛 배포 저장소에도 복사). Apple 서명·공증도 시크릿(`APPLE_CERTIFICATE` 등)이 있을 때만(없으면 미서명, 맥은 ad-hoc).
+- 업데이터 서명 시크릿(`TAURI_SIGNING_PRIVATE_KEY`)이 있으면 `.app.tar.gz`·`.sig`·`latest.json`도 올라간다. 초안을 게시하면 그때부터 앱이 새 버전을 찾는다. Apple 서명·공증도 시크릿(`APPLE_CERTIFICATE` 등)이 있을 때만(없으면 미서명, 맥은 ad-hoc).
 - 직접 태그 `vX.Y.Z`를 push해도 같은 빌드가 돈다. 수동 실행(Actions → Release)은 기본으로 아티팩트만 만든다(`publish=false`, 14일 보관).
 - 버전을 손으로 바꾸지 말고 `python3 scripts/version.py bump <버전> [--dry-run]`. 일치 검사: `python3 scripts/version.py check`(CI·`build.rs`도 검사).
 - 빌드 플레이버: `cargo tauri build --no-default-features`(또는 `--features updater` 등) — 업데이터·터미널 이동을 뺀 빌드(나중 Mac App Store용 구조). 기본은 둘 다 켜짐.
@@ -247,7 +247,6 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     workflows/ci.yml    PR·main push: Python·스키마·시크릿·커밋 작성자 검사
     workflows/rust.yml  Rust 관련 파일이 바뀐 PR·main push에서만: Linux 린트(fmt·clippy)와 테스트(test·동등성)를 두 잡으로 동시에, Windows는 코어 크레이트 테스트. 캐시 저장은 main에서만
     workflows/release-prep.yml  수동 실행(버전 입력) → 버전·CHANGELOG PR / 그 PR 병합 → 태그 vX.Y.Z + release.yml 실행 (Linux 1개)
-    workflows/publish-public.yml  (0.4.1 다리 버전까지만) 릴리스 게시 → 옛 배포 저장소(jhkwim/waitscape-releases)에 같은 태그로 복사 (mirror 환경의 RELEASES_REPO_TOKEN 있을 때). 그 뒤 삭제(#22)
     workflows/release.yml  태그 v*·수동 실행(태그·main만, release 환경): macOS universal .dmg·.app, Windows NSIS·MSI(미서명) + SHA256SUMS (+ 업데이터 서명·latest.json, 시크릿 있을 때) → 초안 릴리스
     ISSUE_TEMPLATE/     버그·기능·모드 제출·프로바이더 요청 (한/영)
     platform-advisories.json  닫은 Dependabot 경고 기록(패키지·고친 버전·영향 플랫폼·경고 번호·이유)
@@ -255,7 +254,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     PULL_REQUEST_TEMPLATE.md
     review/     (메인테이너 전용·선택) AI 교차 리뷰(Gemini) 프롬프트·프로젝트 요약·영역별 체크리스트·실행기(run_review.sh — PR 크기·민감도로 Flash/Argon 자동 선택, 규칙은 TRIAGE §5)·판정 규칙(TRIAGE)·보정 기록(CALIBRATION)·지표(metrics)
   docs/INSTALL.md     미서명 설치 안내(Gatekeeper·SmartScreen)·체크섬 확인·훅은 선택·업데이트·제거 방법 (한/영)
-  docs/RELEASE.md     릴리스 흐름(버튼 → PR → 태그 → 빌드 → 앱 알림), 업데이터 서명 키 만들기·배포 환경(release·mirror) 시크릿 등록, 배포 위치(코드 저장소 Releases)와 옛 배포 저장소 정리, 빌드 플레이버·스토어 계획
+  docs/RELEASE.md     릴리스 흐름(버튼 → PR → 태그 → 빌드 → 앱 알림), 업데이터 서명 키 만들기·배포 환경(release) 시크릿 등록, 배포 위치(코드 저장소 Releases)와 옛 배포 저장소 정리, 빌드 플레이버·스토어 계획
   docs/DEVELOPMENT.md 이 문서: 실행·빌드·구조·API·테스트·훅 수동 등록·MCP 보고
   docs/assets/        README 소개 이미지·움짤(가짜 데이터로 찍은 화면, 앱 아이콘 사본)
   README.md / README.en.md  사용자용 소개 페이지 (한국어 / 영어)

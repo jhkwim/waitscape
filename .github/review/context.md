@@ -13,7 +13,7 @@
 | 동등성 fixture | `fixtures/`(합성 데이터만), `scripts/snapshot.py`·`compare.py` | Python 결과 = `fixtures/expected/` |
 | Rust 백엔드 (P1) | `crates/wr-core`(읽기·state·trace·마스킹·한도·프로바이더), `crates/wr-hook`(훅 CLI), `crates/wr-server`(브라우저용 HTTP) | PR 진행 중 |
 | 데스크톱 앱 (P3) | `app/src-tauri`(Tauri 2: push·트레이·위젯·OS 알림·훅 설치·`wrmode:` 스킴·zip 설치) | PR 진행 중 |
-| CI·릴리스 | `.github/workflows/`(`ci.yml` 파이썬·시크릿·작성자, `rust.yml` Rust, `release-prep.yml`·`release.yml` 빌드·초안 릴리스, `publish-public.yml` 옛 배포 저장소 미러(0.4.1까지)) | 구현됨 |
+| CI·릴리스 | `.github/workflows/`(`ci.yml` 파이썬·시크릿·작성자, `rust.yml` Rust, `release-prep.yml`·`release.yml` 빌드·초안 릴리스) | 구현됨 |
 
 ## 2. 데이터 흐름
 
