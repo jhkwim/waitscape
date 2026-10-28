@@ -17,8 +17,8 @@
         │  업데이터 서명 시크릿이 있으면 .app.tar.gz·.sig + latest.json도
         ▼
 [초안(draft) 릴리스]  ← 사람이 파일·노트 확인 후 Publish
-        │  게시하면 publish-public.yml이 공개 저장소(jhkwim/waitscape-releases)로 복사(§6)
-        │  그래야 releases/latest/download/latest.json이 새 버전을 가리킨다(초안은 안 보임)
+        │  게시해야 releases/latest/download/latest.json이 새 버전을 가리킨다(초안은 안 보임)
+        │  (0.4.1까지는 publish-public.yml이 옛 배포 저장소에도 복사, §6)
         ▼
 [설치된 앱]  시작할 때 + 하루 1번 latest.json 확인 → OS 알림 · 트레이 "🎁 업데이트 있음" · 배너/스튜디오 사장님 말풍선
         │  사용자가 [지금 업데이트하고 다시 시작]을 누를 때만
@@ -112,7 +112,7 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
 | 환경 | 쓰는 잡 | 시크릿 | 배포 브랜치·태그 규칙 (Settings → Environments → 환경 → Deployment branches and tags → Selected) |
 |---|---|---|---|
 | `release` | `release.yml` build | `TAURI_SIGNING_PRIVATE_KEY`(`_PASSWORD`), `APPLE_*`(선택) | 태그 `v*`, 브랜치 `main` |
-| `mirror` | `publish-public.yml` mirror | `RELEASES_REPO_TOKEN` | 같은 규칙: 태그 `v*`, 브랜치 `main` |
+| `mirror` | `publish-public.yml` mirror (0.4.1까지, §6) | `RELEASES_REPO_TOKEN` | 같은 규칙: 태그 `v*`, 브랜치 `main` |
 
 - 환경이 없으면 GitHub가 첫 실행 때 규칙 없는 빈 환경을 만든다 → 시크릿이 없어 서명·복사만 건너뛴다. 처음 한 번 위 표대로 만들고 규칙을 건다.
 - release.yml의 `guard` 잡은 태그 `v*`·`main`이 아닌 수동 실행을 일찍 실패시키는 **실수 방지용**이다. 보안 경계는 위 환경 배포 규칙이다(규칙을 반드시 건다).
@@ -123,41 +123,34 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
 
 앱 쪽 규칙(`updater.rs`): 공개 키가 자리표시자인 빌드는 **업데이트 확인을 아예 하지 않는다**(설정 화면에 "이 빌드는 업데이트 서명 키가 없어 확인하지 않아요"). 그래서 공개 키를 넣은 첫 버전은 사용자가 한 번은 손으로 설치해야 하고, 그 다음부터 앱 안 업데이트가 된다.
 
-## 6. 배포 전용 공개 저장소 (`jhkwim/waitscape-releases`)
+## 6. 배포 위치 (이 저장소의 GitHub Releases)
 
-**설치·업데이트의 공식 위치는 배포 전용 공개 저장소 `jhkwim/waitscape-releases`다.** 코드 저장소(`jhkwim/waitscape`)도 공개지만
-설치 파일·`latest.json`은 계속 배포 저장소에만 올린다. 이미 설치된 앱의 업데이터 엔드포인트(`tauri.conf.json` `plugins.updater.endpoints`)가
-배포 저장소를 가리키므로 **이 주소는 바꾸지 않는다**(바꾸면 옛 앱이 새 버전을 못 찾는다).
-(처음에 배포 저장소를 따로 둔 까닭: 코드 저장소가 비공개였던 동안 Release 파일을 인증 없이 받을 수 없었다. 공개 뒤에도 주소 고정을 위해 유지한다.)
+**설치·업데이트의 공식 위치는 이 저장소(`jhkwim/waitscape`)의 GitHub Releases다.** 앱은
+`https://github.com/jhkwim/waitscape/releases/latest/download/latest.json`만 읽고(`tauri.conf.json` `plugins.updater.endpoints`),
+`latest.json`의 내려받기 주소도 이 저장소 릴리스다(release.yml `RELEASES_REPO` = `github.repository`).
 
 ```
-[본 저장소 초안 릴리스]  latest.json의 내려받기 주소는 처음부터 공개 저장소 (release.yml RELEASES_REPO)
-        │  사람이 Publish
+[초안 릴리스]  사람이 파일·노트 확인 → Publish
         ▼
-[publish-public.yml]  release: published → 본 저장소 파일 내려받기 → SHA256SUMS 확인 → latest.json 주소 확인
-        │  RELEASES_REPO_TOKEN으로
-        ▼
-[공개 저장소 같은 태그 릴리스]  같은 제목·노트·파일. 사전 릴리스면 사전 릴리스, 본 저장소에서 Latest면 Latest
-        ▼
-[설치된 앱]  https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json
+[설치된 앱]  https://github.com/jhkwim/waitscape/releases/latest/download/latest.json → 새 버전 알림
 ```
 
-처음 한 번 (사람이):
+### 옛 배포 전용 저장소 `jhkwim/waitscape-releases` (0.4.0까지)
 
-1. 공개 저장소 만들기: README(받는 곳·설치 안내) 하나만 든 `jhkwim/waitscape-releases`(Public, 위키·이슈 끔). 코드는 올리지 않는다.
-2. 토큰: GitHub → Settings → Developer settings → Fine-grained tokens → 새 토큰
-   - Repository access: **Only select repositories → `jhkwim/waitscape-releases`** 하나
-   - Permissions: **Contents: Read and write** (나머지 없음), 만료일을 정해 두고 달력에 적어 둔다
-   - 본 저장소 → Settings → Environments → `mirror` → Environment secrets → `RELEASES_REPO_TOKEN`에 등록(위 「배포 환경」 규칙)
-3. §5 체크리스트(업데이터 서명 키·공개 키)를 끝낸다.
-4. §3대로 릴리스하고 초안을 **게시** → Actions의 "Publish Public"이 끝나면 확인:
-   브라우저로 `https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json`을 열어 새 버전 JSON이 보이는지.
-5. 공개 키가 든 첫 버전은 사용자가 한 번 손으로 설치한다. 그 다음 버전부터 앱이 스스로 알린다(시작 15초 뒤 확인).
+코드 저장소가 비공개였던 동안 Release 파일을 인증 없이 받을 수 없어 따로 두었다. 0.4.0까지의 앱은 거기의 `latest.json`을 읽는다.
+공개 뒤에는 따로 둘 까닭이 없고 복사용 토큰(만료·오류)만 늘어서, **다리 버전 0.4.1**로 옮긴다(#22).
 
-- 토큰이 없으면 "Publish Public"은 경고만 남기고 건너뛴다(본 저장소 릴리스는 그대로).
+1. 0.4.1: 앱 엔드포인트·`latest.json` 주소를 이 저장소로 바꾼다.
+2. 0.4.1을 게시하면 `publish-public.yml`이 **마지막으로** 옛 저장소에도 복사한다(`mirror` 환경 `RELEASES_REPO_TOKEN`).
+   옛 앱은 그 `latest.json`(내려받기 주소는 이 저장소)을 보고 0.4.1로 업데이트한 뒤, 그다음부터 이 저장소를 읽는다.
+3. 확인: `https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json`이 0.4.1을 가리키는지.
+4. 그 뒤 정리(별도 PR): `publish-public.yml` 삭제, `mirror` 환경·`RELEASES_REPO_TOKEN`·토큰 자체 삭제, 옛 저장소 README를 이사 안내로 바꾸고 보관(Archive).
+   옛 저장소의 Latest는 0.4.1에 영원히 머물러 늦게 켜는 옛 앱도 넘어온다. **보관 뒤에도 지우지 않는다.**
+
+복사 중 참고(0.4.1까지):
+- 토큰이 없으면 "Publish Public"은 경고만 남기고 건너뛴다. 401이면 토큰이 틀렸거나 만료 → 다시 만들어 등록하고 실패한 실행만 Re-run.
 - 다시 복사: Actions → Publish Public → Run workflow → 태그 입력. 이미 있으면 파일을 덮어쓰고 노트를 갱신한다.
-- 공개 저장소 릴리스를 손으로 고치지 않는다(다음 복사 때 덮어씀). 노트는 본 저장소 릴리스에서 고치고 다시 복사한다.
-- 잘못 게시했으면: 공개 저장소 릴리스를 먼저 지운다(앱이 받지 않게). 이미 퍼졌으면 다음 patch로 고친다.
+- 잘못 게시했으면: 이 저장소 릴리스(와 복사본)를 먼저 지운다(앱이 받지 않게). 이미 퍼졌으면 다음 patch로 고친다.
 
 엔드포인트는 `tauri.conf.json`의 `plugins.updater.endpoints`다. `latest`는 초안·사전 릴리스를 건너뛰므로, 게시 전에는 사용자에게 보이지 않는다.
 
@@ -219,6 +212,6 @@ cargo clippy -p waitscape --all-targets --no-default-features -- -D warnings   #
 | 병합했는데 태그가 안 생김 | PR 브랜치 이름이 `release/vX.Y.Z`인지, 같은 저장소 브랜치인지. Actions의 Release Prep → tag 잡 로그 |
 | release.yml "태그와 앱 버전이 다르다" | 태그를 손으로 잘못 붙임 → 태그 삭제 후 `version.py check --tag`로 확인 |
 | 초안에 latest.json이 없음 | `release` 환경 시크릿 없음 또는 공개 키 자리표시자(빌드 로그의 "업데이터 서명" 단계) |
-| 게시했는데 공개 저장소에 없음 | Actions → Publish Public 로그. `mirror` 환경의 `RELEASES_REPO_TOKEN` 없음·만료, 환경 배포 규칙이 그 태그를 막음, 또는 latest.json 주소가 공개 저장소가 아님(이 변경 전 버전) |
-| 앱이 새 버전을 못 찾음 | 초안을 게시했는지, 배포 저장소(`waitscape-releases`)로 복사됐는지, 설치된 앱이 공개 키가 든 빌드인지, 설정에서 확인을 껐는지. 앱 로그(`[waitscape] 업데이트 확인 실패`) |
+| (0.4.1까지) 옛 배포 저장소에 복사 안 됨 | Actions → Publish Public 로그. `mirror` 환경의 `RELEASES_REPO_TOKEN` 없음·만료(401), 환경 배포 규칙이 그 태그를 막음 |
+| 앱이 새 버전을 못 찾음 | 초안을 게시했는지(0.4.0 이하 앱이면 옛 배포 저장소로 복사됐는지), 설치된 앱이 공개 키가 든 빌드인지, 설정에서 확인을 껐는지. 앱 로그(`[waitscape] 업데이트 확인 실패`) |
 | "업데이트하지 못했어요" | 서명 불일치(다른 키로 서명) 또는 내려받기 실패. 키를 바꿨다면 새 설치 파일을 손으로 |

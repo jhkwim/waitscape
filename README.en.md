@@ -6,7 +6,7 @@
 
 **Make the wait worth watching.**
 
-[![Release](https://img.shields.io/github/v/release/jhkwim/waitscape-releases?color=444d56&label=release)](https://github.com/jhkwim/waitscape-releases/releases/latest)
+[![Release](https://img.shields.io/github/v/release/jhkwim/waitscape?color=444d56&label=release)](https://github.com/jhkwim/waitscape/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-0969da)](docs/INSTALL.md)
 [![Windows](https://img.shields.io/badge/Windows-10%2B-0969da)](docs/INSTALL.md)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -98,7 +98,7 @@ Jump-to-terminal works for sessions opened in **cmux** (macOS) and **Orca** (mac
 
 ### Download
 
-Get the `.dmg` (macOS) or the `.exe` / `.msi` (Windows) from the [latest release](https://github.com/jhkwim/waitscape-releases/releases/latest).
+Get the `.dmg` (macOS) or the `.exe` / `.msi` (Windows) from the [latest release](https://github.com/jhkwim/waitscape/releases/latest).
 
 The installers are not code-signed or notarized yet, so the OS warns on first launch. You only need to allow it once.
 
@@ -125,7 +125,7 @@ For the browser version (`python3 server.py`), tests and the API, see the [devel
 - **Everything is read locally.** Session logs and hook events come from local files and never leave your machine. Prompts and tool descriptions are scrubbed of tokens and passwords before they're shown.
 - **The app talks to only two places:**
   - `api.anthropic.com`: Claude usage limits. Off by default; you have to opt in. It sends your Claude Code login token as a header, and the token stays in memory only.
-  - `github.com/jhkwim/waitscape-releases`: update checks (`latest.json`). The installer is downloaded from the same place only when you click [Update now]. You can turn checks off in Settings.
+  - `github.com/jhkwim/waitscape` releases: update checks (`latest.json`). The installer is downloaded from the same place only when you click [Update now]. You can turn checks off in Settings.
   - On Windows, if WebView2 is missing, the installer downloads it from Microsoft.
 - **Config changes are shown to you.** Turning on the hook copies the `wr-hook` binary to `~/.claude/waiting-room/bin/`, backs up `~/.claude/settings.json` and adds only Waitscape's entries ("Show details" shows the change). MCP setup previews and backs up before applying, and disconnecting removes only what was added.
 - **Diagnostic logs** never contain tokens or prompt text, and home paths are shortened to `~`.

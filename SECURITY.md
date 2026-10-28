@@ -31,5 +31,5 @@ This is a personal project with no formal SLA; we aim to respond within 7 days a
 
 ## 지원 버전 / Supported versions
 
-최신 릴리스([`jhkwim/waitscape-releases`](https://github.com/jhkwim/waitscape-releases/releases/latest))와 `main`의 최신 커밋을 지원합니다. 이전 버전은 앱 안 업데이트로 최신 릴리스로 올려 주세요.
-The latest release (published at `jhkwim/waitscape-releases`) and the latest `main` are supported. Please update older versions to the latest release.
+[최신 릴리스](https://github.com/jhkwim/waitscape/releases/latest)와 `main`의 최신 커밋을 지원합니다. 이전 버전은 앱 안 업데이트로 최신 릴리스로 올려 주세요.
+The [latest release](https://github.com/jhkwim/waitscape/releases/latest) and the latest `main` are supported. Please update older versions to the latest release.

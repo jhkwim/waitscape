@@ -3,7 +3,7 @@
 //!   설정 `updateCheck`가 꺼져 있으면 자동 확인은 하지 않는다(설정 화면의 [지금 확인]은 된다).
 //! - 새 버전이면: OS 알림 1회("새 버전 나왔어요!") + 트레이 "업데이트 있음" + 모든 창에 `update` 이벤트(배너·스튜디오 사장님 말풍선).
 //! - 설치: 사용자가 눌렀을 때만(`update_install`). 내려받기 → minisign 서명 검증(플러그인) → 설치 → 다시 시작. 몰래 설치하지 않는다.
-//! - 받는 곳은 배포 전용 공개 저장소 `jhkwim/waitscape-releases`(코드 저장소와 따로 두어 주소를 고정). 실패(오프라인, latest.json 404 등)는 로그만 남기고 화면에는 오류를 띄우지 않는다.
+//! - 받는 곳은 코드 저장소 `jhkwim/waitscape`의 GitHub Releases(0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`, #22). 실패(오프라인, latest.json 404 등)는 로그만 남기고 화면에는 오류를 띄우지 않는다.
 //!   공개 키가 자리표시자(`<REPLACE_WITH_SECRET_MANAGER>`)인 빌드는 아예 확인하지 않는다.
 //! - `updater` 기능을 끄고 빌드하면(Mac App Store 플레이버) 플러그인·네트워크 코드가 빠지고 status의 compiled가 false다.
 
@@ -375,11 +375,11 @@ mod tests {
 
     #[test]
     fn conf_has_endpoint_and_placeholder() {
-        // 저장소 설정: 엔드포인트는 배포 전용 공개 저장소의 GitHub Releases latest.json(https), 공개 키는 실제 값(minisign)
+        // 저장소 설정: 엔드포인트는 코드 저장소 GitHub Releases의 latest.json(https), 공개 키는 실제 값(minisign)
         let conf: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
         let u = &conf["plugins"]["updater"];
         let ep = u["endpoints"][0].as_str().unwrap();
-        assert!(ep.starts_with("https://github.com/") && ep.ends_with("/releases/latest/download/latest.json"));
+        assert_eq!(ep, "https://github.com/jhkwim/waitscape/releases/latest/download/latest.json");
         assert!(u["pubkey"].as_str().is_some_and(pubkey_ready));
         // 서명 키가 없는 로컬 빌드가 깨지지 않게 기본은 false (CI가 시크릿이 있을 때만 --config로 켠다)
         assert_eq!(conf["bundle"]["createUpdaterArtifacts"], false);

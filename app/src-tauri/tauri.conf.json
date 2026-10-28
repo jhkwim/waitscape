@@ -38,7 +38,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJGNEVBNjdCMzgyNjJDNkIKUldSckxDWTRlNlpPTDNSWmdYK3FPdDFqU0E4dlRWcWtKVE5idHluSEdBQTNzRS9nelpod3F2THIK",
       "endpoints": [
-        "https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json"
+        "https://github.com/jhkwim/waitscape/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
