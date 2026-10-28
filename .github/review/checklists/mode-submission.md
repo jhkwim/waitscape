@@ -6,7 +6,7 @@
 - [ ] 폴더 이름 = `mode.json` `id` = `registerMode({ id })`, 형식 `^[a-z0-9][a-z0-9-]{0,31}$`, 내장 id와 겹치지 않음
 - [ ] `python3 scripts/validate_modes.py <경로>/mode.json` 통과, `apiVersion`이 호스트(1.0) 범위
 - [ ] `entry`·`styles`·`icon` 파일이 실제로 패키지 안에 있음, 허용 확장자만(js, css, json, svg, png, jpg, webp, gif, woff2, ttf, mp3, ogg, wav, md, txt)
-- [ ] 내장으로 넣을 때: `web/modes/index.json` 등록, `README.md` 구조 섹션 갱신(필수)
+- [ ] 내장으로 넣을 때: `web/modes/index.json` 등록, `docs/DEVELOPMENT.md` 구조 섹션 갱신(필수)
 
 ## M2. 권한 (`needs`) — 최소 권한
 - [ ] 선언한 권한(trace·memo·notify·clipboard)마다 코드에서 실제로 쓰는 곳이 있는가(안 쓰는 권한 = 🟡 불필요한 권한)

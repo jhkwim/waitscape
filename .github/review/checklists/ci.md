@@ -1,6 +1,6 @@
 # 체크리스트: CI·저장소 설정·문서 (ci)
 
-대상: `.github/workflows/*`, `.github/ISSUE_TEMPLATE/*`, `PULL_REQUEST_TEMPLATE.md`, `scripts/*`(검사 도구), `CONTRIBUTING.md`·`SECURITY.md`·`README.md`.
+대상: `.github/workflows/*`, `.github/ISSUE_TEMPLATE/*`, `PULL_REQUEST_TEMPLATE.md`, `scripts/*`(검사 도구), `CONTRIBUTING.md`·`SECURITY.md`·`README.md`·`docs/DEVELOPMENT.md`.
 
 ## C1. 워크플로 권한·트리거
 - [ ] 최상위 `permissions`가 최소(`contents: read`)이고 잡에서 넓히지 않는가
@@ -23,7 +23,7 @@
 - [ ] 문서끼리 모순: README·CONTRIBUTING·PR 템플릿·ARCHITECTURE가 같은 규칙을 다르게 말하는가(예: 검사 개수 15/15, 커밋 트레일러 형식)
 - [ ] 링크 대상(파일·절 번호 `§`)이 존재하는가
 - [ ] 보안 신고 경로(`security/advisories/new`)는 저장소 설정 "Private vulnerability reporting"이 켜져 있어야 동작 — 문서만으로는 확인 불가하므로 필요하면 `question`
-- [ ] 문서 갱신 의무(필수, REVIEW_PROMPT §6): 새 디렉터리·스크립트가 README 구조 섹션에 반영됐는가
+- [ ] 문서 갱신 의무(필수, REVIEW_PROMPT §6): 새 디렉터리·스크립트가 `docs/DEVELOPMENT.md` 구조 섹션(최상위 폴더면 README 「프로젝트 구조」도)에 반영됐는가
 
 ## C4. 개인 정보·흔적
 - [ ] 템플릿·문서·스크립트에 실제 홈 경로·이메일·소속 조직명·세션 링크

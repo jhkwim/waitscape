@@ -14,8 +14,8 @@ Fixes #
 ## 체크리스트 / Checklist
 
 **문서 / Docs**
-- [ ] 새 모듈·서비스·디렉터리 → `README.md` 구조 섹션 갱신 / New module or directory → README structure updated
-- [ ] API(`/state`·`/trace`·`ctx`·브리지 메시지) 추가·변경 → `README.md` API 섹션, `types/*.d.ts`, `types/CHANGELOG.md` 갱신 / API change → docs & types updated
+- [ ] 새 모듈·서비스·디렉터리 → `docs/DEVELOPMENT.md` 구조 섹션 갱신 / New module or directory → docs/DEVELOPMENT.md structure updated
+- [ ] API(`/state`·`/trace`·`ctx`·브리지 메시지) 추가·변경 → `docs/DEVELOPMENT.md` API 섹션, `types/*.d.ts`, `types/CHANGELOG.md` 갱신 / API change → docs & types updated
 - [ ] 환경변수 추가 → `.env.example` 반영 / New env var → `.env.example`
 - [ ] 해당 없음 / Not applicable
 
