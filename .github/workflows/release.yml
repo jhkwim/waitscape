@@ -22,9 +22,8 @@ permissions:
   contents: read
 
 env:
-  # 배포 전용 공개 저장소(설치 파일·latest.json만). 앱의 설치·업데이트 공식 위치는 여기다(업데이터 엔드포인트 고정).
-  # 코드 저장소 릴리스를 게시하면 publish-public.yml이 복사
-  RELEASES_REPO: jhkwim/waitscape-releases
+  # 설치·업데이트 위치 = 이 저장소의 GitHub Releases(latest.json의 내려받기 주소도 여기). 0.4.0까지는 배포 전용 저장소였다(#22).
+  RELEASES_REPO: ${{ github.repository }}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -285,13 +284,13 @@ jobs:
                 echo "> This build is **unsigned and not notarized**." ;;
             esac
             cat <<'NOTES'
-          > 여는 방법과 SHA-256 확인법은 [설치 안내](https://github.com/jhkwim/waitscape-releases#readme) / See the install guide for how to open it and verify checksums.
+          > 여는 방법과 SHA-256 확인법은 [설치 안내](https://github.com/jhkwim/waitscape/blob/main/docs/INSTALL.md) / See the install guide for how to open it and verify checksums.
 
           파일: macOS universal(.dmg, .app.zip) · Windows x64(NSIS .exe, .msi) · SHA256SUMS.txt
           NOTES
             if [ -f latest.json ]; then
               echo
-              echo "앱 안 업데이트: latest.json·.app.tar.gz·.sig 포함. **게시(Publish)하면** publish-public.yml이 공개 저장소로 복사하고, 그때부터 설치된 앱이 이 버전을 찾는다(초안은 보이지 않음)."
+              echo "앱 안 업데이트: latest.json·.app.tar.gz·.sig 포함. **게시(Publish)하면** 그때부터 설치된 앱이 이 버전을 찾는다(초안은 보이지 않음)."
             fi
             if [ -s ../changes.md ]; then
               echo

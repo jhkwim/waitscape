@@ -6,7 +6,7 @@
 
 **AI가 일하는 동안, 기다림을 볼거리로.**
 
-[![Release](https://img.shields.io/github/v/release/jhkwim/waitscape-releases?color=444d56&label=release)](https://github.com/jhkwim/waitscape-releases/releases/latest)
+[![Release](https://img.shields.io/github/v/release/jhkwim/waitscape?color=444d56&label=release)](https://github.com/jhkwim/waitscape/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-0969da)](docs/INSTALL.md)
 [![Windows](https://img.shields.io/badge/Windows-10%2B-0969da)](docs/INSTALL.md)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24c8db)](https://tauri.app)
@@ -98,7 +98,7 @@ Waitscape는 Claude Code·Codex 같은 AI 코딩 에이전트의 세션을 **도
 
 ### 내려받기
 
-[최신 릴리스](https://github.com/jhkwim/waitscape-releases/releases/latest)에서 macOS는 `.dmg`, Windows는 `.exe`나 `.msi`를 받으세요.
+[최신 릴리스](https://github.com/jhkwim/waitscape/releases/latest)에서 macOS는 `.dmg`, Windows는 `.exe`나 `.msi`를 받으세요.
 
 아직 코드 서명·공증이 되어 있지 않아서 처음 열 때 경고가 떠요. 한 번만 허용하면 돼요.
 
@@ -125,7 +125,7 @@ cargo tauri build    # 설치 파일 만들기
 - **내 컴퓨터에서만 읽어요.** 세션 기록과 훅 이벤트는 로컬 파일에서 읽고 밖으로 보내지 않아요. 프롬프트·도구 설명은 화면에 보이기 전에 토큰·비밀번호 같은 값을 가려요.
 - **앱이 보내는 요청은 두 곳뿐이에요.**
   - `api.anthropic.com`: Claude 사용 한도 조회. 설정에서 동의해야 켜지고 기본은 꺼져 있어요. Claude Code 로그인 토큰을 헤더로 보내고, 토큰은 메모리에만 둬요.
-  - `github.com/jhkwim/waitscape-releases`: 새 버전 확인(`latest.json`). [지금 업데이트]를 누를 때만 같은 곳에서 설치 파일을 받아요. 확인은 설정에서 끌 수 있어요.
+  - `github.com/jhkwim/waitscape` 릴리스: 새 버전 확인(`latest.json`). [지금 업데이트]를 누를 때만 같은 곳에서 설치 파일을 받아요. 확인은 설정에서 끌 수 있어요.
   - Windows 설치 때 WebView2가 없으면 설치 프로그램이 Microsoft에서 받아요.
 - **설정을 바꿀 땐 내용을 보여 줘요.** 훅을 켜면 `wr-hook` 실행 파일을 `~/.claude/waiting-room/bin/`에 복사하고, `~/.claude/settings.json`을 백업한 뒤 Waitscape 항목만 더해요("자세히 보기"로 바뀌는 내용 확인). MCP 연결도 미리보기·백업 뒤 적용하고, 해제하면 더한 것만 빼요.
 - **진단 로그**에는 토큰·프롬프트 내용을 남기지 않고, 홈 경로는 `~`로 줄여요.

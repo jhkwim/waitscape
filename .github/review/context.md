@@ -13,7 +13,7 @@
 | 동등성 fixture | `fixtures/`(합성 데이터만), `scripts/snapshot.py`·`compare.py` | Python 결과 = `fixtures/expected/` |
 | Rust 백엔드 (P1) | `crates/wr-core`(읽기·state·trace·마스킹·한도·프로바이더), `crates/wr-hook`(훅 CLI), `crates/wr-server`(브라우저용 HTTP) | PR 진행 중 |
 | 데스크톱 앱 (P3) | `app/src-tauri`(Tauri 2: push·트레이·위젯·OS 알림·훅 설치·`wrmode:` 스킴·zip 설치) | PR 진행 중 |
-| CI·릴리스 | `.github/workflows/`(`ci.yml` 파이썬·시크릿·작성자, `rust.yml` Rust, `release-prep.yml`·`release.yml` 빌드·초안 릴리스, `publish-public.yml` 배포 저장소 미러) | 구현됨 |
+| CI·릴리스 | `.github/workflows/`(`ci.yml` 파이썬·시크릿·작성자, `rust.yml` Rust, `release-prep.yml`·`release.yml` 빌드·초안 릴리스, `publish-public.yml` 옛 배포 저장소 미러(0.4.1까지)) | 구현됨 |
 
 ## 2. 데이터 흐름
 
@@ -28,7 +28,7 @@ Claude Code ──(직접 기록)──────▶ ~/.claude/projects/<인�
   브라우저: HTTP 127.0.0.1 (/state 1초 폴링)              앱: Tauri IPC + push 이벤트 (HTTP 서버 없음)
             └──────────────▶ web/core (Core.api) ──▶ 내장 모드(메인 문서) / 외부 모드(샌드박스 iframe, postMessage 브리지)
 선택: 사용 한도 ── GET https://api.anthropic.com/api/oauth/usage (OAuth 토큰, 기본 꺼짐)
-앱 업데이터 ── GET https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json (토큰 없음, 기본 켜짐, 설정에서 끔)
+앱 업데이터 ── GET https://github.com/jhkwim/waitscape/releases/latest/download/latest.json (0.4.0까지는 waitscape-releases) (토큰 없음, 기본 켜짐, 설정에서 끔)
             └─ 사용자가 [지금 업데이트]를 누를 때만 같은 릴리스의 설치 파일을 내려받고 minisign 서명 검증
   ※ 외부 통신은 이 둘뿐(전체 목록 ARCHITECTURE.md §7.1)
 ```

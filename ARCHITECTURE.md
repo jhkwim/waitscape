@@ -524,7 +524,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
 - 앱 버전은 semver 하나로 관리한다. **원본 = `Cargo.toml` `[workspace.package] version`**, 따라가는 곳(`tauri.conf.json`, `Cargo.lock` 워크스페이스 패키지)은 `scripts/version.py bump`가 함께 바꾼다. 일치 검사는 세 겹: `version.py check`(CI python 잡), `build.rs`(tauri.conf.json ≠ `CARGO_PKG_VERSION`이면 빌드 중단), release.yml(태그 = 버전). Mode API 버전은 따로 둔다(§4.3).
 - `CHANGELOG.md`(앱, Keep a Changelog)와 `types/CHANGELOG.md`(API)를 분리한다. 릴리스 때 `[Unreleased]`가 새 버전 절이 되고, 비어 있으면 지난 태그 이후 PR 제목으로 채운다.
 - **앱 안 업데이트**(`tauri-plugin-updater` 2.14, `app/src-tauri/src/updater.rs`): 시작 15초 뒤 + 하루 1번(1시간마다 깨어 24시간 경과 확인) `…/releases/latest/download/latest.json` 확인 → 새 버전이면 OS 알림 1회 + 트레이 항목 + `update` 이벤트(코어 배너, 스튜디오는 사장님 말풍선). 설치는 사용자가 대화상자에서 누를 때만(`update_install`, 메인 창 전용): 내려받기 → minisign 서명 검증 → 설치 → `restart()`. 몰래 설치하지 않는다. 설정 `updateCheck`(기본 켜짐)로 자동 확인을 끈다.
-  - 확인 주소는 배포 전용 공개 저장소 `jhkwim/waitscape-releases`다(코드 저장소가 공개된 뒤에도 그대로. 설치된 앱의 엔드포인트라 바꾸지 않는다). 실패(오프라인·아직 게시 전 404)는 로그만, 화면에는 "지금은 확인할 수 없어요" 정도로만. 공개 키가 자리표시자인 빌드는 확인하지 않는다(`updater::ready`). 켜는 순서는 docs/RELEASE.md §5·§6.
+  - 확인 주소는 코드 저장소 `jhkwim/waitscape`의 GitHub Releases다. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`였고, 0.4.1(다리 버전)을 거기에도 마지막으로 복사해 옛 앱이 새 주소로 넘어오게 했다(#22). 실패(오프라인·아직 게시 전 404)는 로그만, 화면에는 "지금은 확인할 수 없어요" 정도로만. 공개 키가 자리표시자인 빌드는 확인하지 않는다(`updater::ready`). 켜는 순서는 docs/RELEASE.md §5·§6.
 
 ### 6.5 빌드 플레이버 (구조만)
 - 앱 크레이트 cargo feature `updater`·`terminal-jump`(기본 켜짐). 끄면 해당 코드(플러그인·네트워크, 다른 앱 실행)가 컴파일에서 빠지고, 웹은 `app_info.features`를 보고 UI를 숨긴다(`core.js applyAppInfo` → `ctx.api.openTerminal` 없음, 설정 카드·배너 없음). 명령·capabilities 목록은 플레이버와 관계없이 같다(빠진 기능은 `disabled`/`unsupported` 응답). CI가 `--no-default-features` clippy로 깨지지 않게 지킨다.
@@ -540,7 +540,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
 |---|---|---|---|---|
 | 1 | `https://api.anthropic.com/api/oauth/usage` (GET) | 120초마다, 백오프 | 헤더: `Authorization: Bearer <OAuth access token>`, `anthropic-beta: oauth-2025-04-20`, `User-Agent: <앱>/<버전>`. 본문 없음 | **꺼짐**(온보딩에서 동의) |
 | 2 | Microsoft WebView2 부트스트래퍼 | Windows 설치 시 WebView2가 없을 때만 | 표준 다운로드 요청 | 설치 프로그램 |
-| 3 | `https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json` (배포 전용 공개 저장소, GET, 리다이렉트 → objects.githubusercontent.com) | 시작 15초 뒤 + 하루 1번, 설정의 [지금 확인] | IP, User-Agent. 본문·토큰 없음 | **켜짐**(설정 → 업데이트로 끔. 공개 키 없는 빌드·`updater` 기능을 뺀 빌드는 안 함) |
+| 3 | `https://github.com/jhkwim/waitscape/releases/latest/download/latest.json` (코드 저장소 Releases, 0.4.0까지는 `waitscape-releases`, GET, 리다이렉트 → release-assets.githubusercontent.com) | 시작 15초 뒤 + 하루 1번, 설정의 [지금 확인] | IP, User-Agent. 본문·토큰 없음 | **켜짐**(설정 → 업데이트로 끔. 공개 키 없는 빌드·`updater` 기능을 뺀 빌드는 안 함) |
 | 3b | 같은 릴리스의 `.app.tar.gz` / `.exe` / `.msi` | 사용자가 [지금 업데이트]를 눌렀을 때만 | IP, User-Agent | 누를 때만 |
 | — | ~~fonts.googleapis.com, cdn.jsdelivr.net~~ | — | — | **제거**(폰트 번들) |
 
