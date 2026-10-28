@@ -96,7 +96,10 @@ jobs:
           if [ "$RUNNER_OS" = macOS ]; then rustup target add aarch64-apple-darwin x86_64-apple-darwin; fi
           rustc -V
 
+      # 태그 실행이 저장한 캐시는 다음 태그가 읽을 수 없다(캐시는 같은 ref·기본 브랜치에서만 공유). 저장은 main 수동 실행에서만
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # 서명 자리: release 환경 시크릿이 있을 때만 켠다. 없으면 미서명(맥은 ad-hoc)으로 빌드한다.
       # 맥: APPLE_CERTIFICATE(base64 .p12), APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,

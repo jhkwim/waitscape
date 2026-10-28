@@ -506,7 +506,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
 
 ### 6.2 GitHub Actions
 - `ci.yml`(PR·main push): Python 참조 구현·fixture·스키마·시크릿·커밋 작성자 검사.
-- `rust.yml`(Rust 관련 경로가 바뀐 PR·main push만, 수동 실행 가능): Linux에서 `cargo fmt --check`, `clippy -D warnings`, `cargo test`, 동등성(`scripts/rust_parity.sh`), Windows에서 코어 크레이트 테스트. macOS는 PR 검사에서 빼고 `release.yml`에서만 빌드(Linux·Windows 검사로 충분, 맥 러너 대기를 줄임).
+- `rust.yml`(Rust 관련 경로가 바뀐 PR·main push만, 수동 실행 가능): Linux 린트 잡(`cargo fmt --check`, `clippy -D warnings`)과 테스트 잡(`cargo test`, 동등성 `scripts/rust_parity.sh`)을 동시에, Windows에서 코어 크레이트 테스트. macOS는 PR 검사에서 빼고 `release.yml`에서만 빌드(Linux·Windows 검사로 충분, 맥 러너 대기를 줄임).
 - `release-prep.yml`(수동 실행, Linux 1개): 버전 입력 → `scripts/version.py bump` → 버전·CHANGELOG PR(`release/vX.Y.Z`, 작성자 github-actions[bot]). 그 PR이 병합되면 태그 `vX.Y.Z`를 붙이고 `release.yml`을 workflow_dispatch로 부른다(GITHUB_TOKEN 태그는 push 트리거를 깨우지 않음). 권한은 잡별로 최소(`contents: write`+`pull-requests: write`는 PR 잡, `contents: write`+`actions: write`는 태그 잡).
 - `release.yml`(태그 `v*`, 수동 실행은 태그·main만, 구현은 tauri-action 대신 `@tauri-apps/cli` 직접 호출): 매트릭스
   - `macos-latest` → `--target universal-apple-darwin` → `.dmg`(universal 하나)
