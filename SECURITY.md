@@ -8,8 +8,6 @@
 👉 https://github.com/jhkwim/waitscape/security/advisories/new
 (저장소 → Security → Advisories → "Report a vulnerability")
 
-> 메모(메인테이너): 저장소를 공개로 바꾼 직후 **Settings → Code security → Private vulnerability reporting을 켜야** 위 링크가 동작합니다(저장소가 비공개였던 동안에는 쓸 수 없었음). 켜고 링크가 열리는 것을 확인하면 이 메모를 지웁니다.
-
 포함해 주시면 좋은 것 / Please include:
 - 영향 받는 버전·커밋, 실행 방식(브라우저+`server.py` / 앱) / Affected version or commit, how it runs
 - 재현 단계, 개념 증명(PoC) / Steps to reproduce, proof of concept
