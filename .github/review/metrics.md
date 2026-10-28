@@ -26,5 +26,6 @@
 | 2026-10-28 | #18 | 138341d | rust (Flash) + Claude 전문가 | 90 | 0/0/1/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 같은 16진 변환 두 곳(공용으로) 1건 (Flash medium·Claude) |
 | 2026-10-28 | #20→#21 | 565d4d7 | ci (Flash) + Claude 전문가 | 89 | 0/3/4/0 | 100% | 86% | 100% | 14% | 목록 빈 줄은 원래 형식 | - | Flash 0건 → Claude가 릴리스 본문 #번호 오링크·tokio 보안 근거·브랜치 이름이 release-prep 태그 잡에 걸림 등 7건 (Flash medium·Claude) |
 | 2026-10-28 | #23 | 85d785f | ci, security (Flash) + Claude 전문가 | 111 | 0/1/3/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 다리 버전 Latest 누락 시 조용히 끊김(🟡)·주석·리다이렉트 호스트·정리 시점 (Flash medium·Claude) |
+| 2026-10-28 | #26 | 5f022e0 | ci (Flash) + Claude 전문가 | - | 0/2/4/0 | 100% | 100% | 100% | 0% | 한국어 창 제목은 사용자 스크린샷과 같음 | - | Flash 0건 → Claude가 `**[완료]**를` 굵게 깨짐·남은 옛 문구 등 6건 (Flash medium·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
