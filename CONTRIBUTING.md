@@ -66,7 +66,7 @@ fixture에는 합성 데이터만 넣습니다(실제 트랜스크립트·개인
 
 - 형식·`ctx` 권한·샌드박스·체크리스트는 [`MODES.md`](MODES.md). 스타터는 `web/modes/_template/`.
 - 새 모드는 먼저 **외부 모드**(사용자 모드 폴더)로 만들어 샌드박스에서 시험한 뒤, **모드 제출** 이슈로 공유합니다.
-- 내장으로 넣는 PR이면: `web/modes/<id>/`에 추가, `web/modes/index.json`에 등록, `README.md` 구조 섹션 갱신, MODES.md §11 체크리스트 통과.
+- 내장으로 넣는 PR이면: `web/modes/<id>/`에 추가, `web/modes/index.json`에 등록, `docs/DEVELOPMENT.md` 구조 섹션 갱신, MODES.md §11 체크리스트 통과.
 - `needs` 권한은 꼭 필요한 것만. 외부 폰트·이미지 CDN은 쓰지 말고 `assets/`에 번들(라이선스 확인).
 - 문구에 "Claude"를 박지 말고 `Core.provider(state, s).name`을 씁니다(MODES.md §6).
 

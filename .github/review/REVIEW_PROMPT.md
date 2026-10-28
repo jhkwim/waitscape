@@ -14,7 +14,7 @@
 1. 아래 「프로젝트 요약(context)」 전체 — 신뢰 경계와 민감 영역 지도.
 2. `.review/pr.diff` 전체(잠금 파일 `Cargo.lock`·`*.lock`, 생성물 `fixtures/expected/**`는 훑기만).
 3. diff에 나온 파일 중 **민감 영역에 닿는 파일은 diff 바깥(호출하는 쪽·호출되는 쪽)까지 실제로 열어** 확인한다. 함수 하나의 변경을 판단하려면 그 함수를 부르는 곳을 찾아 읽어라.
-4. 규칙 문서는 필요한 절만: `README.md`(구조·API·안전), `ARCHITECTURE.md` §2.2·§3.7·§4.5·§5.2·§7, `MODES.md` §4·§7·§11, `CONTRIBUTING.md`(있으면), `types/*.d.ts`(공개 계약).
+4. 규칙 문서는 필요한 절만: `docs/DEVELOPMENT.md`(구조·API·안전), `ARCHITECTURE.md` §2.2·§3.7·§4.5·§5.2·§7, `MODES.md` §4·§7·§11, `CONTRIBUTING.md`(있으면), `types/*.d.ts`(공개 계약).
 5. 아래 「체크리스트」 항목을 하나씩 대조한다. 체크리스트는 **찾아볼 곳 목록**이지, 항목마다 지적을 만들라는 뜻이 아니다.
 
 ## 2. 역할·태도
@@ -75,8 +75,8 @@ diff에 해당 변경이 있을 때만 점검한다.
 
 - **시크릿 하드코딩**: API 키·토큰·비밀번호 실제 값 → 🔴. 저장소에는 `<REPLACE_WITH_SECRET_MANAGER>` 플레이스홀더만. `AKIA…`, `ghp_…`, `github_pat_…`, `xox?-…`, `sk-ant-…` 실제 형태가 보이면 즉시 🔴. 가짜 시크릿은 `fixtures/fake_secrets.json`에 **조각**으로만 둔다(이어 붙인 원문이 커밋되면 🔴).
 - **문서 갱신 의무**(위반 시 🟡, category `docs-policy`):
-  - 새 모듈·서비스·디렉터리 → `README.md` 「구조」 섹션 갱신
-  - API(`/state`·`/trace`·`/modes`·`/_modes`·Tauri 명령·브리지 메시지) 추가·변경 → `README.md` 「API」 + `types/*.d.ts` + `types/CHANGELOG.md`
+  - 새 모듈·서비스·디렉터리 → `docs/DEVELOPMENT.md` 「구조」 섹션 갱신(최상위 폴더면 `README.md` 「프로젝트 구조」도)
+  - API(`/state`·`/trace`·`/modes`·`/_modes`·Tauri 명령·브리지 메시지) 추가·변경 → `docs/DEVELOPMENT.md` 「API」 + `types/*.d.ts` + `types/CHANGELOG.md`
   - 환경변수 추가 → `.env.example` 반영 (코드에서 `env::var`/`os.environ`/`process.env`를 grep해 대조)
 - **`.gitignore`**: `.env`, `*.pem`, `*.key`, `secrets/`, `node_modules/`, `dist/` 필수. 빌드 산출물·의존성 폴더(`target/` 등) 커밋 금지.
 - **외부 통신**: 새 외부 통신은 대상·보내는 데이터를 `ARCHITECTURE.md` §7.1 목록에 명시해야 한다. 셸 `curl`/`wget`에 환경변수(토큰)를 넘기는 패턴 금지. 모든 HTTP는 한 곳(`limits`)에서만.

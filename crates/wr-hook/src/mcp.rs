@@ -13,7 +13,7 @@
 //!   넘치면 종류별 최신 1건을 보류했다가 토큰이 차거나 stdin EOF 때 기록(마지막 상태를 버리지 않음). 결과는 항상 `"ok"`.
 //! - 수명: initialize 응답 직후(또는 initialize 없이 온 첫 도구 호출 때) `hello`, stdin EOF → 보류분 기록 → `bye` → 종료 코드 0.
 //! - 경로: `--reports` > `WAITING_ROOM_REPORTS` > `$CLAUDE_CONFIG_DIR/waiting-room/reports.jsonl` > `~/.claude/waiting-room/reports.jsonl`.
-//!   Codex는 기본 허용 env만 넘기므로 앱·README의 등록 명령은 항상 `--reports <절대 경로>`를 쓴다. `off`면 기록하지 않는다.
+//!   Codex는 기본 허용 env만 넘기므로 앱·docs/DEVELOPMENT.md의 등록 명령은 항상 `--reports <절대 경로>`를 쓴다. `off`면 기록하지 않는다.
 #![deny(clippy::print_stdout)]
 
 use crate::report::{self, board_of, provider_of, status_of};

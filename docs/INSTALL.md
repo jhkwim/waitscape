@@ -27,7 +27,7 @@ Installers are **not code-signed or notarized yet**, so the OS shows a warning o
 3. WebView2 런타임이 없으면 설치 프로그램이 안내합니다(Windows 11과 최신 Windows 10에는 이미 있습니다).
 
 ### 3. 훅은 선택입니다
-훅(Claude Code 이벤트 수집)을 켜지 않아도 앱은 세션 기록(트랜스크립트)만으로 동작합니다. 켜고 싶으면 앱의 **설정 → 훅 → 켜기**를 누르세요.
+훅(Claude Code 이벤트 수집)을 켜지 않아도 앱은 세션 기록(트랜스크립트)만으로 동작합니다. 켜고 싶으면 앱의 **설정 → AI 연결 → 훅 켜기**를 누르세요.
 앱에 든 `wr-hook`을 `~/.claude/waiting-room/bin/`에 복사하고, `~/.claude/settings.json`을 백업한 뒤 Waitscape 항목만 추가합니다(확인 창이 먼저 뜹니다). 사용 한도 조회도 설정에서 동의해야 켜집니다(기본 꺼짐).
 
 ### 4. 업데이트
@@ -38,7 +38,7 @@ Installers are **not code-signed or notarized yet**, so the OS shows a warning o
 - v0.3.0보다 옛 버전은 앱 안 업데이트가 동작하지 않습니다(서명 키가 없던 빌드). 한 번만 Releases에서 새 설치 파일을 받아 그대로 덮어 설치하세요(1·2번과 같음, 데이터는 유지). 그 다음부터는 앱이 알려 줍니다.
 
 ### 5. 제거
-1. 앱 **설정 → 훅 → 끄기** (설정 파일에서 우리 항목만 지우고, 백업은 남깁니다). 훅을 켠 적이 없으면 건너뜁니다.
+1. 앱 **설정 → AI 연결 → 훅 끄기** (설정 파일에서 우리 항목만 지우고, 백업은 남깁니다). 훅을 켠 적이 없으면 건너뜁니다.
 2. 앱 삭제
    - macOS: 응용 프로그램의 Waitscape를 휴지통으로 (자동 시작을 켰다면 설정에서 먼저 끄기)
    - Windows: 설정 → 앱 → 설치된 앱 → Waitscape → 제거
@@ -90,7 +90,7 @@ Put `SHA256SUMS.txt` next to the download and run:
 3. If the WebView2 runtime is missing, the installer will guide you (it is preinstalled on Windows 11 and current Windows 10).
 
 ### 3. The hook is optional
-Waitscape works from Claude Code transcripts alone. To also use hooks, turn them on in **Settings → Hook → Enable**. The app copies its bundled `wr-hook` to `~/.claude/waiting-room/bin/`, backs up `~/.claude/settings.json`, and adds only its own entries (after a confirmation dialog). Usage-limit polling is also opt-in (off by default).
+Waitscape works from Claude Code transcripts alone. To also use hooks, turn them on in **Settings → AI tools → Turn on hooks**. The app copies its bundled `wr-hook` to `~/.claude/waiting-room/bin/`, backs up `~/.claude/settings.json`, and adds only its own entries (after a confirmation dialog). Usage-limit polling is also opt-in (off by default).
 
 ### 4. Updates
 - The app checks for a new version **at start and once a day** (it only fetches `latest.json` from the public download repository `jhkwim/waitscape-releases`; sends your IP and User-Agent).
@@ -100,7 +100,7 @@ Waitscape works from Claude Code transcripts alone. To also use hooks, turn them
 - Versions older than v0.3.0 cannot update in-app (built without the signing key). Download the new installer from Releases once and install over the old one (data is kept); after that the app tells you.
 
 ### 5. Uninstall
-1. **Settings → Hook → Disable** in the app (removes only our entries and keeps the backup). Skip if you never enabled it.
+1. **Settings → AI tools → Turn off hooks** in the app (removes only our entries and keeps the backup). Skip if you never enabled it.
 2. Delete the app: drag Waitscape to the Trash (macOS; turn off auto-start first if enabled), or Settings → Apps → Waitscape → Uninstall (Windows).
 3. Optionally delete the data folders listed in the table above. Claude Code's own `~/.claude/projects/` transcripts are only read, never modified.
 
