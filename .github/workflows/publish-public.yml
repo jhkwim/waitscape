@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 env:
-  RELEASES_REPO: jhkwim/waitscape-releases # release.yml의 RELEASES_REPO와 같게
+  RELEASES_REPO: jhkwim/waitscape-releases # 옛 배포 저장소(0.4.0까지 앱이 읽던 곳). release.yml의 RELEASES_REPO(본 저장소)와 일부러 다름
 
 concurrency:
   group: publish-public
@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   mirror:
-    name: 공개 저장소로 복사
+    name: 옛 배포 저장소로 복사
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # RELEASES_REPO_TOKEN은 mirror 환경에만 둔다(배포 브랜치 규칙: 태그 v*·main). docs/RELEASE.md §6
@@ -39,7 +39,7 @@ jobs:
           HAS_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN != '' }}
         run: |
           if [ "$HAS_TOKEN" != true ]; then
-            echo "::warning::시크릿 RELEASES_REPO_TOKEN이 없어 공개 저장소($RELEASES_REPO)로 복사하지 않는다 (docs/RELEASE.md §6)"
+            echo "::warning::시크릿 RELEASES_REPO_TOKEN이 없어 옛 배포 저장소($RELEASES_REPO)로 복사하지 않는다 (docs/RELEASE.md §6)"
             exit 0
           fi
           echo "on=true" >> "$GITHUB_OUTPUT"
@@ -57,7 +57,13 @@ jobs:
           jq -r .name <<<"$meta" > title.txt
           jq -r .isPrerelease <<<"$meta" > pre.txt
           # 본 저장소에서 Latest인 릴리스만 공개 저장소에서도 Latest로 (옛 태그를 다시 복사해도 Latest가 뒤로 가지 않게)
-          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)
+          # 게시 직후 API 반영이 늦을 수 있어 몇 번 다시 묻는다 (다리 버전은 반드시 Latest여야 옛 앱이 본다)
+          latest=""
+          for i in 1 2 3 4 5 6; do
+            latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)
+            [ "$latest" = "$TAG" ] && break
+            sleep 10
+          done
           if [ "$latest" = "$TAG" ]; then echo true > latest.txt; else echo false > latest.txt; fi
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dl
           cd dl
@@ -88,4 +94,16 @@ jobs:
             gh release create "$TAG" --repo "$RELEASES_REPO" --target main \
               --title "$(cat title.txt)" --notes-file notes.md "${flags[@]}" -- "${files[@]}"
           fi
-          echo "### 공개 저장소: https://github.com/$RELEASES_REPO/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 옛 배포 저장소: https://github.com/$RELEASES_REPO/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
+
+      # 옛 앱은 옛 저장소의 releases/latest만 본다. 본 저장소에서 Latest인 태그가 거기서도 Latest가 아니면 다리가 조용히 끊기므로 실패로 드러낸다
+      - name: 옛 저장소 Latest 확인
+        if: steps.tok.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          [ "$(cat latest.txt)" = true ] || { echo "본 저장소에서 Latest가 아니라 확인을 건너뜀 ($TAG)"; exit 0; }
+          got=$(gh api "repos/$RELEASES_REPO/releases/latest" --jq .tag_name)
+          [ "$got" = "$TAG" ] || { echo "::error::$RELEASES_REPO 의 Latest가 $got (기대 $TAG). Run workflow로 다시 복사하라 (docs/RELEASE.md §6)"; exit 1; }
+          echo "옛 저장소 Latest = $got"

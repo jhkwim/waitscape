@@ -143,8 +143,8 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
 1. 0.4.1: 앱 엔드포인트·`latest.json` 주소를 이 저장소로 바꾼다.
 2. 0.4.1을 게시하면 `publish-public.yml`이 **마지막으로** 옛 저장소에도 복사한다(`mirror` 환경 `RELEASES_REPO_TOKEN`).
    옛 앱은 그 `latest.json`(내려받기 주소는 이 저장소)을 보고 0.4.1로 업데이트한 뒤, 그다음부터 이 저장소를 읽는다.
-3. 확인: `https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json`이 0.4.1을 가리키는지.
-4. 그 뒤 정리(별도 PR): `publish-public.yml` 삭제, `mirror` 환경·`RELEASES_REPO_TOKEN`·토큰 자체 삭제, 옛 저장소 README를 이사 안내로 바꾸고 보관(Archive).
+3. 확인: `https://github.com/jhkwim/waitscape-releases/releases/latest/download/latest.json`이 0.4.1을 가리키는지(워크플로의 「옛 저장소 Latest 확인」 단계도 검사). 0.4.1은 정식 릴리스·Latest로 게시한다(사전 릴리스면 옛 앱이 못 본다).
+4. 0.4.1이 문제없이 퍼진 뒤 정리(별도 PR, 핫픽스 0.4.2가 필요하면 그것까지 복사한 뒤): `publish-public.yml` 삭제, `mirror` 환경·`RELEASES_REPO_TOKEN`·토큰 자체 삭제, 옛 저장소 README를 이사 안내로 바꾸고 보관(Archive).
    옛 저장소의 Latest는 0.4.1에 영원히 머물러 늦게 켜는 옛 앱도 넘어온다. **보관 뒤에도 지우지 않는다.**
 
 복사 중 참고(0.4.1까지):

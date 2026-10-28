@@ -540,7 +540,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
 |---|---|---|---|---|
 | 1 | `https://api.anthropic.com/api/oauth/usage` (GET) | 120초마다, 백오프 | 헤더: `Authorization: Bearer <OAuth access token>`, `anthropic-beta: oauth-2025-04-20`, `User-Agent: <앱>/<버전>`. 본문 없음 | **꺼짐**(온보딩에서 동의) |
 | 2 | Microsoft WebView2 부트스트래퍼 | Windows 설치 시 WebView2가 없을 때만 | 표준 다운로드 요청 | 설치 프로그램 |
-| 3 | `https://github.com/jhkwim/waitscape/releases/latest/download/latest.json` (코드 저장소 Releases, 0.4.0까지는 `waitscape-releases`, GET, 리다이렉트 → objects.githubusercontent.com) | 시작 15초 뒤 + 하루 1번, 설정의 [지금 확인] | IP, User-Agent. 본문·토큰 없음 | **켜짐**(설정 → 업데이트로 끔. 공개 키 없는 빌드·`updater` 기능을 뺀 빌드는 안 함) |
+| 3 | `https://github.com/jhkwim/waitscape/releases/latest/download/latest.json` (코드 저장소 Releases, 0.4.0까지는 `waitscape-releases`, GET, 리다이렉트 → release-assets.githubusercontent.com) | 시작 15초 뒤 + 하루 1번, 설정의 [지금 확인] | IP, User-Agent. 본문·토큰 없음 | **켜짐**(설정 → 업데이트로 끔. 공개 키 없는 빌드·`updater` 기능을 뺀 빌드는 안 함) |
 | 3b | 같은 릴리스의 `.app.tar.gz` / `.exe` / `.msi` | 사용자가 [지금 업데이트]를 눌렀을 때만 | IP, User-Agent | 누를 때만 |
 | — | ~~fonts.googleapis.com, cdn.jsdelivr.net~~ | — | — | **제거**(폰트 번들) |
 
