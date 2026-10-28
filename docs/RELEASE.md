@@ -181,6 +181,11 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
 
 (`darwin-*-app`, `windows-x86_64-nsis` 키도 함께 쓴다 — 설치 형식별 키를 먼저 찾는 업데이터용.) Windows는 `installMode: passive`(진행 창만, 묻지 않음)로 설치 후 앱을 다시 띄운다.
 
+### 배포 대상(OS)을 늘릴 때
+Dependabot 경고 중 배포 대상에서 쓰이지 않아 닫은 것은 `.github/platform-advisories.json`에 적어 둔다(지금: `glib` — Linux 전용, #15).
+Linux를 배포 대상에 더하면 CI의 `scripts/check_platform_advisories.py`가 실패하며 다시 열 경고를 알려 준다. 넓게(실패하는 쪽으로) 본다: `release.yml`에서 앱을 빌드하는 잡(tauri를 부르는 잡) 안에 ubuntu·linux·self-hosted 러너(matrix의 어떤 키든, `runs-on`이든, 새 잡이든)나 Linux 번들(deb·appimage·rpm·`all`, linux 타깃)이 보이거나, `tauri.conf.json`의 `bundle.targets`에 Linux 형식·`"all"`이 들어오면 Linux로 친다. 빌드하지 않는 보조 잡(실행 ref 확인·초안 릴리스)의 ubuntu 러너는 보지 않는다.
+그 경고를 다시 열고(Security → Dependabot → 닫은 경고 → Reopen) 고친 버전으로 올린 뒤 기록에서 지운다.
+
 ## 8. 빌드 플레이버 (Mac App Store 대비, 구조만)
 
 앱 크레이트(`app/src-tauri/Cargo.toml`)의 컴파일 타임 기능:

@@ -238,6 +238,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     check_secrets.py    커밋된 파일의 실제 형태 시크릿(AKIA·ghp_·xox·sk-ant)·개인 경로 검사 (--leak: 기준 결과 마스킹 유출)
     validate_modes.py   web/modes/*/mode.json을 types/mode.schema.json으로 검증 (jsonschema 필요)
     selftest_check_secrets.py  check_secrets.py 탐지 패턴 회귀 테스트 (점·하이픈 사용자명 경로, 대시 인코딩 홈 경로, 비ASCII 인접 시크릿)
+    check_platform_advisories.py  배포 대상에서 쓰이지 않아 닫은 보안 경고(.github/platform-advisories.json)가 배포 대상(release.yml 앱 빌드 잡의 러너·번들, tauri.conf.json bundle.targets)에 들어오면 실패 (selftest_platform_advisories.py)
     check_commit_emails.py  커밋 작성자·커미터 이메일이 차단 도메인이면 실패 (환경변수 BLOCKED_EMAIL_DOMAINS, CI에선 저장소 시크릿)
     version.py          앱 버전 한 곳 관리: show / check [--tag] / bump X.Y.Z|major|minor|patch [--dry-run] / notes (CHANGELOG 절)
     make_latest_json.py 업데이터 매니페스트 latest.json 생성 (서명 .sig가 있을 때만, release.yml)
@@ -249,6 +250,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     workflows/publish-public.yml  릴리스 게시 → 배포 전용 공개 저장소(jhkwim/waitscape-releases)에 같은 태그로 복사 (mirror 환경의 RELEASES_REPO_TOKEN 있을 때)
     workflows/release.yml  태그 v*·수동 실행(태그·main만, release 환경): macOS universal .dmg·.app, Windows NSIS·MSI(미서명) + SHA256SUMS (+ 업데이터 서명·latest.json, 시크릿 있을 때) → 초안 릴리스
     ISSUE_TEMPLATE/     버그·기능·모드 제출·프로바이더 요청 (한/영)
+    platform-advisories.json  닫은 Dependabot 경고 기록(패키지·고친 버전·영향 플랫폼·경고 번호·이유)
     dependabot.yml      의존성 업데이트 PR: GitHub Actions·Cargo 주 1회, 종류별 최대 5개
     PULL_REQUEST_TEMPLATE.md
     review/     (메인테이너 전용·선택) AI 교차 리뷰(Gemini) 프롬프트·프로젝트 요약·영역별 체크리스트·실행기(run_review.sh — PR 크기·민감도로 Flash/Argon 자동 선택, 규칙은 TRIAGE §5)·판정 규칙(TRIAGE)·보정 기록(CALIBRATION)·지표(metrics)
@@ -320,6 +322,7 @@ python3 scripts/check_secrets.py --leak         # 시크릿·개인 경로 패�
 python3 scripts/selftest_transcript_only.py     # 트랜스크립트 전용 규칙 검사기 자체 점검
 python3 scripts/validate_modes.py               # mode.json 스키마 검증 (pip install jsonschema)
 python3 scripts/selftest_check_secrets.py       # 시크릿·경로 탐지 패턴 회귀 테스트
+python3 scripts/check_platform_advisories.py    # 닫은 플랫폼 한정 보안 경고가 배포 대상 밖인지 (selftest_platform_advisories.py)
 BLOCKED_EMAIL_DOMAINS=example.com python3 scripts/check_commit_emails.py origin/main..HEAD   # 커밋 이메일 검사 (예시 도메인은 가짜 값)
 ```
 CI(`.github/workflows/ci.yml`)가 PR과 main push마다 위 검사를 돌린다. Rust 검사(`.github/workflows/rust.yml`)는 러너 시간을 아끼려고 Rust와 기준 결과에 영향을 주는 파일이 바뀐 PR·main push에서만 돈다(main은 다음 PR이 쓸 캐시를 만들기 위해, 수동 실행 가능). Rust 1.90.0 고정: Linux 린트 잡에서 `cargo fmt --all -- --check`·`cargo clippy --workspace --all-targets -- -D warnings`, Linux 테스트 잡에서 `cargo test --workspace`·`sh scripts/rust_parity.sh`(두 잡이 동시에 돌고, 앱 빌드용 시스템 라이브러리는 apt로 설치), Windows에서 `cargo test -p wr-core -p wr-hook -p wr-server`. macOS는 PR 검사에서 뺐다(Linux·Windows 검사로 충분, 맥 앱 빌드는 `release.yml`). PR 캐시는 그 PR에서만 다시 읽을 수 있어 저장하지 않고(main 캐시를 읽기만), CI 빌드는 디버그 정보를 끈다(`CARGO_PROFILE_DEV_DEBUG=0`). 린트 잡은 wr-hook sidecar를 빌드하지 않는다(테스트 잡만). `release.yml`도 캐시는 main 수동 실행에서만 저장해서, 태그 릴리스 빌드는 보통 캐시 없이 돈다.
