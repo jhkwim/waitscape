@@ -29,5 +29,6 @@
 | 2026-10-28 | #26 | 5f022e0 | ci (Flash) + Claude 전문가 | - | 0/2/4/0 | 100% | 100% | 100% | 0% | 한국어 창 제목은 사용자 스크린샷과 같음 | - | Flash 0건 → Claude가 `**[완료]**를` 굵게 깨짐·남은 옛 문구 등 6건 (Flash medium·Claude) |
 | 2026-10-28 | #28 | 96020b7 | ci, security (Flash) + Claude 전문가 | - | 0/4/6/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 umask가 빌드 전체에 걸림·pipefail 거짓 실패·dmg 미공증 등 (Tauri 소스로 확인) (Flash medium·Claude) |
 | 2026-10-28 | #30 | f28e582 | ci, security (Flash) + Claude 전문가 | - | 0/4/5/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 업데이터 키 유출 시 회전 가능(재설치 불필요)·인증서 폐기 영향·API 키 범위·"경고 없이" 과장 등 (Flash medium·Claude) |
+| 2026-10-28 | #32 | e37bfff | ci (Flash) + Claude 전문가 | - | 0/1/2/0 | 100% | 67% | 100% | 0% | 지난 0.4.1 노트 문구는 이력이라 유지 | - | Flash 0건 → Claude가 병합 뒤 정리 시점·PAT 폐기·남은 '복사' 문구 (Flash medium·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
