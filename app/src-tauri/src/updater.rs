@@ -143,7 +143,7 @@ pub fn kick(app: &AppHandle) {
 }
 
 /// [지금 확인] → { result: "available" | "latest" | "unavailable" | "disabled", status }
-/// "unavailable" = 확인하지 못함(오프라인·비공개 저장소 등). 화면은 오류가 아니라 "지금은 확인할 수 없어요"로만 보여 준다
+/// "unavailable" = 확인하지 못함(오프라인·아직 게시 전 404 등). 화면은 오류가 아니라 "지금은 확인할 수 없어요"로만 보여 준다
 pub async fn check_now(app: &AppHandle) -> Value {
     if !ready(app) {
         return json!({"result": "disabled", "status": status(app)});
@@ -250,7 +250,7 @@ mod imp {
                     Ok(None)
                 }
                 Err(e) => {
-                    // 비공개 저장소(404)·오프라인 등. 화면에는 띄우지 않는다. 다음 시각에 다시
+                    // 아직 게시 전(404)·오프라인 등. 화면에는 띄우지 않는다. 다음 시각에 다시
                     wlog!("update", "업데이트 확인 실패(조용히 넘어감): {e}");
                     g.last_check = Some(SystemTime::now());
                     Err(())
