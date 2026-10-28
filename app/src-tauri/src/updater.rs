@@ -3,7 +3,7 @@
 //!   설정 `updateCheck`가 꺼져 있으면 자동 확인은 하지 않는다(설정 화면의 [지금 확인]은 된다).
 //! - 새 버전이면: OS 알림 1회("새 버전 나왔어요!") + 트레이 "업데이트 있음" + 모든 창에 `update` 이벤트(배너·스튜디오 사장님 말풍선).
 //! - 설치: 사용자가 눌렀을 때만(`update_install`). 내려받기 → minisign 서명 검증(플러그인) → 설치 → 다시 시작. 몰래 설치하지 않는다.
-//! - 받는 곳은 배포 전용 공개 저장소 `jhkwim/waitscape-releases`(본 저장소는 비공개). 실패(오프라인, latest.json 404 등)는 로그만 남기고 화면에는 오류를 띄우지 않는다.
+//! - 받는 곳은 배포 전용 공개 저장소 `jhkwim/waitscape-releases`(코드 저장소와 따로 두어 주소를 고정). 실패(오프라인, latest.json 404 등)는 로그만 남기고 화면에는 오류를 띄우지 않는다.
 //!   공개 키가 자리표시자(`<REPLACE_WITH_SECRET_MANAGER>`)인 빌드는 아예 확인하지 않는다.
 //! - `updater` 기능을 끄고 빌드하면(Mac App Store 플레이버) 플러그인·네트워크 코드가 빠지고 status의 compiled가 false다.
 
@@ -143,7 +143,7 @@ pub fn kick(app: &AppHandle) {
 }
 
 /// [지금 확인] → { result: "available" | "latest" | "unavailable" | "disabled", status }
-/// "unavailable" = 확인하지 못함(오프라인·비공개 저장소 등). 화면은 오류가 아니라 "지금은 확인할 수 없어요"로만 보여 준다
+/// "unavailable" = 확인하지 못함(오프라인·아직 게시 전 404 등). 화면은 오류가 아니라 "지금은 확인할 수 없어요"로만 보여 준다
 pub async fn check_now(app: &AppHandle) -> Value {
     if !ready(app) {
         return json!({"result": "disabled", "status": status(app)});
@@ -250,7 +250,7 @@ mod imp {
                     Ok(None)
                 }
                 Err(e) => {
-                    // 비공개 저장소(404)·오프라인 등. 화면에는 띄우지 않는다. 다음 시각에 다시
+                    // 아직 게시 전(404)·오프라인 등. 화면에는 띄우지 않는다. 다음 시각에 다시
                     wlog!("update", "업데이트 확인 실패(조용히 넘어감): {e}");
                     g.last_check = Some(SystemTime::now());
                     Err(())
