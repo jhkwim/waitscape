@@ -52,18 +52,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Linux는 린트와 테스트를 두 잡으로 나눠 동시에 돌린다(차례로 돌면 두 시간을 더한 만큼 기다림). Windows는 코어 크레이트 테스트만.
   rust:
-    name: Rust (${{ matrix.os }})
+    name: Rust (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]   # macOS 앱 빌드는 release.yml이 맥에서 한다(PR 검사는 Linux·Windows로 충분하고 맥 러너는 대기가 길다)
+        include:
+          - { name: "Linux 린트", os: ubuntu-latest, task: lint }
+          - { name: "Linux 테스트", os: ubuntu-latest, task: test }
+          - { name: "Windows 테스트", os: windows-latest, task: test }
+        # macOS 앱 빌드는 release.yml이 맥에서 한다(PR 검사는 Linux·Windows로 충분하고 맥 러너는 대기가 길다)
     env:
       # 앱 크레이트(app/src-tauri)의 rust-version(1.90)에 맞춰 고정. 올릴 때는 여기와 release.yml을 같이 바꾼다.
       RUST_TOOLCHAIN: "1.90.0"
       CARGO_TERM_COLOR: always
+      # CI 빌드는 디버그 정보가 필요 없다: 링크가 빨라지고 캐시가 작아진다(test 프로필은 dev를 따름)
+      CARGO_PROFILE_DEV_DEBUG: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,12 +78,20 @@ jobs:
 
       - name: Rust 툴체인 고정 (rustup, 러너에 기본 설치됨)
         shell: bash
+        env:
+          TASK: ${{ matrix.task }}
         run: |
-          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt --component clippy
+          extra=()
+          if [ "$TASK" = lint ]; then extra=(--component rustfmt --component clippy); fi
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal "${extra[@]}"
           rustup default "$RUST_TOOLCHAIN"
           rustc -V
 
+      # PR 캐시는 그 PR에서만 다시 읽을 수 있어 대부분 버려진다 → 저장은 main에서만(PR은 main 캐시를 읽기만)
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.task }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # --- Linux: 앱(Tauri) 포함 워크스페이스 전체 ---
       - name: Tauri 시스템 의존성 (Linux)
@@ -87,32 +102,34 @@ jobs:
             libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.task == 'test'
         with:
           python-version: "3.12"
 
-      - name: wr-hook sidecar 만들기 (tauri-build가 externalBin 파일을 요구함)
-        if: runner.os == 'Linux'
+      # 린트는 필요 없다(clippy는 링크하지 않고, 파일이 없으면 build.rs가 자리표시를 만든다).
+      # 테스트는 진짜 wr-hook이 필요하다: tauri-build가 sidecar를 target/debug/wr-hook로 복사하고 mcp 테스트가 그걸 실행한다
+      - name: wr-hook sidecar 만들기 (테스트가 실제 wr-hook을 실행함)
+        if: runner.os == 'Linux' && matrix.task == 'test'
         run: sh scripts/build_sidecar.sh
 
       - name: cargo fmt --check
-        if: runner.os == 'Linux'
+        if: matrix.task == 'lint'
         run: cargo fmt --all -- --check
 
       - name: cargo clippy (경고 = 실패)
-        if: runner.os == 'Linux'
+        if: matrix.task == 'lint'
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: cargo clippy 앱 기능 끈 빌드 (updater·terminal-jump 없이, docs/RELEASE.md '빌드 플레이버')
-        if: runner.os == 'Linux'
+        if: matrix.task == 'lint'
         run: cargo clippy -p waitscape --all-targets --no-default-features -- -D warnings
 
       - name: cargo test --workspace
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.task == 'test'
         run: cargo test --workspace
 
       - name: Python 기준 결과와 동등성 (23/23, MCP 보고 포함) + 트랜스크립트 전용 (24/24)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.task == 'test'
         run: sh scripts/rust_parity.sh
 
       # --- Windows: 앱을 뺀 코어 크레이트만 (앱은 릴리스 워크플로가 빌드) ---
@@ -122,5 +139,5 @@ jobs:
         run: tzutil /s "Korea Standard Time"
 
       - name: cargo test (wr-core·wr-hook·wr-server)
-        if: runner.os != 'Linux'
+        if: runner.os == 'Windows'
         run: cargo test -p wr-core -p wr-hook -p wr-server

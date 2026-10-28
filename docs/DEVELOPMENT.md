@@ -244,7 +244,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     test_release_scripts.py  위 두 스크립트 회귀 테스트 (가짜 저장소, CI)
   .github/
     workflows/ci.yml    PR·main push: Python·스키마·시크릿·커밋 작성자 검사
-    workflows/rust.yml  Rust 관련 파일이 바뀐 PR·main push에서만: Linux 전체 fmt·clippy·test·동등성, Windows는 코어 크레이트 테스트
+    workflows/rust.yml  Rust 관련 파일이 바뀐 PR·main push에서만: Linux 린트(fmt·clippy)와 테스트(test·동등성)를 두 잡으로 동시에, Windows는 코어 크레이트 테스트. 캐시 저장은 main에서만
     workflows/release-prep.yml  수동 실행(버전 입력) → 버전·CHANGELOG PR / 그 PR 병합 → 태그 vX.Y.Z + release.yml 실행 (Linux 1개)
     workflows/publish-public.yml  릴리스 게시 → 배포 전용 공개 저장소(jhkwim/waitscape-releases)에 같은 태그로 복사 (mirror 환경의 RELEASES_REPO_TOKEN 있을 때)
     workflows/release.yml  태그 v*·수동 실행(태그·main만, release 환경): macOS universal .dmg·.app, Windows NSIS·MSI(미서명) + SHA256SUMS (+ 업데이터 서명·latest.json, 시크릿 있을 때) → 초안 릴리스
@@ -322,7 +322,7 @@ python3 scripts/validate_modes.py               # mode.json 스키마 검증 (pi
 python3 scripts/selftest_check_secrets.py       # 시크릿·경로 탐지 패턴 회귀 테스트
 BLOCKED_EMAIL_DOMAINS=example.com python3 scripts/check_commit_emails.py origin/main..HEAD   # 커밋 이메일 검사 (예시 도메인은 가짜 값)
 ```
-CI(`.github/workflows/ci.yml`)가 PR과 main push마다 위 검사를 돌린다. Rust 검사(`.github/workflows/rust.yml`)는 러너 시간을 아끼려고 Rust와 기준 결과에 영향을 주는 파일이 바뀐 PR·main push에서만 돈다(main은 다음 PR이 쓸 캐시를 만들기 위해, 수동 실행 가능). Rust 1.90.0 고정: Linux에서 `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `sh scripts/rust_parity.sh`(앱 빌드용 시스템 라이브러리를 apt로 설치), Windows에서 `cargo test -p wr-core -p wr-hook -p wr-server`. macOS는 PR 검사에서 뺐다(Linux·Windows 검사로 충분, 맥 앱 빌드는 `release.yml`).
+CI(`.github/workflows/ci.yml`)가 PR과 main push마다 위 검사를 돌린다. Rust 검사(`.github/workflows/rust.yml`)는 러너 시간을 아끼려고 Rust와 기준 결과에 영향을 주는 파일이 바뀐 PR·main push에서만 돈다(main은 다음 PR이 쓸 캐시를 만들기 위해, 수동 실행 가능). Rust 1.90.0 고정: Linux 린트 잡에서 `cargo fmt --all -- --check`·`cargo clippy --workspace --all-targets -- -D warnings`, Linux 테스트 잡에서 `cargo test --workspace`·`sh scripts/rust_parity.sh`(두 잡이 동시에 돌고, 앱 빌드용 시스템 라이브러리는 apt로 설치), Windows에서 `cargo test -p wr-core -p wr-hook -p wr-server`. macOS는 PR 검사에서 뺐다(Linux·Windows 검사로 충분, 맥 앱 빌드는 `release.yml`). PR 캐시는 그 PR에서만 다시 읽을 수 있어 저장하지 않고(main 캐시를 읽기만), CI 빌드는 디버그 정보를 끈다(`CARGO_PROFILE_DEV_DEBUG=0`). 린트 잡은 wr-hook sidecar를 빌드하지 않는다(테스트 잡만). `release.yml`도 캐시는 main 수동 실행에서만 저장해서, 태그 릴리스 빌드는 보통 캐시 없이 돈다.
 `BLOCKED_EMAIL_DOMAINS`(쉼표 구분)는 커밋 이메일 검사의 차단 도메인 목록이다. CI에서는 저장소 시크릿으로 넣고(Settings → Secrets and variables → Actions), 비어 있으면 검사를 건너뛴다. 값은 코드·문서에 적지 않는다.
 기준 결과는 가짜 시크릿 원문이 하나라도 남으면 실패한다. 서버(포트)는 띄우지 않는다.
 
