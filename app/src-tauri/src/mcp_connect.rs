@@ -371,7 +371,8 @@ impl Record {
     }
 }
 
-fn sha(b: &[u8]) -> String {
+/// SHA-256 소문자 16진 64자. 모드 설치 기록(`mode_install`)도 같은 형식을 쓴다
+pub(crate) fn sha(b: &[u8]) -> String {
     Sha256::digest(b).iter().map(|x| format!("{x:02x}")).collect()
 }
 

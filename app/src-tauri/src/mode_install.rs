@@ -7,7 +7,6 @@
 //! - `remove`: 사용자 모드 폴더 안의 `<id>` 폴더만(링크 아님) 지운다.
 
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
@@ -329,7 +328,7 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
         .iter()
         .map(|f| {
             let h = std::fs::read(st.dir.join(f))
-                .map(|b| Sha256::digest(&b).iter().map(|x| format!("{x:02x}")).collect::<String>())
+                .map(|b| crate::mcp_connect::sha(&b))
                 .unwrap_or_default();
             (f.clone(), json!(h))
         })
