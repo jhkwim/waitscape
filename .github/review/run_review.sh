@@ -19,6 +19,8 @@
 #   WR_TIMEOUT    agy 시간 제한 (기본 15m)
 #   WR_OUT        결과 폴더 (기본 ${TMPDIR:-/tmp}/waitscape-review)
 #   WR_EMBED      프롬프트에 diff를 직접 넣는 최대 바이트 (기본 120000, 넘으면 앞부분만 + 나머지는 .review/pr.diff 읽기)
+#   WR_LENSES     렌즈(관점) 다회 리뷰: "state screen interact data" 처럼 주면 모델마다 렌즈 하나씩 붙인 프롬프트로 **동시에** 여러 번 돌려
+#                 합집합으로 모은다(found_by = 모델/렌즈). 렌즈 지시는 lenses/<이름>.md. 비우면 지금처럼 모델당 1회. 근거: CALIBRATION.md §렌즈
 #   WR_KEEP=1     임시 체크아웃을 지우지 않음
 #   WR_DRY=1      프롬프트만 조립해 저장하고 agy는 실행하지 않음
 #
@@ -49,6 +51,7 @@ TIMEOUT="${WR_TIMEOUT:-15m}"
 OUT="${WR_OUT:-${TMPDIR:-/tmp}/waitscape-review}"
 GHJ="${WR_GHJ:-}"
 EMBED="${WR_EMBED:-120000}"
+LENSES="${WR_LENSES:-}"
 ALL_LISTS="security rust frontend ci mode-submission"
 
 die() { echo "run_review: $*" >&2; exit "${2:-2}"; }
@@ -58,6 +61,7 @@ gh_() { if [ -n "$GHJ" ]; then "$GHJ" gh "$@"; else gh "$@"; fi; }
 PR="$1"; shift
 case "$PR" in ''|*[!0-9]*) die "PR 번호는 숫자여야 합니다: $PR" ;; esac
 [ -x "$AGY" ] || die "Antigravity CLI 없음: $AGY"
+for l in $LENSES; do [ -f "$HERE/lenses/$l.md" ] || die "렌즈 없음: lenses/$l.md"; done
 
 AUTO=0; LISTS=""
 for a in "$@"; do
@@ -180,7 +184,13 @@ PY
 # 엄격 재시도용: 도구를 전혀 쓰지 않고 위 프롬프트(diff 포함)만으로 답하게 한다
 { cat "$BASE.prompt.md"; printf '\n\n---\n\n**재시도 규칙**: 앞선 실행이 도구 권한 문제로 실패했다. 이번에는 **어떤 도구도 호출하지 말고** 위에 포함된 diff와 요약만으로 답하라. 파일 전체를 봐야 확정되는 사항은 severity `question`으로 남기고 근거를 적는다.\n'; } > "$BASE.strict.md"
 
-if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md" ; exit 0; fi
+# 렌즈 프롬프트: 공통 프롬프트 + "이번 패스의 관점"(렌즈마다 하나)
+for l in $LENSES; do
+  { cat "$BASE.prompt.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; } > "$BASE.$l.prompt.md"
+  { cat "$BASE.strict.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; } > "$BASE.$l.strict.md"
+done
+
+if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md${LENSES:+ (+ 렌즈 $LENSES)}" ; exit 0; fi
 
 # 6) agy 실행 (plan 모드 = 읽기 전용, 구조화 출력). 모델마다 실패하면 1회 재시도
 run_agy() {  # $1=모델 $2=결과 접두 $3=프롬프트 파일
@@ -198,17 +208,31 @@ sev = {k: sum(1 for x in f if x.get("severity") == k) for k in ("critical", "war
 print("지적 %d건 — 🔴%d 🟡%d 🔵%d ❓%d · %.0f초" % (len(f), sev["critical"], sev["warning"], sev["info"], sev["question"], raw.get("duration_seconds", 0)))
 PY
 }
+# 한 번 실행(실패하면 엄격 프롬프트로 1회 재시도). 결과는 $PART.ok(레이블:초) 또는 $PART.fail
+run_one() {  # $1=모델 $2=결과 접두 $3=프롬프트 $4=엄격 프롬프트 $5=레이블
+  local start; start=$(date +%s)
+  echo "[$5] 실행" >&2
+  if ! run_agy "$1" "$2" "$3"; then
+    echo "[$5] 1차 실패(사유: $(tail -c 300 "$2.err" 2>/dev/null | tr '\n' ' ')) — 도구 없는 엄격 프롬프트로 재시도" >&2
+    run_agy "$1" "$2" "$4" || { echo "[$5] 실패: $2.raw.json / $2.err" >&2; echo "$5" > "$2.fail"; return; }
+  fi
+  echo "[$5] $(( $(date +%s) - start ))초" >&2
+  echo "$5:$(( $(date +%s) - start ))" > "$2.ok"
+}
 OKS=""; FAILS=""; N=0
 for model in $MODELS; do
-  N=$((N+1)); PART="$BASE.m$N"
-  start=$(date +%s)
-  echo "[$model] 실행" >&2
-  if ! run_agy "$model" "$PART"; then
-    echo "[$model] 1차 실패(사유: $(tail -c 300 "$PART.err" 2>/dev/null | tr '\n' ' ')) — 도구 없는 엄격 프롬프트로 재시도" >&2
-    run_agy "$model" "$PART" "$BASE.strict.md" || { FAILS="$FAILS $model"; echo "[$model] 실패: $PART.raw.json / $PART.err" >&2; continue; }
+  if [ -z "$LENSES" ]; then
+    N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model"
+  else
+    for l in $LENSES; do   # 렌즈는 동시에 (같은 모델·같은 체크아웃, 읽기 전용)
+      N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.$l.prompt.md" "$BASE.$l.strict.md" "$model/$l" &
+    done
+    wait
   fi
-  echo "[$model] $(( $(date +%s) - start ))초" >&2
-  OKS="$OKS $N:$model:$(( $(date +%s) - start ))"
+done
+for i in $(seq 1 "$N"); do
+  if [ -f "$BASE.m$i.ok" ]; then lb=$(cut -d: -f1 < "$BASE.m$i.ok"); OKS="$OKS $i:${lb}:$(cut -d: -f2 < "$BASE.m$i.ok")"
+  elif [ -f "$BASE.m$i.fail" ]; then FAILS="$FAILS $(cat "$BASE.m$i.fail")"; fi
 done
 [ -n "$OKS" ] || die "모든 모델 실패 또는 구조화 출력 없음: $BASE.m*.raw.json" 4
 
@@ -221,7 +245,7 @@ def toks(f): return set(re.findall(r"\w+", (f["title"] + " " + f["category"]).lo
 merged, used, secs = [], [], {}
 summaries, checked = [], []
 for ok in oks:
-    n, model, sec = ok.split(":"); used.append(model); secs[model] = int(sec)
+    n, model, sec = ok.rsplit(":", 2) if ok.count(":") >= 2 else (*ok.split(":"), "0"); used.append(model); secs[model] = int(sec)
     d = json.load(open("%s.m%s.json" % (base, n), encoding="utf-8"))
     summaries.append("[%s] %s" % (model, d.get("summary", ""))); checked += d.get("checked", [])
     for f in d.get("findings", []):
