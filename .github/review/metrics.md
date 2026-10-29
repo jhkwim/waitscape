@@ -34,6 +34,7 @@
 | 2026-10-29 | #39 | ac7b0cb | frontend (Flash) + Claude 전문가 | - | 0/2/8/0 | 100% | 90% | 100% | 10% | 서 있는 고양이 크기는 다른 누를 자리와 겹치지 않게 2배 유지 | - | Flash 0건 → Claude가 Object 프로토타입 키 TypeError·고양이와 👆·현관문 클릭 충돌 등 (Flash medium·Claude) |
 | 2026-10-29 | #40 | 844061f | frontend (Flash·Argon 비교) + Claude 전문가 | 436·188 | 0/1/6/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 · Argon 🔵2(깃발 재솟음 = Claude와 같음, 자리 비운 로봇의 배터리·케이블 = Claude가 놓침) · Claude가 턴마다 리셋되는 시간·도구 기준 등 (Flash medium·Argon medium·Claude) |
 | 2026-10-29 | #43 | 8760842 | frontend — Flash 1회 vs Flash 렌즈(base+5) + Claude 전문가 | 1회 492 · 렌즈 517 | 0/2/5/0 | 100% | 100% | 100% | 0% | 렌즈 오탐 3(mkEl 인자·인라인 높이·하품 1프레임) + 질문 1(neck 메타, 문제 없음), 모두 data 렌즈 | - | Flash 1회 0건 · 렌즈 5건 중 실제 1(퇴근 연출 문어 다리 = Claude와 같음) · Claude 🟡2(+도감 오염)·🔵5 (Flash medium·Claude) |
+| 2026-10-29 | #44 | f8ba129 | ci (Flash) + Claude 전문가 | - | 0/1/3/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 측정 기록과 metrics 불일치·계획 줄 정리·공통 규칙 안 (Flash medium·Claude) |
 | 2026-10-29 | #33 | 2dba0b6 | frontend (Flash) + Claude 전문가 | - | 0/0/2/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 아주 좁을 때 제목 한 글자만 남음·툴팁 (Flash medium·Claude) |
 | 2026-10-29 | #34 | feb0721 | auto (Flash) + Claude 전문가 | 309 | 1/4/9/0 | 100% | 86% | 93% | 7% | Windows explorer는 .html을 기본 브라우저로 엶(오탐) | - | Flash가 문서 누락·방어 코드 → Claude가 Windows cp1252 인코딩(🔴)·WebView2 SDK 고지 누락·괄호 검사 등 (Flash medium·Claude) |
 
