@@ -55,7 +55,7 @@ Your 5-hour usage drives the building's day. From 50% the sun sets and lights co
 <tr>
 <td colspan="2" valign="middle">
 <h3>🙈 Low-profile mode</h3>
-Looks too much like a game at the office? Press <b>⌃Q</b> (Windows <b>Alt+`</b>), even while using another app. The blinds drop and you get "Agent Sessions", a plain work tool with a session table, progress, limit bars and recent activity. The window title and OS notifications turn plain too, with no sounds. Press again and the blinds go up, back to the studio. Set Settings → Transition to "With staff leaving & arriving" and the staff head home before the blinds close; on the way back a cat peeks through the closed blinds, then everyone walks in with coffee (GIF below).
+Looks too much like a game at the office? Press <b>⌃Q</b> (Windows <b>Alt+`</b>), even while using another app. The blinds drop and you get "Agent Sessions", a plain work tool with a session table, progress, limit bars and recent activity. The window title and OS notifications turn plain too, with no sounds. Press again and the blinds go up, back to the studio. Set Settings → General → Low-profile mode → Transition to "With staff leaving & arriving" (Studio) and the staff head home before the blinds close; on the way back a cat peeks through the closed blinds, then everyone walks in with coffee (GIF below).
 <p align="center"><img src="docs/assets/nunchi.gif" width="860" alt="Low-profile mode (leave & arrive animation) — the staff head home, the blinds close into the plain Agent Sessions work tool, then a cat peeks through the closed blinds, the blinds go up and the staff walk back in"></p>
 </td>
 </tr>
@@ -87,7 +87,7 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 
 - **Stays the same:** session data, done alerts, session jumps and funds. It stays on after you restart the app.
 - **Changes:** the screen (a work tool), the window title and OS notification text (e.g. "api-server · Task finished · 13 min"), and no sounds. The mini view becomes a small list too.
-- **Settings → General → 🙈 Low-profile mode:** brightness (System, Light, Dark) and the transition (short blinds by default; pick "With staff leaving & arriving" and the staff take their bags down the elevator, then come back with coffee).
+- **Settings → General → 🙈 Low-profile mode:** brightness (System, Light, Dark) and the transition (short blinds by default; pick "With staff leaving & arriving" and in Studio the staff take their bags down the elevator, then come back with coffee).
 - Press again mid-transition to finish it right away. With reduce motion or meeting mode it switches instantly.
 
 ### 📌 Mini view
@@ -95,7 +95,7 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 | To do this | Use |
 |---|---|
 | Go mini | Studio's **📌 Mini view** button · **⌘2** (Windows **Ctrl+2**) · menu bar (tray) · window right-click |
-| Back to the big window | **⤢** (shows on hover) · Dock icon · menu bar (tray) "Full Window" |
+| Back to the big window | **⤢** (shows on hover) · **⌘2** (Windows **Ctrl+2**) · right-click menu · Dock icon (macOS) · menu bar (tray) "Full Window" |
 | Look around the floors | Wheel or trackpad (one floor at a time) · ▲▼ (on hover) · **↑↓** keys · status dots at the top · the "Next" chip |
 | Back to the auto camera | **Esc**, or leave it alone for 10 seconds |
 
@@ -103,7 +103,7 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 - While you look around, new questions and completions pile up on the "Next" chip, and the auto camera shows them once it takes over again.
 - The **🎥Cut / 🎥Pan** button (on hover) picks how the camera moves between floors (cut = quick jump, pan = glide up and down).
 - Click a floor's name tag chip to jump straight to that session's terminal (app).
-- In 📌 Pocket mode, the pin button that floats it on top is the mini view. The widget expands by itself when input is needed.
+- In 📌 Pocket mode, the pin button that floats it on top is the mini view (app; a PiP window in the browser). The widget expands by itself when input is needed.
 
 ## And more
 
