@@ -117,7 +117,14 @@ fn unzip(src: &Path, dst: &Path) -> Result<(), String> {
     let mut b = Budget { files: 0, bytes: 0 };
     for i in 0..z.len() {
         let mut e = z.by_index(i).map_err(|_| "zip 항목을 읽을 수 없어요".to_string())?;
-        let raw = e.name().map_err(|_| "zip 항목 이름을 읽을 수 없어요".to_string())?.replace('\\', "/");
+        let raw = e
+            .name()
+            .map_err(|_| "zip 항목 이름을 읽을 수 없어요".to_string())?
+            .replace('\\', "/");
+        // `..`는 점으로 시작해 skip_name에 숨김 파일로 걸러지므로, 그 전에 경로 탈출로 거부한다
+        if raw.starts_with('/') || raw.split('/').any(|p| p == "..") {
+            return err(format!("허용되지 않는 경로예요: {raw}"));
+        }
         if skip_name(&raw) {
             continue;
         }
@@ -477,8 +484,8 @@ mod tests {
         let st = prepare(&ok, &t.join("stage"), &[], &modes, "en").unwrap();
         assert_eq!(st.id, "zz");
         for (name, entries) in [
-            ("slip", vec![("../evil.js", &b"1"[..]), ("mode.json", mj)]),
-            ("abs", vec![("/tmp/evil.js", &b"1"[..]), ("mode.json", mj)]),
+            ("slip", vec![("../evil.js", &b"1"[..]), ("mode.json", mj), ("mode.js", b"1")]),
+            ("abs", vec![("/tmp/evil.js", &b"1"[..]), ("mode.json", mj), ("mode.js", b"1")]),
             ("ext", vec![("mode.json", mj), ("mode.js", b"1"), ("run.sh", b"rm")]),
             ("html", vec![("mode.json", mj), ("mode.js", b"1"), ("page.html", b"<x>")]),
             (
@@ -492,8 +499,23 @@ mod tests {
         ] {
             let p = t.join(format!("{name}.zip"));
             zip_of(&p, &entries);
-            assert!(prepare(&p, &t.join("stage"), &[], &modes, "en").is_err(), "{name} 거부돼야 함");
+            let e = prepare(&p, &t.join("stage"), &[], &modes, "en").expect_err(name);
+            // 경로 탈출은 진입 파일이 있어도 경로 규칙으로 거부돼야 한다
+            assert!(!matches!(name, "slip" | "abs") || e.contains("경로"), "{name}: {e}");
             assert!(!t.join("evil.js").exists() && !Path::new("/tmp/evil.js").exists());
+        }
+        {
+            // zip 안의 심볼릭 링크 항목
+            let p = t.join("zln.zip");
+            let mut z = zip::ZipWriter::new(std::fs::File::create(&p).unwrap());
+            let o = zip::write::SimpleFileOptions::default();
+            for (n, b) in [("mode.json", &mj[..]), ("mode.js", b"1")] {
+                z.start_file(n, o).unwrap();
+                z.write_all(b).unwrap();
+            }
+            z.add_symlink("assets/h.txt", "/etc/hosts", o).unwrap();
+            z.finish().unwrap();
+            assert!(prepare(&p, &t.join("stage"), &[], &modes, "en").unwrap_err().contains("링크"));
         }
         #[cfg(unix)]
         {
