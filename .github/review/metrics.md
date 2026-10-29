@@ -41,5 +41,6 @@
 | 2026-10-29 | #46 | 6d13b73 | auto (Flash 기본+렌즈 5) + Claude 전문가 | 401 | 0/2/5/0 | 100% | 100% | 100% | 0% | - | - | Flash 6패스 모두 0건(문서·스크립트만 바뀐 PR) → Claude가 단계표·WR_MODEL 설명이 렌즈 기본과 어긋남(🟡2), DRY 출력·CALIBRATION 시간 서술(🔵) (Flash medium 렌즈·Claude) |
 | 2026-10-29 | #48 | ab0676a | auto (security → Argon 1회) + Claude 전문가 | 25 | 0/0/3/0 | 100% | 100% | 100% | 0% | - | - | Argon 0건 → Claude가 약한 테스트(slip·abs가 진입 파일 없음으로 통과)를 지적, 강화하다 `../` 항목이 숨김 파일로 조용히 버려지던 것 발견 (Argon medium·Claude) |
 | 2026-10-29 | #49 | 3b9c3a8 → b940080 | auto (Flash 1회 → 수정 후 기본+렌즈 5) + Claude 전문가 | 381 / 470 | 0/1/0/0 → 0/0/0/0 | 100% | 100% | 100% | 0% | - | - | Flash 1회가 기념일 한마디 소실(🟡)을 Claude와 같이 찾음, 수정 후 렌즈 6패스 0건. Claude가 말풍선 3개 겹침(🟡)·커피 조건·m 정규화(🔵) 추가 (Flash medium·Claude) |
+| 2026-10-29 | #52 | 첫 커밋 | auto (Flash 기본+렌즈 5) + Claude 전문가 | 189 | 0/2/4/0 | 100% | 100% | 100% | 0% | - | - | Flash 6패스 0건(문서 PR) → Claude가 README 문구와 실제 규칙 불일치(깃발 100·500·1000, 금요일 17시~)를 MODES.md·코드와 대조해 찾음 (Flash medium 렌즈·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
