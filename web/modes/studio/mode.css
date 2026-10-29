@@ -482,3 +482,17 @@ body[data-mode="studio"] .stu .hall i.u.on { border-bottom-color: #ffb020; filte
   body[data-mode="studio"] .stu .nx-cloud { background: rgba(255, 255, 255, .35); box-shadow: 6px -4px 0 rgba(255, 255, 255, .35), 12px 0 0 rgba(255, 255, 255, .35); }
   body[data-mode="studio"] .stu .hall { background: #5a5070; }
 }
+
+/* ---------- ☕ 깨알 디테일 (TINY: 빈 커피잔 · 연속 출근 달력 · 야간 경비 고양이) — mode.js 「TINY」 블록 ---------- */
+body[data-mode="studio"] .stu .tn-cup { z-index: 10; image-rendering: pixelated; }
+body[data-mode="studio"] .stu .tn-cal { z-index: 3; width: 24px; height: 26px; background: #fffaf0; border: 2px solid #4a3560; box-shadow: 0 2px 0 rgba(74, 53, 96, .3); text-align: center; cursor: default; }
+body[data-mode="studio"] .stu .tn-cal i { display: block; height: 6px; margin: -1px -1px 0; background: #e85050; border-bottom: 2px solid #4a3560; position: relative; }
+body[data-mode="studio"] .stu .tn-cal i:before, body[data-mode="studio"] .stu .tn-cal i:after { content: ""; position: absolute; top: -4px; left: 3px; width: 2px; height: 5px; background: #4a3560; }
+body[data-mode="studio"] .stu .tn-cal i:after { left: auto; right: 3px; }
+body[data-mode="studio"] .stu .tn-cal b { display: block; font-size: 10px; line-height: 15px; font-weight: 900; color: #c8402a; letter-spacing: -.5px; white-space: nowrap; margin: 0 -2px; }
+body[data-mode="studio"] .stu .tn-cat { z-index: 8; image-rendering: pixelated; cursor: pointer; transform-origin: 50% 50%; }
+body[data-mode="studio"] .stu .tn-beam { z-index: 8; height: 30px; pointer-events: none; background: linear-gradient(90deg, rgba(255, 236, 140, .85), rgba(255, 236, 140, 0)); clip-path: polygon(0 42%, 100% 0, 100% 100%, 0 58%); }
+body[data-mode="studio"] .stu .tn-bub { z-index: 30; pointer-events: none; }
+@media (prefers-color-scheme: dark) {
+  body[data-mode="studio"] .stu .tn-beam { background: linear-gradient(90deg, rgba(255, 240, 160, .9), rgba(255, 240, 160, 0)); }
+}
