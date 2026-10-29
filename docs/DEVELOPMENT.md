@@ -254,7 +254,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     platform-advisories.json  닫은 Dependabot 경고 기록(패키지·고친 버전·영향 플랫폼·경고 번호·이유)
     dependabot.yml      의존성 업데이트 PR: GitHub Actions·Cargo 주 1회, 종류별 최대 5개
     PULL_REQUEST_TEMPLATE.md
-    review/     (메인테이너 전용·선택) AI 교차 리뷰(Gemini) 프롬프트·프로젝트 요약·영역별 체크리스트·관점별 렌즈(lenses/: 상태·화면·상호작용·데이터, WR_LENSES로 동시 다회)·실행기(run_review.sh — PR 크기·민감도로 Flash/Argon 자동 선택, 규칙은 TRIAGE §5)·판정 규칙(TRIAGE)·보정 기록(CALIBRATION)·지표(metrics)
+    review/     (메인테이너 전용·선택) AI 교차 리뷰(Gemini) 프롬프트·프로젝트 요약·영역별 체크리스트·관점별 렌즈(lenses/: 상태·화면·상호작용·데이터·플랫폼, WR_LENSES로 Flash 기본 패스와 함께 동시 다회)·실행기(run_review.sh — PR 크기·민감도로 Flash/Argon 자동 선택, 규칙은 TRIAGE §5)·판정 규칙(TRIAGE)·보정 기록(CALIBRATION)·지표(metrics)
   docs/INSTALL.md     미서명 설치 안내(Gatekeeper·SmartScreen)·체크섬 확인·훅은 선택·업데이트·제거 방법 (한/영)
   docs/RELEASE.md     릴리스 흐름(버튼 → PR → 태그 → 빌드 → 앱 알림), 업데이터 서명 키 만들기·배포 환경(release) 시크릿 등록, 배포 위치(코드 저장소 Releases)와 옛 배포 저장소 정리, 빌드 플레이버·스토어 계획
   docs/DEVELOPMENT.md 이 문서: 실행·빌드·구조·API·테스트·훅 수동 등록·MCP 보고

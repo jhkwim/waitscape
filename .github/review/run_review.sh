@@ -237,11 +237,11 @@ for model in $MODELS; do
     N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo"
     continue
   fi
-  # 기본 패스(체크리스트·보안 담당) + 렌즈마다 1회, 렌즈마다 체크아웃 복제(APFS면 클론), 1초씩 엇갈려 시작
+  # 기본 패스(체크리스트·보안 담당) + 렌즈마다 1회. 렌즈별 체크아웃은 **실행 전에 모두 복제**(APFS면 클론 — 돌고 있는 agy와 겹치지 않게), 1초씩 엇갈려 시작
+  for l in $LENSES; do cp -cR "$WORK/repo" "$WORK/repo-$l" 2>/dev/null || cp -R "$WORK/repo" "$WORK/repo-$l"; done
   N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model/base" "$WORK/repo" & PIDS="$PIDS $!"
   for l in $LENSES; do
-    sleep 1; cp -cR "$WORK/repo" "$WORK/repo-$l" 2>/dev/null || cp -R "$WORK/repo" "$WORK/repo-$l"
-    N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.$l.prompt.md" "$BASE.$l.strict.md" "$model/$l" "$WORK/repo-$l" & PIDS="$PIDS $!"
+    sleep 1; N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.$l.prompt.md" "$BASE.$l.strict.md" "$model/$l" "$WORK/repo-$l" & PIDS="$PIDS $!"
   done
   wait $PIDS || true; PIDS=""
 done
