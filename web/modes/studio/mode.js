@@ -3939,7 +3939,8 @@ function decorMini(h) {
      그 층 세션이 보이면 오늘을 기록 · 오늘로 끝나는 연속 2일 이상이면 왼쪽 창과 🎨 벽 1 사이 벽에 "🔥3" 달력.
      저장 = { v: 1, d: { 프로젝트: ["YYYY-MM-DD", …] } } · 큰 화면만 씀 · 모르는 새 버전(v > 1)이면 읽기만
    - 🔦 야간 경비 고양이: 22:00~05:59에 1층(사장실) 바닥을 3~4분마다 한 번(약 12초) 손전등을 비추며 지나감. 사장님 책상 뒤 · 바닥 위(z 8), 고양이만 누를 수 있음.
-     누르면 "순찰 중이에요 🔦". 회의 모드·움직임 줄이기면 걷지 않고 현관문(DOOR_X) 옆에 서 있음
+     걷는 동안은 누를 수 없음(👆 사장님 자리를 가로채지 않게). 회의 모드·움직임 줄이기면 걷지 않고 화분과 현관문 사이에 작게 서서 문 쪽을 비춤 — 이때만 누르면 "순찰 중이에요 🔦".
+     질문 말풍선이 1층을 덮는 동안 서 있는 고양이는 숨김 · 🙈 눈치 모드 동안은 잔·달력·고양이 모두 숨김
    - 개발용 쿼리 ?tiny=night(밤처럼) · ?tiny=streak(3일 연속인 척) · ?tiny=cups(50분 일한 척), 쉼표로 여럿. 저장에는 반영하지 않음 */
 const TINY = (() => {
   const K = "#2e2040";
@@ -3952,48 +3953,52 @@ const TINY = (() => {
   const MUG = ["#fff8e8", "#ffc8d8", "#cfe6ff", "#fff1a8"];
   const CUP_X = [421, 487, 437, 453];   // 잔 왼쪽 x(책상 cx 420 기준): 직원 오른쪽 · 모니터 아래(받침 472~484 비킴) · 머그(508~) 앞까지
   const CUP_SEC = 1200, CUP_MAX = 4, KEEP = 14, VER = 1, P_MAX = 60;
-  const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16;
-  const dayKey = (t = Date.now() / 1000) => ymd(new Date((t - 4 * 3600) * 1000));   // 하루 = 새벽 4시 경계
+  const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 370;   // 서 있는 자리(가운데 x): 화분 누를 자리(~350)와 커피머신(392~)·현관문(438~) 사이, 창 누를 자리(~B−30)보다 아래
+  const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k) && Array.isArray(o[k]);   // 프로젝트 이름이 constructor·__proto__여도 안전하게
+  const dayKey = t => ymd(new Date((t - 4 * 3600) * 1000));   // 하루 = 새벽 4시 경계
   const dayBefore = (k, n) => { const [y, m, d] = k.split("-").map(Number); return ymd(new Date(y, m - 1, d - n)); };
   function load(raw) {
     let j = null; try { j = JSON.parse(raw || "null"); } catch {}
-    if (!j || typeof j !== "object" || typeof j.v !== "number") return { v: VER, d: {} };
-    const d = j.d && typeof j.d === "object" && !Array.isArray(j.d) ? j.d : {};
-    Object.keys(d).forEach(p => { if (!Array.isArray(d[p])) delete d[p]; else d[p] = d[p].filter(x => typeof x === "string"); });
+    const d = Object.create(null);   // 프로토타입 없는 맵(프로젝트 이름 = 키)
+    if (!j || typeof j !== "object" || typeof j.v !== "number") return { v: VER, d };
+    if (j.d && typeof j.d === "object" && !Array.isArray(j.d)) Object.keys(j.d).forEach(p => { if (own(j.d, p)) d[p] = j.d[p].filter(x => typeof x === "string"); });
     return { v: VER, d, ro: j.v > VER };
   }
   const dump = s => JSON.stringify({ v: VER, d: s.d });
   /* 오늘 기록 · 14일 지난 날 정리 → 바뀌었으면 true */
   function mark(s, live, today) {
     const old = dayBefore(today, KEEP - 1); let ch = false;
-    live.forEach(p => { const a = s.d[p] || (s.d[p] = []); if (!a.includes(today)) { a.push(today); ch = true; } });
+    live.forEach(p => { const a = own(s.d, p) ? s.d[p] : (s.d[p] = []); if (!a.includes(today)) { a.push(today); ch = true; } });
     Object.keys(s.d).forEach(p => { const a = s.d[p].filter(x => x >= old && x <= today).sort(); if (a.length !== s.d[p].length) ch = true; if (a.length) s.d[p] = a; else { delete s.d[p]; ch = true; } });
     const ps = Object.keys(s.d); if (ps.length > P_MAX) { ps.sort((a, b) => (s.d[a].slice(-1)[0] < s.d[b].slice(-1)[0] ? -1 : 1)).slice(0, ps.length - P_MAX).forEach(p => delete s.d[p]); ch = true; }
     return ch;
   }
-  const streak = (a, today) => { let n = 0; while (a && a.includes(dayBefore(today, n))) n++; return n; };
+  const streak = (a, today) => { let n = 0; while (Array.isArray(a) && a.includes(dayBefore(today, n))) n++; return n; };
   const cups = (f, now, fake) => !f || f.layout === "meet" || !["work", "agents", "ask", "stall"].includes(f.kind) ? 0 : Math.min(CUP_MAX, Math.floor(Math.max(now - (f.s.started || now), fake ? 3000 : 0) / CUP_SEC));
   const night = (d = new Date()) => d.getHours() >= 22 || d.getHours() < 6;
-  return { ART, MUG, CUP_X, PASS, PERIOD, X0, X1, dayKey, load, dump, mark, streak, cups, night };
+  return { ART, MUG, CUP_X, PASS, PERIOD, X0, X1, STAND_X, own, dayKey, load, dump, mark, streak, cups, night };
 })();
 
 /* ---------- ☕ 큰 화면: 층마다 빈 잔 · 연속 출근 달력 · 1층 야간 경비 고양이. h = 스튜디오 본체 연결 ---------- */
 function tinyBig(h) {
   const { ctx, doc, mkEl, sty, html, X } = h, T_ = TINY;
   const dev = (() => { try { return new Set((new URLSearchParams(location.search).get("tiny") || "").split(",")); } catch { return new Set(); } })();   // 개발용(?tiny=night,streak,cups)
-  let s = T_.load(ctx.store.get("tiny", "")), G = null, say = -9;
+  let s = T_.load(ctx.store.get("tiny", "")), G = null, say = -9, day = "", st = new Map();   // st: 프로젝트 → 연속 일수(read 때만 계산)
   const save = () => { if (!s.ro) try { ctx.store.set("tiny", T_.dump(s)); } catch {} };
   const keyOf = f => f && f.s && f.s.project || "";
   /* 상태 → 오늘 일한 프로젝트 기록(큰 화면만 씀) */
-  function read(floors) { const live = new Set(floors.map(keyOf).filter(Boolean)); if (T_.mark(s, live, T_.dayKey())) save(); }
-  const days = p => dev.has("streak") ? Math.max(3, T_.streak(s.d[p], T_.dayKey())) : T_.streak(s.d[p], T_.dayKey());
+  function read(floors) {
+    const live = new Set((floors || []).map(keyOf).filter(Boolean)); day = T_.dayKey(ctx.now());
+    if (T_.mark(s, live, day)) save();
+    st = new Map([...live].map(p => [p, (n => dev.has("streak") ? Math.max(3, n) : n)(T_.streak(T_.own(s.d, p) ? s.d[p] : null, day))]));
+  }
   function build(o) {
     G = { fl: [], cat: null };
     o.FL.forEach((fl, i) => {
       if (i === o.n) {   // 1층: 경비 고양이 · 손전등 빛 · 말풍선
         const c = G.cat = { F: fl.F, B: fl.B };
         c.beam = mkEl("div", "b tn-beam", fl.F, { display: "none" });
-        c.el = mkEl("img", "b tn-cat", fl.F, { display: "none" }); c.el.alt = ""; c.el.draggable = false; c.el.title = X("야간 경비 고양이", "Night guard cat");
+        c.el = mkEl("img", "b tn-cat", fl.F, { display: "none", pointerEvents: "none" }); c.el.alt = ""; c.el.draggable = false; c.el.title = X("야간 경비 고양이", "Night guard cat");
         c.bub = mkEl("div", "bub tn-bub", fl.F, { display: "none" });
         return;
       }
@@ -4007,26 +4012,27 @@ function tinyBig(h) {
   ctx.listen(doc, "click", e => { if (!G || !G.cat || e.target !== G.cat.el) return; say = h.clockT(); h.kick(); });   // 🔦 고양이를 누르면 한마디
   function frame(T, tc, anim) {
     if (!G) return;
-    const now = Date.now() / 1000;
+    const now = ctx.now(), hid = h.hidden();   // 🙈 눈치 모드: 모두 숨김
+    if (T_.dayKey(now) !== day) read(h.floors());   // 새벽 4시가 넘으면 바로 오늘 기록(달력이 다음 상태까지 비지 않게)
     G.fl.forEach(r => {
-      const n = T_.cups(r.f, now, dev.has("cups")), cn = n + "";
+      const n = hid ? 0 : T_.cups(r.f, now, dev.has("cups")), cn = n + "";
       if (r.cn !== cn) { r.cn = cn; r.cups.forEach((e, j) => sty(e, "display", j < n ? "block" : "none")); r.cups.forEach(e => { e.title = n ? X(`빈 커피잔 ${n}개 · 일한 지 ${n * 20}분+`, `${n} empty cup${n > 1 ? "s" : ""} · ${n * 20}+ min of work`) : ""; }); }
-      const d = days(keyOf(r.f)), dk = d >= 2 ? d + ctx.lang : "";
+      const d = hid ? 0 : st.get(keyOf(r.f)) || 0, dk = d >= 2 ? d + ctx.lang : "";
       if (r.dk !== dk) { r.dk = dk; sty(r.cal, "display", d >= 2 ? "block" : "none"); if (d >= 2) { html(r.cal, `<i></i><b>🔥${d}</b>`); r.cal.title = X(`연속 출근 ${d}일`, `${d}-day streak`); } }
     });
     const c = G.cat; if (!c) return;
-    const on = dev.has("night") || T_.night();
+    const on = (dev.has("night") || T_.night(new Date(now * 1000))) && !hid;
     if (!on) { [c.el, c.beam, c.bub].forEach(e => sty(e, "display", "none")); return; }
     const per = dev.has("night") ? 16 : T_.PERIOD, cyc = Math.floor(now / per), u = (now % per) / T_.PASS, walk = anim && u < 1, ltr = cyc % 2 === 1;
     let x, left = true, art = T_.ART.catA;
-    if (anim && !walk) { [c.el, c.beam, c.bub].forEach(e => sty(e, "display", "none")); return; }   // 순찰과 순찰 사이엔 어딘가 다른 층에
+    if ((anim && !walk) || (!walk && h.askOn())) { [c.el, c.beam, c.bub].forEach(e => sty(e, "display", "none")); return; }   // 순찰과 순찰 사이엔 어딘가 다른 층에 · 질문 말풍선이 덮으면 숨음
     if (walk) { x = ltr ? lerp(T_.X1, T_.X0, u) : lerp(T_.X0, T_.X1, u); left = !ltr; art = Math.floor(u * T_.PASS * 4) % 2 ? T_.ART.catB : T_.ART.catA; }
-    else { x = DOOR_X - 22; left = true; }   // 정적: 현관문 옆에 서서 지킴
-    const p = WB.pix(art, 3), top = c.B - p.h + 1, xl = Math.round(x - p.w / 2);
+    else { x = T_.STAND_X; left = false; }   // 정적: 작게 서서 현관문 쪽을 비춤
+    const sc = walk ? 3 : 2, p = WB.pix(art, sc), top = c.B - p.h + 1, xl = Math.round(x - p.w / 2);
     if (c.el._u !== p.url) { c.el._u = p.url; c.el.src = p.url; }
-    sty(c.el, "display", "block"); sty(c.el, "left", xl + "px"); sty(c.el, "top", top + "px"); sty(c.el, "width", p.w + "px"); sty(c.el, "height", p.h + "px"); sty(c.el, "transform", left ? "scaleX(-1)" : "");
-    const bw = 84, by = c.B - 32;   // 손전등 빛: 앞발 손전등에서 바닥 쪽으로 퍼지는 원뿔
-    sty(c.beam, "display", "block"); sty(c.beam, "top", by + "px"); sty(c.beam, "width", bw + "px"); sty(c.beam, "left", (left ? xl + 2 - bw : xl + p.w - 2) + "px"); sty(c.beam, "transform", left ? "scaleX(-1)" : "");
+    sty(c.el, "display", "block"); sty(c.el, "left", xl + "px"); sty(c.el, "top", top + "px"); sty(c.el, "width", p.w + "px"); sty(c.el, "height", p.h + "px"); sty(c.el, "transform", left ? "scaleX(-1)" : ""); sty(c.el, "pointerEvents", walk ? "none" : "auto"); sty(c.el, "cursor", walk ? "" : "pointer");
+    const bw = walk ? 84 : 40, bh = sc * 10, by = top + sc * 9.5 - bh / 2;   // 손전등 빛: 앞발 손전등에서 바닥 쪽으로 퍼지는 원뿔
+    sty(c.beam, "display", "block"); sty(c.beam, "top", Math.round(by) + "px"); sty(c.beam, "height", bh + "px"); sty(c.beam, "width", bw + "px"); sty(c.beam, "left", (left ? xl + 2 - bw : xl + p.w - 2) + "px"); sty(c.beam, "transform", left ? "scaleX(-1)" : "");
     const b = tc - say < 2.6;
     sty(c.bub, "display", b ? "block" : "none");
     if (b) { html(c.bub, X("순찰 중이에요 🔦", "On patrol 🔦")); sty(c.bub, "left", Math.round(xl + p.w / 2) + "px"); sty(c.bub, "top", (top - 30) + "px"); }
@@ -4265,7 +4271,7 @@ C.registerMode({
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
       lv: () => lvOf(), funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); } });
-    const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); } });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이
+    const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none" });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이
     const pwWins = [];
 
     let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, confs = [], askb, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
