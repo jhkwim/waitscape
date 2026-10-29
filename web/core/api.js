@@ -116,6 +116,7 @@ function tauriApi(T) {
     autostart: on => invoke("autostart_set", { on }),
     // 앱 로그 폴더(waitscape.log) 열기 — 문제 신고용. 메인 창만
     openLogDir: () => invoke("open_log_dir"),
+    openLicenses: () => invoke("open_licenses"),
     // { version, features: { updater, terminalJump }, updateReady } — 메인 창만 (capabilities/main.json)
     appInfo: () => invoke("app_info"),
     // 🙈 눈치 모드 전역 단축키 등록 상태 { key, ok, err } — 다른 앱이 선점하면 err. 메인 창만

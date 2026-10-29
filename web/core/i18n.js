@@ -142,7 +142,7 @@ Object.assign(S.ko, {
   // 미니 보기 열기 실패 (core.js openWidget) · 앱 정보 카드 (manager.js)
   "w.lobby": "미니 보기", "w.mini": "미니 보기", "w.fail": "{what}를 열 수 없어요: {why}",
   "w.slow": "{what}가 응답하지 않아요 · 설정 → 일반 → 앱 정보 → 로그 폴더",
-  "g.about": "앱 정보", "g.about.ver": "버전 v{v}", "g.about.logs": "로그 폴더 열기",
+  "g.about": "앱 정보", "g.about.ver": "버전 v{v}", "g.about.logs": "로그 폴더 열기", "g.about.licenses": "오픈소스 라이선스",
   "g.about.desc": "문제가 생기면 이 폴더의 waitscape.log를 보내 주세요. 창 열기·오류 같은 진단만 적고, 토큰·프롬프트 내용은 남기지 않아요(홈 경로는 ~로 줄임).",
   // 앱 업데이트 (updater.rs)
   "upd.banner": "새 버전 v{v} 나왔어요!", "upd.see": "업데이트…", "upd.later": "나중에",
@@ -194,7 +194,7 @@ Object.assign(S.en, {
   "term.orcaOff": "Orca isn't running and couldn't be opened — copied the folder path", "term.orcaDenied": "Orca isn't responding — copied the folder path. Try restarting Orca",
   "w.lobby": "Mini view", "w.mini": "Mini view", "w.fail": "Couldn't open {what}: {why}",
   "w.slow": "{what} isn't responding · Settings → General → About → Logs folder",
-  "g.about": "About", "g.about.ver": "Version {v}", "g.about.logs": "Open logs folder",
+  "g.about": "About", "g.about.ver": "Version {v}", "g.about.logs": "Open logs folder", "g.about.licenses": "Open source licenses",
   "g.about.desc": "If something goes wrong, please send waitscape.log from this folder. It records diagnostics only (window opening, errors) — never tokens or prompt text (your home path is shortened to ~).",
   "upd.banner": "Version {v} is out!", "upd.see": "Update…", "upd.later": "Later",
   "upd.title": "🎁 A new version is out!", "upd.from": "Now v{cur} → new v{v}", "upd.notes": "What's new",

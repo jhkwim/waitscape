@@ -752,9 +752,32 @@ pub fn open_log_dir(w: WebviewWindow) -> Result<(), String> {
     open_dir(&dir)
 }
 
+/// 오픈소스 라이선스 고지(설정 → 일반 → 앱 정보, #9). 릴리스 빌드가 넣은 THIRD_PARTY_LICENSES.html을 기본 브라우저로 연다.
+/// 개발 빌드에는 build.rs가 만든 자리표시 파일이 들어 있다
+#[tauri::command]
+pub fn open_licenses(app: AppHandle, w: WebviewWindow) -> Result<(), String> {
+    main_only(&w)?;
+    let p = app
+        .path()
+        .resolve(LICENSES_FILE, tauri::path::BaseDirectory::Resource)
+        .map_err(|e| e.to_string())?;
+    if !p.is_file() {
+        return Err("이 빌드에는 라이선스 목록이 없어요".into());
+    }
+    open_dir_or_file(&p)
+}
+
+/// 번들 리소스 안 라이선스 고지 파일 이름 (tauri.conf.json bundle.resources·build.rs·release.yml과 같게)
+pub const LICENSES_FILE: &str = "THIRD_PARTY_LICENSES.html";
+
 /// 폴더를 OS 파일 관리자로 연다(없으면 만든다)
 pub(crate) fn open_dir(dir: &std::path::Path) -> Result<(), String> {
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    open_dir_or_file(dir)
+}
+
+/// OS 기본 프로그램으로 연다(폴더 → 파일 관리자, .html → 기본 브라우저). 인자 배열로만 넘긴다
+fn open_dir_or_file(path: &std::path::Path) -> Result<(), String> {
     let prog = if cfg!(target_os = "macos") {
         "/usr/bin/open"
     } else if cfg!(windows) {
@@ -762,7 +785,7 @@ pub(crate) fn open_dir(dir: &std::path::Path) -> Result<(), String> {
     } else {
         "xdg-open"
     };
-    std::process::Command::new(prog).arg(dir).spawn().map_err(|e| e.to_string())?;
+    std::process::Command::new(prog).arg(path).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -876,6 +899,7 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         delete_mode,
         open_modes_dir,
         open_log_dir,
+        open_licenses,
         autostart_set,
         app_info,
         nunchi_status,
