@@ -515,6 +515,17 @@ body[data-mode="studio"] .stu .tn-cab { z-index: 7; pointer-events: none; }
 body[data-mode="studio"] .stu .tn-sw { position: absolute; z-index: 31; font-size: 14px; line-height: 1; pointer-events: none; }
 body[data-mode="studio"] .stu .tn-yawn { position: absolute; top: 4px; z-index: 31; font-size: 12px; font-weight: 900; font-style: italic; color: #6a5a88; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; white-space: nowrap; pointer-events: none; }
 body[data-mode="studio"] .stu .tn-tent { border-radius: 0 0 8px 8px; background-image: radial-gradient(circle at 50% 72%, #f3e2ff 0 2px, transparent 2.5px) !important; }
+/* 🏢 건물 묶음(#38): 점검 스티커 · 우산 꽂이 · 비둘기 · 청소부 */
+body[data-mode="studio"] .stu .tn-fix { left: 6px; top: 40px; width: 76px; z-index: 5; padding: 6px 0; background: #fffaf0 padding-box; border: 2px solid #2e2040; box-shadow: inset 0 5px 0 #ffd23f, inset 0 -5px 0 #ffd23f; text-align: center; font-size: 12px; line-height: 14px; font-weight: 900; color: #2e2040; white-space: nowrap; transform: rotate(-5deg); pointer-events: none; }
+body[data-mode="studio"] .stu .tn-umb { z-index: 6; width: 16px; height: 34px; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-umb i { position: absolute; bottom: 10px; width: 4px; border: 1px solid #2e2040; border-bottom: 0; border-radius: 3px 3px 0 0; }
+body[data-mode="studio"] .stu .tn-umb i:before { content: ""; position: absolute; left: -2px; top: -5px; width: 5px; height: 5px; border: 2px solid #4a3560; border-bottom: 0; border-radius: 5px 5px 0 0; }
+body[data-mode="studio"] .stu .tn-umb b { position: absolute; left: 0; bottom: 0; width: 16px; height: 13px; background: #8a8fa3; border: 2px solid #2e2040; border-radius: 0 0 3px 3px; box-shadow: inset 0 3px 0 #b8bccb; }
+body[data-mode="studio"] .stu .tn-umb u { position: absolute; left: -4px; bottom: -3px; width: 24px; height: 4px; background: rgba(90, 168, 255, .55); border-radius: 50%; }
+body[data-mode="studio"] .stu .tn-pig { z-index: 9; image-rendering: pixelated; cursor: pointer; }
+body[data-mode="studio"] .stu .tn-mop { z-index: 13; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-mop img { image-rendering: pixelated; }
+body[data-mode="studio"] .stu .tn-dust { width: 10px; height: 6px; background: radial-gradient(circle at 30% 50%, #b8a890 0 2px, transparent 2.5px), radial-gradient(circle at 75% 40%, #c9bba6 0 1.5px, transparent 2px); }
 @media (prefers-color-scheme: dark) {
   body[data-mode="studio"] .stu .tn-beam { background: linear-gradient(90deg, rgba(255, 240, 160, .9), rgba(255, 240, 160, 0)); }
 }
