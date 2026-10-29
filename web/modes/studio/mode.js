@@ -3959,12 +3959,13 @@ function decorMini(h) {
      🎉 도구 깃발 — 누적 도구 수(지난 턴 + session.tools) 100 · 500 · 1000↑이면 모니터 위에 작은 깃발(100 · 500 · 1K 글자 + 단계 색). 보는 중에 처음 넘으면 톡 솟음
      🔋 로봇 배터리 — 직원이 로봇(bot)이고 자기 자리에 보일 때만(멈춤 의심·📋 일보 연출 중엔 없음) 머리 오른쪽(이름표 아래)에 4칸, 출근 뒤 1시간마다 1칸↓. 0칸이면 ⚡ + 바닥 콘센트까지 충전 케이블
    - 🤸 직원 몸짓 묶음(#38, placeActor가 놓은 뒤 덮어씀 · 👆 반응은 그다음 · 📋 일보 연출·🙈 눈치 모드엔 쉼):
-     🦶 질문하러 엘리베이터를 기다리거나 1층 사장님 앞에 선 직원 — 질문(since) 1분↑ 발 동동(빠른 발 프레임 + 콩콩) · 3분↑ 그 자리에 주저앉고 💦. 답이 오면 바로 원래대로
+     🦶 질문하러 엘리베이터를 기다리거나 1층 사장님 앞에 선 직원 — 그 자리에 온 뒤 1분↑ 발 동동(빠른 발 프레임 + 콩콩) · 3분↑ 주저앉고 💦(자기 층 순서 대기는 발 동동만). 답이 오면 바로 원래대로
      🐙 문어 직원이 타자 칠 때 손 대신 다리 끝 3개(빨판)가 번갈아 톡톡 — 손이 보일 때만(쉬거나 자리 비우면 없음)
-     🥱 월요일(새벽 4시 기준) 출근(t0) 뒤 10분 동안 40초마다 한 번 하품(눈 감고 입 벌려 손으로 가림 + "하암~"). 앉아서 평소 자세일 때만
-     🌺 금요일 17:00~토요일 04:00 직원 몸통이 꽃무늬 하와이안 셔츠(펭귄·문어는 꽃 목걸이) + 귀 옆 히비스커스(앉으면 몸통이 책상에 가려서). 사장님·도감·미니 보기는 그대로
+     🥱 월요일(새벽 4시 기준) 출근(t0) 뒤 10분 동안 40초마다 한 번 하품(눈 감고 입 벌려 손으로 가림 + "하암~"). 앉아서 평소 자세일 때만 · 움직임 줄이기면 없음
+     🌺 금요일 17:00~토요일 04:00 직원 몸통이 꽃무늬 하와이안 셔츠(펭귄·문어는 꽃 목걸이) + 귀 옆 히비스커스(앉으면 몸통이 책상에 가려서).
+       큰 화면 setP 배우만(일보 연출 직원·아기 포함) — 사장님·도감·미니 보기·일보 카드 이미지는 그대로
    - 개발용 쿼리 ?tiny=night(밤처럼) · ?tiny=streak(3일 연속인 척) · ?tiny=cups(50분 일한 척) · ?tiny=desk(컨텍스트 92% · 도구 520 · 75분 · 로봇 배터리 0칸)
-     · ?tiny=wait1(질문 1분 30초) · wait3(4분) · oct(모두 문어) · monday · friday, 쉼표로 여럿. 저장에는 반영하지 않음 */
+     · ?tiny=wait1(질문 1분 30초) · wait3(4분) · oct(모두 문어, 도감엔 안 남김) · monday · friday, 쉼표로 여럿. 저장에는 반영하지 않음 */
 const TINY = (() => {
   const K = "#2e2040";
   const dev = (() => { try { return new Set((new URLSearchParams(location.search).get("tiny") || "").split(",")); } catch { return new Set(); } })();   // 개발용 쿼리(위 목록)
@@ -4028,7 +4029,7 @@ const TINY = (() => {
   const night = (d = new Date()) => d.getHours() >= 22 || d.getHours() < 6;
   const monday = t => new Date((t - 4 * 3600) * 1000).getDay() === 1;   // 새벽 4시 기준 하루
   const friday = t => { const d = new Date(t * 1000), w = d.getDay(), hh = d.getHours(); return (w === 5 && hh >= 17) || (w === 6 && hh < 4); };
-  return { ART, MUG, CUP_X, PASS, PERIOD, X0, X1, STAND_X, COAT, PILE_X, FLAG_X, COAT_X, OUT_X, sheets, flagOf, battery, own, ownS, dayKey, load, dump, track, mark, streak, cups, night, monday, friday, dev, fri: false };   // fri: 🌺 지금 셔츠 입는 시간(tinyBig.frame이 갱신, 본체 setP가 읽음)
+  return { ART, MUG, CUP_X, PASS, PERIOD, X0, X1, STAND_X, COAT, PILE_X, FLAG_X, COAT_X, OUT_X, sheets, flagOf, battery, own, ownS, dayKey, load, dump, track, mark, streak, cups, night, monday, friday, dev, fri: false, mon: false };   // fri: 🌺 셔츠 입는 시간 · mon: 🥱 월요일(tinyBig.pre가 본체 frame 맨 앞에서 갱신, 본체 setP·actor가 읽음)
 })();
 
 /* ---------- ☕ 큰 화면: 층마다 빈 잔 · 연속 출근 달력 · 1층 야간 경비 고양이. h = 스튜디오 본체 연결 ---------- */
@@ -4047,7 +4048,7 @@ function tinyBig(h) {
     st = new Map([...live].map(p => [p, (n => dev.has("streak") ? Math.max(3, n) : n)(T_.streak(T_.own(s.d, p) ? s.d[p] : null, day))]));
   }
   function build(o) {
-    G = { fl: [], cat: null };
+    G = { fl: [], cat: null, tents: [] };
     o.FL.forEach((fl, i) => {
       if (i === o.n) {   // 1층: 경비 고양이 · 손전등 빛 · 말풍선
         const c = G.cat = { F: fl.F, B: fl.B };
@@ -4067,7 +4068,7 @@ function tinyBig(h) {
           r.out = mkEl("div", "b tn-out", fl.F, { left: T_.OUT_X + "px", top: (fl.B - 16) + "px", display: "none" }); r.out.title = X("충전하며 일하는 중 ⚡", "Working while charging ⚡");
           r.cab = mkEl("div", "b tn-cab", fl.F, { left: "0", top: "0", width: "1px", height: "1px", display: "none" }); }
       }
-      if (fl.desk && f.animal === "oct") { fl.desk.hands.forEach(e => e.classList.add("tn-tent")); fl.desk.tent = mkEl("div", "b tn-tent", fl.F, { left: (DESK_X - 11) + "px", top: (fl.B - 43) + "px", width: "16px", height: "12px", background: "#b57be0", border: "3px solid #4a3560", zIndex: "11", display: "none" }); }   // 🐙 손 = 다리 끝 + 가운데 하나 더
+      if (fl.desk && f.animal === "oct") { fl.desk.hands.forEach(e => e.classList.add("tn-tent")); fl.desk.tent = mkEl("div", "b tn-tent", fl.F, { left: (DESK_X - 11) + "px", top: (fl.B - 43) + "px", width: "16px", height: "12px", background: "#b57be0", border: "3px solid #4a3560", zIndex: "11", display: "none" }); G.tents.push(fl.desk.tent); }   // 🐙 손 = 다리 끝 + 가운데 하나 더
       if (!r.meet) r.cups = T_.CUP_X.map((x, j) => { const p = WB.pix(T_.ART.cup, 2, T_.MUG[j]), e = mkEl("img", "b tn-cup", fl.F, { left: x + "px", top: (fl.B - 26 - p.h) + "px", width: p.w + "px", height: p.h + "px", display: "none" }); e.alt = ""; e.src = p.url; e.draggable = false; return e; });
       r.cal = mkEl("div", "b tn-cal", fl.F, { left: (r.meet || f.aib ? 253 : 243) + "px", top: "42px", display: "none" });   // 왼쪽 창(보드)과 🎨 벽 1 사이
       G.fl.push(r);
@@ -4077,7 +4078,7 @@ function tinyBig(h) {
   function frame(T, tc, anim) {
     if (!G) return;
     const now = ctx.now(), hid = h.hidden();   // 🙈 눈치 모드: 모두 숨김
-    T_.fri = dev.has("friday") || T_.friday(now);
+    if (hid || (h.dr && h.dr())) { G.tents.forEach(e => sty(e, "display", "none")); for (const a of h.actors.values()) if (a.tnx) { sty(a.tnx.sw, "display", "none"); sty(a.tnx.yw, "display", "none"); } }   // 🙈·📋 연출 중: 몸짓 소품 걷음(actor를 안 부름)
     if (T_.dayKey(now) !== day) read(h.floors());   // 새벽 4시가 넘으면 바로 오늘 기록(달력이 다음 상태까지 비지 않게)
     G.fl.forEach(r => {
       r.f = cur.get(r.f.sid) || r.f;   // 층 객체는 상태가 올 때마다 새로 생김(다시 짓지 않아도) → 최신 것으로
@@ -4147,27 +4148,31 @@ function tinyBig(h) {
   function actor(i, fl, f, a, T, tc, anim) {
     const E = extra(a), now = ctx.now(), hid = h.hidden(), D = fl.desk; let sw = false, yw = false;
     if (D && D.tent) { const hs = D.hands[0].style; sty(D.tent, "display", hid ? "none" : hs.display || "block"); sty(D.tent, "marginTop", hs.marginTop === "-4px" ? "0px" : "-4px"); }   // 🐙 가운데 다리는 손과 엇박자
-    /* 🦶 질문 대기: 엘리베이터 앞 · 1층 사장님 앞 */
-    if (!hid && f.kind === "ask" && !a.moving && a.par && (a.lift === "wait" || (a.loc === "boss" && a.goal === "boss"))) {
-      const w = Math.max(now - (f.s.since || now), dev.has("wait3") ? 240 : dev.has("wait1") ? 90 : 0);
+    /* 🦶 질문 대기: 엘리베이터 앞 · 1층 사장님 앞(주저앉기까지) · 자기 층 순서 대기(발 동동만). 시간은 그 자리에 도착한 때부터(자리를 옮기면 다시) */
+    const wk = f.kind !== "ask" || a.moving || !a.par ? "" : a.lift === "wait" ? "lift" : a.loc === "boss" && a.goal === "boss" ? "boss" : a.loc === "home" && a.goal !== "boss" ? "q" : "";
+    if (!a.tnW || a.tnW.k !== wk) a.tnW = { k: wk, t0: now };
+    if (!hid && wk) {
+      const w = Math.max(Math.min(now - a.tnW.t0, now - (f.s.since || now)), dev.has("wait3") ? 240 : dev.has("wait1") ? 90 : 0);
       if (w >= 60) {
         const o = JSON.parse(a.pose), flip = a.img.style.transform.includes("scaleX(-1)"), x = parseFloat(a.el.style.left) + a.w / 2, feet = parseFloat(a.par.style.height) - 10;
         let dy = 0, rot = 0;
-        if (w >= 180) { Object.assign(o, { seated: 1, legs: "s", arms: "", mouth: "", eyes: anim && Math.floor(tc * .8 + i) % 4 === 0 ? "c" : "o" }); sw = true; }   // 주저앉기
+        if (w >= 180 && wk !== "q") { Object.assign(o, { seated: 1, legs: "s", arms: "", mouth: "", eyes: anim && Math.floor(tc * .8 + i) % 4 === 0 ? "c" : "o" }); sw = true; }   // 주저앉기
         else { const tap = anim ? Math.floor(tc * 9 + i) % 2 : 0; Object.assign(o, { seated: 0, legs: anim ? (tap ? "a" : "b") : "a", eyes: "o" }); dy = anim ? (tap ? -3 : 0) : 0; rot = anim ? (tap ? 3 : -3) : 0; }   // 발 동동
         h.setP(a, o); h.put(a, a.par, x, feet, { dy, flip, rot });
       }
     }
-    /* 🥱 월요일 출근 뒤 10분: 40초마다 2.6초 하품(앉아서 평소 자세일 때만) */
+    /* 🥱 월요일 출근 뒤 10분: 40초마다 2.6초 하품(앉아서 평소 자세일 때만 · 움직임 줄이기면 없음) */
     const Es = T_.ownS(s.s, f.sid) ? s.s[f.sid] : null;
-    if (!hid && Es && (dev.has("monday") || T_.monday(now)) && f.layout !== "meet" && f.kind !== "ask" && f.kind !== "stall" && a.loc === "home" && !a.moving && a.par === fl.F) {
+    if (!hid && anim && Es && T_.mon && f.layout !== "meet" && f.kind !== "ask" && f.kind !== "stall" && a.loc === "home" && !a.moving && a.par === fl.F) {
       const u = dev.has("monday") ? now % 600 : now - Es.t0, ph = (u + fnv(f.sid) % 9) % 40, o = JSON.parse(a.pose);
       if (u < 600 && ph < 2.6 && o.seated && !o.arms && o.mouth !== "o") { h.setP(a, Object.assign(o, { eyes: "c", mouth: "o", arms: "r" })); yw = true; }
     }
     sty(E.sw, "display", sw ? "block" : "none"); if (sw) { sty(E.sw, "left", (a.w - 12) + "px"); sty(E.sw, "top", (anim && Math.floor(tc * 2) % 2 ? 2 : 6) + "px"); }
     sty(E.yw, "display", yw ? "block" : "none"); if (yw) { txt(E.yw, X("하암~", "yawn~")); sty(E.yw, "left", "-26px"); }   // 머리 왼쪽(오른쪽은 코드 조각·🔋 자리)
   }
-  return { read, build, frame, actor };
+  /* 요일·시각 판정은 본체 frame 맨 앞에서(경계에서 한 프레임 늦지 않게: setP·actor가 같은 프레임에 씀) */
+  function pre() { const now = ctx.now(); T_.fri = dev.has("friday") || T_.friday(now); T_.mon = dev.has("monday") || T_.monday(now); }
+  return { read, build, frame, actor, pre };
 }
 
 C.registerMode({
@@ -4781,6 +4786,7 @@ C.registerMode({
     function frame(T, dt, anim) {
       if (wbT.due(clockT())) sync();   // 🧑‍🏫 회의 정리 시간이 끝난 층 → 책상 배치로 다시 짓기
       const tc = clockT(), n = nSess;
+      tnB.pre();   // 🌺 금요일 셔츠 · 🥱 월요일 판정
       if (!FL.length) return;
       const DRon = drB.active();   // 📋 퇴근 일보 연출 중: 직원·사장님·엘리베이터를 연출이 그림
       if (DRon && dcB.on()) dcB.set(false);   // 🎨 꾸미기 판은 닫음
@@ -5286,7 +5292,7 @@ C.registerMode({
       }
       if (prevRaw.size > 120) [...prevRaw.keys()].slice(0, 40).forEach(k => prevRaw.delete(k));
       /* 도감: 처음 출근한 날 */
-      for (const f of floors) {
+      for (const f of TINY.dev.has("oct") ? [] : floors) {   // 개발용 ?tiny=oct(모두 문어)는 도감에 남기지 않음
         const d = sv.dex[f.animal] || (sv.dex[f.animal] = {}), key = f.shiny ? "s" : "n";
         if (!d[key]) { d[key] = ymd(); saveSoon(); if (!firstSync) pushLog("📖", X(`새 동료 발견! ${f.shiny ? "✨ " : ""}${aName(f.animal)}`, `New staff! ${f.shiny ? "✨ " : ""}${aName(f.animal)}`)); }
       }
