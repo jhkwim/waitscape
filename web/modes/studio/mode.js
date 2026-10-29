@@ -3969,7 +3969,7 @@ function decorMini(h) {
    - 🏢 건물 묶음(#38):
      🐦 창틀 비둘기 — 4분마다 한 번(35초) 하늘을 날던 비둘기 하나가 어느 직원 층 오른쪽 창 위 창틀에 앉아 고개 까딱. 정전·밤엔 안 앉음.
        창 👆 누를 자리(창 안쪽) 바로 위라 겹치지 않음 · 앉아 있을 때만 누를 수 있고 누르면 파닥 날아감(다른 클릭 처리로 안 넘어감)
-     ☂️ 우산 꽂이 — 1층 커피머신 자리와 현관문 사이. 날씨(주간 한도)가 비·눈이면 사장님 우산 + 직원 수만큼(최대 5, 동물마다 색·손잡이 높이), 아니면 사장님 우산 하나
+     ☂️ 우산 꽂이 — 1층 커피머신 자리와 현관문 사이. 날씨(주간 한도)가 비·눈이면 사장님 우산 + 직원 층 수만큼(최대 5, 동물마다 색·손잡이 높이), 아니면 사장님 우산 하나
      🛗 엘리베이터 점검 — 하루 1~2번 10분(10~18시 중 날짜 해시로 정해짐) 카 문에 "🔧 점검 중". 기다리는 직원은 계단 쪽으로 가려다 돌아오는 척만(실제 이동 규칙은 그대로)
      🧹 청소부 — 📋 퇴근 일보 카드를 닫으면 일 안 하는 층(완료·쉼)을 위층부터 한 층씩(5초) 빗자루로 쓸고 지나감 · 그새 다시 일하면 그 층은 건너뜀 · 움직임 줄이기면 생략
    - 개발용 쿼리 ?tiny=night(밤처럼) · ?tiny=streak(3일 연속인 척) · ?tiny=cups(50분 일한 척) · ?tiny=desk(컨텍스트 92% · 도구 520 · 75분 · 로봇 배터리 0칸)
@@ -4066,7 +4066,7 @@ function tinyBig(h) {
     st = new Map([...live].map(p => [p, (n => dev.has("streak") ? Math.max(3, n) : n)(T_.streak(T_.own(s.d, p) ? s.d[p] : null, day))]));
   }
   function build(o) {
-    G = { fl: [], cat: null, tents: [], umb: null, fix: null, pig: null, mop: null };
+    G = { fl: [], cat: null, tents: [], umb: null, fix: null, pig: null, mop: null, sky: h.view ? h.view.querySelector(".bird") : null };   // sky: 하늘을 나는 비둘기 하나(내려앉는 동안 숨김)
     if (o.carEl) G.fix = mkEl("div", "b tn-fix", o.carEl, { display: "none" }, "🔧 " + X("점검 중", "Repair"));   // 🛗 카 문 스티커(카와 함께 움직임)
     o.FL.forEach((fl, i) => {
       if (i === o.n) {   // 1층: 경비 고양이 · 손전등 빛 · 말풍선
@@ -4074,7 +4074,7 @@ function tinyBig(h) {
         c.beam = mkEl("div", "b tn-beam", fl.F, { display: "none" });
         c.el = mkEl("img", "b tn-cat", fl.F, { display: "none", pointerEvents: "none" }); c.el.alt = ""; c.el.draggable = false; c.el.title = X("야간 경비 고양이", "Night guard cat");
         c.bub = mkEl("div", "bub tn-bub", fl.F, { display: "none" });
-        G.umb = mkEl("div", "b tn-umb", fl.F, { left: T_.UMB_X + "px", top: (fl.B - 34) + "px" }); G.umb.title = X("우산 꽂이", "Umbrella stand");   // ☂️
+        G.umb = mkEl("div", "b tn-umb", fl.F, { left: T_.UMB_X + "px", top: (fl.B - 34) + "px" });   // ☂️ (누를 수 없음 → title 없음)
         return;
       }
       const f = fl.f; if (!f) return;
@@ -4096,25 +4096,24 @@ function tinyBig(h) {
   }
   ctx.listen(doc, "click", e => { if (!G || !G.cat || e.target !== G.cat.el) return; say = h.clockT(); h.kick(); });
   /* 🐦 비둘기를 누르면 파닥 날아감 — 캡처 단계에서 먼저 받아 다른 클릭 처리(👆·층 이동 등)로 넘기지 않음 */
-  const pg = { cyc: -1, gone: -1, away: null };
-  ctx.listen(doc, "click", e => { if (!G || !G.pig || !G.pig.el.contains(e.target) || G.pig.el.style.pointerEvents !== "auto") return; e.stopPropagation(); e.preventDefault(); pg.away = h.clockT(); pg.gone = pg.cyc; h.kick(); }, true);
+  const pg = { cyc: -1, sid: "", away: null };   // 이번 주기에 앉을 층(sid, 주기 시작 때 고정) · 누른 시각(1초 파닥 날아간 뒤 그 주기엔 다시 안 옴)
+  ctx.listen(doc, "click", e => { if (!G || !G.pig || !G.pig.el.contains(e.target) || G.pig.el.style.pointerEvents !== "auto") return; e.stopPropagation(); e.preventDefault(); if (pg.away == null) pg.away = h.clockT(); h.kick(); }, true);
   const mop = { list: null, k: 0, t0: 0, prevDr: false };   // 🧹 청소 차례(층 sid 목록)
   const bldg = (now, tc, anim, hid) => {
     const dr = !!(h.dr && h.dr()), off = hid || dr, fls = G.fl;
-    /* ☂️ 우산 꽂이: 사장님 우산 + (비·눈이면) 직원 수만큼 */
+    /* ☂️ 우산 꽂이: 사장님 우산 + (비·눈이면) 직원 층 수만큼(최대 4) */
     if (G.umb) { const wk = dev.has("rain") ? 85 : h.wk ? h.wk() : 0, ans = wk >= 80 ? fls.map(r => r.f.animal).slice(0, 4) : [], uk = (off ? "x" : wk >= 90 ? "s" : wk >= 80 ? "r" : "c") + ans.join();
       if (G.umb._k !== uk) { G.umb._k = uk; sty(G.umb, "display", off ? "none" : "block");
         const cs = ["#34457f"].concat(ans.map(an => T_.COAT[an] || "#7a7f8c"));
-        html(G.umb, cs.map((c, j) => `<i style="left:${j * 3}px;height:${18 + (j * 5) % 7}px;background:${c}"></i>`).join("") + `<b></b>${wk >= 80 ? "<u></u>" : ""}`);
-        G.umb.title = wk >= 90 ? X(`우산 ${cs.length}개 · 눈 오는 날`, `${cs.length} umbrellas · snowy day`) : wk >= 80 ? X(`우산 ${cs.length}개 · 비 오는 날`, `${cs.length} umbrellas · rainy day`) : X("우산 꽂이 · 맑음", "Umbrella stand · clear"); } }
+        html(G.umb, cs.map((c, j) => `<i style="left:${j * 3}px;height:${18 + (j * 5) % 7}px;background:${c}"></i>`).join("") + `<b></b>${wk >= 80 ? "<u></u>" : ""}`); } }
     /* 🛗 점검 스티커 */
     const fix = !off && (dev.has("repair") || T_.repair(now)); T_.fix = fix; if (G.fix) sty(G.fix, "display", fix && !(h.door && h.door() > .1) ? "block" : "none");   // 문이 열리면 스티커도 문과 함께 비킴
     /* 🐦 비둘기: 주기마다 층 하나(해시) · 정전·밤·숨김이면 안 앉음 */
-    const per = dev.has("pigeon") ? 20 : T_.PIG, sit = dev.has("pigeon") ? 15 : T_.PIG_SIT, cyc = Math.floor(now / per), u = now % per, sky = h.view && h.view.querySelector(".bird");
-    if (cyc !== pg.cyc) { pg.cyc = cyc; pg.away = null; }
-    const fi = fls.length ? fnv("pig" + cyc) % fls.length : -1, r = fls[fi], awayU = pg.away != null ? tc - pg.away : null;
-    let show = !off && r && u < sit && pg.gone !== cyc && !(h.out && h.out()) && !((h.night ? h.night() : 0) > .3);
-    if (awayU != null && (!anim || awayU > 1)) show = false;
+    const per = dev.has("pigeon") ? 20 : T_.PIG, sit = dev.has("pigeon") ? 15 : T_.PIG_SIT, cyc = Math.floor(now / per), u = now % per, sky = G.sky;
+    if (cyc !== pg.cyc) { pg.cyc = cyc; pg.away = null; pg.sid = fls.length ? fls[fnv("pig" + cyc) % fls.length].f.sid : ""; }   // 앉는 사이 층 수가 바뀌어도 그 층에 그대로
+    const fi = fls.findIndex(q => q.f.sid === pg.sid), r = fls[fi], awayU = pg.away != null ? tc - pg.away : null;
+    let show = !off && r && u < sit && !(h.out && h.out()) && !((h.night ? h.night() : 0) > .3);
+    if (awayU != null && (!anim || awayU > 1)) show = false;   // 누르면 1초 파닥 날아간 뒤 숨김(정지면 바로)
     if (!G.pig || G.pig.F !== (r && r.F)) { if (G.pig) G.pig.el.remove(); G.pig = r ? { F: r.F, el: mkEl("img", "b tn-pig", r.F, { display: "none" }) } : null; if (G.pig) { G.pig.el.alt = ""; G.pig.el.draggable = false; G.pig.el.title = X("비둘기 (누르면 날아가요)", "Pigeon (click to shoo)"); } }
     if (sky) sty(sky, "visibility", show ? "hidden" : "");   // 하늘을 날던 그 비둘기가 내려앉은 것
     if (G.pig) { const P = G.pig.el; sty(P, "display", show ? "block" : "none");
@@ -4132,19 +4131,19 @@ function tinyBig(h) {
     let me = null, mu = 0;
     while (mop.list && mop.k < mop.list.length) {
       const q = fls.find(z => z.f.sid === mop.list[mop.k]), busy = !q || ["work", "agents", "ask", "stall"].includes(q.f.kind);
-      if (busy && tc - mop.t0 < .05) { mop.k++; mop.t0 = tc; continue; }   // 다시 일하는 층은 건너뜀
+      if (busy) { mop.k++; mop.t0 = tc; continue; }   // 일하는 층은 건너뜀(쓸다가 다시 일해도 바로 다음 층으로)
       mu = tc - mop.t0; if (mu < 5) { me = q; break; }
       mop.k++; mop.t0 = tc;
     }
     if (mop.list && mop.k >= mop.list.length) mop.list = null;
     if (!G.mop || G.mop.F !== (me && me.F)) { if (G.mop) G.mop.el.remove(); G.mop = me ? { F: me.F, el: mkEl("div", "b tn-mop", me.F), } : null;
-      if (G.mop) { G.mop.body = mkEl("img", "b", G.mop.el); G.mop.br = mkEl("img", "b", G.mop.el); G.mop.dust = mkEl("div", "b tn-dust", G.mop.el); [G.mop.body, G.mop.br].forEach(e => { e.alt = ""; e.draggable = false; }); } }
-    if (G.mop) { const M = G.mop, x = lerp(720, 90, mu / 5), wk = Math.floor(tc * 6) % 2, b = WB.pix(wk ? T_.ART.mopB : T_.ART.mop, 3), br = WB.pix(T_.ART.broom, 3);
-      if (M.body._u !== b.url) { M.body._u = b.url; M.body.src = b.url; sty(M.body, "width", b.w + "px"); sty(M.body, "height", b.h + "px"); }
-      if (M.br._u !== br.url) { M.br._u = br.url; M.br.src = br.url; sty(M.br, "width", br.w + "px"); sty(M.br, "height", br.h + "px"); }
-      sty(M.el, "left", Math.round(x) + "px"); sty(M.el, "top", (me.B - b.h - (wk ? 2 : 0)) + "px"); sty(M.body, "left", "14px"); sty(M.body, "top", "0px");
-      sty(M.br, "left", "-6px"); sty(M.br, "top", (b.h - br.h + 2) + "px"); sty(M.br, "transform", `rotate(${wk ? 12 : -10}deg)`);
-      sty(M.dust, "left", (wk ? -14 : -8) + "px"); sty(M.dust, "top", (b.h - 6) + "px"); sty(M.dust, "opacity", wk ? ".9" : ".5"); }
+      if (G.mop) { const b = WB.pix(T_.ART.mop, 3), br = WB.pix(T_.ART.broom, 3); G.mop.h = b.h;
+        G.mop.body = mkEl("img", "b", G.mop.el, { left: "14px", top: "0px", width: b.w + "px", height: b.h + "px" }); G.mop.br = mkEl("img", "b", G.mop.el, { left: "-6px", top: (b.h - br.h + 2) + "px", width: br.w + "px", height: br.h + "px" }); G.mop.br.src = br.url;
+        G.mop.dust = mkEl("div", "b tn-dust", G.mop.el, { top: (b.h - 6) + "px" }); [G.mop.body, G.mop.br].forEach(e => { e.alt = ""; e.draggable = false; }); } }
+    if (G.mop) { const M = G.mop, x = lerp(720, 90, mu / 5), wk = Math.floor(tc * 6) % 2, b = WB.pix(wk ? T_.ART.mopB : T_.ART.mop, 3);   // 걸음(2프레임)에 바뀌는 것만
+      if (M.body._u !== b.url) { M.body._u = b.url; M.body.src = b.url; }
+      sty(M.el, "left", Math.round(x) + "px"); sty(M.el, "top", (me.B - M.h - (wk ? 2 : 0)) + "px");
+      sty(M.br, "transform", `rotate(${wk ? 12 : -10}deg)`); sty(M.dust, "left", (wk ? -14 : -8) + "px"); sty(M.dust, "opacity", wk ? ".9" : ".5"); }
   };   // 🔦 고양이를 누르면 한마디
   function frame(T, tc, anim) {
     if (!G) return;
@@ -4221,13 +4220,13 @@ function tinyBig(h) {
     const E = extra(a), now = ctx.now(), hid = h.hidden(), D = fl.desk; let sw = false, yw = false;
     if (D && D.tent) { const hs = D.hands[0].style; sty(D.tent, "display", hid ? "none" : hs.display || "block"); sty(D.tent, "marginTop", hs.marginTop === "-4px" ? "0px" : "-4px"); }   // 🐙 가운데 다리는 손과 엇박자
     /* 🦶 질문 대기: 엘리베이터 앞 · 1층 사장님 앞(주저앉기까지) · 자기 층 순서 대기(발 동동만). 시간은 그 자리에 도착한 때부터(자리를 옮기면 다시) */
-    const wk = f.kind !== "ask" || a.moving || !a.par ? "" : a.lift === "wait" ? "lift" : a.loc === "boss" && a.goal === "boss" ? "boss" : a.loc === "home" && a.goal !== "boss" ? "q" : "";
+    const wk = f.kind !== "ask" || a.moving || !a.par || !a.par.classList.contains("fl") ? "" : a.lift === "wait" ? "lift" : a.loc === "boss" && a.goal === "boss" ? "boss" : a.loc === "home" && a.goal !== "boss" ? "q" : "";
     if (!a.tnW || a.tnW.k !== wk) a.tnW = { k: wk, t0: now };
-    const fixG = !hid && T_.fix && a.lift === "wait" && !a.moving && a.par;
-    if (fixG) {   // 🛗 점검 중: 계단 쪽(왼쪽)으로 두어 걸음 가려다 돌아옴 — 위치·이동 규칙은 그대로, 그림만
-      const u = (tc + i * 1.3) % 4, k = anim && u < 1.6 ? Math.sin(u / 1.6 * Math.PI) : 0, o = JSON.parse(a.pose), x = parseFloat(a.el.style.left) + a.w / 2, feet = parseFloat(a.par.style.height) - 10, wl = anim ? Math.floor(tc * 8) % 2 : 0;
-      if (k > 0) { h.setP(a, Object.assign(o, { seated: 0, legs: wl ? "a" : "b", eyes: "o" })); h.put(a, a.par, x - Math.round(k * 12), feet, { dy: wl ? -2 : 0, flip: true }); }
-    }
+    /* 🛗 점검 중: 엘리베이터를 기다리다 4초마다 계단 쪽(왼쪽)으로 두어 걸음 가려다 돌아옴 — 그 1.6초에만 그림을 바꾸고(문이 열리는 중엔 안 함) 나머지는 아래 대기 몸짓 그대로.
+       위치는 모델 a.x(층 안 좌표)에서 다시 계산 — 지난 프레임에 그린 값이 쌓이지 않음 */
+    const fu = (tc + i * 1.3) % 4, fk = anim && fu < 1.6 ? Math.sin(fu / 1.6 * Math.PI) : 0;
+    const fixG = !hid && T_.fix && fk > 0 && a.lift === "wait" && !a.moving && a.par && a.par.classList.contains("fl") && a.x != null && !(h.door && h.door() > 0);
+    if (fixG) { const o = JSON.parse(a.pose), wl = Math.floor(tc * 8) % 2; h.setP(a, Object.assign(o, { seated: 0, legs: wl ? "a" : "b", eyes: "o" })); h.put(a, a.par, a.x - Math.round(fk * 12), parseFloat(a.par.style.height) - 10, { dy: wl ? -2 : 0, flip: true }); }
     if (!hid && wk && !fixG) {
       const w = Math.max(Math.min(now - a.tnW.t0, now - (f.s.since || now)), dev.has("wait3") ? 240 : dev.has("wait1") ? 90 : 0);
       if (w >= 60) {
