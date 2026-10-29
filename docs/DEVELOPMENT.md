@@ -194,7 +194,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     src/applog.rs             진단 파일 로그 `wlog!`(stderr + 앱 로그 폴더 waitscape.log, 1MB 회전, 시크릿 마스킹·홈 `~`) · 시작 줄(버전·OS·WebView) · 멈춤 감시(5초)
     src/updater.rs            앱 안 업데이트(feature `updater`): 시작 + 하루 1번 latest.json 확인 → 알림·트레이·`update` 이벤트, 누를 때만 내려받기·서명 검증·설치·재시작
     src/backend.rs            Engine(Mutex) + 파일 감시·2초 tick push + 전이 감지 → OS 알림 + 사용 한도 폴링 스레드
-    src/commands.rs           Core.api tauri 명령 (get_state·get_trace·get_daylog·daylog_seen·save_image(일보 카드 PNG 저장 대화상자)·settings·list_modes·위젯·트레이·훅·mcp_status/plan/apply(MCP 연결, 메인 창 전용)·한도·모드 설치·터미널·app_info·open_log_dir·update_*)
+    src/commands.rs           Core.api tauri 명령 (get_state·get_trace·get_daylog·daylog_seen·save_image(일보 카드 PNG 저장 대화상자)·settings·list_modes·위젯·트레이·훅·mcp_status/plan/apply(MCP 연결, 메인 창 전용)·한도·모드 설치·터미널·app_info·open_log_dir·open_licenses(오픈소스 라이선스 고지를 기본 브라우저로)·update_*)
     src/detect.rs             완료/입력 필요/멈춤 의심 전이 → 알림 문구 (ko/en)
     src/tray.rs, windows.rs   트레이 메뉴·메뉴바 요약 / 메인·위젯 창(큰 화면 ↔ 미니 보기 전환 `View`·`to_big`·`to_mini`), 내비게이션 정책(앱·wrmode 문서만), 새 창 거부
     src/ctxmenu.rs            창 우클릭 메뉴(네이티브): 항목 구성 순수 함수 spec(테스트) + popup_menu, 선택 처리는 트레이와 공유

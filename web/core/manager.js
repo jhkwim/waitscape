@@ -421,7 +421,7 @@ async function onClick(e) {
   }
   else if (b.dataset.act === "open-dir") C.api.modeAdmin.openDir().catch(err => { note = String(err); render(); });
   else if (b.dataset.act === "open-logs") { logNote = ""; C.api.openLogDir().catch(err => { logNote = String(err); render(); }); return; }
-  else if (b.dataset.act === "open-licenses") { logNote = ""; C.api.openLicenses().catch(err => { logNote = String(err); render(); }); return; }
+  else if (b.dataset.act === "open-licenses") { if (!C.api.openLicenses) return; logNote = ""; C.api.openLicenses().catch(err => { logNote = String(err); render(); }); return; }
   else if (b.dataset.act === "hooks-on" || b.dataset.act === "hooks-off") {
     try {
       const r = await (b.dataset.act === "hooks-on" ? C.api.hooks.install() : C.api.hooks.uninstall());
