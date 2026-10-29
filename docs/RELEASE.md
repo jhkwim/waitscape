@@ -108,7 +108,7 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
 
 설치 파일에는 Rust 의존성의 라이선스 고지가 들어간다(MIT·Apache 등이 바이너리 배포 때 요구). `release.yml`이 빌드 전에
 `scripts/third_party_licenses.py --out app/src-tauri/THIRD_PARTY_LICENSES.html`로 만들고(`tauri.conf.json` `bundle.resources`), 앱은 설정 → 일반 → 앱 정보 → [오픈소스 라이선스]로 연다.
-- 대상: macOS·Windows 대상의 `waitscape`·`wr-hook` 일반 의존성(빌드·개발 전용·proc-macro 제외) + 웹 폰트 Galmuri11(OFL)
+- 대상: macOS·Windows 대상의 `waitscape`·`wr-hook` 일반 의존성(빌드·개발 전용·proc-macro 제외) + 웹 폰트 Galmuri11(OFL) + Windows exe에 정적 링크되는 Microsoft WebView2 SDK 로더(원문: `scripts/licenses/`)
 - 허용 목록(`ALLOWED`) 밖 라이선스가 들어오면 rust.yml 린트와 릴리스 빌드가 실패한다. 새 라이선스를 받아도 되는지 확인한 뒤 목록에 더한다
 - 개발 빌드에는 build.rs가 만든 자리표시 파일이 들어간다(파일은 `.gitignore`)
 

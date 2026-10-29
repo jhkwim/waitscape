@@ -32,8 +32,13 @@ ALLOWED = {
     "CDLA-Permissive-2.0",   # webpki-roots: Mozilla 루트 인증서 데이터(원문 고지 필요 → 아래 원문에 들어감)
 }
 LICENSE_FILE = re.compile(r"^(LICEN[CS]E|COPYING|NOTICE|UNLICENSE)([-._ ].*)?$", re.I)
-EXTRA = [  # 웹 쪽 제3자 자산 (cargo 밖)
+EXTRA = [  # cargo 메타데이터 밖의 제3자 구성 요소
     ("Galmuri11 (web/fonts)", "OFL-1.1", "https://github.com/quiple/galmuri", ROOT / "web/fonts/OFL.txt"),
+    # webview2-com-sys가 Windows exe에 정적 링크하는 WebView2LoaderStatic.lib (크레이트에 원문 없음 → NuGet 패키지의 원문을 저장소에 둠)
+    ("Microsoft WebView2 SDK 1.0.3650.58 — WebView2Loader (Windows)", "BSD-3-Clause 형식 (Microsoft)",
+     "https://www.nuget.org/packages/Microsoft.Web.WebView2", ROOT / "scripts/licenses/WebView2-SDK-LICENSE.txt"),
+    ("Microsoft WebView2 SDK — NOTICE (Windows)", "NOTICE", "https://www.nuget.org/packages/Microsoft.Web.WebView2",
+     ROOT / "scripts/licenses/WebView2-SDK-NOTICE.txt"),
 ]
 
 
@@ -50,7 +55,9 @@ def allowed(expr: str) -> bool:
         if peek() == "(":
             pos += 1
             v = orx()
-            pos += 1  # ')'
+            if peek() != ")":
+                raise IndexError("괄호 짝이 안 맞음")
+            pos += 1
             return v
         lic = toks[pos]
         pos += 1
@@ -87,7 +94,7 @@ def shipped_packages() -> list[dict]:
     for t in TARGETS:
         meta = json.loads(subprocess.run(
             ["cargo", "metadata", "--format-version", "1", "--locked", "--filter-platform", t],
-            cwd=ROOT, check=True, capture_output=True, text=True).stdout)
+            cwd=ROOT, check=True, capture_output=True, encoding="utf-8").stdout)
         pkgs = {p["id"]: p for p in meta["packages"]}
         nodes = {n["id"]: n for n in meta["resolve"]["nodes"]}
         members = set(meta["workspace_members"])
@@ -164,9 +171,13 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."""
 
 
+NO_COPYRIGHT_LINE = {"MPL-2.0", "Apache-2.0"}   # 원문에 저작권자가 없어 다른 패키지 원문을 그대로 써도 되는 라이선스
+
+
 def fallback_text(p: dict, ref: dict[str, str]) -> tuple[str, str] | None:
     """원문 파일이 없는 패키지: SPDX 식에서 하나를 골라 표준 원문을 채운다(OR이면 MIT를 먼저).
-    MIT·BSD-3은 저작권 줄에 Cargo.toml의 authors(없으면 '<이름> contributors')를 넣고, 그 밖(MPL-2.0 등)은 같은 라이선스를 가진 다른 패키지의 원문을 쓴다"""
+    MIT·BSD-3은 저작권 줄에 Cargo.toml의 authors(없으면 '<이름> contributors')를 넣고(추정임을 밝힘),
+    그 밖은 저작권 줄이 없는 라이선스(MPL-2.0·Apache-2.0)만 같은 라이선스를 가진 다른 패키지의 원문을 쓴다"""
     ids = re.findall(r"[A-Za-z0-9.+-]+", (p.get("license") or "").replace("/", " "))
     ids = [i for i in ids if i not in ("AND", "OR", "WITH")]
     who = ", ".join(a.split(" <")[0] for a in p.get("authors") or []) or f'{p["name"]} contributors'
@@ -174,10 +185,10 @@ def fallback_text(p: dict, ref: dict[str, str]) -> tuple[str, str] | None:
         if pick not in ids:
             continue
         if pick == "MIT":
-            return "MIT", f"MIT License\n\nCopyright (c) {who}\n\n{MIT_BODY}"
+            return "MIT", f"MIT License\n\nCopyright (c) {who} (Cargo.toml authors 기준 / per Cargo.toml authors)\n\n{MIT_BODY}"
         if pick == "BSD-3-Clause":
-            return "BSD-3-Clause", f"BSD 3-Clause License\n\nCopyright (c) {who}\n\n{BSD3_BODY}"
-        if pick in ref:
+            return "BSD-3-Clause", f"BSD 3-Clause License\n\nCopyright (c) {who} (Cargo.toml authors 기준 / per Cargo.toml authors)\n\n{BSD3_BODY}"
+        if pick in ref and pick in NO_COPYRIGHT_LINE:
             return pick, ref[pick]
     return None
 
@@ -219,7 +230,7 @@ def render(pkgs: list[dict], version: str) -> str:
         "<h2>구성 요소 / Components</h2><table><tr><th>이름 / Name</th><th>라이선스 / License</th><th>출처 / Source</th></tr>",
     ]
     for tag, lic, repo in rows:
-        link = '<a href="%s">%s</a>' % (e(repo), e(repo)) if repo else ""
+        link = ('<a href="%s">%s</a>' % (e(repo), e(repo))) if re.match(r"https?://", repo) else e(repo)   # javascript: 같은 주소는 링크로 만들지 않음
         out.append(f"<tr><td>{e(tag)}</td><td>{e(lic)}</td><td>{link}</td></tr>")
     for name, lic, repo, f in EXTRA:
         out.append(f"<tr><td>{e(name)}</td><td>{e(lic)}</td><td><a href=\"{e(repo)}\">{e(repo)}</a></td></tr>")
@@ -227,7 +238,7 @@ def render(pkgs: list[dict], version: str) -> str:
     for body, who in texts.values():
         out.append(f"<h3>{e(', '.join(who))}</h3><pre>{e(body)}</pre>")
     for name, lic, repo, f in EXTRA:
-        out.append(f"<h3>{e(name)} ({e(lic)})</h3><pre>{e(f.read_text(encoding='utf-8').strip())}</pre>")
+        out.append(f"<h3>{e(name)} ({e(lic)})</h3><pre>{e(f.read_text(encoding='utf-8').strip())}</pre>")   # noqa
     if missing:
         out.append("<h2>원문 파일이 패키지에 없는 구성 요소 / Packages without a bundled license file</h2>"
                    "<p>라이선스는 위 표의 SPDX 식을 따릅니다. 원문은 각 출처 저장소를 보세요. / See the SPDX expression above and the source repository.</p><ul>")
@@ -238,6 +249,9 @@ def render(pkgs: list[dict], version: str) -> str:
 
 
 def main(argv: list[str]) -> int:
+    # Windows 러너는 파이프 출력에 cp1252를 쓴다 → 한글 출력에서 죽지 않게
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=pathlib.Path)
     ap.add_argument("--check", action="store_true", help="허용 목록 밖 라이선스가 있으면 실패")
@@ -248,7 +262,7 @@ def main(argv: list[str]) -> int:
         print("::error::허용 목록 밖 라이선스 —", b)
     print(f"배포물 의존성 {len(pkgs)}개, 허용 목록 밖 {len(bad)}개")
     if a.out:
-        version = re.search(r'^version = "([^"]+)"', (ROOT / "Cargo.toml").read_text(), re.M).group(1)
+        version = re.search(r'^version = "([^"]+)"', (ROOT / "Cargo.toml").read_text(encoding="utf-8"), re.M).group(1)
         a.out.write_text(render(pkgs, version), encoding="utf-8")
         print("쓴 파일:", a.out)
     return 1 if bad and (a.check or a.out) else 0

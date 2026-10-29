@@ -92,6 +92,7 @@ fn main() {
 
     // 오픈소스 라이선스 고지(bundle.resources): 릴리스는 scripts/third_party_licenses.py가 만든다. 없으면 자리표시(개발 빌드가 깨지지 않게, #9)
     let lic = "THIRD_PARTY_LICENSES.html";
+    println!("cargo:rerun-if-changed={lic}");
     if !Path::new(lic).exists() {
         std::fs::write(
             lic,
