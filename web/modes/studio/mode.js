@@ -2602,6 +2602,7 @@ function pokeBig(h) {
     const still = !anim, bs = busy ? "work" : bossState(tc, anim), R = P.act("boss.a", tc), wv = P.wave(tc), W2 = wv == null ? null : wv - n * .22, ua = R ? tc - R.t0 : 0;
     /* 평소 몸짓: 꾸벅(Z) · 커피 한 모금(컵 + 김) */
     const doze = bs === "doze" && !busy && !(R && ["startle", "trick"].includes(R.m)), cof = bs === "coffee" && !busy && !(R && ["startle", "trick", "thumb"].includes(R.m));
+    r.cof = cof;   // ☕ TINY 사장님 머그: 실제로 커피를 드는 동안 책상 머그를 치움
     const L0 = parseFloat(boss.el.style.left), T0 = parseFloat(boss.el.style.top);
     r.zs.forEach((z, j) => { if (!doze || (R && ua < R.dur)) { sty(z, "display", "none"); return; } const ph = still ? j * .3 : (T * .6 + j / 3) % 1; sty(z, "display", "block"); sty(z, "left", pkR(L0 + boss.w / 2 + 14 + ph * 16) + "px"); sty(z, "top", pkR(T0 + 10 - ph * 24) + "px"); sty(z, "opacity", (1 - ph * .8).toFixed(2)); sty(z, "fontSize", pkR(12 + j * 3 + ph * 4) + "px"); });
     if (!R && !cof && !doze && W2 == null) { sty(r.cup, "display", "none"); r.steam.forEach(s => sty(s, "display", "none")); return; }
@@ -2712,7 +2713,9 @@ function pokeBig(h) {
     return `<div class="pk-dex"><h4>🥚 ${X("이스터에그", "Easter eggs")} <span class="cnt">${n}/8</span><small>${X("찾은 것만 조건이 보여요 · 못 찾은 건 힌트만", "Conditions show once found · hints only for the rest")}</small></h4><div class="eg">${PK.EGGS.map(e => { const f = sv.eggs[e.id];
       return `<div class="${f ? "f" : ""}"><b>${f ? e.e + " " + esc(P.L(e.n)) : "❔ ???"}</b>${f ? esc(P.L(e.c)) + `<em>${esc(ymd(new Date(f)))}</em>` : X("힌트: ", "Hint: ") + esc(P.L(e.h))}</div>`; }).join("")}</div></div>`;
   }
-  return { build, tap, jump, actor, bossIdle, bossAfter, car, carBusy, frame, dexHtml, eggN: () => (P.load(), P.eggN()), reload: () => { if (P.load()) dirty = true; }, busy: tc => P.busy(tc) || !!pkCar.cur };
+  return { build, tap, jump, actor, bossIdle, bossAfter, car, carBusy, frame,
+    bossCof: () => !!(G && G.fl[G.n] && G.fl[G.n].cof), bossBub: () => !!(G && G.fl[G.n] && G.fl[G.n].bbub),   // ☕🎂 TINY 사장님 묶음: 커피 드는 중 · 👆 사장님 반응 말풍선
+    dexHtml, eggN: () => (P.load(), P.eggN()), reload: () => { if (P.load()) dirty = true; }, busy: tc => P.busy(tc) || !!pkCar.cur };
 }
 
 /* ---------- 👆 미니 보기(282×162): 같은 반응의 축소판. 누를 자리 = [data-act=poke](코어가 4px 넘게 끌 때만 창 끌기) ---------- */
@@ -3972,8 +3975,13 @@ function decorMini(h) {
      ☂️ 우산 꽂이 — 1층 커피머신 자리와 현관문 사이. 날씨(주간 한도)가 비·눈이면 사장님 우산 + 직원 층 수만큼(최대 5, 동물마다 색·손잡이 높이), 아니면 사장님 우산 하나
      🛗 엘리베이터 점검 — 하루 1~2번 10분(10~18시 중 날짜 해시로 정해짐) 카 문에 "🔧 점검 중". 기다리는 직원은 계단 쪽으로 가려다 돌아오는 척만(실제 이동 규칙은 그대로)
      🧹 청소부 — 📋 퇴근 일보 카드를 닫으면 일 안 하는 층(완료·쉼)을 위층부터 한 층씩(5초) 빗자루로 쓸고 지나감 · 그새 다시 일하면 그 층은 건너뜀 · 움직임 줄이기면 생략
+   - 👔 사장님 묶음(#38, 1층 사장님 책상 · 사장님 자리(👆 56~142)와 모니터(👆 200~) 사이):
+     ☕ 머그컵 — 몸통에 짧은 글자(#1 · PR✓ · LGTM …), 누르면 다음 문구로 순환하고 전체 문구가 2.5초 떠오름(👆 POKE와 따로 · 이스터에그 집계와 무관).
+       고른 문구는 저장 m. 사장님이 실제로 커피 컵을 든 동안(POKE bossAfter의 cof)은 책상 머그를 잠깐 치움 · 전체 문구 딱지는 머그 오른쪽 위에서 모니터 쪽으로
+     🎂 설치 기념일 — 처음 연 날(저장 fd, 새벽 4시 기준)과 같은 월·일이면 N주년(첫해 당일 0주년은 없음, 2/29 설치면 평년엔 2/28): 책상에 케이크(초 N개, 최대 9 · 촛불 깜빡)
+       + "🎉 N주년" 딱지 + 그날 한 번 사장님 한마디 "벌써 N년이네요!" — 사장님 말풍선·👆 반응·머그 딱지가 비어 있을 때까지 미뤘다가 말하고 그때 cd(한마디 한 날) 저장
    - 개발용 쿼리 ?tiny=night(밤처럼) · ?tiny=streak(3일 연속인 척) · ?tiny=cups(50분 일한 척) · ?tiny=desk(컨텍스트 92% · 도구 520 · 75분 · 로봇 배터리 0칸)
-     · ?tiny=wait1(질문 1분 30초) · wait3(4분) · oct(모두 문어, 도감엔 안 남김) · monday · friday · pigeon(곧 앉음) · rain(비) · repair · clean(계속 청소), 쉼표로 여럿. 저장에는 반영하지 않음 */
+     · ?tiny=wait1(질문 1분 30초) · wait3(4분) · oct(모두 문어, 도감엔 안 남김) · monday · friday · pigeon(곧 앉음) · rain(비) · repair · clean(계속 청소) · cake(1주년) · mug(누른 문구 저장 안 함), 쉼표로 여럿. 저장에는 반영하지 않음 */
 const TINY = (() => {
   const K = "#2e2040";
   const dev = (() => { try { return new Set((new URLSearchParams(location.search).get("tiny") || "").split(",")); } catch { return new Set(); } })();   // 개발용 쿼리(위 목록)
@@ -4008,12 +4016,13 @@ const TINY = (() => {
   function load(raw) {
     let j = null; try { j = JSON.parse(raw || "null"); } catch {}
     const d = Object.create(null), ss = Object.create(null);   // 프로토타입 없는 맵(프로젝트 이름 · sid = 키)
-    if (!j || typeof j !== "object" || typeof j.v !== "number") return { v: VER, d, s: ss };
+    if (!j || typeof j !== "object" || typeof j.v !== "number") return { v: VER, d, s: ss, m: 0, fd: "", cd: "" };
     if (j.d && typeof j.d === "object" && !Array.isArray(j.d)) Object.keys(j.d).forEach(p => { if (own(j.d, p)) d[p] = j.d[p].filter(x => typeof x === "string"); });
     if (j.s && typeof j.s === "object" && !Array.isArray(j.s)) Object.keys(j.s).forEach(k => { if (ownS(j.s, k)) { const e = j.s[k], n = v => Number.isFinite(v) ? v : 0; ss[k] = { t0: e.t0, acc: n(e.acc), last: n(e.last), seen: n(e.seen), day: typeof e.day === "string" ? e.day : "" }; } });
-    return { v: VER, d, s: ss, ro: j.v > VER };
+    const day = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
+    return { v: VER, d, s: ss, m: Number.isInteger(j.m) && j.m >= 0 ? j.m % MUGS.length : 0, fd: day(j.fd), cd: day(j.cd), ro: j.v > VER };   // m 머그 문구 · fd 설치한 날 · cd 기념일 한마디 한 날(#38 사장님 묶음, v 1에 더한 필드)
   }
-  const dump = s => JSON.stringify({ v: VER, d: s.d, s: s.s });
+  const dump = s => JSON.stringify(Object.assign({ v: VER, d: s.d, s: s.s }, s.m ? { m: s.m } : null, s.fd ? { fd: s.fd } : null, s.cd ? { cd: s.cd } : null));
   /* 세션 출근 기록: 처음 보면 t0(이미 일하던 중이면 started) · 새벽 4시 넘으면 t0 = 지금 · 도구 수가 줄면 지난 턴을 누적 · 이틀 안 본 sid 정리 → 바뀌었으면 true */
   function track(s, floors, now, today) {
     let ch = false;
@@ -4042,12 +4051,22 @@ const TINY = (() => {
   const cups = (f, run) => !f || f.layout === "meet" || !["work", "agents", "ask", "stall"].includes(f.kind) ? 0 : Math.min(CUP_MAX, Math.floor(run / CUP_SEC));
   const night = (d = new Date()) => d.getHours() >= 22 || d.getHours() < 6;
   const PIG = 240, PIG_SIT = 35, PIG_X = 806;   // 🐦 주기·머무는 초 · 창 위 창틀 x(창 782~840 · 👆 창 누를 자리 y 38~88 바로 위)
-  const UMB_X = 422;   // ☂️ 커피머신(392~422)과 현관문(438~) 사이
+  const UMB_X = 422;
+  ART.mugB = { r: ["KKKKKKKK..", "KWWWWWWK..", "KWWWWWWKKK", "KWWWWWWK.K", "KWWWWWWK.K", "KWWWWWWKKK", "KWWWWWWK..", ".KWWWWK...", "..KKKK...."], p: { K, W: "#fffaf0" } };
+  ART.cake = { r: [".KKKKKKKKKK.", "KWWWWWWWWWWK", "KPWPPWPPWPPK", "KPPPPPPPPPPK", "KCCCCCCCCCCK", "KPPPPPPPPPPK", "KKKKKKKKKKKK"], p: { K, W: "#fffaf0", P: "#ff9ab8", C: "#fff1a8" } };
+  /* ☕ 사장님 머그 문구: [머그에 찍는 짧은 글자, ko, en] */
+  const MUGS = [["#1", "세계 최고 사장(아마도)", "World's OK-est boss"], ["☕", "커피 먼저", "Coffee first"], ["PR✓", "PR 승인 담당", "Chief PR approver"], ["BUG", "버그는 내 탓 아님", "Not my bug"],
+    ["LGTM", "대충 좋아 보임", "Looks good to me"], ["5h", "한도는 소중해", "Mind the limit"], ["OK", "다 잘 될 거야", "It'll all be fine"], ["Zzz", "회의는 짧게", "Keep meetings short"]];
+  const MUG_X = 166, CAKE_X = 143;   // 머그(166~196) · 케이크(143~167): 사장님 👆(~142)과 모니터 👆(200~) 사이 책상 위
+  /* 🎂 기념일: fd(설치한 날) 기준 오늘이 같은 월·일이면 햇수(2/29 설치 → 평년엔 2/28), 아니면 0 */
+  const anniv = (fd, today) => { const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fd || ""), b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(today || ""); if (!a || !b) return 0;
+    const y = +b[1], leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0, md = a[2] === "02" && a[3] === "29" && !leap ? "02-28" : a[2] + "-" + a[3];
+    return md === b[2] + "-" + b[3] ? Math.max(0, y - +a[1]) : 0; };   // ☂️ 커피머신(392~422)과 현관문(438~) 사이
   const repair = t => { const d = new Date(t * 1000), m = d.getHours() * 60 + d.getMinutes(), hh = fnv("fix" + dayKey(t)), n = 1 + (hh & 1);   // 🛗 하루 1~2번 10분, 10~18시
     for (let k = 0; k < n; k++) { const st = 600 + ((hh >>> (4 + k * 9)) % 470); if (m >= st && m < st + 10) return true; } return false; };
   const monday = t => new Date((t - 4 * 3600) * 1000).getDay() === 1;   // 새벽 4시 기준 하루
   const friday = t => { const d = new Date(t * 1000), w = d.getDay(), hh = d.getHours(); return (w === 5 && hh >= 17) || (w === 6 && hh < 4); };
-  return { ART, MUG, CUP_X, PASS, PERIOD, X0, X1, STAND_X, COAT, PILE_X, FLAG_X, COAT_X, OUT_X, sheets, flagOf, battery, own, ownS, dayKey, load, dump, track, mark, streak, cups, night, monday, friday, repair, PIG, PIG_SIT, PIG_X, UMB_X, dev, fri: false, mon: false, fix: false };   // fix: 🛗 지금 점검 중(tinyBig.frame이 갱신)   // fri: 🌺 셔츠 입는 시간 · mon: 🥱 월요일(tinyBig.pre가 본체 frame 맨 앞에서 갱신, 본체 setP·actor가 읽음)
+  return { ART, MUG, CUP_X, PASS, PERIOD, X0, X1, STAND_X, COAT, PILE_X, FLAG_X, COAT_X, OUT_X, sheets, flagOf, battery, own, ownS, dayKey, load, dump, track, mark, streak, cups, night, monday, friday, repair, PIG, PIG_SIT, PIG_X, UMB_X, MUGS, MUG_X, CAKE_X, anniv, dev, fri: false, mon: false, fix: false };   // fix: 🛗 지금 점검 중(tinyBig.frame이 갱신)   // fri: 🌺 셔츠 입는 시간 · mon: 🥱 월요일(tinyBig.pre가 본체 frame 맨 앞에서 갱신, 본체 setP·actor가 읽음)
 })();
 
 /* ---------- ☕ 큰 화면: 층마다 빈 잔 · 연속 출근 달력 · 1층 야간 경비 고양이. h = 스튜디오 본체 연결 ---------- */
@@ -4061,19 +4080,23 @@ function tinyBig(h) {
   /* 상태 → 오늘 일한 프로젝트 · 세션 출근 기록(큰 화면만 씀, 바뀌었을 때만 저장) */
   function read(floors) {
     floors = floors || []; const now = ctx.now(), live = new Set(floors.map(keyOf).filter(Boolean)); day = T_.dayKey(now);
-    const a = T_.mark(s, live, day), b = T_.track(s, floors, now, day); if (a || b) save();
+    const a = T_.mark(s, live, day), b = T_.track(s, floors, now, day), c = !s.fd && (s.fd = day); if (a || b || c) save();   // fd: 처음 연 날(기존 사용자는 이 버전을 처음 연 날)
     cur = new Map(floors.map(f => [f.sid, f])); for (const k of pops.keys()) if (!cur.has(k)) pops.delete(k);
     st = new Map([...live].map(p => [p, (n => dev.has("streak") ? Math.max(3, n) : n)(T_.streak(T_.own(s.d, p) ? s.d[p] : null, day))]));
   }
   function build(o) {
-    G = { fl: [], cat: null, tents: [], umb: null, fix: null, pig: null, mop: null, sky: h.view ? h.view.querySelector(".bird") : null };   // sky: 하늘을 나는 비둘기 하나(내려앉는 동안 숨김)
+    G = { fl: [], cat: null, tents: [], mug: null, cake: null, B: 0, umb: null, fix: null, pig: null, mop: null, sky: h.view ? h.view.querySelector(".bird") : null };   // sky: 하늘을 나는 비둘기 하나(내려앉는 동안 숨김)
     if (o.carEl) G.fix = mkEl("div", "b tn-fix", o.carEl, { display: "none" }, "🔧 " + X("점검 중", "Repair"));   // 🛗 카 문 스티커(카와 함께 움직임)
     o.FL.forEach((fl, i) => {
       if (i === o.n) {   // 1층: 경비 고양이 · 손전등 빛 · 말풍선
-        const c = G.cat = { F: fl.F, B: fl.B };
+        const c = G.cat = { F: fl.F, B: fl.B }; G.B = fl.B;
         c.beam = mkEl("div", "b tn-beam", fl.F, { display: "none" });
         c.el = mkEl("img", "b tn-cat", fl.F, { display: "none", pointerEvents: "none" }); c.el.alt = ""; c.el.draggable = false; c.el.title = X("야간 경비 고양이", "Night guard cat");
         c.bub = mkEl("div", "bub tn-bub", fl.F, { display: "none" });
+        G.mug = mkEl("div", "b tn-mug", fl.F, { left: T_.MUG_X + "px", top: (fl.B - 26 - 27) + "px" }, "<img alt=\"\" draggable=\"false\"><b></b>"); G.mug.firstChild.src = WB.pix(T_.ART.mugB, 3).url;   // ☕ 누르면 문구 순환
+        G.mugT = mkEl("div", "b tn-mugt", fl.F, { display: "none" });   // 전체 문구(2.5초)
+        G.cake = mkEl("div", "b tn-cake", fl.F, { left: T_.CAKE_X + "px", top: (fl.B - 26 - 14) + "px", display: "none" }); G.cake.innerHTML = `<img alt="" src="${WB.pix(T_.ART.cake, 2).url}"><span></span><em></em>`;
+        G.bossB = mkEl("div", "bub tn-bossb", fl.F, { display: "none" });
         G.umb = mkEl("div", "b tn-umb", fl.F, { left: T_.UMB_X + "px", top: (fl.B - 34) + "px" });   // ☂️ (누를 수 없음 → title 없음)
         return;
       }
@@ -4096,6 +4119,30 @@ function tinyBig(h) {
   }
   ctx.listen(doc, "click", e => { if (!G || !G.cat || e.target !== G.cat.el) return; say = h.clockT(); h.kick(); });
   /* 🐦 비둘기를 누르면 파닥 날아감 — 캡처 단계에서 먼저 받아 다른 클릭 처리(👆·층 이동 등)로 넘기지 않음 */
+  /* ☕ 사장님 머그: 누르면 다음 문구(캡처 단계에서 받아 👆 등 다른 클릭 처리로 넘기지 않음) */
+  let mugT = -9, bossSay = -9;
+  ctx.listen(doc, "click", e => { if (!G || !G.mug || !G.mug.contains(e.target) || G.mug.style.display === "none") return; e.stopPropagation(); e.preventDefault();
+    s.m = (s.m + 1) % T_.MUGS.length; if (!dev.has("mug")) save(); mugT = h.clockT(); G.mug._k = null; h.kick(); }, true);
+  const boss = (now, tc, anim, hid) => {
+    if (!G.mug) return;
+    const off = hid || (h.dr && h.dr()), M = T_.MUGS[s.m % T_.MUGS.length], en = ctx.lang === "en";
+    const sip = !!(h.cof && h.cof());   // 👆 POKE 사장님이 실제로 커피 컵을 든 프레임(bossAfter의 cof)
+    const mk = off || sip ? "x" : M[0] + ctx.lang;
+    if (G.mug._k !== mk) { G.mug._k = mk; sty(G.mug, "display", mk === "x" ? "none" : "block"); if (mk !== "x") { txt(G.mug.lastChild, M[0]); G.mug.title = (en ? M[2] : M[1]) + X(" · 누르면 다른 문구", " · click for another"); } }
+    const ts = !off && tc - mugT < 2.5; sty(G.mugT, "display", ts ? "block" : "none");
+    if (ts) { txt(G.mugT, "☕ " + (en ? M[2] : M[1])); sty(G.mugT, "left", (T_.MUG_X + 20) + "px"); sty(G.mugT, "top", (G.B - 70 - (anim ? Math.round(Math.min(tc - mugT, .3) * 20) : 6)) + "px"); }   // 머그 오른쪽 위에서 모니터 쪽으로(사장님 머리 위 말풍선 줄과 안 겹침)
+    /* 🎂 기념일 */
+    const n = off ? 0 : dev.has("cake") ? 1 : T_.anniv(s.fd, day), ck = n ? n + ctx.lang : "";
+    if (G.cake._k !== ck) { G.cake._k = ck; sty(G.cake, "display", n ? "block" : "none");
+      if (n) { const c = Math.min(n, 9); html(G.cake.children[1], Array.from({ length: c }, (_, j) => `<i style="left:${Math.round(3 + (c > 1 ? j * 16 / (c - 1) : 8))}px"></i>`).join("")); txt(G.cake.children[2], X(`🎉 ${n}주년`, `🎉 ${n} yr${n > 1 ? "s" : ""}`)); } }
+    if (n) G.cake.classList.toggle("dim", anim && Math.floor(tc * 3) % 2 === 1);   // 촛불 깜빡(정지면 켠 채로)
+    /* 한마디는 사장님이 보이고 · 사장님 말풍선(🎁 새 버전 · 📋 일보 · 질문 인사 …)이 비어 있고 · 👆 사장님 반응·머그 딱지가 없을 때만. 그 전까진 미뤘다가 비면 그때(말한 뒤에야 cd 저장) */
+    const bb = h.boss && h.boss(), free = !!bb && bb.el.style.display !== "none" && bb.bub.style.display !== "block" && !(h.pkBub && h.pkBub()) && !ts;
+    if (n && s.cd !== day && bossSay < 0 && free) { bossSay = tc; if (!dev.has("cake")) { s.cd = day; save(); } }   // 그날 한 번
+    const sayOn = n && bossSay >= 0 && tc - bossSay < 6 && free;
+    sty(G.bossB, "display", sayOn ? "block" : "none");
+    if (sayOn) { txt(G.bossB, X(`벌써 ${n}년이네요! 🎂`, `${n} year${n > 1 ? "s" : ""} already! 🎂`)); sty(G.bossB, "left", Math.round(parseFloat(bb.el.style.left) + bb.w / 2) + "px"); sty(G.bossB, "top", Math.round(parseFloat(bb.el.style.top) - 34) + "px"); }
+  };
   const pg = { cyc: -1, sid: "", away: null };   // 이번 주기에 앉을 층(sid, 주기 시작 때 고정) · 누른 시각(1초 파닥 날아간 뒤 그 주기엔 다시 안 옴)
   ctx.listen(doc, "click", e => { if (!G || !G.pig || !G.pig.el.contains(e.target) || G.pig.el.style.pointerEvents !== "auto") return; e.stopPropagation(); e.preventDefault(); if (pg.away == null) pg.away = h.clockT(); h.kick(); }, true);
   const mop = { list: null, k: 0, t0: 0, prevDr: false };   // 🧹 청소 차례(층 sid 목록)
@@ -4160,6 +4207,7 @@ function tinyBig(h) {
       if (r.pile) desk(r, now, tc, anim, hid);
     });
     bldg(now, tc, anim, hid);   // 🏢 건물 묶음
+    boss(now, tc, anim, hid);   // 👔 사장님 머그·기념일 케이크
     const c = G.cat; if (!c) return;
     const on = (dev.has("night") || T_.night(new Date(now * 1000))) && !hid;
     if (!on) { [c.el, c.beam, c.bub].forEach(e => sty(e, "display", "none")); return; }
@@ -4482,7 +4530,7 @@ C.registerMode({
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
       lv: () => lvOf(), funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); } });
-    const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
+    const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
     const pwWins = [];
 
     let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, confs = [], askb, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";

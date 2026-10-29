@@ -526,6 +526,18 @@ body[data-mode="studio"] .stu .tn-pig { z-index: 9; image-rendering: pixelated; 
 body[data-mode="studio"] .stu .tn-mop { z-index: 13; pointer-events: none; }
 body[data-mode="studio"] .stu .tn-mop img { image-rendering: pixelated; }
 body[data-mode="studio"] .stu .tn-dust { width: 10px; height: 6px; background: radial-gradient(circle at 30% 50%, #b8a890 0 2px, transparent 2.5px), radial-gradient(circle at 75% 40%, #c9bba6 0 1.5px, transparent 2px); }
+/* 👔 사장님 묶음(#38): 머그 문구 · 기념일 케이크 */
+body[data-mode="studio"] .stu .tn-mug { z-index: 10; width: 30px; height: 27px; cursor: pointer; }
+body[data-mode="studio"] .stu .tn-mug img { position: absolute; left: 0; top: 0; width: 30px; height: 27px; image-rendering: pixelated; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-mug b { position: absolute; left: 3px; top: 6px; width: 18px; text-align: center; font-size: 8px; line-height: 10px; font-weight: 900; color: #d23a4a; letter-spacing: -.5px; white-space: nowrap; overflow: hidden; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-mugt { z-index: 31; padding: 1px 6px; background: #fffaf0; border: 2px solid #4a3560; box-shadow: 0 2px 0 rgba(46, 32, 64, .3); font-size: 12px; line-height: 16px; font-weight: 900; color: #2e2040; white-space: nowrap; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-cake { z-index: 10; width: 24px; height: 14px; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-cake img { position: absolute; left: 0; top: 0; width: 24px; height: 14px; image-rendering: pixelated; }
+body[data-mode="studio"] .stu .tn-cake span i { position: absolute; top: -7px; width: 2px; height: 7px; background: repeating-linear-gradient(#ff6b8a 0 2px, #fff 2px 4px); }
+body[data-mode="studio"] .stu .tn-cake span i:before { content: ""; position: absolute; left: -1px; top: -5px; width: 4px; height: 5px; background: #ffd23f; border-radius: 50% 50% 40% 40%; box-shadow: 0 -1px 0 #ff9a3c; }
+body[data-mode="studio"] .stu .tn-cake.dim span i:before { opacity: .45; }
+body[data-mode="studio"] .stu .tn-cake em { position: absolute; left: 50%; top: -28px; transform: translateX(-50%); padding: 0 4px; background: #fff3a0; border: 2px solid #4a3560; font-style: normal; font-size: 10px; line-height: 13px; font-weight: 900; color: #2e2040; white-space: nowrap; }
+body[data-mode="studio"] .stu .tn-bossb { z-index: 30; pointer-events: none; }
 @media (prefers-color-scheme: dark) {
   body[data-mode="studio"] .stu .tn-beam { background: linear-gradient(90deg, rgba(255, 240, 160, .9), rgba(255, 240, 160, 0)); }
 }
