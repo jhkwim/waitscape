@@ -31,6 +31,7 @@
 | 2026-10-28 | #30 | f28e582 | ci, security (Flash) + Claude 전문가 | - | 0/4/5/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 업데이터 키 유출 시 회전 가능(재설치 불필요)·인증서 폐기 영향·API 키 범위·"경고 없이" 과장 등 (Flash medium·Claude) |
 | 2026-10-28 | #32 | e37bfff | ci (Flash) + Claude 전문가 | - | 0/1/2/0 | 100% | 67% | 100% | 0% | 지난 0.4.1 노트 문구는 이력이라 유지 | - | Flash 0건 → Claude가 병합 뒤 정리 시점·PAT 폐기·남은 '복사' 문구 (Flash medium·Claude) |
 | 2026-10-29 | #39 | ac7b0cb | frontend (Flash) + Claude 전문가 | - | 0/2/8/0 | 100% | 90% | 100% | 10% | 서 있는 고양이 크기는 다른 누를 자리와 겹치지 않게 2배 유지 | - | Flash 0건 → Claude가 Object 프로토타입 키 TypeError·고양이와 👆·현관문 클릭 충돌 등 (Flash medium·Claude) |
+| 2026-10-29 | #40 | 844061f | frontend (Flash·Argon 비교) + Claude 전문가 | 436·188 | 0/1/6/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 · Argon 🔵2(깃발 재솟음 = Claude와 같음, 자리 비운 로봇의 배터리·케이블 = Claude가 놓침) · Claude가 턴마다 리셋되는 시간·도구 기준 등 (Flash medium·Argon medium·Claude) |
 | 2026-10-29 | #33 | 2dba0b6 | frontend (Flash) + Claude 전문가 | - | 0/0/2/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 아주 좁을 때 제목 한 글자만 남음·툴팁 (Flash medium·Claude) |
 | 2026-10-29 | #34 | feb0721 | auto (Flash) + Claude 전문가 | 309 | 1/4/9/0 | 100% | 86% | 93% | 7% | Windows explorer는 .html을 기본 브라우저로 엶(오탐) | - | Flash가 문서 누락·방어 코드 → Claude가 Windows cp1252 인코딩(🔴)·WebView2 SDK 고지 누락·괄호 검사 등 (Flash medium·Claude) |
 
