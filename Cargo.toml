@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/wr-core", "crates/wr-hook", "crates/wr-server", "app/src-tauri"]
 
 [workspace.package]
-version = "0.4.3"
+version = "0.5.0"
 edition = "2021"
 license = "MIT"
 # 1.89: 일지(wr-core daylog.rs)의 File::try_lock(flock)이 1.89에서 안정화. 의존성(icu_* 등)은 1.88, 코드는 is_none_or(1.82)·trim_ascii(1.80)도 사용.
