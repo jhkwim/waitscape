@@ -2602,6 +2602,7 @@ function pokeBig(h) {
     const still = !anim, bs = busy ? "work" : bossState(tc, anim), R = P.act("boss.a", tc), wv = P.wave(tc), W2 = wv == null ? null : wv - n * .22, ua = R ? tc - R.t0 : 0;
     /* 평소 몸짓: 꾸벅(Z) · 커피 한 모금(컵 + 김) */
     const doze = bs === "doze" && !busy && !(R && ["startle", "trick"].includes(R.m)), cof = bs === "coffee" && !busy && !(R && ["startle", "trick", "thumb"].includes(R.m));
+    r.cof = cof;   // ☕ TINY 사장님 머그: 실제로 커피를 드는 동안 책상 머그를 치움
     const L0 = parseFloat(boss.el.style.left), T0 = parseFloat(boss.el.style.top);
     r.zs.forEach((z, j) => { if (!doze || (R && ua < R.dur)) { sty(z, "display", "none"); return; } const ph = still ? j * .3 : (T * .6 + j / 3) % 1; sty(z, "display", "block"); sty(z, "left", pkR(L0 + boss.w / 2 + 14 + ph * 16) + "px"); sty(z, "top", pkR(T0 + 10 - ph * 24) + "px"); sty(z, "opacity", (1 - ph * .8).toFixed(2)); sty(z, "fontSize", pkR(12 + j * 3 + ph * 4) + "px"); });
     if (!R && !cof && !doze && W2 == null) { sty(r.cup, "display", "none"); r.steam.forEach(s => sty(s, "display", "none")); return; }
@@ -2712,7 +2713,9 @@ function pokeBig(h) {
     return `<div class="pk-dex"><h4>🥚 ${X("이스터에그", "Easter eggs")} <span class="cnt">${n}/8</span><small>${X("찾은 것만 조건이 보여요 · 못 찾은 건 힌트만", "Conditions show once found · hints only for the rest")}</small></h4><div class="eg">${PK.EGGS.map(e => { const f = sv.eggs[e.id];
       return `<div class="${f ? "f" : ""}"><b>${f ? e.e + " " + esc(P.L(e.n)) : "❔ ???"}</b>${f ? esc(P.L(e.c)) + `<em>${esc(ymd(new Date(f)))}</em>` : X("힌트: ", "Hint: ") + esc(P.L(e.h))}</div>`; }).join("")}</div></div>`;
   }
-  return { build, tap, jump, actor, bossIdle, bossAfter, car, carBusy, frame, dexHtml, eggN: () => (P.load(), P.eggN()), reload: () => { if (P.load()) dirty = true; }, busy: tc => P.busy(tc) || !!pkCar.cur };
+  return { build, tap, jump, actor, bossIdle, bossAfter, car, carBusy, frame,
+    bossCof: () => !!(G && G.fl[G.n] && G.fl[G.n].cof), bossBub: () => !!(G && G.fl[G.n] && G.fl[G.n].bbub),   // ☕🎂 TINY 사장님 묶음: 커피 드는 중 · 👆 사장님 반응 말풍선
+    dexHtml, eggN: () => (P.load(), P.eggN()), reload: () => { if (P.load()) dirty = true; }, busy: tc => P.busy(tc) || !!pkCar.cur };
 }
 
 /* ---------- 👆 미니 보기(282×162): 같은 반응의 축소판. 누를 자리 = [data-act=poke](코어가 4px 넘게 끌 때만 창 끌기) ---------- */
@@ -3974,9 +3977,9 @@ function decorMini(h) {
      🧹 청소부 — 📋 퇴근 일보 카드를 닫으면 일 안 하는 층(완료·쉼)을 위층부터 한 층씩(5초) 빗자루로 쓸고 지나감 · 그새 다시 일하면 그 층은 건너뜀 · 움직임 줄이기면 생략
    - 👔 사장님 묶음(#38, 1층 사장님 책상 · 사장님 자리(👆 56~142)와 모니터(👆 200~) 사이):
      ☕ 머그컵 — 몸통에 짧은 글자(#1 · PR✓ · LGTM …), 누르면 다음 문구로 순환하고 전체 문구가 2.5초 떠오름(👆 POKE와 따로 · 이스터에그 집계와 무관).
-       고른 문구는 저장 m. 사장님이 커피 한 모금 마실 때(POKE 사장님 컵)는 책상 머그를 잠깐 치움
+       고른 문구는 저장 m. 사장님이 실제로 커피 컵을 든 동안(POKE bossAfter의 cof)은 책상 머그를 잠깐 치움 · 전체 문구 딱지는 머그 오른쪽 위에서 모니터 쪽으로
      🎂 설치 기념일 — 처음 연 날(저장 fd, 새벽 4시 기준)과 같은 월·일이면 N주년(첫해 당일 0주년은 없음, 2/29 설치면 평년엔 2/28): 책상에 케이크(초 N개, 최대 9 · 촛불 깜빡)
-       + "🎉 N주년" 딱지 + 그날 한 번 사장님 한마디 "벌써 N년이네요!"(저장 cd = 한마디 한 날)
+       + "🎉 N주년" 딱지 + 그날 한 번 사장님 한마디 "벌써 N년이네요!" — 사장님 말풍선·👆 반응·머그 딱지가 비어 있을 때까지 미뤘다가 말하고 그때 cd(한마디 한 날) 저장
    - 개발용 쿼리 ?tiny=night(밤처럼) · ?tiny=streak(3일 연속인 척) · ?tiny=cups(50분 일한 척) · ?tiny=desk(컨텍스트 92% · 도구 520 · 75분 · 로봇 배터리 0칸)
      · ?tiny=wait1(질문 1분 30초) · wait3(4분) · oct(모두 문어, 도감엔 안 남김) · monday · friday · pigeon(곧 앉음) · rain(비) · repair · clean(계속 청소) · cake(1주년) · mug(누른 문구 저장 안 함), 쉼표로 여럿. 저장에는 반영하지 않음 */
 const TINY = (() => {
@@ -4017,7 +4020,7 @@ const TINY = (() => {
     if (j.d && typeof j.d === "object" && !Array.isArray(j.d)) Object.keys(j.d).forEach(p => { if (own(j.d, p)) d[p] = j.d[p].filter(x => typeof x === "string"); });
     if (j.s && typeof j.s === "object" && !Array.isArray(j.s)) Object.keys(j.s).forEach(k => { if (ownS(j.s, k)) { const e = j.s[k], n = v => Number.isFinite(v) ? v : 0; ss[k] = { t0: e.t0, acc: n(e.acc), last: n(e.last), seen: n(e.seen), day: typeof e.day === "string" ? e.day : "" }; } });
     const day = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
-    return { v: VER, d, s: ss, m: Number.isInteger(j.m) && j.m >= 0 ? j.m : 0, fd: day(j.fd), cd: day(j.cd), ro: j.v > VER };   // m 머그 문구 · fd 설치한 날 · cd 기념일 한마디 한 날(#38 사장님 묶음, v 1에 더한 필드)
+    return { v: VER, d, s: ss, m: Number.isInteger(j.m) && j.m >= 0 ? j.m % MUGS.length : 0, fd: day(j.fd), cd: day(j.cd), ro: j.v > VER };   // m 머그 문구 · fd 설치한 날 · cd 기념일 한마디 한 날(#38 사장님 묶음, v 1에 더한 필드)
   }
   const dump = s => JSON.stringify(Object.assign({ v: VER, d: s.d, s: s.s }, s.m ? { m: s.m } : null, s.fd ? { fd: s.fd } : null, s.cd ? { cd: s.cd } : null));
   /* 세션 출근 기록: 처음 보면 t0(이미 일하던 중이면 started) · 새벽 4시 넘으면 t0 = 지금 · 도구 수가 줄면 지난 턴을 누적 · 이틀 안 본 sid 정리 → 바뀌었으면 true */
@@ -4123,18 +4126,20 @@ function tinyBig(h) {
   const boss = (now, tc, anim, hid) => {
     if (!G.mug) return;
     const off = hid || (h.dr && h.dr()), M = T_.MUGS[s.m % T_.MUGS.length], en = ctx.lang === "en";
-    const working = (h.floors() || []).some(f => ["work", "agents", "ask"].includes(f.kind)), sip = anim && working && (tc % 28) >= 20 && (tc % 28) < 23.5;   // POKE 사장님이 커피 마시는 때(bossState)와 같은 규칙
+    const sip = !!(h.cof && h.cof());   // 👆 POKE 사장님이 실제로 커피 컵을 든 프레임(bossAfter의 cof)
     const mk = off || sip ? "x" : M[0] + ctx.lang;
     if (G.mug._k !== mk) { G.mug._k = mk; sty(G.mug, "display", mk === "x" ? "none" : "block"); if (mk !== "x") { txt(G.mug.lastChild, M[0]); G.mug.title = (en ? M[2] : M[1]) + X(" · 누르면 다른 문구", " · click for another"); } }
     const ts = !off && tc - mugT < 2.5; sty(G.mugT, "display", ts ? "block" : "none");
-    if (ts) { txt(G.mugT, "☕ " + (en ? M[2] : M[1])); sty(G.mugT, "left", (T_.MUG_X + 15) + "px"); sty(G.mugT, "top", (G.B - 96 - (anim ? Math.round(Math.min(tc - mugT, .3) * 20) : 6)) + "px"); }
+    if (ts) { txt(G.mugT, "☕ " + (en ? M[2] : M[1])); sty(G.mugT, "left", (T_.MUG_X + 20) + "px"); sty(G.mugT, "top", (G.B - 70 - (anim ? Math.round(Math.min(tc - mugT, .3) * 20) : 6)) + "px"); }   // 머그 오른쪽 위에서 모니터 쪽으로(사장님 머리 위 말풍선 줄과 안 겹침)
     /* 🎂 기념일 */
     const n = off ? 0 : dev.has("cake") ? 1 : T_.anniv(s.fd, day), ck = n ? n + ctx.lang : "";
     if (G.cake._k !== ck) { G.cake._k = ck; sty(G.cake, "display", n ? "block" : "none");
       if (n) { const c = Math.min(n, 9); html(G.cake.children[1], Array.from({ length: c }, (_, j) => `<i style="left:${Math.round(3 + (c > 1 ? j * 16 / (c - 1) : 8))}px"></i>`).join("")); txt(G.cake.children[2], X(`🎉 ${n}주년`, `🎉 ${n} yr${n > 1 ? "s" : ""}`)); } }
     if (n) G.cake.classList.toggle("dim", anim && Math.floor(tc * 3) % 2 === 1);   // 촛불 깜빡(정지면 켠 채로)
-    if (n && s.cd !== day && bossSay < 0) { bossSay = tc; if (!dev.has("cake")) { s.cd = day; save(); } }   // 그날 한 번
-    const bb = h.boss && h.boss(), sayOn = n && bossSay >= 0 && tc - bossSay < 6 && bb && bb.el.style.display !== "none" && bb.bub.style.display !== "block";
+    /* 한마디는 사장님이 보이고 · 사장님 말풍선(🎁 새 버전 · 📋 일보 · 질문 인사 …)이 비어 있고 · 👆 사장님 반응·머그 딱지가 없을 때만. 그 전까진 미뤘다가 비면 그때(말한 뒤에야 cd 저장) */
+    const bb = h.boss && h.boss(), free = !!bb && bb.el.style.display !== "none" && bb.bub.style.display !== "block" && !(h.pkBub && h.pkBub()) && !ts;
+    if (n && s.cd !== day && bossSay < 0 && free) { bossSay = tc; if (!dev.has("cake")) { s.cd = day; save(); } }   // 그날 한 번
+    const sayOn = n && bossSay >= 0 && tc - bossSay < 6 && free;
     sty(G.bossB, "display", sayOn ? "block" : "none");
     if (sayOn) { txt(G.bossB, X(`벌써 ${n}년이네요! 🎂`, `${n} year${n > 1 ? "s" : ""} already! 🎂`)); sty(G.bossB, "left", Math.round(parseFloat(bb.el.style.left) + bb.w / 2) + "px"); sty(G.bossB, "top", Math.round(parseFloat(bb.el.style.top) - 34) + "px"); }
   };
@@ -4525,7 +4530,7 @@ C.registerMode({
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
       lv: () => lvOf(), funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); } });
-    const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
+    const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
     const pwWins = [];
 
     let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, confs = [], askb, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
