@@ -11,7 +11,7 @@
 #   WR_GHJ        gh/git 앞에 붙일 래퍼(예: 계정 전환 없이 토큰만 주입하는 스크립트 경로). 기본: 없음
 #   WR_REPO       저장소 (기본 jhkwim/waitscape)
 #   WR_AGY        Antigravity CLI 실행 파일 (기본 ~/.local/bin/agy — PATH의 래퍼가 아닌 진짜 실행 파일)
-#   WR_MODEL      모델 강제 지정(1회만 실행, 자동 선택 무시). 교차 리뷰이므로 Gemini 계열만 쓴다
+#   WR_MODEL      모델 강제 지정(자동 선택 무시). Flash면 렌즈가 기본으로 붙어 기본+렌즈 5개 — 1회만 원하면 WR_LENSES= 도 함께. 교차 리뷰이므로 Gemini 계열만 쓴다
 #   WR_TIER       light|full|security 수동 지정 (생략하면 자동 선택. WR_MODEL이 있으면 그쪽이 우선)
 #   WR_FLASH      light/full 모델 (기본 gemini-3.8-flash-medium)
 #   WR_ARGON      security/full 모델 (기본 gemini-4-argon-medium)
@@ -26,7 +26,7 @@
 #   WR_KEEP=1     임시 체크아웃을 지우지 않음
 #   WR_DRY=1      프롬프트만 조립해 저장하고 agy는 실행하지 않음
 #
-# 모델 자동 선택(근거: CALIBRATION.md §Flash 비교):
+# 모델 자동 선택(근거: CALIBRATION.md §Flash 비교). 아래 "Flash 1회"는 렌즈가 켜져 있으면(기본) Flash 기본 패스 + 렌즈 5개를 동시에(§렌즈):
 #   light    작은 PR(< WR_BIG줄), 보안 민감 아님            → Flash 1회
 #   full     큰 PR(>= WR_BIG줄), 보안 민감 아님             → Flash 1회 + Argon 1회, 결과 합집합(중복 병합)
 #   security 라벨 security / security 체크리스트 대상 / 민감 경로 → Argon 1회 (큰 PR이면 + Flash 1회)
@@ -204,7 +204,7 @@ for l in $LENSES; do
     printf '\n\n---\n\n**재시도 규칙**: 앞선 실행이 도구 권한 문제로 실패했다. 이번에는 **어떤 도구도 호출하지 말고** 위에 포함된 diff와 요약만으로 답하라. 관점의 "찾아 읽어라"는 이번에는 diff 안에서만 따른다. 파일 전체를 봐야 확정되는 사항은 severity `question`으로 남기고 근거를 적는다.\n\n%s\n' "$LAST"; } > "$BASE.$l.strict.md"
 done
 
-if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md"; for l in $LENSES; do echo "$BASE.$l.prompt.md"; done; exit 0; fi
+if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md"; case " $MODELS " in *" $FLASH "*) for l in $LENSES; do echo "$BASE.$l.prompt.md"; done ;; esac; exit 0; fi
 
 # 6) agy 실행 (plan 모드 = 읽기 전용, 구조화 출력). 모델마다 실패하면 1회 재시도
 run_agy() {  # $1=모델 $2=결과 접두 $3=프롬프트 파일 $4=체크아웃(기본 $WORK/repo)
