@@ -69,8 +69,8 @@ Besides Studio there's 🐹 Hamster (one hamster per session), 🏟️ Scoreboar
 <tr>
 <td colspan="2" valign="middle">
 <h3>🔍 Tiny details</h3>
-Look closer and small things keep showing up. Empty coffee cups pile up during long sessions, a jacket lands on the chair, and papers stack up as the context fills. Use 500 tools and a flag pops up on the monitor; the robot plugs in a cable when its battery runs out. Staff waiting to ask a question start tapping their feet, everyone wears a flower on Friday afternoons, pigeons visit the window sills, a guard cat patrols at night, the boss's mug changes its slogan when you click it, and a cake appears on your install anniversary.
-<p align="center"><img src="docs/assets/details.png" width="860" alt="Tiny details — robot battery and charging cable, jacket on the chair, paper stacks, empty coffee cups, streak calendars, anniversary cake and the boss's mug"></p>
+Look closer at Studio and small things keep showing up. Empty coffee cups pile up during long sessions, a jacket lands on the chair, and papers stack up as the context fills. Hit 100, 500 and 1,000 tool calls and a flag pops up on the monitor; the robot plugs in a cable when its battery runs out. Staff waiting to ask a question start tapping their feet after a minute, and on Friday evenings everyone switches to Hawaiian shirts and a flower. Pigeons visit the window sills, a guard cat patrols at night, the boss's mug changes its slogan when you click it, and a cake appears on your install anniversary.
+<p align="center"><img src="docs/assets/details.png" width="860" alt="Tiny details — robot battery and charging cable, jacket on the chair, paper stacks, empty coffee cups, 500-tool flags, streak calendars, Friday hibiscus, anniversary cake and the boss's mug"></p>
 </td>
 </tr>
 </table>
