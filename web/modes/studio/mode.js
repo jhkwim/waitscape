@@ -494,7 +494,7 @@ function powerBig(h) {
       if (!r.has) return;
       sty(Q.pwI, "background", pwGaugeBg(ph, true));
       const P = PW_PH[ph];
-      html(Q.pwH, `${X("전력 · 5시간 한도", "Power · 5h limit")}${r.rem != null ? ` <span style="float:right">${ph === "out" ? X("리셋까지 ", "reset in ") + "<b>" + pwHM(r.rem) + "</b>" : X("리셋 ", "reset ") + esc(C.fmt(Math.max(0, r.rem)))}</span>` : ""}`);
+      html(Q.pwH, `<span class="t" title="${X("전력 · 5시간 한도", "Power · 5h limit")}">${X("전력 · 5시간 한도", "Power · 5h limit")}</span>${r.rem != null ? `<span class="r">${ph === "out" ? X("리셋까지 ", "reset in ") + "<b>" + pwHM(r.rem) + "</b>" : X("리셋 ", "reset ") + esc(C.fmt(Math.max(0, r.rem)))}</span>` : ""}`);
       sty(badge, "background", P[3]); txt(badge.firstChild, P[0]); txt(badge.lastChild, X(P[1], P[2]));
       badge.setAttribute("aria-label", `${X("전력", "Power")} ${X(P[1], P[2])} · ${Math.round(r.pct)}%`);
     },
@@ -5099,8 +5099,8 @@ C.registerMode({
       const lim = C.limits(st, now);
       if (lim.five.used != null) {
         gauge(lim.five, now, HUDQ.pwI, HUDQ.pwU, HUDQ.pwV);
-        html(HUDQ.pwH, `${X("전력 · 5시간 한도", "Power · 5h limit")}${lim.five.reset ? ` <span style="float:right">${X("리셋", "reset")} ${esc(C.fmt(Math.max(0, lim.five.reset - now)))}</span>` : ""}`);
-      } else { gauge({ used: null }, now, HUDQ.pwI, HUDQ.pwU, HUDQ.pwV); html(HUDQ.pwH, X("전력 · 5시간 한도 <span style=\"float:right\">정보 없음</span>", "Power · 5h limit <span style=\"float:right\">no data</span>")); }
+        html(HUDQ.pwH, `<span class="t" title="${X("전력 · 5시간 한도", "Power · 5h limit")}">${X("전력 · 5시간 한도", "Power · 5h limit")}</span>${lim.five.reset ? `<span class="r">${X("리셋", "reset")} ${esc(C.fmt(Math.max(0, lim.five.reset - now)))}</span>` : ""}`);
+      } else { gauge({ used: null }, now, HUDQ.pwI, HUDQ.pwU, HUDQ.pwV); html(HUDQ.pwH, X(`<span class="t" title="전력 · 5시간 한도">전력 · 5시간 한도</span><span class="r">정보 없음</span>`, `<span class="t" title="Power · 5h limit">Power · 5h limit</span><span class="r">no data</span>`)); }
       pwB.hud(HUDQ);   // 단계 무늬·배지 · 정전이면 "리셋까지"
       gauge(lim.week, now, HUDQ.wkI, null, HUDQ.wkV); txt($(".t-wk"), X("주간 한도", "Weekly limit") + pwB.wxIcon());
       const calling = st ? st.sessions.filter(s => s.status === "needs_input").length : 0;
