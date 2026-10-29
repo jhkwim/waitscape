@@ -511,6 +511,10 @@ body[data-mode="studio"] .stu .tn-out { z-index: 7; width: 9px; height: 10px; ba
 body[data-mode="studio"] .stu .tn-out:before, body[data-mode="studio"] .stu .tn-out:after { content: ""; position: absolute; top: 2px; left: 1px; width: 1px; height: 3px; background: #4a3560; }
 body[data-mode="studio"] .stu .tn-out:after { left: auto; right: 1px; }
 body[data-mode="studio"] .stu .tn-cab { z-index: 7; pointer-events: none; }
+/* 🤸 직원 몸짓(#38): 💦 · 하품 딱지(배우 요소 안) · 🐙 다리 끝(손 상자에 빨판) */
+body[data-mode="studio"] .stu .tn-sw { position: absolute; z-index: 31; font-size: 14px; line-height: 1; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-yawn { position: absolute; top: 4px; z-index: 31; font-size: 12px; font-weight: 900; font-style: italic; color: #6a5a88; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; white-space: nowrap; pointer-events: none; }
+body[data-mode="studio"] .stu .tn-tent { border-radius: 0 0 8px 8px; background-image: radial-gradient(circle at 50% 72%, #f3e2ff 0 2px, transparent 2.5px) !important; }
 @media (prefers-color-scheme: dark) {
   body[data-mode="studio"] .stu .tn-beam { background: linear-gradient(90deg, rgba(255, 240, 160, .9), rgba(255, 240, 160, 0)); }
 }
