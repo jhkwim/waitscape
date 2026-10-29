@@ -11,7 +11,7 @@
 #   WR_GHJ        gh/git 앞에 붙일 래퍼(예: 계정 전환 없이 토큰만 주입하는 스크립트 경로). 기본: 없음
 #   WR_REPO       저장소 (기본 jhkwim/waitscape)
 #   WR_AGY        Antigravity CLI 실행 파일 (기본 ~/.local/bin/agy — PATH의 래퍼가 아닌 진짜 실행 파일)
-#   WR_MODEL      모델 강제 지정(1회만 실행, 자동 선택 무시). 교차 리뷰이므로 Gemini 계열만 쓴다
+#   WR_MODEL      모델 강제 지정(자동 선택 무시). Flash면 렌즈가 기본으로 붙어 기본+렌즈 5개 — 1회만 원하면 WR_LENSES= 도 함께. 교차 리뷰이므로 Gemini 계열만 쓴다
 #   WR_TIER       light|full|security 수동 지정 (생략하면 자동 선택. WR_MODEL이 있으면 그쪽이 우선)
 #   WR_FLASH      light/full 모델 (기본 gemini-3.8-flash-medium)
 #   WR_ARGON      security/full 모델 (기본 gemini-4-argon-medium)
@@ -19,14 +19,14 @@
 #   WR_TIMEOUT    agy 시간 제한 (기본 15m)
 #   WR_OUT        결과 폴더 (기본 ${TMPDIR:-/tmp}/waitscape-review)
 #   WR_EMBED      프롬프트에 diff를 직접 넣는 최대 바이트 (기본 120000, 넘으면 앞부분만 + 나머지는 .review/pr.diff 읽기)
-#   WR_LENSES     렌즈(관점) 다회 리뷰: "state screen interact data platform" 처럼 주면 **Flash에만** 기본 패스(렌즈 없음, 체크리스트 담당) 1회 +
+#   WR_LENSES     렌즈(관점) 다회 리뷰. **기본값 "state screen interact data platform"**(끄려면 빈 값 또는 none). **Flash에만** 기본 패스(렌즈 없음, 체크리스트 담당) 1회 +
 #                 렌즈마다 1회를 **동시에** 돌려 합집합으로 모은다(found_by = 모델/렌즈 — 같은 모델의 렌즈끼리는 독립 확증이 아님).
 #                 렌즈 지시는 lenses/<이름>.md(이름은 영소문자·숫자·-만). 렌즈마다 체크아웃을 복제해 따로 실행(agy 전역 캐시 충돌 방지).
 #                 Argon 등 다른 모델은 지금처럼 1회. 비우면 예전과 같음. 근거: CALIBRATION.md §렌즈
 #   WR_KEEP=1     임시 체크아웃을 지우지 않음
 #   WR_DRY=1      프롬프트만 조립해 저장하고 agy는 실행하지 않음
 #
-# 모델 자동 선택(근거: CALIBRATION.md §Flash 비교):
+# 모델 자동 선택(근거: CALIBRATION.md §Flash 비교). 아래 "Flash 1회"는 렌즈가 켜져 있으면(기본) Flash 기본 패스 + 렌즈 5개를 동시에(§렌즈):
 #   light    작은 PR(< WR_BIG줄), 보안 민감 아님            → Flash 1회
 #   full     큰 PR(>= WR_BIG줄), 보안 민감 아님             → Flash 1회 + Argon 1회, 결과 합집합(중복 병합)
 #   security 라벨 security / security 체크리스트 대상 / 민감 경로 → Argon 1회 (큰 PR이면 + Flash 1회)
@@ -53,7 +53,8 @@ TIMEOUT="${WR_TIMEOUT:-15m}"
 OUT="${WR_OUT:-${TMPDIR:-/tmp}/waitscape-review}"
 GHJ="${WR_GHJ:-}"
 EMBED="${WR_EMBED:-120000}"
-LENSES="${WR_LENSES:-}"
+LENSES="${WR_LENSES-state screen interact data platform}"   # 기본으로 켬(#41 측정). 끄려면 WR_LENSES= (빈 값) 또는 none
+[ "$LENSES" = none ] && LENSES=""
 ALL_LISTS="security rust frontend ci mode-submission"
 
 die() { echo "run_review: $*" >&2; exit "${2:-2}"; }
@@ -195,14 +196,15 @@ PY
 # 렌즈 프롬프트: 공통 프롬프트 + "이번 패스의 관점"(렌즈마다 하나) + 렌즈 패스 규칙 + 마지막 출력 지시 다시
 LAST='이제 리뷰하라. 출력은 schema.json 형식의 JSON 하나뿐이다. 모든 문장은 한국어.'
 LENS_RULE='- 이 패스는 위 관점만 본다. 파일 읽기는 이 패스에 한해 **최대 15회**(앞의 8회 대신), 이 관점에 필요한 정의·호출부에만 쓴다.
-- 관점의 항목마다 summary에 "항목 N: 확인한 파일:줄 — 결론"을 남긴다(문제가 없으면 왜 없는지 근거를). 지적은 근거 규칙(§3)을 그대로 따른다.'
+- 관점의 항목마다 summary에 "항목 N: 확인한 파일:줄 — 결론"을 남긴다(문제가 없으면 왜 없는지 근거를). 지적은 근거 규칙(§3)을 그대로 따른다.
+- **오탐 방지**: 함수 인자·값의 존재·호출 순서·"다음 프레임에 덮인다" 같은 지적은 정의(넘겨받은 헬퍼면 넘겨주는 곳까지)나 그 값을 설정·갱신하는 코드를 직접 열어 확인하고 evidence에 인용한 뒤에만 쓴다. 확인하지 못했으면(읽기 한도 포함) question으로만, 확인할 파일·심볼을 적는다.'
 for l in $LENSES; do
   { cat "$BASE.prompt.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; printf '\n\n## 렌즈 패스 규칙\n\n%s\n\n---\n\n%s\n' "$LENS_RULE" "$LAST"; } > "$BASE.$l.prompt.md"
   { cat "$BASE.prompt.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"
     printf '\n\n---\n\n**재시도 규칙**: 앞선 실행이 도구 권한 문제로 실패했다. 이번에는 **어떤 도구도 호출하지 말고** 위에 포함된 diff와 요약만으로 답하라. 관점의 "찾아 읽어라"는 이번에는 diff 안에서만 따른다. 파일 전체를 봐야 확정되는 사항은 severity `question`으로 남기고 근거를 적는다.\n\n%s\n' "$LAST"; } > "$BASE.$l.strict.md"
 done
 
-if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md"; for l in $LENSES; do echo "$BASE.$l.prompt.md"; done; exit 0; fi
+if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md"; case " $MODELS " in *" $FLASH "*) for l in $LENSES; do echo "$BASE.$l.prompt.md"; done ;; esac; exit 0; fi
 
 # 6) agy 실행 (plan 모드 = 읽기 전용, 구조화 출력). 모델마다 실패하면 1회 재시도
 run_agy() {  # $1=모델 $2=결과 접두 $3=프롬프트 파일 $4=체크아웃(기본 $WORK/repo)

@@ -105,15 +105,15 @@ Claude는 작성자이기도 하므로 **자기 코드 편들기**를 가장 경
 ```sh
 .github/review/run_review.sh <PR번호> --auto          # 체크리스트와 모델을 자동 선택
 WR_TIER=full .github/review/run_review.sh 12 --auto   # light|full|security 수동 지정
-WR_MODEL=gemini-4-argon-high .github/review/run_review.sh 12 ci   # 모델 강제(1회)
-WR_MODEL=gemini-3.8-flash-medium WR_LENSES="state screen interact data platform" .github/review/run_review.sh 12 frontend   # Flash 기본 패스 + 렌즈마다 1회를 동시에(합집합)
+WR_MODEL=gemini-4-argon-high .github/review/run_review.sh 12 ci   # 모델 강제(Argon은 1회. Flash를 강제하면 렌즈가 붙음 — 1회만이면 WR_LENSES= 도)
+WR_LENSES= .github/review/run_review.sh 12 --auto   # 렌즈 끄기(기본은 Flash에 기본 패스 + 렌즈 5개를 동시에, 합집합)
 # found_by가 "모델/렌즈"면 같은 모델의 다른 관점일 뿐이라, 서로 다른 모델이 찾은 것처럼 독립 확증으로 보지 않는다
 ```
 
 | tier | 조건 | 모델 |
 |---|---|---|
-| light | 변경 < 800줄, 보안 민감 아님 (문서·CI·UI 등) | `gemini-3.8-flash-medium` 1회 |
-| full | 변경 ≥ 800줄, 보안 민감 아님 | Flash 1회 + `gemini-4-argon-medium` 1회, 합집합 |
+| light | 변경 < 800줄, 보안 민감 아님 (문서·CI·UI 등) | `gemini-3.8-flash-medium` 기본 + 렌즈 5개(동시, 렌즈를 끄면 1회) |
+| full | 변경 ≥ 800줄, 보안 민감 아님 | Flash(기본 + 렌즈 5개) + `gemini-4-argon-medium` 1회, 합집합 |
 | security | 라벨 `security` / security 체크리스트 대상 / 민감 경로 | Argon medium (≥ 800줄이면 + Flash) |
 
 - 근거와 Flash 측정은 `CALIBRATION.md`의 "Flash 비교". 요지: Flash는 정확도는 같지만 놓치는 문제가 더 많고 시간은 줄지 않는다(토큰 절약용). 그래서 민감·큰 PR에는 Argon을 넣는다.

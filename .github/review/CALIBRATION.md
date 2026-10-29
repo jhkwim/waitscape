@@ -96,26 +96,28 @@ Flash #1 지적 판정: 시계 주입 ✅, 404에 CSP 없음 ✅(🔵가 적정 
 
 | tier | 조건 | 실행 |
 |---|---|---|
-| light | 변경 < 800줄(추가+삭제), 보안 민감 아님 | Flash medium 1회 |
+| light | 변경 < 800줄(추가+삭제), 보안 민감 아님 | Flash medium 1회(렌즈 기본 켬 뒤로는 기본 + 렌즈 5개, §렌즈) |
 | full | 변경 ≥ 800줄, 보안 민감 아님 | Flash + Argon medium, 합집합 |
 | security | 라벨 `security`, `security` 체크리스트 대상, 또는 민감 경로(hooks/settings.json·usage·토큰·키체인·sandbox·wrmode·CSP·capabilities·zip 설치·외부 프로세스·HTTP 서버) | Argon medium (≥ 800줄이면 + Flash) |
 
-`WR_MODEL`(강제 1회), `WR_TIER=light|full|security`로 수동 지정. 선택 결과와 이유는 실행 로그와 결과 JSON의 `meta`(tier·changed_lines·reason·models·seconds)에 남고, 합집합의 각 지적에는 `found_by`가 붙는다. 참고로 PR #10은 라벨 `security`라서 자동 선택이면 Argon이다(이번 Flash 측정은 `WR_MODEL`로 강제).
+`WR_MODEL`(강제 — Argon은 1회, Flash는 렌즈 포함), `WR_TIER=light|full|security`로 수동 지정. 선택 결과와 이유는 실행 로그와 결과 JSON의 `meta`(tier·changed_lines·reason·models·seconds)에 남고, 합집합의 각 지적에는 `found_by`가 붙는다. 참고로 PR #10은 라벨 `security`라서 자동 선택이면 Argon이다(이번 Flash 측정은 `WR_MODEL`로 강제).
 
 ## 렌즈(관점) 다회 리뷰 (2026-10-29, #41)
 
 - 문제: 공개 저장소 PR 8개 중 7개에서 Flash 0건. 같은 PR에서 Claude 검증 리뷰는 실제 버그를 찾음 — #34 Windows cp1252 인코딩, #39 프로토타입 키·클릭 겹침, #40 턴마다 리셋되는 시간·도구 기준·눈치 모드 해제 뒤 깃발 재솟음. #40을 Argon으로 비교하니 🔵2(재솟음 + 자리 비운 로봇의 배터리 — Claude가 놓친 것). Argon은 토큰 소비가 커서 상시 쓰기 어려움.
 - 가설: 한 번에 모든 관점 + 파일 읽기 8회 제한 → 큰 파일을 겉핥기. 놓친 버그는 대부분 "특정 상황에서"(새 턴·눈치 해제·자리 비움·특수 키) 생김.
 - 방법: `WR_LENSES`로 Flash에 기본 패스(체크리스트 담당) + 관점마다 1회를 동시에(lenses/state·screen·interact·data·platform — platform은 #34 Windows 인코딩 같은 OS 차이 담당). 렌즈마다 체크아웃을 복제해 따로 실행(agy 전역 캐시가 cwd 키로 겹침), 렌즈 패스는 파일 읽기 15회, 항목마다 확인 근거를 summary에 남기게. 각 렌즈는 "이번 패스는 이 관점만, 문제 없으면 0건"으로 시작해 상황 목록을 하나씩 따지게 함. 합집합 병합(found_by = 모델/렌즈).
-- 1차 측정(#43 직원 몸짓 묶음, 같은 커밋): Flash 1회 0건 · Flash 기본+렌즈 5개 5건(실제 1 — screen 렌즈의 "퇴근 연출 중 문어 다리 잔상", Claude와 같은 버그 / 오탐 3 — mkEl 인자 수·인라인 높이·하품 1프레임, 질문 1 — 문어 neck 메타(확인 결과 문제 없음), 모두 data 렌즈: 정의·설정 코드를 끝까지 안 보고 추측. 오탐 둘은 사실 screen·state 주제라 범위 밖 지적이기도) · Claude 🟡2(+도감 오염)·🔵5. 동시 실행이라 시간은 1회와 비슷(492초 vs 517초), 토큰은 Flash 6회분.
-- 조치: data 렌즈에만 "인자·값 존재·호출 순서 지적은 정의를 열어 확인한 뒤에만, 못 했으면 question" 규칙 추가 — 2차 측정(건물 묶음 PR)에서 이 규칙의 효과만 따로 본 뒤, 효과가 있으면 공통 `LENS_RULE`로 옮기고 data 렌즈엔 범위 경고만 남긴다.
 - 측정 계획(완료 — 위 1차 측정, 실제로는 기본 패스 + 렌즈 5개): 다음 PR(스튜디오 직원 몸짓 묶음)에서 Flash 1회 / Flash 렌즈 4회 / Claude를 같은 커밋에 돌려 지적 수·정확도·중복·소요를 metrics에 남기고, 효과가 있으면 기본으로 켠다.
+- 1차 측정(#43 직원 몸짓 묶음, 같은 커밋): Flash 1회 0건 · Flash 기본+렌즈 5개 5건(실제 1 — screen 렌즈의 "퇴근 연출 중 문어 다리 잔상", Claude와 같은 버그 / 오탐 3 — mkEl 인자 수·인라인 높이·하품 1프레임, 질문 1 — 문어 neck 메타(확인 결과 문제 없음), 모두 data 렌즈: 정의·설정 코드를 끝까지 안 보고 추측. 오탐 둘은 사실 screen·state 주제라 범위 밖 지적이기도) · Claude 🟡2(+도감 오염)·🔵5. 동시 실행이라 이번엔 시간이 1회와 비슷(492초 vs 517초), 토큰은 Flash 6회분.
+- 조치: data 렌즈에만 "인자·값 존재·호출 순서 지적은 정의를 열어 확인한 뒤에만, 못 했으면 question" 규칙 추가 — 2차 측정(건물 묶음 PR)에서 이 규칙의 효과만 따로 본 뒤, 효과가 있으면 공통 `LENS_RULE`로 옮기고 data 렌즈엔 범위 경고만 남긴다.
+- 2차 측정(#45 건물 묶음, data 규칙 조임 뒤): Flash 1회 1건(실제 1 — 비둘기 클릭 시 날아가기 생략, **Claude가 놓침**) · Flash 기본+렌즈 5개 6건(실제 4 + 중복 1: 비둘기·청소 재개 층(base·state·interact 세 렌즈)·우산 툴팁·매 프레임 탐색 / 오탐 1: state의 x 누적) · Claude 🟡2·🔵7. data 렌즈 오탐 3 → 0. 시간 1회 273초 vs 렌즈 617초(동시).
+- 결론(2026-10-29): 렌즈를 **기본으로 켬**(`WR_LENSES` 기본값, Flash에만, Argon은 1회). data 렌즈의 오탐 방지 규칙은 공통 렌즈 패스 규칙으로 옮김. 렌즈 지적은 여전히 Claude가 코드로 검증한 뒤 반영. 비용: Flash 6회분, 시간은 1회의 1~2.3배(가장 느린 렌즈가 기준). 공통 오탐 방지 규칙이 data 외 렌즈에서도 효과가 있는지는 다음 PR들에서 metrics로 계속 본다.
 
 ## Antigravity CLI 사용 메모
 
 - 반드시 `~/.local/bin/agy`(진짜 실행 파일). `--model`을 항상 명시한다(지정하지 않으면 CLI 설정값을 따름). 교차 리뷰이므로 `agy models`의 `claude-*`·`gpt-*` 모델은 쓰지 않고 `gemini-*`만 쓴다. 모델은 `run_review.sh`가 고른다(아래 규칙).
 - `--output-format text`의 plan 모드는 결과를 `~/.gemini/antigravity-cli/brain/<id>/*.md` **아티팩트로 쓰고** 표준 출력에는 진행 독백과 "수정까지 할까요?" 질문만 남는다 → 자동화에 부적합. `--output-format json --json-schema schema.json`을 쓰면 `structured_output` 필드에 스키마를 지킨 JSON이 들어온다(검증됨).
-- 소요: 작은 PR 1~4분, 7천 줄 PR 약 10분. `--print-timeout 15m`이면 충분했다. 실패(비정상 종료·`structured_output` 없음)는 이번 8회 실행에서 0건이었지만 `run_review.sh`는 1회 재시도한다.
+- 소요(렌즈 없이): 작은 PR 1~4분, 7천 줄 PR 약 10분. 렌즈를 켜면 가장 느린 렌즈 기준 4~10분. `--print-timeout 15m`이면 충분했다. 실패(비정상 종료·`structured_output` 없음)는 이번 8회 실행에서 0건이었지만 `run_review.sh`는 1회 재시도한다.
 - 리뷰어는 체크아웃 폴더의 파일을 실제로 열어 읽는다(`checked` 필드). 시크릿 검사는 diff만 보므로, 체크아웃 전체에 실제 키가 있으면 안 된다(저장소 규칙상 없음).
 
 ## Flash headless 실행 실패 (2026-10-22 기록)
