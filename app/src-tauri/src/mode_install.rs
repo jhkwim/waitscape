@@ -117,7 +117,7 @@ fn unzip(src: &Path, dst: &Path) -> Result<(), String> {
     let mut b = Budget { files: 0, bytes: 0 };
     for i in 0..z.len() {
         let mut e = z.by_index(i).map_err(|_| "zip 항목을 읽을 수 없어요".to_string())?;
-        let raw = e.name().replace('\\', "/");
+        let raw = e.name().map_err(|_| "zip 항목 이름을 읽을 수 없어요".to_string())?.replace('\\', "/");
         if skip_name(&raw) {
             continue;
         }
