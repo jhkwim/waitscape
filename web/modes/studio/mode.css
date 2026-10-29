@@ -30,6 +30,9 @@ body[data-mode="studio"] .stu .pow { flex: 1 1 200px; max-width: 300px; }
 /* 전력 칸 머리줄: 좁으면 제목이 말줄임되고 리셋 시간은 늘 다 보임(예전 float:right는 줄바꿈되어 아래 % 숫자와 겹침, #8) */
 body[data-mode="studio"] .stu .hb .pw-h { display: flex; gap: 6px; white-space: nowrap; }
 body[data-mode="studio"] .stu .hb .pw-h .t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* 아주 좁으면 한두 글자만 남은 제목 대신 ⚡ 아이콘만(제목은 title로) */
+body[data-mode="studio"] .stu .hb.pow { container-type: inline-size; }
+@container (max-width: 160px) { body[data-mode="studio"] .stu .hb .pw-h .t { display: none; } body[data-mode="studio"] .stu .hb .pw-h { justify-content: flex-end; } }
 body[data-mode="studio"] .stu .hb .pw-h .r { flex: none; }
 body[data-mode="studio"] .stu .wk { flex: 1 1 130px; max-width: 190px; }
 body[data-mode="studio"] .stu .askchip { background: #ffe27a; justify-content: center; flex: 0 0 auto; }
