@@ -19,6 +19,7 @@ app/src-tauri/gen/
 app/src-tauri/target/
 # wr-hook sidecar (scripts/build_sidecar.sh가 만듦. 빌드 산출물)
 app/src-tauri/binaries/
+app/src-tauri/THIRD_PARTY_LICENSES.html
 *.dmg
 *.msi
 *.app/

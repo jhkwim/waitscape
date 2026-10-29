@@ -347,6 +347,8 @@ export interface CoreApi {
   openWidget?(modeId: string): Promise<void>;
   /** @since 1.5 tauri 메인 창: 앱 로그 폴더(waitscape.log, 진단용) 열기 — 설정 → 일반 → 앱 정보 */
   openLogDir?(): Promise<void>;
+  /** tauri 메인 창: 오픈소스 라이선스 고지(THIRD_PARTY_LICENSES.html)를 기본 브라우저로 연다 — 설정 → 일반 → 앱 정보 */
+  openLicenses?(): Promise<void>;
   /** 발견된 모드(검증 전 원본) */
   modes(): Promise<{ modes: { dir: string; source: ModeInfo["source"]; manifest: ModeManifest | null; error?: string }[]; userDir: string | null; devDirs: string[] }>;
   brand(): Promise<{ name: string; identifier?: string; tagline?: string }>;

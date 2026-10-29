@@ -104,6 +104,14 @@ Release Prep은 `GITHUB_TOKEN`으로 브랜치를 push하고 PR을 만든다. Gi
 - [x] **공개 키 붙여넣기**: `~/.tauri/waitscape.key.pub` 내용(한 줄)을 `app/src-tauri/tauri.conf.json`의 `plugins.updater.pubkey` 자리표시자 대신 넣고 PR로 병합한다.
 - [ ] 비밀 키 파일을 저장소 안에 두지 않았는지 확인 (`.gitignore`가 `*.key`를 막지만, 애초에 `~/.tauri/`에 둔다).
 
+### 5.0.1 오픈소스 라이선스 고지 (#9)
+
+설치 파일에는 Rust 의존성의 라이선스 고지가 들어간다(MIT·Apache 등이 바이너리 배포 때 요구). `release.yml`이 빌드 전에
+`scripts/third_party_licenses.py --out app/src-tauri/THIRD_PARTY_LICENSES.html`로 만들고(`tauri.conf.json` `bundle.resources`), 앱은 설정 → 일반 → 앱 정보 → [오픈소스 라이선스]로 연다.
+- 대상: macOS·Windows 대상의 `waitscape`·`wr-hook` 일반 의존성(빌드·개발 전용·proc-macro 제외) + 웹 폰트 Galmuri11(OFL)
+- 허용 목록(`ALLOWED`) 밖 라이선스가 들어오면 rust.yml 린트와 릴리스 빌드가 실패한다. 새 라이선스를 받아도 되는지 확인한 뒤 목록에 더한다
+- 개발 빌드에는 build.rs가 만든 자리표시 파일이 들어간다(파일은 `.gitignore`)
+
 ### 5.1 macOS 서명·공증 (Developer ID, 사람이 한 번만)
 
 미서명 앱은 macOS 15부터 첫 실행 때 "열지 않음" 창만 뜬다(docs/INSTALL.md). **개인** Apple Developer 계정으로 Developer ID 서명 + 공증을 하면 경고 없이 열린다

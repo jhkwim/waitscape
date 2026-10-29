@@ -56,3 +56,6 @@
 - 창 안 단축키 ⌘1(맥)/Ctrl+1 = 눈치 모드, ⌘2/Ctrl+2 = 미니 보기 추가(샌드박스 SDK가 키 `"nunchi"`·`"mini"`로, ⌘,는 `","`로 호스트에 넘김 — 브리지 `key` 허용 목록에 추가).
   SDK 우클릭 → 브리지 `ctxmenu`(앱이면 같은 앱 메뉴, 입력란 제외). 키 판정은 반복(`repeat`) 무시·물리 키(`code`) 기준
 - 단축키 `B`의 의미 변경: 업무 모드 ↔ 직전 모드 → 눈치 모드 켜고 끄기(모드는 여전히 이 키를 쓰지 말 것). state 계약 변화 없음
+
+## (코어 전용, 오픈소스 라이선스 jhkwim/waitscape#9)
+- 내부 `CoreApi.openLicenses?()` 추가(코어 전용·앱 메인 창만): Tauri `open_licenses` — 번들에 든 `THIRD_PARTY_LICENSES.html`을 기본 브라우저로 연다. 모드 계약(state·ctx·브리지) 변화 없음

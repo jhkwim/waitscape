@@ -35,6 +35,7 @@
     "allow-delete-mode",
     "allow-open-modes-dir",
     "allow-open-log-dir",
+    "allow-open-licenses",
     "allow-autostart-set",
     "allow-app-info",
     "allow-nunchi-status",

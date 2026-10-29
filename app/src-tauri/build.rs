@@ -40,6 +40,7 @@ const COMMANDS: &[&str] = &[
     "delete_mode",
     "open_modes_dir",
     "open_log_dir",
+    "open_licenses",
     "autostart_set",
     "app_info",
     "nunchi_status",
@@ -87,6 +88,19 @@ fn main() {
             std::fs::set_permissions(&side, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
         println!("cargo:warning=wr-hook sidecar가 없어 자리표시를 만들었어요 ({side}). 훅 설치를 하려면 sh scripts/build_sidecar.sh");
+    }
+
+    // 오픈소스 라이선스 고지(bundle.resources): 릴리스는 scripts/third_party_licenses.py가 만든다. 없으면 자리표시(개발 빌드가 깨지지 않게, #9)
+    let lic = "THIRD_PARTY_LICENSES.html";
+    if !Path::new(lic).exists() {
+        std::fs::write(
+            lic,
+            "<!doctype html><meta charset=\"utf-8\"><title>Waitscape licenses</title><p>개발 빌드에는 라이선스 목록이 없어요. \
+             <code>python3 scripts/third_party_licenses.py --out app/src-tauri/THIRD_PARTY_LICENSES.html</code>로 만드세요. \
+             / Not included in development builds.</p>\n",
+        )
+        .unwrap();
+        println!("cargo:warning=THIRD_PARTY_LICENSES.html이 없어 자리표시를 만들었어요");
     }
 
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(COMMANDS)))

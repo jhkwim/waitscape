@@ -112,6 +112,10 @@ jobs:
         if: runner.os == 'Linux' && matrix.task == 'test'
         run: sh scripts/build_sidecar.sh
 
+      - name: 배포물 의존성 라이선스가 허용 목록 안인지 (scripts/third_party_licenses.py, #9)
+        if: matrix.task == 'lint'
+        run: python3 scripts/third_party_licenses.py --check
+
       - name: cargo fmt --check
         if: matrix.task == 'lint'
         run: cargo fmt --all -- --check

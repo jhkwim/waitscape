@@ -9,7 +9,7 @@ let dlg = null, tab = "modes", note = "", offs = [];
 let hookInfo = null, usageInfo = null;   // 앱: 마지막으로 받은 훅·한도 상태
 let mcpInfo = null, mcpPrev = null, mcpAllow = true, mcpJust = "", mcpBusy = false, mcpNote = "";   // 앱: MCP 연결 상태·미리보기·방금 연결한 CLI
 let updNote = "", updBusy = false;        // 앱: 설정의 [지금 확인] 결과 문구
-let logNote = "";                         // 앱: [로그 폴더 열기] 실패 이유
+let logNote = "";                         // 앱: [로그 폴더 열기]·[오픈소스 라이선스] 실패 이유
 let nxInfo = null, nxBusy = false, nxKeyErr = "", nxDraft = null;   // 앱: 🙈 눈치 모드 단축키 등록 상태 { key, ok, err } · 형식 오류 · 저장 안 된 입력
 
 // 모드 CSS가 설정 화면에 새지 않도록 Shadow DOM 안에 그린다(모드는 body 아래 요소를 넓게 꾸미는 경우가 많음)
@@ -82,7 +82,7 @@ function generalTab() {
   const F = C.appInfo.features;   // 빌드 기능: 꺼진 기능의 카드는 보이지 않는다
   const about = `<section class="mg-card"><h3>${esc(t("g.about"))}</h3>
       <p>${esc(t("g.about.ver", { v: C.appInfo.version || "?" }))}</p>
-      <p><button class="mg-btn" data-act="open-logs">${esc(t("g.about.logs"))}</button> <span class="mg-note">${esc(logNote)}</span></p>
+      <p><button class="mg-btn" data-act="open-logs">${esc(t("g.about.logs"))}</button> <button class="mg-btn" data-act="open-licenses">${esc(t("g.about.licenses"))}</button> <span class="mg-note">${esc(logNote)}</span></p>
       <p class="mg-mute mg-small">${esc(t("g.about.desc"))}</p></section>`;
   const appOnly = !APP ? "" : `${F.updater ? updateCard() : ""}${C.api.openLogDir ? about : ""}<section class="mg-card"><h3>${esc(t("g.autostart"))}</h3>
       <label class="mg-row"><span class="mg-toggle"><input type="checkbox" data-act="autostart" ${app.autostart ? "checked" : ""}><span></span></span> ${esc(t("g.autostart.desc"))}</label></section>
@@ -421,6 +421,7 @@ async function onClick(e) {
   }
   else if (b.dataset.act === "open-dir") C.api.modeAdmin.openDir().catch(err => { note = String(err); render(); });
   else if (b.dataset.act === "open-logs") { logNote = ""; C.api.openLogDir().catch(err => { logNote = String(err); render(); }); return; }
+  else if (b.dataset.act === "open-licenses") { logNote = ""; C.api.openLicenses().catch(err => { logNote = String(err); render(); }); return; }
   else if (b.dataset.act === "hooks-on" || b.dataset.act === "hooks-off") {
     try {
       const r = await (b.dataset.act === "hooks-on" ? C.api.hooks.install() : C.api.hooks.uninstall());

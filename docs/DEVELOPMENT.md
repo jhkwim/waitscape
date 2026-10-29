@@ -238,6 +238,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     check_secrets.py    커밋된 파일의 실제 형태 시크릿(AKIA·ghp_·xox·sk-ant)·개인 경로 검사 (--leak: 기준 결과 마스킹 유출)
     validate_modes.py   web/modes/*/mode.json을 types/mode.schema.json으로 검증 (jsonschema 필요)
     selftest_check_secrets.py  check_secrets.py 탐지 패턴 회귀 테스트 (점·하이픈 사용자명 경로, 대시 인코딩 홈 경로, 비ASCII 인접 시크릿)
+    third_party_licenses.py  배포물(macOS·Windows 앱 + wr-hook)에 들어가는 Rust 의존성 라이선스 고지 THIRD_PARTY_LICENSES.html 만들기(--out, release.yml) · 허용 목록 검사(--check, rust.yml 린트). 원문 파일이 없는 크레이트는 표준 원문으로 (test_third_party_licenses.py)
     check_platform_advisories.py  배포 대상에서 쓰이지 않아 닫은 보안 경고(.github/platform-advisories.json)가 배포 대상(release.yml 앱 빌드 잡의 러너·번들, tauri.conf.json bundle.targets)에 들어오면 실패 (selftest_platform_advisories.py)
     check_commit_emails.py  커밋 작성자·커미터 이메일이 차단 도메인이면 실패 (환경변수 BLOCKED_EMAIL_DOMAINS, CI에선 저장소 시크릿)
     version.py          앱 버전 한 곳 관리: show / check [--tag] / bump X.Y.Z|major|minor|patch [--dry-run] / notes (CHANGELOG 절)
@@ -321,6 +322,7 @@ python3 scripts/check_secrets.py --leak         # 시크릿·개인 경로 패�
 python3 scripts/selftest_transcript_only.py     # 트랜스크립트 전용 규칙 검사기 자체 점검
 python3 scripts/validate_modes.py               # mode.json 스키마 검증 (pip install jsonschema)
 python3 scripts/selftest_check_secrets.py       # 시크릿·경로 탐지 패턴 회귀 테스트
+python3 scripts/third_party_licenses.py --check # 배포물 의존성 라이선스가 허용 목록 안인지 (cargo 필요, test_third_party_licenses.py)
 python3 scripts/check_platform_advisories.py    # 닫은 플랫폼 한정 보안 경고가 배포 대상 밖인지 (selftest_platform_advisories.py)
 BLOCKED_EMAIL_DOMAINS=example.com python3 scripts/check_commit_emails.py origin/main..HEAD   # 커밋 이메일 검사 (예시 도메인은 가짜 값)
 ```
