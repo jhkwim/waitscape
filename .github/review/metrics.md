@@ -38,5 +38,6 @@
 | 2026-10-29 | #44 | f8ba129 | ci (Flash) + Claude 전문가 | - | 0/1/3/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 측정 기록과 metrics 불일치·계획 줄 정리·공통 규칙 안 (Flash medium·Claude) |
 | 2026-10-29 | #33 | 2dba0b6 | frontend (Flash) + Claude 전문가 | - | 0/0/2/0 | 100% | 100% | 100% | 0% | - | - | Flash 0건 → Claude가 아주 좁을 때 제목 한 글자만 남음·툴팁 (Flash medium·Claude) |
 | 2026-10-29 | #34 | feb0721 | auto (Flash) + Claude 전문가 | 309 | 1/4/9/0 | 100% | 86% | 93% | 7% | Windows explorer는 .html을 기본 브라우저로 엶(오탐) | - | Flash가 문서 누락·방어 코드 → Claude가 Windows cp1252 인코딩(🔴)·WebView2 SDK 고지 누락·괄호 검사 등 (Flash medium·Claude) |
+| 2026-10-29 | #48 | ab0676a | auto (security → Argon 1회) + Claude 전문가 | 25 | 0/0/3/0 | 100% | 100% | 100% | 0% | - | - | Argon 0건 → Claude가 약한 테스트(slip·abs가 진입 파일 없음으로 통과)를 지적, 강화하다 `../` 항목이 숨김 파일로 조용히 버려지던 것 발견 (Argon medium·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
