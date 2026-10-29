@@ -19,6 +19,10 @@
 #   WR_TIMEOUT    agy 시간 제한 (기본 15m)
 #   WR_OUT        결과 폴더 (기본 ${TMPDIR:-/tmp}/waitscape-review)
 #   WR_EMBED      프롬프트에 diff를 직접 넣는 최대 바이트 (기본 120000, 넘으면 앞부분만 + 나머지는 .review/pr.diff 읽기)
+#   WR_LENSES     렌즈(관점) 다회 리뷰: "state screen interact data platform" 처럼 주면 **Flash에만** 기본 패스(렌즈 없음, 체크리스트 담당) 1회 +
+#                 렌즈마다 1회를 **동시에** 돌려 합집합으로 모은다(found_by = 모델/렌즈 — 같은 모델의 렌즈끼리는 독립 확증이 아님).
+#                 렌즈 지시는 lenses/<이름>.md(이름은 영소문자·숫자·-만). 렌즈마다 체크아웃을 복제해 따로 실행(agy 전역 캐시 충돌 방지).
+#                 Argon 등 다른 모델은 지금처럼 1회. 비우면 예전과 같음. 근거: CALIBRATION.md §렌즈
 #   WR_KEEP=1     임시 체크아웃을 지우지 않음
 #   WR_DRY=1      프롬프트만 조립해 저장하고 agy는 실행하지 않음
 #
@@ -49,6 +53,7 @@ TIMEOUT="${WR_TIMEOUT:-15m}"
 OUT="${WR_OUT:-${TMPDIR:-/tmp}/waitscape-review}"
 GHJ="${WR_GHJ:-}"
 EMBED="${WR_EMBED:-120000}"
+LENSES="${WR_LENSES:-}"
 ALL_LISTS="security rust frontend ci mode-submission"
 
 die() { echo "run_review: $*" >&2; exit "${2:-2}"; }
@@ -58,6 +63,11 @@ gh_() { if [ -n "$GHJ" ]; then "$GHJ" gh "$@"; else gh "$@"; fi; }
 PR="$1"; shift
 case "$PR" in ''|*[!0-9]*) die "PR 번호는 숫자여야 합니다: $PR" ;; esac
 [ -x "$AGY" ] || die "Antigravity CLI 없음: $AGY"
+_L=""; for l in $LENSES; do
+  case "$l" in ''|*[!a-z0-9-]*) die "렌즈 이름은 영소문자·숫자·-만: $l" ;; esac
+  [ -f "$HERE/lenses/$l.md" ] || die "렌즈 없음: lenses/$l.md"
+  case " $_L " in *" $l "*) ;; *) _L="$_L $l" ;; esac   # 중복 제거
+done; LENSES="${_L# }"
 
 AUTO=0; LISTS=""
 for a in "$@"; do
@@ -71,8 +81,10 @@ mkdir -p "$OUT"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BASE="$OUT/pr$PR-$STAMP"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/wr-review-$PR-XXXXXX")"
-cleanup() { [ "${WR_KEEP:-0}" = 1 ] && echo "체크아웃 유지: $WORK/repo" >&2 || rm -rf "$WORK"; }
+PIDS=""
+cleanup() { [ -n "$PIDS" ] && { kill $PIDS 2>/dev/null; wait 2>/dev/null; }; [ "${WR_KEEP:-0}" = 1 ] && echo "체크아웃 유지: $WORK/repo" >&2 || rm -rf "$WORK"; }
 trap cleanup EXIT
+trap 'exit 130' INT TERM   # 렌즈 실행은 백그라운드라 Ctrl-C를 받지 못함 → 여기서 끝내면 cleanup이 agy를 정리
 
 # 1) PR 메타·diff
 gh_ pr view "$PR" -R "$REPO" --json number,title,body,labels,files,headRefName,baseRefName,headRefOid > "$WORK/meta.json"
@@ -180,11 +192,21 @@ PY
 # 엄격 재시도용: 도구를 전혀 쓰지 않고 위 프롬프트(diff 포함)만으로 답하게 한다
 { cat "$BASE.prompt.md"; printf '\n\n---\n\n**재시도 규칙**: 앞선 실행이 도구 권한 문제로 실패했다. 이번에는 **어떤 도구도 호출하지 말고** 위에 포함된 diff와 요약만으로 답하라. 파일 전체를 봐야 확정되는 사항은 severity `question`으로 남기고 근거를 적는다.\n'; } > "$BASE.strict.md"
 
-if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md" ; exit 0; fi
+# 렌즈 프롬프트: 공통 프롬프트 + "이번 패스의 관점"(렌즈마다 하나) + 렌즈 패스 규칙 + 마지막 출력 지시 다시
+LAST='이제 리뷰하라. 출력은 schema.json 형식의 JSON 하나뿐이다. 모든 문장은 한국어.'
+LENS_RULE='- 이 패스는 위 관점만 본다. 파일 읽기는 이 패스에 한해 **최대 15회**(앞의 8회 대신), 이 관점에 필요한 정의·호출부에만 쓴다.
+- 관점의 항목마다 summary에 "항목 N: 확인한 파일:줄 — 결론"을 남긴다(문제가 없으면 왜 없는지 근거를). 지적은 근거 규칙(§3)을 그대로 따른다.'
+for l in $LENSES; do
+  { cat "$BASE.prompt.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; printf '\n\n## 렌즈 패스 규칙\n\n%s\n\n---\n\n%s\n' "$LENS_RULE" "$LAST"; } > "$BASE.$l.prompt.md"
+  { cat "$BASE.prompt.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"
+    printf '\n\n---\n\n**재시도 규칙**: 앞선 실행이 도구 권한 문제로 실패했다. 이번에는 **어떤 도구도 호출하지 말고** 위에 포함된 diff와 요약만으로 답하라. 관점의 "찾아 읽어라"는 이번에는 diff 안에서만 따른다. 파일 전체를 봐야 확정되는 사항은 severity `question`으로 남기고 근거를 적는다.\n\n%s\n' "$LAST"; } > "$BASE.$l.strict.md"
+done
+
+if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md"; for l in $LENSES; do echo "$BASE.$l.prompt.md"; done; exit 0; fi
 
 # 6) agy 실행 (plan 모드 = 읽기 전용, 구조화 출력). 모델마다 실패하면 1회 재시도
-run_agy() {  # $1=모델 $2=결과 접두 $3=프롬프트 파일
-  ( cd "$WORK/repo" && "$AGY" -p "$(cat "${3:-$BASE.prompt.md}")" --mode plan --model "$1" \
+run_agy() {  # $1=모델 $2=결과 접두 $3=프롬프트 파일 $4=체크아웃(기본 $WORK/repo)
+  ( cd "${4:-$WORK/repo}" && "$AGY" -p "$(cat "${3:-$BASE.prompt.md}")" --mode plan --model "$1" --log-file "$2.agy.log" \
       --print-timeout "$TIMEOUT" --output-format json --json-schema "$HERE/schema.json" ) > "$2.raw.json" 2> "$2.err" || return 1
   python3 - "$2.raw.json" "$2.json" <<'PY'
 import json, sys
@@ -198,17 +220,34 @@ sev = {k: sum(1 for x in f if x.get("severity") == k) for k in ("critical", "war
 print("지적 %d건 — 🔴%d 🟡%d 🔵%d ❓%d · %.0f초" % (len(f), sev["critical"], sev["warning"], sev["info"], sev["question"], raw.get("duration_seconds", 0)))
 PY
 }
+# 한 번 실행(실패하면 엄격 프롬프트로 1회 재시도). 결과는 $PART.ok(레이블:초) 또는 $PART.fail, 레이블은 $PART.label
+run_one() {  # $1=모델 $2=결과 접두 $3=프롬프트 $4=엄격 프롬프트 $5=레이블 $6=체크아웃
+  local start; start=$(date +%s)
+  echo "$5" > "$2.label"; echo "[$5] 실행" >&2
+  if ! run_agy "$1" "$2" "$3" "$6"; then
+    echo "[$5] 1차 실패(사유: $(tail -c 300 "$2.err" 2>/dev/null | tr '\n' ' ')) — 도구 없는 엄격 프롬프트로 재시도" >&2
+    run_agy "$1" "$2" "$4" "$6" || { echo "[$5] 실패: $2.raw.json / $2.err" >&2; : > "$2.fail"; return; }
+  fi
+  echo "[$5] $(( $(date +%s) - start ))초" >&2
+  echo "$5:$(( $(date +%s) - start ))" > "$2.ok"
+}
 OKS=""; FAILS=""; N=0
 for model in $MODELS; do
-  N=$((N+1)); PART="$BASE.m$N"
-  start=$(date +%s)
-  echo "[$model] 실행" >&2
-  if ! run_agy "$model" "$PART"; then
-    echo "[$model] 1차 실패(사유: $(tail -c 300 "$PART.err" 2>/dev/null | tr '\n' ' ')) — 도구 없는 엄격 프롬프트로 재시도" >&2
-    run_agy "$model" "$PART" "$BASE.strict.md" || { FAILS="$FAILS $model"; echo "[$model] 실패: $PART.raw.json / $PART.err" >&2; continue; }
+  if [ -z "$LENSES" ] || [ "$model" != "$FLASH" ]; then   # 렌즈는 Flash에만(Argon은 토큰 소비가 큼)
+    N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo"
+    continue
   fi
-  echo "[$model] $(( $(date +%s) - start ))초" >&2
-  OKS="$OKS $N:$model:$(( $(date +%s) - start ))"
+  # 기본 패스(체크리스트·보안 담당) + 렌즈마다 1회. 렌즈별 체크아웃은 **실행 전에 모두 복제**(APFS면 클론 — 돌고 있는 agy와 겹치지 않게), 1초씩 엇갈려 시작
+  for l in $LENSES; do cp -cR "$WORK/repo" "$WORK/repo-$l" 2>/dev/null || cp -R "$WORK/repo" "$WORK/repo-$l"; done
+  N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model/base" "$WORK/repo" & PIDS="$PIDS $!"
+  for l in $LENSES; do
+    sleep 1; N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.$l.prompt.md" "$BASE.$l.strict.md" "$model/$l" "$WORK/repo-$l" & PIDS="$PIDS $!"
+  done
+  wait $PIDS || true; PIDS=""
+done
+for i in $(seq 1 "$N"); do
+  if [ -f "$BASE.m$i.ok" ]; then OKS="$OKS $i:$(cat "$BASE.m$i.ok")"
+  else FAILS="$FAILS $(cat "$BASE.m$i.label" 2>/dev/null || echo "m$i")$( [ -f "$BASE.m$i.fail" ] || echo '(무응답)')"; fi
 done
 [ -n "$OKS" ] || die "모든 모델 실패 또는 구조화 출력 없음: $BASE.m*.raw.json" 4
 
@@ -221,7 +260,7 @@ def toks(f): return set(re.findall(r"\w+", (f["title"] + " " + f["category"]).lo
 merged, used, secs = [], [], {}
 summaries, checked = [], []
 for ok in oks:
-    n, model, sec = ok.split(":"); used.append(model); secs[model] = int(sec)
+    n, rest = ok.split(":", 1); model, sec = rest.rsplit(":", 1); used.append(model); secs[model] = int(sec)
     d = json.load(open("%s.m%s.json" % (base, n), encoding="utf-8"))
     summaries.append("[%s] %s" % (model, d.get("summary", ""))); checked += d.get("checked", [])
     for f in d.get("findings", []):

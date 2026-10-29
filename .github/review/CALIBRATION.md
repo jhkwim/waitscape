@@ -102,6 +102,13 @@ Flash #1 지적 판정: 시계 주입 ✅, 404에 CSP 없음 ✅(🔵가 적정 
 
 `WR_MODEL`(강제 1회), `WR_TIER=light|full|security`로 수동 지정. 선택 결과와 이유는 실행 로그와 결과 JSON의 `meta`(tier·changed_lines·reason·models·seconds)에 남고, 합집합의 각 지적에는 `found_by`가 붙는다. 참고로 PR #10은 라벨 `security`라서 자동 선택이면 Argon이다(이번 Flash 측정은 `WR_MODEL`로 강제).
 
+## 렌즈(관점) 다회 리뷰 (2026-10-29, #41)
+
+- 문제: 공개 저장소 PR 8개 중 7개에서 Flash 0건. 같은 PR에서 Claude 검증 리뷰는 실제 버그를 찾음 — #34 Windows cp1252 인코딩, #39 프로토타입 키·클릭 겹침, #40 턴마다 리셋되는 시간·도구 기준·눈치 모드 해제 뒤 깃발 재솟음. #40을 Argon으로 비교하니 🔵2(재솟음 + 자리 비운 로봇의 배터리 — Claude가 놓친 것). Argon은 토큰 소비가 커서 상시 쓰기 어려움.
+- 가설: 한 번에 모든 관점 + 파일 읽기 8회 제한 → 큰 파일을 겉핥기. 놓친 버그는 대부분 "특정 상황에서"(새 턴·눈치 해제·자리 비움·특수 키) 생김.
+- 방법: `WR_LENSES`로 Flash에 기본 패스(체크리스트 담당) + 관점마다 1회를 동시에(lenses/state·screen·interact·data·platform — platform은 #34 Windows 인코딩 같은 OS 차이 담당). 렌즈마다 체크아웃을 복제해 따로 실행(agy 전역 캐시가 cwd 키로 겹침), 렌즈 패스는 파일 읽기 15회, 항목마다 확인 근거를 summary에 남기게. 각 렌즈는 "이번 패스는 이 관점만, 문제 없으면 0건"으로 시작해 상황 목록을 하나씩 따지게 함. 합집합 병합(found_by = 모델/렌즈).
+- 측정 계획: 다음 PR(스튜디오 직원 몸짓 묶음)에서 Flash 1회 / Flash 렌즈 4회 / Claude를 같은 커밋에 돌려 지적 수·정확도·중복·소요를 metrics에 남기고, 효과가 있으면 기본으로 켠다.
+
 ## Antigravity CLI 사용 메모
 
 - 반드시 `~/.local/bin/agy`(진짜 실행 파일). `--model`을 항상 명시한다(지정하지 않으면 CLI 설정값을 따름). 교차 리뷰이므로 `agy models`의 `claude-*`·`gpt-*` 모델은 쓰지 않고 `gemini-*`만 쓴다. 모델은 `run_review.sh`가 고른다(아래 규칙).

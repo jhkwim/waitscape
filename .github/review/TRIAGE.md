@@ -106,6 +106,8 @@ Claude는 작성자이기도 하므로 **자기 코드 편들기**를 가장 경
 .github/review/run_review.sh <PR번호> --auto          # 체크리스트와 모델을 자동 선택
 WR_TIER=full .github/review/run_review.sh 12 --auto   # light|full|security 수동 지정
 WR_MODEL=gemini-4-argon-high .github/review/run_review.sh 12 ci   # 모델 강제(1회)
+WR_MODEL=gemini-3.8-flash-medium WR_LENSES="state screen interact data platform" .github/review/run_review.sh 12 frontend   # Flash 기본 패스 + 렌즈마다 1회를 동시에(합집합)
+# found_by가 "모델/렌즈"면 같은 모델의 다른 관점일 뿐이라, 서로 다른 모델이 찾은 것처럼 독립 확증으로 보지 않는다
 ```
 
 | tier | 조건 | 모델 |
