@@ -5649,6 +5649,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "wr-core",
 ]
 
 [[package]]
