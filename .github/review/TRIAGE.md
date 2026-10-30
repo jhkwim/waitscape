@@ -122,3 +122,38 @@ WR_LENSES= .github/review/run_review.sh 12 --auto   # 렌즈 끄기(기본은 Fl
 - 출력이 비면(headless에서 `command` 권한 자동 거부 등) `run_review.sh`가 도구 없는 엄격 프롬프트로 1회 재시도한다. 원인·해결은 `CALIBRATION.md`의 "Flash headless 실행 실패". 프롬프트에 diff가 이미 들어 있고 셸 금지·읽기 도구만 쓰라고 지시한다.
 - 교차 리뷰 원칙상 Gemini 계열만 쓴다(Claude 계열 모델 금지). `--dangerously-skip-permissions`는 쓰지 않는다.
 - 모델을 바꾸는 규칙(기준 숫자 800줄, tier 조건)은 `metrics.md`의 정확도·놓친 문제 열이 쌓이면 재검토한다. Flash의 정확도가 Argon보다 15%p 넘게 낮게 두 번 측정되면 light를 Argon low로 바꾼다.
+
+## 6. 모듈 점검(sweep)과 릴리스 전 점검 (#60·#61)
+
+PR 리뷰와 별도로, Gemini 토큰을 **후보 찾기**에 쓰는 정기 점검 두 가지. 원칙은 같다: **Gemini 출력은 후보일 뿐이고, Claude가 코드로 검증한 것만 바뀌거나 이슈가 된다.** 앱 코드는 점검 결과만 보고 고치지 않는다.
+
+### 6.1 모듈 점검 — `sweep.sh`
+
+```sh
+.github/review/sweep.sh list                 # 모듈·렌즈·패스 수·입력 토큰 추정
+.github/review/sweep.sh mode-install         # 모듈 하나 (기본 패스 + 모듈별 렌즈, 동시에)
+WR_LENSES= .github/review/sweep.sh updater   # 렌즈 없이 기본 패스만(가장 싸게)
+.github/review/sweep.sh all                  # 전체 — 모듈은 차례로, 모듈 안 패스는 동시에
+```
+
+- 모듈 정의는 `modules.txt`(이름 | 체크리스트 | 렌즈 | 파일). `web/modes/studio/mode.js`처럼 큰 파일은 구역 표지(`@표지[~끝표지]`)나 줄 범위로 나눈다. 모듈 코드는 **줄 번호와 함께 프롬프트에 싣고**(기본 200KB까지) 리뷰어의 읽기 한도(기본 8회·렌즈 15회)는 모듈 밖 호출부 확인에만 쓰게 한다. 프롬프트의 PR 전제는 `SWEEP_PROMPT.md`가 바꾼다.
+- **주기: 주 1회**, 한 번에 2~4개 모듈씩 돌아가며(전체를 한 번에 돌리면 Claude 검증이 밀린다). 큰 PR이 들어온 모듈을 먼저.
+- **비용**: 모듈당 패스 (1 + 렌즈 수)회 × 입력(`sweep.sh list`의 추정치 = 프롬프트 바이트 ÷ 3). 전체 1회 ≈ 21모듈 × 3~5패스 ≈ 90패스, 입력 약 380만 토큰 + 도구 호출마다 맥락을 다시 읽는 몫(실제는 추정치보다 크다). 시간은 모듈당 가장 느린 패스 기준 5~12분.
+- 결과 `sweep-<날짜-시각>-<모듈>.json`: 각 지적에 `found_by`(패스), 지난 점검과 같은 지적이면 `repeat_of`(파일 같고 줄 ±3 + 제목 비슷 = `same-line`, 제목이 거의 같고 줄이 움직였으면 `moved`).
+- **Claude 검증** (§1 판정 그대로, 지적마다 `file:line`을 열어 확인):
+  - ✅ 실제 문제 → 이슈 **하나씩** 만든다(제목·재현 조건·`file:line`·제안, 라벨은 내용대로). 본문에 Gemini 원문을 붙이지 않고 Claude가 검증한 문장으로 쓴다. 보안 취약점(🔴·아직 고치지 않은 악용 경로)은 공개 이슈 대신 Security Advisory.
+  - ❌ 오탐·❓ 확인 필요 → 이슈를 만들지 않는다. 기각 사유(§1 분류)를 `CALIBRATION.md` §모듈 점검 표에 남긴다(같은 오탐이 다음 주에 `repeat_of`로 다시 오면 표를 보고 바로 기각).
+  - `repeat_of`가 붙은 지적은 지난 판정을 먼저 본다. 지난번 ✅(이슈 있음)면 이슈 번호만 확인, ❌면 새 근거가 있을 때만 다시 검증.
+- 지표: 점검마다 `CALIBRATION.md` §모듈 점검 측정 표에 한 줄(모듈·패스·소요·지적 수·실제/오탐/질문·이슈 번호). 정확도 < 40%가 두 번 이어지는 렌즈는 그 모듈에서 뺀다.
+
+### 6.2 릴리스 전 점검 — `release_check.sh`
+
+```sh
+.github/review/release_check.sh                       # 가장 가까운 태그 이후, 노트 버전은 추정
+.github/review/release_check.sh --since v0.5.0 --version 0.6.0
+```
+
+- 패스 3개를 동시에: **docs**(문서 ↔ 코드 사실: 단축키·숫자·기본값·경로·설정 이름, README ko/en 짝 — `lenses/docs.md`) · **i18n**(`web/core/i18n.js` ko/en 키·자리표시자·번역 안 된 문구·고정 폭 넘침 — `lenses/i18n.md`, 키 대조는 스크립트가 먼저 기계적으로 뽑아 프롬프트에 넣는다) · **notes**(CHANGELOG `[Unreleased]` → 사용자용 노트 초안, `RELEASE_NOTES_PROMPT.md`).
+- 결과: `release-<버전>-check.json`(docs·i18n 지적 합집합) · `release-<버전>-notes.md`(초안 + 맨 아래 「검토용」 절).
+- **Claude 검증**: 지적은 §1 판정대로 — ✅ 문서·문구 오류는 Release Prep **전에** 작은 PR로 고친다(앱 동작을 바꾸는 수정이면 이슈로 넘기고 이번 릴리스에서 뺄지 사용자에게 묻는다). 노트 초안은 숫자·단축키·이슈 번호·기간을 CHANGELOG와 코드에 하나씩 대조해 고치고, 「검토용」 절의 질문을 해결한 뒤 그 절을 지운다. 다듬은 노트는 초안 릴리스 본문의 「바뀐 점」 자리에 넣는다(`docs/RELEASE.md` §3).
+- 비용: 패스 3회(입력 약 70~90k 토큰 + 읽은 파일), 릴리스마다 1회.

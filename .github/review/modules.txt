@@ -1,0 +1,37 @@
+# 모듈 점검(sweep.sh) 대상 — 한 줄에 모듈 하나: 이름 | 체크리스트 | 렌즈 | 파일
+#   체크리스트: checklists/<이름>.md (기본 패스가 맡음, 없으면 -)
+#   렌즈:       lenses/<이름>.md (렌즈마다 1회 더, WR_LENSES가 있으면 그쪽이 우선, 없으면 -)
+#   파일:       공백으로 구분. 글로브(fnmatch, 저장소 루트 기준) ·
+#               경로:A-B = 줄 범위 · 경로@표지[~끝표지] = 표지 글자가 든 첫 줄(구역 표지 줄 우선)부터
+#               다음 최상위 구역 표지(`/* ===== `) 또는 끝표지 글자가 든 줄 앞까지(표지 안 공백은 _)
+# 크기 기준: 모듈 하나가 프롬프트에 약 200KB(WR_EMBED) 안에 들어가게 묶는다. 넘치면 뒷부분은 리뷰어가 직접 읽는다(읽기 한도를 먹음).
+# web/modes/studio/mode.js는 5,700줄·550KB라 구역 표지로 나눴다(studio-*). 구역이 바뀌면 이 파일의 표지도 맞춘다.
+
+# --- 앱(Rust) ---
+storage        | rust security | state data platform | app/src-tauri/src/settings.rs app/src-tauri/src/winpos.rs app/src-tauri/src/applog.rs
+updater        | rust security | state data platform | app/src-tauri/src/updater.rs scripts/make_latest_json.py scripts/version.py
+mode-install   | rust security | data platform       | app/src-tauri/src/mode_install.rs app/src-tauri/src/protocol.rs crates/wr-core/src/modes.rs
+hooks          | rust security | state data platform | app/src-tauri/src/hooks.rs crates/wr-core/src/hooks_config.rs crates/wr-core/src/binswap.rs crates/wr-hook/src/main.rs crates/wr-core/src/providers/claude/hooks.rs crates/wr-core/src/providers/claude/config.rs
+claude-provider| rust          | state data platform | crates/wr-core/src/providers/claude/mod.rs crates/wr-core/src/providers/claude/tonly.rs crates/wr-core/src/providers/claude/scan.rs crates/wr-core/src/providers/claude/usage.rs crates/wr-core/src/limits.rs
+mcp-connect    | rust security | data platform       | app/src-tauri/src/mcp_connect.rs crates/wr-core/src/mcp_config.rs
+mcp-report     | rust security | state data platform | crates/wr-hook/src/mcp.rs crates/wr-core/src/report.rs crates/wr-core/src/providers/mcp.rs
+terminal       | rust security | state platform      | app/src-tauri/src/terminal.rs app/src-tauri/src/orca_find.rs crates/wr-core/src/term.rs
+daylog         | rust          | state data platform | crates/wr-core/src/daylog.rs types/daylog.d.ts
+app-shell      | rust security | state platform      | app/src-tauri/src/commands.rs app/src-tauri/src/windows.rs app/src-tauri/src/tray.rs app/src-tauri/src/detect.rs app/src-tauri/src/ctxmenu.rs app/src-tauri/src/backend.rs
+
+# --- 웹 코어 ---
+core-web       | frontend security | state screen interact data | web/core/core.js web/core/api.js web/core/core-lib.js web/core/bridge-host.js web/sdk/mode-sdk.js
+manager        | frontend          | state screen interact data | web/core/manager.js web/core/manager.css web/core/i18n.js
+nunchi         | frontend rust     | state screen interact platform | web/core/nunchi.js web/core/nunchi.css app/src-tauri/src/nunchi.rs
+
+# --- 스튜디오 (web/modes/studio/mode.js 구역별) ---
+studio-main    | frontend | state screen interact data | web/modes/studio/mode.js:159-240 web/modes/studio/mode.js@C.registerMode(
+studio-mini    | frontend | state screen interact data | web/modes/studio/mode.js@전력·날씨 web/modes/studio/mode.js@미니_보기_(작은_창
+studio-blocks  | frontend | state screen interact data | web/modes/studio/mode.js@🧑‍🏫_회의실_화이트보드 web/modes/studio/mode.js@👆_클릭_반응
+studio-dayrep  | frontend | state screen interact data | web/modes/studio/mode.js@📋_퇴근_일보 crates/wr-core/src/daylog.rs:1-120
+studio-decor   | frontend | state screen interact data | web/modes/studio/mode.js@🎨_층_꾸미기
+studio-tiny    | frontend | state screen interact data | web/modes/studio/mode.js@☕_깨알_디테일~C.registerMode( web/modes/studio/mode.css
+
+# --- 다른 내장 모드 ---
+modes-other    | frontend | state screen interact | web/modes/pocket/mode.js web/modes/board/mode.js web/modes/work/mode.js web/modes/flow/mode.js
+modes-fun      | frontend | state screen interact | web/modes/hamster/mode.js web/modes/orbit/mode.js

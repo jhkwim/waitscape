@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "waitscape/review/notes_schema.json",
+  "title": "Waitscape 릴리스 노트 초안",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["notes", "questions", "omitted"],
+  "properties": {
+    "notes": {
+      "type": "string",
+      "description": "GitHub 릴리스 본문에 붙일 마크다운 초안(한국어 해요체 본문 + 맨 아래 접힌 English 요약). 코드펜스로 감싸지 않는다."
+    },
+    "questions": {
+      "type": "array",
+      "description": "초안을 쓰며 CHANGELOG만으로 확정 못 한 것(사람·Claude가 확인할 것). 예: '할로윈 기간 11/7이 마지막 날 포함인지'",
+      "items": { "type": "string" }
+    },
+    "omitted": {
+      "type": "array",
+      "description": "CHANGELOG에 있지만 사용자용 노트에서 뺀 항목과 이유(내부 리팩터링·개발 도구 등)",
+      "items": { "type": "string" }
+    }
+  }
+}

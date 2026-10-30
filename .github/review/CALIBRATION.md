@@ -128,3 +128,43 @@ Flash #1 지적 판정: 시계 주입 ✅, 404에 CSP 없음 ✅(🔵가 적정 
 - 해결(`run_review.sh`): ① diff를 프롬프트에 직접 포함(`WR_EMBED`, 기본 120000바이트) ② "셸 금지·읽기 전용 도구(read_file/view_file, grep_search, list_dir, find_by_name)만·파일 읽기 최대 8회" 규칙을 프롬프트에 명시 ③ 1차 실패(권한 거부·타임아웃·구조화 출력 없음) 시 **도구를 전혀 쓰지 않는 엄격 프롬프트**(`.strict.md`, diff만으로 답하고 확정 불가 항목은 `question`)로 재시도. 재시도 로그에 1차 실패 사유가 남는다.
 - 시험(PR #10, `WR_MODEL=gemini-3.8-flash-medium`): 수정 후 2회 모두 구조화 출력 정상(241초 0건, 270초 2건: 🔵1 ❓1). 수정 전 같은 명령은 출력 없음. 주의: Flash 0건 회차가 있어 정확도는 여전히 Argon보다 낮다(위 "Flash 비교").
 - 남은 한계: 엄격 재시도는 파일 전체를 못 보므로 지적이 diff 범위로 한정된다. 실행별로 허용 도구를 제한하는 공식 인자는 `agy` 도움말에 없다(전역 `permissions.allow`·플러그인 에이전트 `tools:`만). 필요하면 플러그인 에이전트로 도구를 읽기 전용 목록으로 고정하는 방법을 후속 검토.
+
+## 모듈 점검(sweep) · 릴리스 전 점검 (2026-10-30, #60·#61)
+
+- 목적: 넉넉한 Gemini 토큰을 PR 밖(이미 main에 있는 코드·문서)에도 쓰되 앱 품질은 낮추지 않는다 — Gemini 출력은 후보, Claude가 코드로 검증한 것만 이슈·수정이 된다(TRIAGE.md §6).
+- 설계: `sweep.sh`는 `modules.txt`의 모듈 코드를 **줄 번호와 함께 프롬프트에 싣는다**(읽기 한도 8/15회를 모듈 밖 호출부 확인에만 쓰게, 줄 번호 오차 방지). 큰 `web/modes/studio/mode.js`(5,700줄·550KB)는 구역 표지로 6조각. PR 전제(diff·"바꾸지 않은 코드는 지적 안 함")는 `SWEEP_PROMPT.md`가 바꾼다. 패스·병합은 `run_review.sh`와 같은 규칙(공용 `lib.sh`·`review_lib.py`). 지난 점검과 같은 지적에는 `repeat_of`.
+  `release_check.sh`는 docs·i18n 렌즈(문서·사전을 프롬프트에, 코드는 grep_search로 확인) + 노트 초안 패스(도구 없음, `notes_schema.json`)를 동시에.
+- 판정 기준은 위 "지표 정의"와 같다. 정확도 = ✅ / 전체(❓ 제외).
+
+### 1차 측정 (커밋 `a828a1b`, `gemini-3.8-flash-medium`, 재시도 0회)
+
+| 대상 | 패스 | 소요(벽시계) | 지적 🔴/🟡/🔵/❓ | ✅ 실제 | ❌ 오탐 | 정확도 | 비고 |
+|---|---|---|---|---|---|---|---|
+| sweep `mode-install` | base·data·platform (3) | 486초 | 0/3/2/0 | 3 | 2 | 60% | 실제 3건 모두 🔵로 하향. 오탐 2 = zip 크레이트 동작 추측(platform)·외부 모드 로딩 경로 미확인(data) |
+| sweep `updater` | base·state·data·platform (4) | 291초 | 0/4/1/0 | 4 | 1 | 80% | 실제 4건 모두 🔵로 하향(🟡 과대). state·data 렌즈는 0건 — 지적 5건 중 4건이 base |
+| release_check | docs·i18n·notes (3) | 450초 | 0/2/1/0 | 3 | 0 | 100% | 노트 초안은 CHANGELOG 사실만 옮김(지어낸 사실 0), 질문 3건 중 1건(11/7 포함 여부)은 코드로 답함 |
+
+판정 (Claude가 각 `file:line`을 열어 확인):
+
+| 대상 | ID | 위치 | 지적 | 판정 | 근거 |
+|---|---|---|---|---|---|
+| mode-install | F1 | `app/src-tauri/src/mode_install.rs:345` | 업데이트 설치가 기존 폴더를 먼저 지우고 rename — rename 실패 시 옛 버전·스테이징 모두 사라짐 | ✅ 🟡→🔵 | 345~349줄 `remove` 뒤 `rename`, `commands.rs:705`가 실패해도 스테이징 삭제. 같은 볼륨 rename이라 실패는 드묾(Windows 잠금), 잃는 것은 다시 설치할 수 있는 모드 파일 |
+| mode-install | F2 | `mode_install.rs:74` | `Budget.bytes += n` 오버플로 → 총량 20MB 검사 우회 | ✅ 🟡→🔵 (재현 안 함) | 릴리스 프로필에 `overflow-checks` 없음(Cargo.toml:24). ZIP64 선언 크기를 2^64 근처로 두면 합이 감김. 항목당 실제 읽기는 `take(MAX_BYTES+1)`로 20MB 상한이라 최악 500×20MB 디스크 사용. `saturating_add`로 충분 |
+| mode-install | F3 | `mode_install.rs:135` | 백슬래시 경로 zip이 macOS에서 `enclosed_name` 때문에 거부 | ❌ `hallucination` | zip 9.0.5 `path.rs:60`이 이름을 `Utf8WindowsPath`로 나눠 구성요소마다 push → macOS에서도 `assets/icon.png` |
+| mode-install | F4 | `crates/wr-core/src/modes.rs:50` | id `constructor`면 `core.js` `scripts[id] ||=`가 프로토타입을 집음 | ❌ `already-handled` | `loadScript`는 내장(신뢰) 모드만 부름(`core.js:597`·`661`), 외부 모드는 `attachExternal`. 내장 id는 고정 |
+| mode-install | F5 | `mode_install.rs:63` | Windows 폴더 설치 때 `desktop.ini`·`Thumbs.db`가 있으면 확장자 거부로 설치 실패 | ✅ 🔵 | `skip_name`은 점·`__MACOSX`만, `ext_ok` 화이트리스트에 ini·db 없음 |
+| updater | F1 | `app/src-tauri/src/updater.rs:295` | `install` phase 검사와 설정 사이 경합 → 동시 다운로드 | ❌ `already-handled` | 유일한 호출부 `manager.js:204`가 누르는 즉시 버튼을 끔, 트레이 "update"는 창만 엶(`tray.rs:274`). 백엔드 가드 보강은 선택 |
+| updater | F2 | `updater.rs:255` | 확인 실패(오프라인)에도 `last_check` 갱신 → 24시간 재시도 안 함 | ✅ 🟡→🔵 | `is_due`가 `CHECK_EVERY` 기준, 루프는 1시간마다 깨지만 실패 시각으로 막힘. 주석 "다음 시각에 다시"의 의도(1시간/24시간) 확인 필요 |
+| updater | F3 | `updater.rs:217` | 백그라운드 확인 중 [지금 확인] → 진행 중 결과 대신 `found=None` → "최신 버전이에요" | ✅ 🟡→🔵 | 216~220줄 조기 반환, `check_now` 152~156줄이 `Ok(None)`→`latest`. 시작 15초 뒤·설정 재켜기 직후 몇 초 창에서만 |
+| updater | F4 | `scripts/version.py:139` | `subprocess.run(text=True)` 인코딩 미지정 → Windows에서 한글 커밋 제목 디코딩 실패 | ✅ 🟡→🔵 | 개발용 스크립트(§4 보정: 🔵). Release Prep은 Linux라 CI 영향 없음, 로컬 Windows `bump`에서만 |
+| updater | F5 | `scripts/version.py:209` | `check` 오류가 안내하는 `bump <지금 버전>`은 `new <= cur`로 항상 거부 | ✅ 🔵 | 209줄 안내 ↔ 244줄 검사 |
+| release | F1 | `docs/DEVELOPMENT.md:271` | 숫자키 기본 순서가 "1 햄찌 … 7 스튜디오"인데 실제는 1 스튜디오 | ✅ 🟡→🔵 | `web/modes/index.json` builtin 순서가 studio부터, `core.js:291` `ordered()`. 개발 문서라 🔵 |
+| release | F2 | `docs/INSTALL.md:68`·`:120` | 「현재 한계」가 "코드 서명·공증은 아직 없습니다" — 0.4.2부터 macOS 공증(같은 문서 위쪽·CHANGELOG 0.4.2) | ✅ 🟡 | 사용자 문서 안 모순(ko·en 둘 다) |
+| release | F3 | `web/core/i18n.js:245` | `nx.subs` en "{n} sub-agents" → "1 sub-agents" | ✅ 🔵 | `nunchi.js:311`·`312`에서 `sb.length`로 그대로 |
+
+해석:
+- 오탐 3건 중 2건은 **외부 라이브러리·다른 파일의 동작을 열어 보지 않고 추측**(F3 zip 크레이트, F4 로딩 경로), 1건은 **UI가 이미 막는 경합**. 공통 오탐 방지 규칙이 렌즈에만 있고 기본 패스엔 없다 → sweep 기본 패스에도 같은 규칙을 넣을지 2차 측정에서 본다(지금은 렌즈 패스에만).
+- 등급은 여전히 과대(🟡 7건 중 6건이 🔵 적정). sweep은 오래된 코드라 "평범하게 하루 한 번"인 버그가 드물다 — Claude 판정에서 대부분 🔵로 내린다.
+- 렌즈 기여: updater는 state·data 0건, platform 1건(version.py 인코딩). mode-install은 base·data·platform이 F1을 함께 찾음(독립 확증 아님). 렌즈 효과는 PR 때(§렌즈)보다 약하다 — 모듈 3~4개 더 재고 0건이 이어지는 렌즈는 그 모듈에서 뺀다.
+- 비용: 모듈당 패스 3~4회, 프롬프트 66~78KB(입력 약 20~26k 토큰/패스 + 도구 호출마다 맥락 재전송분 — agy JSON에 토큰 사용량이 없어 실측 불가). 벽시계는 가장 느린 패스 기준 5~8분. 전체 21모듈 추정은 `sweep.sh list`.
+- 실제 이슈 후보(앱 코드 수정은 이 브랜치에서 하지 않음): mode-install F1·F2·F5, updater F2·F3·F4·F5, 문서 F1·F2, i18n F3.
