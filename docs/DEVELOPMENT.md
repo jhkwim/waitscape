@@ -73,7 +73,7 @@ cargo tauri build --target universal-apple-darwin   # 배포용 universal (.app�
 - **Actions → Release Prep → Run workflow**(버전 `0.2.0` 또는 `major`/`minor`/`patch`) → `scripts/version.py bump`가 버전(원본 `Cargo.toml` → `tauri.conf.json`·`Cargo.lock`)과 `CHANGELOG.md`를 올린 PR을 만든다 → 병합하면 태그 `vX.Y.Z` + `release.yml`이 macOS universal(`.dmg`·`.app.zip`)·Windows x64(NSIS `.exe`·`.msi`)를 빌드해 `SHA256SUMS.txt`와 함께 **초안(draft) 릴리스** → 확인 후 직접 게시.
 - 업데이터 서명 시크릿(`TAURI_SIGNING_PRIVATE_KEY`)이 있으면 `.app.tar.gz`·`.sig`·`latest.json`도 올라간다. 초안을 게시하면 그때부터 앱이 새 버전을 찾는다. Apple 서명·공증도 시크릿(`APPLE_CERTIFICATE` 등)이 있을 때만(없으면 미서명, 맥은 ad-hoc).
 - 직접 태그 `vX.Y.Z`를 push해도 같은 빌드가 돈다. 수동 실행(Actions → Release)은 기본으로 아티팩트만 만든다(`publish=false`, 14일 보관).
-- 버전을 손으로 바꾸지 말고 `python3 scripts/version.py bump <버전> [--dry-run]`. 일치 검사: `python3 scripts/version.py check`(CI·`build.rs`도 검사).
+- 버전을 손으로 바꾸지 말고 `python3 scripts/version.py bump <버전> [--dry-run]`. 일치 검사: `python3 scripts/version.py check`(CI·`build.rs`도 검사), 어긋나면 `python3 scripts/version.py sync`.
 - 빌드 플레이버: `cargo tauri build --no-default-features`(또는 `--features updater` 등) — 업데이터·터미널 이동을 뺀 빌드(나중 Mac App Store용 구조). 기본은 둘 다 켜짐.
 
 개발(모드 만들기): `python3 server.py` + `bun tools/dev.ts` → http://localhost:7780 (파일을 저장하면 자동 새로고침. [`MODES.md`](../MODES.md) §10)
@@ -245,7 +245,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     licenses/           크레이트 밖 제3자 원문(Microsoft WebView2 SDK LICENSE·NOTICE — Windows exe에 정적 링크되는 로더)
     check_platform_advisories.py  배포 대상에서 쓰이지 않아 닫은 보안 경고(.github/platform-advisories.json)가 배포 대상(release.yml 앱 빌드 잡의 러너·번들, tauri.conf.json bundle.targets)에 들어오면 실패 (selftest_platform_advisories.py)
     check_commit_emails.py  커밋 작성자·커미터 이메일이 차단 도메인이면 실패 (환경변수 BLOCKED_EMAIL_DOMAINS, CI에선 저장소 시크릿)
-    version.py          앱 버전 한 곳 관리: show / check [--tag] / bump X.Y.Z|major|minor|patch [--dry-run] / notes (CHANGELOG 절)
+    version.py          앱 버전 한 곳 관리: show / check [--tag] / bump X.Y.Z|major|minor|patch [--dry-run] / sync [--dry-run] / notes (CHANGELOG 절)
     make_latest_json.py 업데이터 매니페스트 latest.json 생성 (서명 .sig가 있을 때만, release.yml)
     test_release_scripts.py  위 두 스크립트 회귀 테스트 (가짜 저장소, CI)
   .github/

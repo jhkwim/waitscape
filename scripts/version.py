@@ -12,6 +12,7 @@ brand.json에는 버전이 없다(User-Agent의 <VERSION>은 실행 시 CARGO_PK
   python3 scripts/version.py show
   python3 scripts/version.py check [--tag v0.2.0]          # 모든 곳이 같은지 (태그를 주면 태그와도)
   python3 scripts/version.py bump 0.2.0|major|minor|patch [--dry-run] [--date YYYY-MM-DD]
+  python3 scripts/version.py sync [--dry-run]               # tauri.conf.json·Cargo.lock을 Cargo.toml(원본) 버전에 맞춤
   python3 scripts/version.py notes 0.2.0                   # CHANGELOG의 그 버전 절 (릴리스 노트·latest.json)
 공통: --root <저장소 폴더> (기본: 이 스크립트의 상위 폴더). 표준 라이브러리만 쓴다(Actions Linux 러너에서 바로 실행).
 """
@@ -206,7 +207,10 @@ def cmd_check(root: pathlib.Path, tag: str | None) -> int:
         print(f"{k:32} {v}")
     if bad:
         for k, v in bad.items():
-            print(f"::error::{k}의 버전({v})이 Cargo.toml({cv})과 달라요. python3 scripts/version.py sync 로 Cargo.toml 버전에 맞추세요", file=sys.stderr)
+            if k.startswith("태그 "):
+                print(f"::error::{k}와 Cargo.toml 버전({cv})이 달라요. 태그를 v{cv}로 하거나, 버전을 올릴 거면 version.py bump", file=sys.stderr)
+            else:
+                print(f"::error::{k}의 버전({v})이 Cargo.toml({cv})과 달라요. python3 scripts/version.py sync 로 Cargo.toml 버전에 맞추세요", file=sys.stderr)
         return 1
     print(f"OK: 모두 {cv}")
     return 0
@@ -238,7 +242,7 @@ def main() -> int:
     if a.cmd == "sync":
         cv = cargo_version(root)
         for f in set_versions(root, cv, a.dry_run):
-            print(f"  맞춤: {f}", file=sys.stderr)
+            print(f"  맞춤{' (dry-run: 쓰지 않음)' if a.dry_run else ''}: {f}", file=sys.stderr)
         print(cv)
         return 0
     if a.cmd == "notes":
