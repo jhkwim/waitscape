@@ -133,6 +133,19 @@ C.registerMode({
 - `C.providerBadge(state, s)` — 세션 목록에 붙일 배지 HTML(`<span class="core-provider" data-provider="codex">🧩 Codex</span>`). 기본값으로 프로바이더가 Claude 하나뿐이면 빈 문자열이라 지금 화면이 바뀌지 않는다. 모양은 `.core-provider`(명시도 0)를 덮어써서 바꾼다.
 - 문구에 "Claude"를 박지 말고 `C.provider(state, s).name`을 쓴다. mode.json `uses`에 화면이 기대는 기능을 적어 두면 설정 화면에 안내된다.
 
+### 다른 AI를 부를 때 (`wr-hook run` · `wr-hook report`)
+
+AI가 다른 AI를 명령줄로 부르면(MCP 연결 없이) 불려 간 쪽도 `source: "mcp"` 세션으로 들어온다 — 모드 입장에서는 Codex·Antigravity MCP 세션과 똑같다(`provider`, `report.board`·`step`·`cheer`).
+감싸는 쪽이 `--client`로 표시 이름을 고른다(`antigravity-cli` → `gemini` 프로바이더·이름 "Antigravity", `codex-mcp-client` → Codex, `claude-code` → Claude).
+기록 줄의 `parent`(누가 시켰나)는 아직 `/state`에 내보내지 않는다. 자세한 옵션은 [개발 문서 「다른 AI를 부를 때 보이게 하기」](docs/DEVELOPMENT.md#다른-ai를-부를-때-보이게-하기-wr-hook-report--wr-hook-run).
+
+```sh
+WH=~/.claude/waiting-room/bin/wr-hook
+$WH run --client antigravity-cli --title "결제 모듈 리뷰" -- agy -p "…"      # Claude Code의 Bash → Antigravity
+$WH run --client claude-code --title "테스트 보강" -- claude -p "…"          # Codex → Claude (훅이 켜져 있으면 중복으로 보일 수 있음)
+$WH run --client codex-mcp-client --title "의존성 점검" -- codex exec "…"   # 스크립트 → Codex
+```
+
 ## 7. 샌드박스 (외부 모드)
 
 - iframe: `sandbox="allow-scripts"`(같은 origin·팝업·상위 이동·폼·모달 없음), 권한 정책 전부 `'none'`, `/_modes/<id>/index.html`(호스트가 생성: SDK → core-lib → mode.css → mode.js 순).

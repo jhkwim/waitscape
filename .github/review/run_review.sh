@@ -24,7 +24,11 @@
 #                 렌즈 지시는 lenses/<이름>.md(이름은 영소문자·숫자·-만). 렌즈마다 체크아웃을 복제해 따로 실행(agy 전역 캐시 충돌 방지).
 #                 Argon 등 다른 모델은 지금처럼 1회. 비우면 예전과 같음. 근거: CALIBRATION.md §렌즈
 #   WR_KEEP=1     임시 체크아웃을 지우지 않음
-#   WR_DRY=1      프롬프트만 조립해 저장하고 agy는 실행하지 않음
+#   WR_DRY=1      프롬프트만 조립해 저장하고 agy는 실행하지 않음(Waitscape 보고도 하지 않음)
+#   WR_REPORT=0   Waitscape 보고 끔. 기본은 켬: 리뷰 1회가 스튜디오에 Antigravity(Gemini) 직원 1명으로 보인다(패스 진행 보드·지적 수).
+#                 `wr-hook report`(WR_HOOK > ~/.claude/waiting-room/bin/wr-hook)로 reports.jsonl에 append — 없거나 실패하면 조용히 건너뜀.
+#                 싣는 내용은 PR 번호·패스 이름·지적 수뿐(코드·diff·프롬프트 없음). 앱에서는 설정 → AI 연결 → "MCP 보고"가 켜져 있어야 보인다
+#   WR_HOOK       wr-hook 실행 파일 (기본 ~/.claude/waiting-room/bin/wr-hook)
 #
 # 모델 자동 선택(근거: CALIBRATION.md §Flash 비교). 아래 "Flash 1회"는 렌즈가 켜져 있으면(기본) Flash 기본 패스 + 렌즈 5개를 동시에(§렌즈):
 #   light    작은 PR(< WR_BIG줄), 보안 민감 아님            → Flash 1회
@@ -206,6 +210,87 @@ done
 
 if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md"; case " $MODELS " in *" $FLASH "*) for l in $LENSES; do echo "$BASE.$l.prompt.md"; done ;; esac; exit 0; fi
 
+# 5b) Waitscape 보고 (best-effort, #58): 리뷰 1회 = Antigravity 직원 1명. 패스마다 직원을 따로 만들지 않도록 agy를 `wr-hook run`으로
+#     감싸지 않고, 이 스크립트(부모)만 `wr-hook report`로 쓴다(한 곳에서만 써서 백그라운드 패스끼리 경합 없음).
+#     pid=$$ → 스크립트가 죽으면 세션도 사라진다. 실패는 모두 무시(리뷰 동작은 보고가 꺼졌을 때와 같다)
+WRH="${WR_HOOK:-$HOME/.claude/waiting-room/bin/wr-hook}"
+{ [ "${WR_REPORT:-1}" = 0 ] || [ ! -x "$WRH" ]; } && WRH=""
+RKEY="review-pr$PR-$STAMP"
+# 프로젝트 이름이 저장소(waitscape)가 되게 메인 체크아웃 경로를 쓴다(worktree에서 돌려도)
+RCWD="$(cd "$HERE" && cd "$(git rev-parse --git-common-dir 2>/dev/null || echo ../..)/.." 2>/dev/null && pwd || echo "$HERE")"
+REPORTED=0
+rep() { [ -n "$WRH" ] || return 0; "$WRH" report "$@" --provider gemini --client antigravity-cli --key "$RKEY" --cwd "$RCWD" --pid $$ >/dev/null 2>&1 || true; }
+# 패스 목록(결과 접두 순서와 같음): 레이블 → 짧은 이름 (gemini-3.8-flash-medium/state → state, gemini-4-argon-medium → argon)
+PASSES=""
+for model in $MODELS; do
+  if [ -z "$LENSES" ] || [ "$model" != "$FLASH" ]; then PASSES="$PASSES $model"; else PASSES="$PASSES $model/base"; for l in $LENSES; do PASSES="$PASSES $model/$l"; done; fi
+done
+NPASS=$(echo $PASSES | wc -w | tr -d ' ')
+short() { local s="${1##*/}"; [ "$s" = "$1" ] && { s="${s#gemini-}"; s="${s#[0-9]*-}"; s="${s%-medium}"; s="${s%-high}"; s="${s%-low}"; }; echo "$s"; }
+# 진행 계산: 패스 i의 상태(끝 = 보드 done 체크 + 지적 수 · ✗ 실패 · ⏳ 실행 중 · · 대기 — ✓는 스튜디오가 그림) → 보드 4줄 이하(패스가 4개 이하면 한 줄씩, 넘으면 상태별로 묶음)
+progress() {
+  local i=0 lab st n fin=0 done_ix="" g_ok="" g_run="" g_wait="" g_fail=""
+  local lines=()
+  for lab in $PASSES; do
+    i=$((i+1)); lab="$(short "$lab")"
+    if [ -f "$BASE.m$i.ok" ]; then
+      [ -f "$WORK/m$i.n" ] || python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("findings",[])))' "$BASE.m$i.json" > "$WORK/m$i.n" 2>/dev/null || echo 0 > "$WORK/m$i.n"
+      n="$(cat "$WORK/m$i.n")"; st="$lab ${n}건"; g_ok="$g_ok $lab"; fin=$((fin+1))
+    elif [ -f "$BASE.m$i.fail" ]; then st="✗ $lab 실패"; g_fail="$g_fail $lab"; fin=$((fin+1))
+    elif [ -f "$BASE.m$i.label" ]; then st="⏳ $lab"; g_run="$g_run $lab"
+    else st="· $lab"; g_wait="$g_wait $lab"; fi
+    lines+=("$st"); { [ -f "$BASE.m$i.ok" ] || [ -f "$BASE.m$i.fail" ]; } && done_ix="$done_ix,$((i-1))"
+  done
+  if [ "$NPASS" -gt 4 ]; then   # 보드는 4줄·줄당 32자까지 → 상태별로 묶는다
+    lines=(); done_ix=""
+    [ -n "$g_ok" ] && { lines+=("${g_ok# }"); done_ix=",0"; }   # 묶음 줄엔 지적 수를 싣지 않음(패스 간 중복 — 합집합은 끝 보고에)
+    [ -n "$g_fail" ] && lines+=("✗ 실패:$g_fail")
+    [ -n "$g_run" ] && lines+=("⏳$g_run")
+    [ -n "$g_wait" ] && lines+=("·$g_wait")
+  fi
+  PROG_FIN=$fin; PROG_ARGS=(); for st in "${lines[@]}"; do PROG_ARGS+=(--line "$st"); done
+  [ -n "$done_ix" ] && PROG_ARGS+=(--done "${done_ix#,}")
+  return 0
+}
+LAST_PROG=""; LAST_STEP=""
+report_progress() {  # 바뀌었을 때만 board + status(단계 = 끝난 패스 + 1)
+  [ -n "$WRH" ] || return 0
+  progress; local cur="${PROG_ARGS[*]}"
+  [ "$cur" = "$LAST_PROG" ] && return 0; LAST_PROG="$cur"
+  local step=$((PROG_FIN + 1)); [ "$step" -gt "$NPASS" ] && step=$NPASS
+  [ "$step" = "$LAST_STEP" ] || rep status --state working --title "PR #$PR 교차 리뷰" --step "$step" --total "$NPASS"
+  LAST_STEP=$step
+  rep board "${PROG_ARGS[@]}"
+}
+# 백그라운드 패스를 기다리며 3초마다 진행 보고 (보고가 꺼져 있으면 예전처럼 wait만)
+wait_passes() {
+  if [ -z "$WRH" ]; then wait $PIDS || true; return 0; fi
+  local p alive
+  while :; do
+    alive=0; for p in $PIDS; do kill -0 "$p" 2>/dev/null && alive=1; done
+    report_progress
+    [ "$alive" = 1 ] || break
+    sleep 3
+  done
+  wait $PIDS || true
+}
+report_end() {  # $1 = cheer (없으면 지적 수 요약). 10분 이상 걸렸으면 큰 일
+  [ -n "$WRH" ] && [ "$REPORTED" = 1 ] || return 0
+  REPORTED=2
+  report_progress
+  local big=""; [ "$SECONDS" -ge 600 ] && [ -z "${1:-}" ] && big="--big"
+  rep status --state done --title "PR #$PR 교차 리뷰" --cheer "${1:-$(python3 -c 'import json,sys
+f=json.load(open(sys.argv[1])).get("findings",[]); c=lambda k: sum(1 for x in f if x.get("severity")==k)
+print("지적 🔴%d 🟡%d 🔵%d ❓%d" % (c("critical"), c("warning"), c("info"), c("question")))' "$BASE.json" 2>/dev/null || echo "리뷰 끝")}" $big
+  rep bye
+}
+if [ -n "$WRH" ]; then
+  SECONDS=0; REPORTED=1
+  rep hello
+  report_progress
+  trap 'report_end "중단·실패"; cleanup' EXIT   # 중간에 끝나도 done·bye를 남긴다(죽어도 pid로 사라짐)
+fi
+
 # 6) agy 실행 (plan 모드 = 읽기 전용, 구조화 출력). 모델마다 실패하면 1회 재시도
 run_agy() {  # $1=모델 $2=결과 접두 $3=프롬프트 파일 $4=체크아웃(기본 $WORK/repo)
   ( cd "${4:-$WORK/repo}" && "$AGY" -p "$(cat "${3:-$BASE.prompt.md}")" --mode plan --model "$1" --log-file "$2.agy.log" \
@@ -236,7 +321,9 @@ run_one() {  # $1=모델 $2=결과 접두 $3=프롬프트 $4=엄격 프롬프트
 OKS=""; FAILS=""; N=0
 for model in $MODELS; do
   if [ -z "$LENSES" ] || [ "$model" != "$FLASH" ]; then   # 렌즈는 Flash에만(Argon은 토큰 소비가 큼)
-    N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo"
+    N=$((N+1))
+    if [ -n "$WRH" ]; then run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo" & PIDS="$PIDS $!"; wait_passes; PIDS=""
+    else run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo"; fi
     continue
   fi
   # 기본 패스(체크리스트·보안 담당) + 렌즈마다 1회. 렌즈별 체크아웃은 **실행 전에 모두 복제**(APFS면 클론 — 돌고 있는 agy와 겹치지 않게), 1초씩 엇갈려 시작
@@ -245,7 +332,7 @@ for model in $MODELS; do
   for l in $LENSES; do
     sleep 1; N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.$l.prompt.md" "$BASE.$l.strict.md" "$model/$l" "$WORK/repo-$l" & PIDS="$PIDS $!"
   done
-  wait $PIDS || true; PIDS=""
+  wait_passes; PIDS=""
 done
 for i in $(seq 1 "$N"); do
   if [ -f "$BASE.m$i.ok" ]; then OKS="$OKS $i:$(cat "$BASE.m$i.ok")"
@@ -282,4 +369,5 @@ json.dump(out, open(base + ".json", "w", encoding="utf-8"), ensure_ascii=False, 
 sev = {k: sum(1 for x in merged if x["severity"] == k) for k in rank}
 print("합집합 %d건 — 🔴%d 🟡%d 🔵%d ❓%d (모델 %s)" % (len(merged), sev["critical"], sev["warning"], sev["info"], sev["question"], ", ".join(used)))
 PY
+report_end
 echo "결과: $BASE.json"

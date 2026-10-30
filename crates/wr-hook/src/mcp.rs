@@ -20,7 +20,7 @@ use crate::report::{self, board_of, provider_of, status_of};
 use crate::{dumps, env, expand, home, now};
 use serde_json::{json, Map, Value};
 use std::io::{BufRead, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
@@ -35,7 +35,7 @@ const RATE: f64 = 0.5;
 /// state 전이는 이 버킷으로 즉시 기록 (번갈아 바꾸며 도배하는 경우는 넘치면 일반 버킷·보류로)
 const T_BURST: f64 = 10.0;
 const T_RATE: f64 = 1.0;
-const CWD_MAX: usize = 400;
+pub const CWD_MAX: usize = 400;
 
 pub const INSTRUCTIONS: &str = "Waitscape is a small window where the user watches your progress while they wait. \
 For any task with 2+ steps: call waitscape_status(state=\"working\", title, step, total) when you start and at each new step; \
@@ -165,6 +165,85 @@ pub fn response(id: Value, r: Result<Value, (i64, String)>) -> Vec<u8> {
     out
 }
 
+/// 기록 줄 공통 머리 — 사이드카(`Server`)와 `wr-hook report`·`run`(`cli.rs`)이 같이 쓴다
+pub struct Head<'a> {
+    pub key: &'a str,
+    pub provider: &'a str,
+    pub cwd: &'a str,
+    /// 수명 기준 프로세스 (리더가 사라지면 세션을 끝냄). None이면 bye·STALE로만 끝난다
+    pub pid: Option<u32>,
+    pub ppid: Option<u32>,
+    pub term: Option<&'a Value>,
+    /// 이 작업을 시킨 세션의 key·sid (v1 선택 필드 — 리더는 모르는 필드를 무시한다)
+    pub parent: Option<&'a str>,
+}
+
+/// 기록 줄 한 줄 append (`v, ts, type, key, provider, cwd, pid, ppid, wr, term?, parent?` + payload).
+/// 2KB 상한(보드 줄을 뒤에서부터 덜어 냄), 열기·한 번 write·닫기. 실패해도 패닉하지 않고 false
+pub fn append(path: &Path, typ: &str, h: &Head, payload: Map<String, Value>) -> bool {
+    let mut o = Map::new();
+    o.insert("v".into(), json!(report::VERSION));
+    o.insert("ts".into(), json!(now()));
+    o.insert("type".into(), json!(typ));
+    o.insert("key".into(), json!(h.key));
+    o.insert("provider".into(), json!(h.provider));
+    o.insert("cwd".into(), json!(crate::py::take(h.cwd, CWD_MAX)));
+    if let Some(p) = h.pid {
+        o.insert("pid".into(), json!(p));
+    }
+    if let Some(p) = h.ppid {
+        o.insert("ppid".into(), json!(p));
+    }
+    o.insert("wr".into(), json!(env!("CARGO_PKG_VERSION")));
+    if let Some(t) = h.term {
+        o.insert("term".into(), t.clone());
+    }
+    if let Some(p) = h.parent {
+        o.insert("parent".into(), json!(p));
+    }
+    o.extend(payload);
+    let mut line = dumps(&Value::Object(o.clone()));
+    // 2KB를 넘으면 보드 줄을 뒤에서부터 덜어 낸다(그래도 넘으면 버림)
+    while line.len() >= MAX_RECORD {
+        let Some(Value::Array(lines)) = o.get_mut("lines") else { break };
+        if lines.len() <= 1 {
+            break;
+        }
+        lines.pop();
+        let n = lines.len() as i64;
+        if let Some(Value::Array(done)) = o.get_mut("done") {
+            done.retain(|i| i.as_i64().is_some_and(|i| i < n));
+        }
+        line = dumps(&Value::Object(o.clone()));
+    }
+    if line.len() >= MAX_RECORD {
+        debug("record too large, dropped");
+        return false;
+    }
+    line.push(b'\n');
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).ok();
+    }
+    // 한 번의 write로 append (O_APPEND: 다른 사이드카·훅의 줄과 섞이지 않음). 부분 쓰기는 재시도하지 않는다
+    match std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        Ok(mut f) => match f.write(&line) {
+            Ok(n) if n < line.len() => {
+                debug("partial write");
+                false
+            }
+            Ok(_) => true,
+            Err(e) => {
+                debug(&format!("write failed: {}", e.kind()));
+                false
+            }
+        },
+        Err(e) => {
+            debug(&format!("open failed: {}", e.kind()));
+            false
+        }
+    }
+}
+
 /// 사이드카 상태 (세션 하나)
 pub struct Server {
     path: Option<PathBuf>,
@@ -243,52 +322,21 @@ impl Server {
     /// 한 줄 기록 (실패해도 조용히)
     fn write(&mut self, typ: &str, payload: Map<String, Value>) {
         let Some(path) = self.path.clone() else { return };
-        let mut o = Map::new();
-        o.insert("v".into(), json!(report::VERSION));
-        o.insert("ts".into(), json!(now()));
-        o.insert("type".into(), json!(typ));
-        o.insert("key".into(), json!(self.key()));
-        o.insert("provider".into(), json!(self.provider));
-        o.insert("cwd".into(), json!(self.cwd));
-        o.insert("pid".into(), json!(std::process::id()));
+        let key = self.key();
         #[cfg(unix)]
-        o.insert("ppid".into(), json!(std::os::unix::process::parent_id()));
-        o.insert("wr".into(), json!(env!("CARGO_PKG_VERSION")));
-        if let Some(t) = &self.term {
-            o.insert("term".into(), t.clone());
-        }
-        o.extend(payload);
-        let mut line = dumps(&Value::Object(o.clone()));
-        // 2KB를 넘으면 보드 줄을 뒤에서부터 덜어 낸다(그래도 넘으면 버림)
-        while line.len() >= MAX_RECORD {
-            let Some(Value::Array(lines)) = o.get_mut("lines") else { break };
-            if lines.len() <= 1 {
-                break;
-            }
-            lines.pop();
-            let n = lines.len() as i64;
-            if let Some(Value::Array(done)) = o.get_mut("done") {
-                done.retain(|i| i.as_i64().is_some_and(|i| i < n));
-            }
-            line = dumps(&Value::Object(o.clone()));
-        }
-        if line.len() >= MAX_RECORD {
-            debug("record too large, dropped");
-            return;
-        }
-        line.push(b'\n');
-        if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir).ok();
-        }
-        // 한 번의 write로 append (O_APPEND: 다른 사이드카·훅의 줄과 섞이지 않음). 부분 쓰기는 재시도하지 않는다
-        match std::fs::OpenOptions::new().create(true).append(true).open(&path) {
-            Ok(mut f) => match f.write(&line) {
-                Ok(n) if n < line.len() => debug("partial write"),
-                Ok(_) => {}
-                Err(e) => debug(&format!("write failed: {}", e.kind())),
-            },
-            Err(e) => debug(&format!("open failed: {}", e.kind())),
-        }
+        let ppid = Some(std::os::unix::process::parent_id());
+        #[cfg(not(unix))]
+        let ppid = None;
+        let head = Head {
+            key: &key,
+            provider: self.provider,
+            cwd: &self.cwd,
+            pid: Some(std::process::id()),
+            ppid,
+            term: self.term.as_ref(),
+            parent: None,
+        };
+        append(&path, typ, &head, payload);
     }
 
     fn hello(&mut self) {

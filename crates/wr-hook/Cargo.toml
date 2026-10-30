@@ -14,3 +14,7 @@ serde_json.workspace = true
 icu_normalizer.workspace = true
 serde = "1"
 regex = { version = "1", default-features = false, features = ["std", "unicode-perl", "unicode-case"] }
+
+[dev-dependencies]
+# 통합 테스트(tests/report_cli.rs)가 `wr-hook report`·`run`이 쓴 줄을 실제 리더(providers::mcp)로 읽어 본다. 네트워크 기능은 끔
+wr-core = { path = "../wr-core", default-features = false }
