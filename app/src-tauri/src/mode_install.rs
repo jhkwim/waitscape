@@ -4,6 +4,8 @@
 //!   경로 탈출(`..`·절대 경로·드라이브)·심볼릭 링크 거부, 확장자 화이트리스트, 최대 20MB·500개 파일·깊이 6.
 //!   `mode.json`: id 형식, 내장 id와 겹침 금지, semver, needs는 알려진 권한만.
 //! - `commit`: `<사용자 모드 폴더>/<id>/`로 옮기고 파일 SHA-256 목록을 `.install.json`에 남긴다. 설치 직후에는 꺼진 상태(켜기는 프론트에서 동의 후).
+//!   업데이트는 새 판을 같은 폴더의 `.<id>.new-*`로 먼저 옮기고, 기존 판을 `.<id>.old-*`로 비켜 둔 뒤 바꿔 끼운다.
+//!   바꿔 끼우기가 실패하면 기존 판을 되돌린다. 도중에 앱이 꺼져 남은 `.new-`·`.old-`는 `recover`가 정리한다.
 //! - `remove`: 사용자 모드 폴더 안의 `<id>` 폴더만(링크 아님) 지운다.
 
 use serde_json::{json, Value};
@@ -58,9 +60,10 @@ fn err<T>(m: impl Into<String>) -> Result<T, String> {
     Err(m.into())
 }
 
-/// 숨김 파일(.DS_Store, __MACOSX 등)은 조용히 건너뛴다
+/// 숨김 파일(.DS_Store, __MACOSX 등)과 Windows 탐색기가 만드는 desktop.ini·Thumbs.db는 조용히 건너뛴다
 fn skip_name(rel: &str) -> bool {
-    rel.split('/').any(|p| p.starts_with('.') || p == "__MACOSX")
+    rel.split('/')
+        .any(|p| p.starts_with('.') || p == "__MACOSX" || p.eq_ignore_ascii_case("desktop.ini") || p.eq_ignore_ascii_case("thumbs.db"))
 }
 
 struct Budget {
@@ -71,14 +74,17 @@ struct Budget {
 impl Budget {
     fn add(&mut self, n: u64) -> Result<(), String> {
         self.files += 1;
-        self.bytes += n;
         if self.files > MAX_FILES {
             return err(format!("파일이 너무 많아요 (최대 {MAX_FILES}개)"));
         }
-        if self.bytes > MAX_BYTES {
-            return err("패키지가 너무 커요 (최대 20MB)");
+        // zip 선언 크기는 믿을 수 없다: 릴리스 빌드에서 덧셈이 넘쳐 한도를 우회하지 않게 checked_add
+        match self.bytes.checked_add(n) {
+            Some(b) if b <= MAX_BYTES => {
+                self.bytes = b;
+                Ok(())
+            }
+            _ => err("패키지가 너무 커요 (최대 20MB)"),
         }
-        Ok(())
     }
 }
 
@@ -325,8 +331,17 @@ pub fn prepare(src: &Path, stage_dir: &Path, builtin: &[String], user_modes: &Pa
 }
 
 /// 스테이징 → 사용자 모드 폴더. 같은 id가 있으면 교체(업데이트)
+///
+/// 1. 스테이징을 `<사용자 모드 폴더>/.<id>.new-*`로 옮긴다(다른 볼륨이면 복사). 실패해도 기존 판은 그대로.
+/// 2. 기존 `<id>`를 `.<id>.old-*`로 비켜 둔다(같은 폴더 안 rename). Windows에서 파일이 열려 있어 실패하면 그대로 중단.
+/// 3. `.new-*` → `<id>`. 실패하면 `.old-*`를 `<id>`로 되돌린다.
+/// 4. 성공하면 `.old-*`를 지운다(실패해도 다음 `recover`가 지움).
 pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
     std::fs::create_dir_all(user_modes).map_err(|e| e.to_string())?;
+    if !id_ok(&st.id) {
+        return err("잘못된 모드 id");
+    }
+    recover_id(user_modes, &st.id);
     let dst = user_modes.join(&st.id);
     let mut files = vec![];
     walk_files(&st.dir, Path::new(""), &mut files);
@@ -342,11 +357,139 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
         .collect();
     let record = json!({ "id": st.id, "version": st.info["version"], "installedAt": chrono_now(), "sha256": hashes });
     std::fs::write(st.dir.join(".install.json"), serde_json::to_vec_pretty(&record).unwrap()).map_err(|e| e.to_string())?;
-    if std::fs::symlink_metadata(&dst).is_ok() {
-        remove(user_modes, &st.id)?;
+    let existing = match std::fs::symlink_metadata(&dst) {
+        Ok(md) if md.file_type().is_symlink() || !md.is_dir() => return err("같은 이름의 항목이 폴더가 아니라 설치하지 않았어요"),
+        Ok(_) => true,
+        Err(_) => false,
+    };
+    let nonce = nonce();
+    // 1. 새 판을 사용자 모드 폴더 안으로. 스테이징은 보통 같은 볼륨(앱 데이터 폴더)이지만
+    //    WAITING_ROOM_MODES로 다른 볼륨을 가리키면 rename이 안 되므로 복사로 대신한다
+    let new = user_modes.join(format!(".{}.new-{nonce}", st.id));
+    if step("stage", || std::fs::rename(&st.dir, &new)).is_err() {
+        std::fs::remove_dir_all(&new).ok();
+        if let Err(e) = copy_tree(&st.dir, &new) {
+            std::fs::remove_dir_all(&new).ok();
+            return err(format!("설치 파일을 옮기지 못했어요: {e}"));
+        }
     }
-    // 스테이징은 앱 데이터 폴더 안(같은 볼륨)에 두므로 rename 한 번으로 끝난다
-    std::fs::rename(&st.dir, &dst).map_err(|e| e.to_string())
+    // 2. 기존 판을 비켜 둔다
+    let old = user_modes.join(format!(".{}.old-{nonce}", st.id));
+    if existing {
+        if let Err(e) = step("backup", || std::fs::rename(&dst, &old)) {
+            std::fs::remove_dir_all(&new).ok();
+            return err(format!(
+                "기존 모드를 옮기지 못해 업데이트하지 않았어요 (사용 중인 파일이 있으면 닫고 다시 시도해 주세요): {e}"
+            ));
+        }
+    }
+    // 3. 바꿔 끼우기. 실패하면 기존 판을 되돌린다
+    if let Err(e) = step("swap", || std::fs::rename(&new, &dst)) {
+        std::fs::remove_dir_all(&new).ok();
+        if existing {
+            if let Err(e2) = std::fs::rename(&old, &dst) {
+                // 되돌리기마저 실패: 기존 판은 .old-* 이름으로 남아 있고 다음 실행 때 recover가 되돌린다
+                return err(format!(
+                    "업데이트에 실패했어요: {e} (기존 모드 복구도 실패: {e2}. 앱을 다시 켜면 복구를 다시 시도해요)"
+                ));
+            }
+            return err(format!("업데이트에 실패해 기존 모드를 그대로 두었어요: {e}"));
+        }
+        return err(format!("설치에 실패했어요: {e}"));
+    }
+    // 4. 비켜 둔 기존 판 정리 (실패해도 설치는 성공. 다음 recover가 지운다)
+    if existing {
+        std::fs::remove_dir_all(&old).ok();
+    }
+    Ok(())
+}
+
+// 테스트에서 특정 단계를 일부러 실패시킨다 (rename 실패 흉내)
+#[cfg(test)]
+thread_local! {
+    static FAIL_STEP: std::cell::RefCell<Vec<&'static str>> = const { std::cell::RefCell::new(vec![]) };
+}
+
+/// 파일 시스템 한 단계. 테스트에서는 이름으로 골라 실제로 실행하지 않고 실패시킬 수 있다
+#[cfg_attr(not(test), allow(unused_variables))]
+fn step(name: &'static str, f: impl FnOnce() -> std::io::Result<()>) -> std::io::Result<()> {
+    #[cfg(test)]
+    if FAIL_STEP.with(|s| s.borrow().contains(&name)) {
+        return Err(std::io::Error::other(format!("test: {name} 실패")));
+    }
+    f()
+}
+
+fn nonce() -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static N: AtomicU64 = AtomicU64::new(0);
+    let t = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    format!("{t:x}{:x}{:x}", std::process::id(), N.fetch_add(1, Ordering::Relaxed))
+}
+
+/// 다른 볼륨으로 옮길 때 쓰는 복사. 스테이징은 이미 검사를 통과했으므로 일반 파일·폴더만 따라간다(링크는 건너뜀)
+fn copy_tree(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir(dst)?;
+    for e in std::fs::read_dir(src)? {
+        let e = e?;
+        let md = std::fs::symlink_metadata(e.path())?;
+        let to = dst.join(e.file_name());
+        if md.is_dir() {
+            copy_tree(&e.path(), &to)?;
+        } else if md.is_file() {
+            std::fs::copy(e.path(), &to)?;
+        }
+    }
+    Ok(())
+}
+
+/// `.<id>.new-<nonce>` / `.<id>.old-<nonce>` 이름을 해석한다. 이 형식이 아니면 None (사용자 파일은 건드리지 않는다)
+fn leftover(name: &str) -> Option<(&str, bool)> {
+    let (id, rest) = name.strip_prefix('.')?.split_once('.')?;
+    let (is_old, n) = if let Some(n) = rest.strip_prefix("old-") {
+        (true, n)
+    } else {
+        (false, rest.strip_prefix("new-")?)
+    };
+    (id_ok(id) && !n.is_empty() && n.bytes().all(|b| b.is_ascii_hexdigit())).then_some((id, is_old))
+}
+
+/// 도중에 앱이 꺼져 남은 설치 흔적을 정리한다 (앱 시작 때 전체, 설치 직전에 그 id만).
+/// - `.new-*`: 완성됐는지 알 수 없으므로 지운다
+/// - `.old-*`: `<id>`가 없으면(바꿔 끼우기 전에 꺼짐) 되돌리고, 있으면 지운다
+pub fn recover(user_modes: &Path) {
+    recover_matching(user_modes, None);
+}
+
+fn recover_id(user_modes: &Path, id: &str) {
+    recover_matching(user_modes, Some(id));
+}
+
+fn recover_matching(user_modes: &Path, only: Option<&str>) {
+    let Ok(rd) = std::fs::read_dir(user_modes) else { return };
+    let mut names: Vec<String> = rd.flatten().filter_map(|e| e.file_name().into_string().ok()).collect();
+    // .new-를 먼저 지우고 .old-를 나중에 처리한다
+    names.sort_by_key(|n| leftover(n).map(|(_, old)| old));
+    for name in names {
+        let Some((id, is_old)) = leftover(&name) else { continue };
+        if only.is_some_and(|o| o != id) {
+            continue;
+        }
+        let p = user_modes.join(&name);
+        match std::fs::symlink_metadata(&p) {
+            Ok(md) if md.is_dir() && !md.file_type().is_symlink() => {}
+            _ => continue,
+        }
+        let dst = user_modes.join(id);
+        if is_old && std::fs::symlink_metadata(&dst).is_err() {
+            std::fs::rename(&p, &dst).ok();
+        } else {
+            std::fs::remove_dir_all(&p).ok();
+        }
+    }
 }
 
 fn chrono_now() -> f64 {
@@ -524,6 +667,160 @@ mod tests {
             std::os::unix::fs::symlink("/etc/hosts", src.join("assets/h.txt")).unwrap();
             assert!(prepare(&src, &t.join("stage"), &[], &modes, "en").unwrap_err().contains("링크"));
         }
+        std::fs::remove_dir_all(t).ok();
+    }
+
+    fn version_of(d: &Path) -> String {
+        let m: Value = serde_json::from_slice(&std::fs::read(d.join("mode.json")).unwrap()).unwrap();
+        m["version"].as_str().unwrap().to_string()
+    }
+
+    fn leftovers(modes: &Path) -> Vec<String> {
+        let mut v: Vec<String> = std::fs::read_dir(modes)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with('.'))
+            .collect();
+        v.sort();
+        v
+    }
+
+    fn fail(steps: &[&'static str]) {
+        FAIL_STEP.with(|f| *f.borrow_mut() = steps.to_vec());
+    }
+
+    #[test]
+    fn update_failure_keeps_old_version() {
+        let t = tmp("upd");
+        let modes = t.join("modes");
+        let v1 = t.join("v1");
+        write_pkg(&v1, "demo");
+        commit(&prepare(&v1, &t.join("stage"), &[], &modes, "ko").unwrap(), &modes).unwrap();
+        let v2 = t.join("v2");
+        write_pkg(&v2, "demo");
+        std::fs::write(v2.join("mode.json"), r#"{"id":"demo","name":"Demo","version":"2.0.0","needs":[]}"#).unwrap();
+
+        // 바꿔 끼우기 실패 → 기존 판 복구, 흔적 없음
+        for s in ["swap", "backup"] {
+            let st = prepare(&v2, &t.join("stage"), &[], &modes, "ko").unwrap();
+            fail(&[s]);
+            let e = commit(&st, &modes).unwrap_err();
+            fail(&[]);
+            assert!(e.contains("기존 모드"), "{s}: {e}");
+            assert_eq!(version_of(&modes.join("demo")), "1.0.0", "{s}");
+            assert!(modes.join("demo/mode.js").is_file());
+            assert!(leftovers(&modes).is_empty(), "{s}: {:?}", leftovers(&modes));
+            std::fs::remove_dir_all(&st.dir).ok();
+        }
+
+        // 새로 설치하다 실패해도 흔적이 남지 않는다
+        let n = t.join("n");
+        write_pkg(&n, "fresh");
+        let st = prepare(&n, &t.join("stage"), &[], &modes, "ko").unwrap();
+        fail(&["swap"]);
+        assert!(commit(&st, &modes).is_err());
+        fail(&[]);
+        assert!(!modes.join("fresh").exists() && leftovers(&modes).is_empty());
+
+        // 스테이징 rename 실패(다른 볼륨 흉내) → 복사로 대신해 업데이트 성공, 기존 판 백업은 지워진다
+        let st = prepare(&v2, &t.join("stage"), &[], &modes, "ko").unwrap();
+        fail(&["stage"]);
+        commit(&st, &modes).unwrap();
+        fail(&[]);
+        assert_eq!(version_of(&modes.join("demo")), "2.0.0");
+        assert!(modes.join("demo/assets/a.svg").is_file() && modes.join("demo/.install.json").is_file());
+        assert!(leftovers(&modes).is_empty(), "{:?}", leftovers(&modes));
+        std::fs::remove_dir_all(t).ok();
+    }
+
+    #[test]
+    fn recover_restores_or_cleans_leftovers() {
+        let t = tmp("recover");
+        let modes = t.join("modes");
+        let mk = |name: &str, ver: &str| {
+            let d = modes.join(name);
+            std::fs::create_dir_all(&d).unwrap();
+            std::fs::write(d.join("mode.json"), format!(r#"{{"version":"{ver}"}}"#)).unwrap();
+        };
+        // a: 비켜 둔 뒤 꺼짐(a 없음) → 되돌림, 미완성 새 판은 지움
+        mk(".a.old-1f", "1.0.0");
+        mk(".a.new-2f", "2.0.0");
+        // b: 바꿔 끼운 뒤 꺼짐(b 있음) → 백업 지움
+        mk("b", "2.0.0");
+        mk(".b.old-3", "1.0.0");
+        // 형식이 다른 이름은 건드리지 않는다
+        for keep in [".c.old-zz", ".c.old-", ".Bad.old-1", ".c.bak-1", ".hidden", "c.old-1"] {
+            mk(keep, "9.9.9");
+        }
+        std::fs::write(modes.join(".d.old-1"), "file").unwrap();
+        recover(&modes);
+        assert_eq!(version_of(&modes.join("a")), "1.0.0");
+        assert_eq!(version_of(&modes.join("b")), "2.0.0");
+        for gone in [".a.old-1f", ".a.new-2f", ".b.old-3"] {
+            assert!(!modes.join(gone).exists(), "{gone}");
+        }
+        for keep in [".c.old-zz", ".c.old-", ".Bad.old-1", ".c.bak-1", ".hidden", "c.old-1", ".d.old-1"] {
+            assert!(modes.join(keep).exists(), "{keep}");
+        }
+        #[cfg(unix)]
+        {
+            // 링크는 따라가지도 지우지도 않는다
+            let target = t.join("target");
+            std::fs::create_dir_all(&target).unwrap();
+            std::fs::write(target.join("keep.txt"), "x").unwrap();
+            std::os::unix::fs::symlink(&target, modes.join(".e.old-1")).unwrap();
+            recover(&modes);
+            assert!(target.join("keep.txt").is_file() && !modes.join("e").exists());
+        }
+        std::fs::remove_dir_all(t).ok();
+    }
+
+    #[test]
+    fn budget_rejects_overflow() {
+        let mut b = Budget { files: 0, bytes: 0 };
+        b.add(10).unwrap();
+        // 릴리스 빌드(overflow-checks 꺼짐)였다면 10 + u64::MAX - 5 = 4로 감겨 통과했을 크기
+        assert!(b.add(u64::MAX - 5).is_err());
+        assert!(b.add(u64::MAX).is_err());
+        assert_eq!(b.bytes, 10);
+        b.add(MAX_BYTES - 10).unwrap();
+        assert!(b.add(1).is_err());
+        let mut f = Budget {
+            files: MAX_FILES,
+            bytes: 0,
+        };
+        assert!(f.add(0).unwrap_err().contains("파일"));
+    }
+
+    #[test]
+    fn windows_junk_files_skipped() {
+        assert!(skip_name("desktop.ini") && skip_name("Desktop.INI") && skip_name("a/Thumbs.db") && skip_name("THUMBS.DB"));
+        assert!(!skip_name("mode.js") && !skip_name("thumbs.dbx"));
+        let t = tmp("winjunk");
+        let modes = t.join("modes");
+        let src = t.join("src");
+        write_pkg(&src, "wj");
+        std::fs::write(src.join("desktop.ini"), "[.ShellClassInfo]").unwrap();
+        std::fs::write(src.join("assets/Thumbs.db"), "x").unwrap();
+        std::fs::write(src.join("assets/DESKTOP.INI"), "x").unwrap();
+        let st = prepare(&src, &t.join("stage"), &[], &modes, "ko").unwrap();
+        assert_eq!(st.info["files"], 3);
+        commit(&st, &modes).unwrap();
+        assert!(!modes.join("wj/desktop.ini").exists() && !modes.join("wj/assets/Thumbs.db").exists());
+        let z = t.join("wj.zip");
+        let mj = br#"{"id":"wz","name":"Z","version":"0.1.0","needs":[]}"#;
+        zip_of(
+            &z,
+            &[
+                ("wz/mode.json", mj),
+                ("wz/mode.js", b"1"),
+                ("wz/desktop.ini", b"x"),
+                ("wz/assets/Thumbs.db", b"x"),
+            ],
+        );
+        let st = prepare(&z, &t.join("stage"), &[], &modes, "en").unwrap();
+        assert_eq!(st.info["files"], 2);
         std::fs::remove_dir_all(t).ok();
     }
 }
