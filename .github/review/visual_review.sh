@@ -5,7 +5,7 @@
 #
 # 사용법:
 #   .github/review/visual_review.sh <PR번호>                 # PR 헤드 vs 베이스(merge-base). git fetch <remote> pull/<N>/head (GitHub API 안 씀)
-#   .github/review/visual_review.sh --base <REF> [--head <REF>]   # 로컬 커밋끼리. --head 생략 = 지금 작업 트리의 web/(커밋 전 변경 포함)
+#   .github/review/visual_review.sh --base <REF> [--head <REF>]   # 로컬 커밋끼리. --head 생략 = 지금 작업 트리의 web/ 추적 파일(커밋 전 수정 포함, 추적 안 하는 파일 제외)
 #   .github/review/visual_review.sh --head <REF>             # base 없이 head만 검수
 #   추가 인자: --matrix full|quick (기본 full) · --modes studio|all (기본 studio, all = 다른 내장 모드도 light·dark 1장씩)
 #              --extra 이름=쿼리 (여러 번. PR별 장면, 예 --extra 'halloween=noask=1&season=halloween')
@@ -18,15 +18,15 @@
 #   WR_TIMEOUT     agy 시간 제한 (기본 15m) · WR_OUT 결과 폴더 (기본 ${TMPDIR:-/tmp}/waitscape-review)
 #   WR_REMOTE      PR 모드에서 fetch할 원격 (기본 origin) · WR_BASE_BRANCH (기본 main)
 #   WR_PLAYWRIGHT  playwright-core 모듈 경로 (저장소에 의존성 없음 — 임시 폴더에서 `npm i playwright-core`) · WR_CHROME Chrome 경로
-#   WR_VIS_TIME·WR_VIS_WAIT·WR_VIS_JOBS·WR_VIS_DSF  촬영 설정(visual/capture.js 머리말)
+#   WR_VIS_TIME·WR_VIS_WAIT·WR_VIS_JOBS·WR_VIS_DSF·WR_VIS_SEED  촬영 설정(visual/capture.js 머리말)
 #   WR_KEEP=1      임시 폴더 유지 · WR_DRY=1 촬영과 프롬프트 조립까지만 하고 agy는 실행하지 않음
 #
 # 결과: $WR_OUT/vis-<라벨>-<시각>.json (schema.json 형식 + meta) · .shots/(head·base PNG, index.json, diff.json) · .b<N>.prompt.md · .b<N>.raw.json
-# 종료 코드: 0 성공 / 2 사용법 / 3 diff에서 실제 형태 시크릿 발견(전송 중단) / 4 agy 전부 실패
+# 종료 코드: 0 성공 / 2 사용법 / 3 diff에서 실제 형태 시크릿 발견(전송 중단) 또는 web/에 심볼릭 링크 / 4 agy 전부 실패
 #
-# 외부 통신: (PR 모드만) git fetch — 대상 github.com, 보내는 데이터 없음. Antigravity CLI — 대상 Google, 프롬프트(장면 목록·web/ diff 일부)와
-#            리뷰어가 여는 스크린샷(가짜 데이터 화면). 촬영 중 페이지의 외부 요청은 capture.js가 모두 막는다(127.0.0.1만).
-# 신뢰: 촬영은 PR의 web/ JS를 헤드리스 Chrome에서 **실행**한다. 외부(포크) PR은 diff를 먼저 읽고 안전을 확인한 뒤에만 돌린다(TRIAGE §3.1).
+# 외부 통신: (PR 모드만) git fetch → github.com(보내는 데이터 없음) · Antigravity CLI → Google(프롬프트: 장면 목록·web/ diff 일부, 리뷰어가 여는 가짜 데이터 스크린샷)
+# 신뢰: 촬영은 PR의 web/ JS를 헤드리스 Chrome에서 **실행**한다. 외부 요청 차단(서버 포트만·WebSocket·Service Worker·WebRTC UDP)과
+#       웹 루트 밖 차단(심볼릭 링크 거부)이 있어도, 외부(포크) PR·신뢰할 수 없는 PR은 **일회용 환경에서만** 돌린다(TRIAGE §3.1·§6).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -41,7 +41,9 @@ BASE_BRANCH="${WR_BASE_BRANCH:-main}"
 
 die() { echo "visual_review: $*" >&2; exit "${2:-2}"; }
 case "$MODEL" in gemini-*) ;; *) die "교차 검수이므로 gemini-* 모델만: $MODEL" ;; esac
-case "$BATCH$BASE_READS" in *[!0-9]*|'') die "WR_VIS_BATCH·WR_VIS_BASE_READS는 숫자" ;; esac
+for _v in BATCH BASE_READS; do case "${!_v}" in ''|*[!0-9]*) die "WR_VIS_${_v}는 0 이상의 정수" ;; esac; done
+for _v in WR_VIS_WAIT WR_VIS_JOBS WR_VIS_DSF; do case "${!_v:-}" in *[!0-9.]*) die "${_v}는 숫자" ;; esac; done   # 범위는 capture.js가 검사
+case "${WR_VIS_SEED:-1}" in off|[0-9]*) case "${WR_VIS_SEED:-1}" in off) ;; *[!0-9]*) die "WR_VIS_SEED는 정수 또는 off" ;; esac ;; *) die "WR_VIS_SEED는 정수 또는 off" ;; esac
 [ "$BATCH" -ge 1 ] || die "WR_VIS_BATCH는 1 이상"
 
 PR=""; BASE_REF=""; HEAD_REF=""; CAP_ARGS=()
@@ -49,8 +51,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --base) BASE_REF="${2:?--base REF}"; shift 2 ;;
     --head) HEAD_REF="${2:?--head REF}"; shift 2 ;;
-    --matrix|--modes|--extra) CAP_ARGS+=("$1" "${2:?$1 값}"); shift 2 ;;
-    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    --matrix) case "${2:-}" in full|quick) ;; *) die "--matrix는 full|quick" ;; esac; CAP_ARGS+=("$1" "$2"); shift 2 ;;
+    --modes) case "${2:-}" in studio|all) ;; *) die "--modes는 studio|all" ;; esac; CAP_ARGS+=("$1" "$2"); shift 2 ;;
+    --extra) CAP_ARGS+=("$1" "${2:?--extra 값}"); shift 2 ;;
+    -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
     *[!0-9]*|'') die "모르는 인자: $1" ;;
     *) PR="$1"; shift ;;
   esac
@@ -66,7 +70,8 @@ mkdir -p "$OUT"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/wr-visual-XXXXXX")"
 PIDS=""
-cleanup() { [ -n "$PIDS" ] && { kill $PIDS 2>/dev/null; wait 2>/dev/null; }; [ "${WR_KEEP:-0}" = 1 ] && echo "임시 폴더 유지: $WORK" >&2 || rm -rf "$WORK"; }
+killtree() { local c; for c in $(pgrep -P "$1" 2>/dev/null); do killtree "$c"; done; kill -TERM "$1" 2>/dev/null || true; }   # 묶음 서브셸 → (cd && agy) → agy 손자까지
+cleanup() { if [ -n "$PIDS" ]; then for p in $PIDS; do killtree "$p"; done; wait 2>/dev/null || true; fi; [ "${WR_KEEP:-0}" = 1 ] && echo "임시 폴더 유지: $WORK" >&2 || rm -rf "$WORK"; }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
@@ -84,8 +89,11 @@ else
 fi
 BASEP="$OUT/vis-$LABEL-$STAMP"
 mkdir -p "$WORK/head" "$WORK/base"
-if [ -n "$HEAD_SHA" ]; then G archive "$HEAD_SHA" web | tar -x -C "$WORK/head"; else cp -R "$TOP/web" "$WORK/head/web"; fi
+if [ -n "$HEAD_SHA" ]; then G archive "$HEAD_SHA" web | tar -x -C "$WORK/head"
+else WT="$(G stash create)"; G archive "${WT:-HEAD}" web | tar -x -C "$WORK/head"; fi   # 작업 트리 = 추적 파일만(커밋 전 수정 포함). stash create는 작업 트리를 바꾸지 않는다
 [ -z "$BASE_SHA" ] || G archive "$BASE_SHA" web | tar -x -C "$WORK/base"
+LINKS="$(find "$WORK/head" "$WORK/base" -type l 2>/dev/null | sed "s#^$WORK/##")"
+[ -z "$LINKS" ] || { echo "web/에 심볼릭 링크가 있어 중단합니다(웹 루트 밖 파일이 노출될 수 있음): $(echo $LINKS)" >&2; exit 3; }
 echo "head: ${HEAD_SHA:-작업 트리} · base: ${BASE_SHA:-(없음)}" >&2
 
 # 2) web/ diff (프롬프트 맥락용) + 시크릿 검사 — 값은 출력하지 않고 줄 번호만
@@ -115,8 +123,9 @@ python3 - "$SHOTS" "$BATCH" "$WORK/batches" <<'PY'
 import json, sys, os
 shots, batch, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 idx = json.load(open(os.path.join(shots, "head", "index.json"), encoding="utf-8"))["shots"]
-groups = {}
+groups, miss = {}, []
 for s in idx:
+    if not os.path.exists(os.path.join(shots, "head", s["file"])): miss.append(s["name"]); continue
     key = ("studio-" + s["scheme"]) if s["mode"] == "studio" else "modes"
     groups.setdefault(key, []).append(s["name"])
 with open(out, "w", encoding="utf-8") as f:
@@ -124,6 +133,7 @@ with open(out, "w", encoding="utf-8") as f:
         names = groups[key]; k = -(-len(names) // batch); size = -(-len(names) // k)   # 고르게 나눔(13장·최대 10 → 7+6)
         for i in range(0, len(names), size):
             f.write(key + "\t" + " ".join(names[i:i + size]) + "\n")
+if miss: print("촬영 실패로 뺀 장면: " + " ".join(miss), file=sys.stderr)
 PY
 LAST='이제 검수하라. 출력은 schema.json 형식의 JSON 하나뿐이다. 모든 문장은 한국어.'
 NB=0

@@ -127,18 +127,18 @@ WR_LENSES= .github/review/run_review.sh 12 --auto   # 렌즈 끄기(기본은 Fl
 
 코드 리뷰(`run_review.sh`)와 별개인 **선택 패스**다. Gemini 지적은 **후보**일 뿐이고, Claude가 같은 스크린샷을 직접 열어 확인한 것만 반영한다(품질 기준은 코드 리뷰와 같다).
 
-**언제**: `web/`(특히 `web/modes/studio/`, `web/core/*.css`) 화면이 바뀌는 PR. 문서·Rust·CI만 바뀐 PR은 돌리지 않는다. 외부(포크) PR은 PR의 web JS를 헤드리스 Chrome에서 실행하므로 §3.1대로 diff를 먼저 읽고 안전을 확인한 뒤에만.
+**언제**: `web/`(특히 `web/modes/studio/`, `web/core/*.css`) 화면이 바뀌는 PR. 문서·Rust·CI만 바뀐 PR은 돌리지 않는다. 촬영은 PR의 web JS를 헤드리스 Chrome에서 **실행**한다. 외부 요청 차단(촬영 서버 포트·data:·blob:만 허용 — 127.0.0.1의 다른 포트·WebSocket·Service Worker·WebRTC UDP 차단)과 웹 루트 밖 차단(심볼릭 링크가 있으면 종료 코드 3)이 있어도, **외부(포크) PR·신뢰할 수 없는 PR은 §3.1대로 일회용 환경(버리는 VM·컨테이너 등)에서만** 돌린다. 메인테이너 기기에서는 신뢰하는 브랜치(본인·Claude 작성)만.
 
 ```sh
 # 준비(1회): 저장소에 의존성을 넣지 않는다 — 임시 폴더에 playwright-core만 (Chrome은 시스템 것을 씀, WR_CHROME로 변경)
 mkdir -p /tmp/wr-pw && (cd /tmp/wr-pw && npm i playwright-core) && export WR_PLAYWRIGHT=/tmp/wr-pw/node_modules/playwright-core
 .github/review/visual_review.sh <PR번호>                       # PR 헤드 vs merge-base (git fetch만, GitHub API 안 씀)
-.github/review/visual_review.sh --base main                    # 지금 작업 트리(커밋 전 포함) vs main
+.github/review/visual_review.sh --base main                    # 지금 작업 트리의 추적 파일(커밋 전 수정 포함) vs main
 .github/review/visual_review.sh --base A --head B --matrix quick --extra 'decor=noask=1|click=[data-act="decor"]'   # PR별 장면 추가
 WR_DRY=1 .github/review/visual_review.sh --base main           # 촬영·프롬프트만(agy 안 부름) — 스크린샷을 Claude가 직접 볼 때도 이것
 ```
 
-- 촬영(`visual/capture.js` + 가짜 백엔드 `visual/mock.js`): studio `normal`을 light/dark × 움직임 줄이기 끔/켬 × ko/en × 1280/980(16장) + `needs_input`·`blackout`(정전)·`nunchi`(눈치 모드)를 light/dark(+ 정전 dark rm) + `--extra` 장면. `--modes all`이면 다른 내장 모드 6개를 light/dark 1장씩. 날짜는 오늘 14:00으로 고정(`WR_VIS_TIME`), 애니메이션 위치는 장마다 다르다(rm 장면은 거의 정지라 base↔head 픽셀 비교가 깨끗하다).
+- 촬영(`visual/capture.js` + 가짜 백엔드 `visual/mock.js`): studio `normal`을 light/dark × 움직임 줄이기 끔/켬 × ko/en × 1280/980(16장) + `needs_input`·`blackout`(정전)·`nunchi`(눈치 모드)를 light/dark(+ 정전 dark rm) + `--extra` 장면. `--modes all`이면 다른 내장 모드 6개를 light/dark 1장씩. 날짜는 오늘 14:00(Asia/Seoul, 컨텍스트 시간대와 같음)으로 고정(`WR_VIS_TIME`), `Math.random`은 시드 고정(`WR_VIS_SEED`). 그래도 애니메이션 위치는 장마다 다르다(rm 장면은 거의 정지라 base↔head 픽셀 비교가 깨끗하다).
 - 검수(`lenses/visual.md`): (모드·테마)별 묶음(기본 최대 10장)을 **동시에** Flash로. 지적의 `file`은 스크린샷 경로, `line`은 1, `evidence`에 대략 좌표·영역. 결과 `vis-<라벨>-<시각>.json`(id `V1…`, `meta.batches`에 묶음별 초·토큰), 스크린샷은 옆의 `.shots/`.
 
 **Claude 검증(지적마다)**:

@@ -9,10 +9,13 @@
  *   WR_PLAYWRIGHT  playwright-core(또는 playwright) 모듈 경로. 저장소에 의존성을 넣지 않는다 — 예: 임시 폴더에서 `npm i playwright-core` 뒤 그 node_modules/playwright-core
  *   WR_CHROME      Chrome 실행 파일 (기본: macOS /Applications/Google Chrome.app/…, 그 밖은 playwright의 chrome 채널)
  *   WR_VIS_TIME    고정 시각(ISO, 예 2026-10-30T14:00:00). 기본: 오늘 14:00(현지) — Date만 고정, 애니메이션 시계(performance.now)는 그대로 흐른다
- *   WR_VIS_WAIT    로드 뒤 기다릴 ms (기본 3500) · WR_VIS_JOBS 동시 캡처 수 (기본 3) · WR_VIS_DSF 배율 (기본 1)
+ *   WR_VIS_WAIT    로드 뒤 기다릴 ms (기본 3500) · WR_VIS_JOBS 동시 캡처 수 (기본 3, 1~8) · WR_VIS_DSF 배율 (기본 1, 1~4)
+ *   WR_VIS_SEED    Math.random 고정 시드(정수, 기본 1). off면 고정하지 않음
  *
  * 결정성: 날짜·시각·데이터·창 크기·대기 시간은 고정. 직원 걷기·깜빡임 같은 애니메이션 위치는 찍을 때마다 조금 다르다(움직임 줄이기 켠 장면은 대부분 정지).
- * 안전: 정적 서버는 127.0.0.1의 빈 포트에만 열고, 페이지의 외부 요청(127.0.0.1 밖)은 모두 막는다(PR 코드가 밖으로 통신하지 못하게).
+ * 안전(PR 코드가 밖으로 통신하지 못하게): 정적 서버는 127.0.0.1의 빈 포트에만 열고 웹 루트 밖(심볼릭 링크 포함)은 403.
+ *   페이지 요청은 **이 서버 포트·data:·blob:만** 허용(127.0.0.1의 다른 포트도 차단), WebSocket은 모두 닫음, Service Worker 금지,
+ *   WebRTC는 프록시 안 된 UDP 금지(STUN 차단), 브라우저 전체 프록시를 닫힌 포트로(Worker의 WebSocket 등 route 밖 요청까지). 그래도 PR 코드를 실행하는 도구라 신뢰할 수 없는 PR은 일회용 환경에서만(TRIAGE §3.1·§6).
  */
 "use strict";
 const fs = require("fs"), path = require("path"), http = require("http");
@@ -26,6 +29,29 @@ function loadPlaywright() {
   console.error("capture: playwright-core를 찾지 못함. WR_PLAYWRIGHT=<…/node_modules/playwright-core> 를 지정하세요 (임시 폴더에서 `npm i playwright-core`).");
   process.exit(2);
 }
+const ARGS = ["--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--dns-prefetch-disable"];
+/* 브라우저 전체를 닫힌 프록시(127.0.0.1:9)로 보내고 촬영 서버 포트만 직접 연결 — Worker 안의 WebSocket처럼 route가 못 보는 요청까지 막는다.
+   <-loopback>: Chrome이 루프백을 자동으로 프록시에서 빼는 규칙을 끈다(127.0.0.1의 다른 포트도 막히게) */
+function launchOpts(port) {
+  const bypass = ["<-loopback>"].concat(port != null ? [`127.0.0.1:${port}`] : []).join(";");
+  return Object.assign({ headless: true, args: ARGS.concat(["--proxy-server=http://127.0.0.1:9", `--proxy-bypass-list=${bypass}`]) }, chromeOpts());
+}
+/* 격리된 컨텍스트: 허용 = 127.0.0.1:<port>(port가 null이면 http 전부 차단) · data: · blob: */
+async function sealedContext(browser, port, opts) {
+  const ctx = await browser.newContext(Object.assign({}, opts, { serviceWorkers: "block" }));
+  await ctx.route(() => true, r => {
+    let u; try { u = new URL(r.request().url()); } catch { return r.abort(); }
+    const ok = u.protocol === "data:" || u.protocol === "blob:" || (port != null && u.protocol === "http:" && u.hostname === "127.0.0.1" && u.port === String(port));
+    return ok ? r.continue() : r.abort();
+  });
+  await ctx.routeWebSocket(/.*/, ws => ws.close());
+  return ctx;
+}
+function num(name, def, lo, hi) {
+  const v = process.env[name] === undefined || process.env[name] === "" ? def : Number(process.env[name]);
+  if (!Number.isFinite(v) || v < lo || v > hi) { console.error(`capture: ${name}는 ${lo}~${hi} 숫자`); process.exit(2); }
+  return v;
+}
 function chromeOpts() {
   if (process.env.WR_CHROME) return { executablePath: process.env.WR_CHROME };
   const mac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -34,13 +60,17 @@ function chromeOpts() {
 
 /* web 폴더 정적 서버 + index.html/widget.html <head>에 mock.js 주입. 127.0.0.1, 빈 포트 */
 function serve(web) {
-  const root = path.resolve(web), mock = fs.readFileSync(path.join(__dirname, "mock.js"));
+  const root = fs.realpathSync(path.resolve(web)), mock = fs.readFileSync(path.join(__dirname, "mock.js"));
+  const inside = f => f === root || f.startsWith(root + path.sep);
   const srv = http.createServer((req, res) => {
-    let p = decodeURIComponent((req.url || "/").split("?")[0]);
+    let p;
+    try { p = decodeURIComponent((req.url || "/").split("?")[0]); } catch { res.writeHead(400); return res.end(); }
     if (p === "/__mock.js") { res.writeHead(200, { "Content-Type": MIME[".js"] }); return res.end(mock); }
     if (p === "/") p = "/index.html";
-    const f = path.resolve(root, "." + p);
-    if (f !== root && !f.startsWith(root + path.sep)) { res.writeHead(403); return res.end(); }
+    let f = path.resolve(root, "." + p);
+    if (!inside(f)) { res.writeHead(403); return res.end(); }
+    try { f = fs.realpathSync(f); } catch { res.writeHead(404); return res.end(); }   // 심볼릭 링크는 실제 경로로 다시 검사
+    if (!inside(f)) { res.writeHead(403); return res.end(); }
     fs.readFile(f, (err, b) => {
       if (err) { res.writeHead(404); return res.end(); }
       if (p === "/index.html" || p === "/widget.html") b = Buffer.from(b.toString("utf8").replace("<head>", '<head>\n<script src="/__mock.js"></script>'));
@@ -70,10 +100,13 @@ function matrix(kind, modes, extras) {
     add("studio", "blackout", "dark", true, "ko", 1280);
   }
   if (modes === "all") for (const m of ["hamster", "work", "pocket", "board", "orbit", "flow"]) for (const sc of S) add(m, "normal", sc, false, "ko", 1280);
+  const used = new Set();
   for (const e of extras) {   // --extra '이름=쿼리[|click=CSS선택자]...' → studio, light·dark, ko, 1280. click은 차례로 누름(0.4초 간격)
     const [head, ...acts] = e.split("|"), i = head.indexOf("=");
     if (i < 1 || acts.some(a => !a.startsWith("click="))) { console.error("capture: --extra는 '이름=쿼리[|click=선택자]...'"); process.exit(2); }
-    const nm = head.slice(0, i).replace(/[^a-z0-9_]/gi, "_"), q = head.slice(i + 1), clicks = acts.map(a => a.slice(6));
+    let nm = head.slice(0, i).replace(/[^a-z0-9_]/gi, "_"); const q = head.slice(i + 1), clicks = acts.map(a => a.slice(6));
+    for (let k = 2; used.has(nm.toLowerCase()); k++) nm = head.slice(0, i).replace(/[^a-z0-9_]/gi, "_") + "_" + k;   // 정리 뒤 같은 이름(대소문자 무시) → _2, _3
+    used.add(nm.toLowerCase());
     for (const sc of S) add("studio", "x_" + nm, sc, false, "ko", 1280, q, clicks.length ? { clicks } : null, "추가 장면: " + q + (clicks.length ? " · 누름: " + clicks.join(" → ") : ""));
   }
   return out;
@@ -81,7 +114,8 @@ function matrix(kind, modes, extras) {
 
 function fixedTime() {
   if (process.env.WR_VIS_TIME) { const t = new Date(process.env.WR_VIS_TIME); if (!isNaN(t)) return t; console.error("capture: WR_VIS_TIME 형식 오류"); process.exit(2); }
-  const d = new Date(); d.setHours(14, 0, 0, 0); return d;
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());   // 컨텍스트 timezoneId와 같은 Asia/Seoul의 오늘
+  return new Date(`${ymd}T14:00:00+09:00`);
 }
 
 async function shoot(args) {
@@ -89,16 +123,19 @@ async function shoot(args) {
   if (!web || !out || !fs.existsSync(path.join(web, "index.html"))) { console.error("capture: --web <index.html이 있는 폴더> --out <폴더> 필요"); process.exit(2); }
   fs.mkdirSync(out, { recursive: true });
   const shots = matrix(args.matrix || "full", args.modes || "studio", args.extra || []);
+  const T = fixedTime(), WAIT = num("WR_VIS_WAIT", 3500, 0, 60000), JOBS = Math.floor(num("WR_VIS_JOBS", 3, 1, 8)), DSF = num("WR_VIS_DSF", 1, 1, 4);
+  const SEED = process.env.WR_VIS_SEED === "off" ? null : Math.floor(num("WR_VIS_SEED", 1, 0, 2 ** 31));
   const { chromium } = loadPlaywright(), { srv, port } = await serve(web);
-  const T = fixedTime(), WAIT = +(process.env.WR_VIS_WAIT || 3500), JOBS = Math.max(1, +(process.env.WR_VIS_JOBS || 3)), DSF = +(process.env.WR_VIS_DSF || 1);
-  const browser = await chromium.launch(Object.assign({ headless: true }, chromeOpts()));
-  const index = { web: path.resolve(web), time: T.toISOString(), wait_ms: WAIT, dsf: DSF, shots: [] };
+  const browser = await chromium.launch(launchOpts(port));
+  const index = { web: path.resolve(web), time: T.toISOString(), wait_ms: WAIT, dsf: DSF, seed: SEED, shots: [] };
   let next = 0;
   async function one(s) {
-    const ctx = await browser.newContext({ viewport: s.viewport, deviceScaleFactor: DSF, locale: s.lang === "en" ? "en-US" : "ko-KR", timezoneId: "Asia/Seoul",
+    const ctx = await sealedContext(browser, port, { viewport: s.viewport, deviceScaleFactor: DSF, locale: s.lang === "en" ? "en-US" : "ko-KR", timezoneId: "Asia/Seoul",
       colorScheme: s.scheme, reducedMotion: s.rm ? "reduce" : "no-preference" });
-    await ctx.route("**/*", r => { const u = new URL(r.request().url()); return (u.hostname === "127.0.0.1" || u.protocol === "data:" || u.protocol === "blob:") ? r.continue() : r.abort(); });
-    const p = await ctx.newPage(), errs = [];
+    if (SEED != null) await ctx.addInitScript(seed => {   // mulberry32: 장면마다 같은 난수열(직원 배치·말풍선 등 결정성)
+      let a = seed >>> 0; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    }, SEED);
+    const p = await ctx.newPage(), errs = [], file = path.join(out, s.name + ".png");
     p.on("pageerror", e => errs.push("pageerror: " + e.message)); p.on("console", m => { if (m.type() === "error") errs.push("console: " + m.text().slice(0, 300)); });
     await p.clock.setFixedTime(T);
     try {
@@ -107,14 +144,16 @@ async function shoot(args) {
       else if (s.act && s.act.clicks) for (const sel of s.act.clicks) { await p.click(sel, { timeout: 3000 }); await p.waitForTimeout(400); }
       if (s.act && s.act.clicks) await p.waitForTimeout(600);
       await p.mouse.move(1, 1);   // 호버 상태가 남지 않게
-      await p.screenshot({ path: path.join(out, s.name + ".png") });
     } catch (e) { errs.push("capture: " + e.message.split("\n")[0]); }
-    await ctx.close();
+    finally {   // 동작이 실패해도 그 상태 그대로 찍는다(못 찍으면 PNG 없음 → visual_review.sh가 그 장면을 뺌)
+      try { await p.screenshot({ path: file, timeout: 15000 }); } catch (e) { errs.push("screenshot: " + e.message.split("\n")[0]); }
+      await ctx.close().catch(() => {});
+    }
     const { act, ...rec } = s;
-    index.shots.push(Object.assign(rec, { file: s.name + ".png", action: act, errors: errs }));
+    index.shots.push(Object.assign(rec, { file: s.name + ".png", action: act, captured: fs.existsSync(file), errors: errs }));
     console.log(`  ${s.name}${errs.length ? "  ⚠ " + errs.length + " errors" : ""}`);
   }
-  await Promise.all(Array.from({ length: JOBS }, async () => { while (next < shots.length) await one(shots[next++]); }));
+  await Promise.all(Array.from({ length: JOBS }, async () => { while (next < shots.length) { const s = shots[next++]; try { await one(s); } catch (e) { console.error(`  ${s.name} 실패: ${e.message.split("\n")[0]}`); } } }));
   await browser.close(); srv.close();
   index.shots.sort((a, b) => a.name.localeCompare(b.name));
   fs.writeFileSync(path.join(out, "index.json"), JSON.stringify(index, null, 2));
@@ -123,8 +162,8 @@ async function shoot(args) {
 
 /* 같은 이름 PNG끼리 비교: 바뀐 픽셀 비율과 바뀐 영역 상자(x,y,w,h). 브라우저 캔버스로 디코드(추가 의존성 없음) */
 async function diff(baseDir, headDir) {
-  const { chromium } = loadPlaywright(), browser = await chromium.launch(Object.assign({ headless: true }, chromeOpts()));
-  const p = await browser.newPage(), res = {};
+  const { chromium } = loadPlaywright(), browser = await chromium.launch(launchOpts(null));
+  const p = await (await sealedContext(browser, null, {})).newPage(), res = {};
   const head = JSON.parse(fs.readFileSync(path.join(headDir, "index.json"), "utf8"));
   for (const s of head.shots) {
     const a = path.join(baseDir, s.file), b = path.join(headDir, s.file);
@@ -158,9 +197,13 @@ function parse(argv) {
     else if (k === "--extra") a.extra.push(argv[++i] || "");
     else { console.error("capture: 모르는 인자 " + k); process.exit(2); }
   }
+  if (a.matrix && !["full", "quick"].includes(a.matrix)) { console.error("capture: --matrix는 full|quick"); process.exit(2); }
+  if (a.modes && !["studio", "all"].includes(a.modes)) { console.error("capture: --modes는 studio|all"); process.exit(2); }
   return a;
 }
 
+module.exports = { serve, matrix, fixedTime };
+if (require.main !== module) return;
 const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === "shoot") shoot(parse(rest)).catch(e => { console.error(e); process.exit(1); });
 else if (cmd === "diff" && rest.length === 2) diff(rest[0], rest[1]).catch(e => { console.error(e); process.exit(1); });
