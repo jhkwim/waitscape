@@ -44,5 +44,6 @@
 | 2026-10-29 | #52 | 첫 커밋 | auto (Flash 기본+렌즈 5) + Claude 전문가 | 189 | 0/2/4/0 | 100% | 100% | 100% | 0% | - | - | Flash 6패스 0건(문서 PR) → Claude가 README 문구와 실제 규칙 불일치(깃발 100·500·1000, 금요일 17시~)를 MODES.md·코드와 대조해 찾음 (Flash medium 렌즈·Claude) |
 | 2026-10-29 | #56 | b2cca39 | auto (Flash 기본+렌즈 5) + Claude 전문가 | 208 | 0/0/7/0 | 100% | 86% | 100% | 0% | - | - | Flash 6패스 0건(문서 PR) → Claude가 연출은 라디오·스튜디오 전용, 큰 화면 복귀 ⌘2·우클릭 누락, Dock은 macOS 등 표기 정확도 (Flash medium 렌즈·Claude) |
 | 2026-10-29 | #57 | 19f6fb8 | auto (Flash 기본+렌즈 5) + Claude 전문가 | 442 | 0/1/7/0 | 100% | 100% | 100% | 0% | - | - | Flash 6패스 0건 → Claude가 이전 버전 다운그레이드 시 모르는 소품 id로 판이 멈춤(🟡, 0.5.0 코드 대조)·개발 쿼리가 sp 저장·시즌 뒤 한마디·매 프레임 innerHTML 등 (Flash medium 렌즈·Claude) |
+| 2026-10-30 | #65 | 첫 커밋 | auto (Flash 기본+렌즈 5) + Claude 전문가 | 255 | 0/0/0/0 → Claude 2/4/6/0 | 100% | 100% | - | 0% | - | - | Flash 6패스 0건 → Claude가 공격 페이지·심볼릭 링크로 외부 통신 차단 우회(🔴, 재현)·루트 밖 파일 노출(🔴, 재현) 등 보안 결함 (Flash medium 렌즈·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
