@@ -64,6 +64,7 @@ body[data-mode="studio"] .stu .fl .slab { position: absolute; left: 0; right: 0;
 body[data-mode="studio"] .stu .ftag { position: absolute; left: 8px; top: 5px; z-index: 20; display: flex; gap: 4px; align-items: center; font-size: var(--f); font-weight: 900; white-space: nowrap; }
 body[data-mode="studio"] .stu .ftag b { background: var(--line); color: #fff; padding: 1px 6px; border: 2px solid var(--deep); }
 body[data-mode="studio"] .stu .ftag span { background: #fff; padding: 1px 6px; border: 2px solid var(--line); max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
+body[data-mode="studio"] .stu .ftag span i { font-style: normal; }   /* 프로젝트 · "· 동물 · 프로바이더"(머리 이름표와 겹치면 뒤를 뺌, #64) */
 body[data-mode="studio"] .stu .ftag em { font-style: normal; padding: 1px 6px; border: 2px solid var(--deep); color: #fff; }
 body[data-mode="studio"] .stu .sign { position: absolute; z-index: 6; background: #fffdf4; border: 3px solid var(--line); font-size: var(--f); font-weight: 800; padding: 3px 7px; white-space: nowrap; max-width: 144px; transform-origin: 50% 0; transition: transform .2s steps(3), opacity .2s steps(3); }
 /* 직원이 책상을 떠나 서 있으면(걷기·엘리베이터 대기·소품 옆 휴식) 표지판을 위로 접어 얼굴이 보이게 — 같은 상태는 층 이름표 칩에 (#62) */

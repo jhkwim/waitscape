@@ -4724,7 +4724,7 @@ C.registerMode({
             const go = el => { if (canTerm) { el.dataset.act = "jump"; el.dataset.sid = f.sid; el.dataset.jump = f.sid; } return el; };   // 🖥️ 누르면 그 세션으로(일하는 중에도)
             if (!meet) { r.sign = mkSign(F, SIGN_X); r.stp = go(mkEl("div", "b stp", F, { left: "450px", top: (B - 15) + "px", display: "none" })); r.stp.dataset.aicap = f.sid; }   // 책상 앞 단계 명패 "3/5"
             r.cap = mkEl("div", "aicap", F, { left: "34px", top: (B - 17) + "px", display: "none" });   // ✍️ 하단 캡션(명패·보드에 마우스를 올리면 AI가 쓴 제목 · 🖥️ 층 이름표·단계 명패면 이동 안내)
-            const tg = go(mkEl("div", "ftag", F)); tg.innerHTML = "<b></b><span></span><em></em>"; r.tag = tg;
+            const tg = go(mkEl("div", "ftag", F)); tg.innerHTML = "<b></b><span><i></i><i></i></span><em></em>"; r.tag = tg;   // span = 프로젝트 + "· 동물 · 프로바이더"(좁으면 뒤를 뺌, #64)
             r.tint = box(F, 0, 0, 860, h, "rgba(70,80,130,.18)", { zIndex: 15, pointerEvents: "none", display: "none" });
             r.zs = [0, 1, 2].map(() => mkEl("div", "z", F, { display: "none" }, "Z"));
             r.sweat = mkEl("div", "z", F, { fontSize: "22px", display: "none" }, "💧");
@@ -5015,7 +5015,8 @@ C.registerMode({
         if (!DRon && a.loc === "boss" && !a.moving) { if (a.goal === "boss") asker = a; else thanker = a; }
         /* 표시 정보 */
         const [ct, cc] = chipOf(f, a), tg = fl.tag.children;
-        txt(tg[0], (n + 1 - i) + "F"); txt(tg[1], `${cfg.hideText ? "🤫 " + X("비공개", "Private") : f.s.project} · ${f.label.replace("·", " · ")}`); txt(tg[2], ct); sty(tg[2], "background", cc);
+        txt(tg[0], (n + 1 - i) + "F"); txt(tg[1].children[0], cfg.hideText ? "🤫 " + X("비공개", "Private") : f.s.project); txt(tg[1].children[1], ` · ${f.label.replace("·", " · ")}`); txt(tg[2], ct); sty(tg[2], "background", cc);
+        tagZone(a, fl.F); ftagFit(fl, [a]);   // 머리 이름표 자리를 피해 층 이름표 줄 맞춤 (#64)
         if (fl.sign) {
           const sg = signOf(f, a), up = !DRon && a.loc === "home" && a.x != null && a.x > SIGN_X - 30;   // 직원이 표지판 아래(걷기·엘리베이터 대기·바닥 2 소품 옆 휴식)면 접음 (#62)
           sty(fl.sign, "transition", anim && !fl.sign.fresh ? "" : "none"); fl.sign.fresh = false; fl.sign.classList.toggle("fold", up);
@@ -5082,6 +5083,7 @@ C.registerMode({
       }
       if (!DRon) pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb);   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
       drB.paper(boss, bf, T, anim);   // 📋 알림 중이면 종이를 흔듦
+      tagZone(boss, bf.F); ftagFit(bf, [boss], 170);   // 1층 이름표 줄이 "사장님 (나)"를 덮지 않게 (#64). 옮길 땐 천장 등(x 135~165) 뒤로 — 반만 가리지 않게
       /* 질문 말풍선 (층 위로 넘칠 수 있게 건물 위에 직접) */
       if (asker && !DRon) {
         const f = model.floors[floorIdx.get(asker.sid)], s = f && f.s;
@@ -5284,6 +5286,47 @@ C.registerMode({
       sty(e, "transform", `${pop != null && pop < 1 ? `scale(${pop.toFixed(2)}) ` : ""}rotate(${(swing || 0).toFixed(1)}deg)`);
     }
 
+    /* 층 이름표 줄(층 번호 · 프로젝트 · 동물 · 프로바이더 · 상태 칩)이 직원 머리 이름표를 덮지 않게 (#64).
+       창이 좁으면 글자 배율(--inv)이 커져 이름표 줄이 자리(책상·소품 옆·사장님 자리)의 머리 이름표까지 닿는다.
+       머리 이름표가 이름표 줄 높이에 걸칠 때만, 차례로: ① "· 동물 · 프로바이더"를 뺌(바로 옆 머리 이름표에 같은 글)
+       ② 그래도 길면 프로젝트를 말줄임 ③ 층 번호 + 상태 칩조차 안 들어가면(사장님 자리처럼 왼쪽 끝) 줄 전체를 머리 이름표 오른쪽으로.
+       상태 칩은 늘 다 보이고, 줄였으면 전체 글은 title. 머리 이름표 자리는 제자리에 있을 때 잰 값(a.tz)을 기억 —
+       걷거나 말풍선으로 잠깐 숨어도 이름표 줄이 들썩이지 않게. 잼은 이름표 글·자리·글자 배율이 바뀔 때만(매 프레임 레이아웃 읽기 방지).
+       회의 층은 그대로: 본체 이름표는 숨고, 아기 "#1~3"은 테이블 위 회의 배너와 자리를 나눠 써서 줄을 줄이면 배너가 길어져 더 가림 */
+    function tagZone(a, F) {
+      if (!a || a.par !== F || a.moving || (a.loc && a.loc !== "home") || a.tag.style.display === "none") return;
+      const fs = F.ownerDocument.fonts, k = a.tag.textContent + "|" + a.el.style.left + "|" + a.h + "|" + bld.style.getPropertyValue("--inv") + (fs ? fs.status : "");
+      if (a.tz && a.tz.F === F && a.tz.k === k) return;
+      const w = a.tag.offsetWidth, l = a.el.offsetLeft + a.w / 2 - w / 2, t = a.el.offsetTop + a.tag.offsetTop;   // 이름표는 translateX(-50%) — offsetLeft 대신 몸 가운데에서
+      a.tz = { F, k, l, r: l + w, t, b: t + a.tag.offsetHeight };
+    }
+    function ftagFit(fl, who, minL = 0) {
+      const tg = fl.tag, zs = who.map(a => a && a.tz).filter(z => z && z.F === fl.F), fs = tg.ownerDocument.fonts;
+      const k = tg.textContent + (fs ? fs.status : "") + bld.style.getPropertyValue("--inv") + zs.map(z => z.k + z.t).join(";");
+      if (fl.ftK === k) return;
+      fl.ftK = k;
+      const [b, sp, em] = tg.children, suf = sp.children[1], inv = +bld.style.getPropertyValue("--inv") || 1;   // suf = "· 동물 · 프로바이더"(사장실 줄엔 없음)
+      sty(tg, "left", ""); sty(sp, "maxWidth", ""); if (suf) sty(suf, "display", "");
+      const top = tg.offsetTop, bot = top + tg.offsetHeight - 3, hit = zs.filter(z => z.t < bot && z.b > top);   // 3 = 테두리끼리 살짝 닿는 정도는 그대로(글자는 안 가림)
+      if (hit.length) {
+        const zl = Math.min(...hit.map(z => z.l)) - 4, zr = Math.max(...hit.map(z => z.r)) + 4;   // 4 = 머리 이름표와의 틈
+        const x0 = tg.offsetLeft, fix = b.offsetWidth + em.offsetWidth + 8;   // 8 = 칸 사이 gap 두 번
+        let nat = sp.offsetWidth;
+        if (x0 + fix + nat > zl && suf) { sty(suf, "display", "none"); nat = sp.offsetWidth; }
+        if (x0 + fix + nat > zl) {
+          if (x0 + fix + Math.min(nat, 40 * inv) <= zl) sty(sp, "maxWidth", (zl - x0 - fix) + "px");
+          else {   // 옮긴 자리에선 공간이 있으니 줄 전체를 그대로(통로 앞까지)
+            if (suf) sty(suf, "display", "");
+            const L = Math.max(zr, minL); nat = sp.offsetWidth; sty(tg, "left", L + "px");
+            if (L + fix + nat > 666) sty(sp, "maxWidth", Math.max(0, 666 - L - fix) + "px");   // 666 = 엘리베이터 통로 앞
+          }
+        }
+      }
+      const cut_ = (suf && suf.style.display === "none") || sp.scrollWidth > sp.clientWidth + 1;   // CSS max-width로 잘린 긴 프로젝트 이름 포함
+      sp.title = cut_ ? sp.textContent : "";
+      fl.ftS = tg.style.left + "|" + sp.style.maxWidth + "|" + (suf ? suf.style.display : "");   // 회의 배너 자리(placeBabies)가 따라오게
+    }
+
     /* 서브에이전트 = 부모의 아기 버전, 회의 테이블에 앉음. 끝낸 아기(✓)는 팀이 끝날 때까지 도넛을 들고 쉼 */
     function placeBabies(i, fl, f, a, T, ph, anim, tc) {
       const B = fl.B, Tm = wbT.team(f.sid), w = fl.wbd, en = ctx.lang === "en";
@@ -5319,7 +5362,7 @@ C.registerMode({
       /* 층 이름표(상태 칩까지) 줄 끝 뒤에서 시작해 통로 앞까지만 — 칩을 덮지 않게(#62). 남는 폭이 좁으면 "🤝 1/2"만, 그것도 안 들어가면 숨김
          (이름표 칩 "서브 회의 n/총"·보드 머리줄에 같은 진행이 있음. 이름표 아래로 내리면 아기 이름표·보드 글자를 가림).
          이름표 글·글꼴·글자 배율(--inv, 창이 좁으면 커짐)이 바뀔 때만 다시 잼(매 프레임 레이아웃 읽기 방지) */
-      const fs = fl.tag.ownerDocument.fonts, inv = +bld.style.getPropertyValue("--inv") || 1, tk = fl.tag.textContent + (fs ? fs.status : "") + inv;
+      const fs = fl.tag.ownerDocument.fonts, inv = +bld.style.getPropertyValue("--inv") || 1, tk = fl.tag.textContent + (fs ? fs.status : "") + inv + fl.ftS;   // 이름표 줄 맞춤(#64: 말줄임·자리 옮김)이 바뀌어도 다시 잼
       if (fl.mbK !== tk) {
         fl.mbK = tk; const L = fl.tag.offsetLeft + fl.tag.offsetWidth + 6, room = 666 - L - 22;   // 22 = 말풍선 좌우 여백·테두리
         fl.mbFit = room >= 120 * inv ? 2 : room >= 40 * inv ? 1 : 0; sty(fl.mb, "left", L + "px"); sty(fl.mb, "maxWidth", Math.max(0, room) + "px");
