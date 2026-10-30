@@ -3524,9 +3524,10 @@ function dayrepMini(h) {
    - 🎃 시즌 팩(#54): 팩에 win: { from: [월, 일], to: [월, 일] }(양끝 포함 · 새벽 4시 경계 날짜 · from > to면 해를 넘김, 설날 같은 팩용)을 두면
      그 기간에만 꾸미기 판에 보이고 살 수 있음. 산 소품은 기간이 끝나도 그대로(옮기기·되팔기 50%·창고 복원 모두 평소처럼) — ITEMS(소유 조회)는 기간과 상관없이 모든 팩을 담음.
      팩 = { id, n: [ko, en], e: 이모지, win, art, items } · 아이템 ltd: 1 = "한정판" 딱지 · hi: [ko, en] = 도착했을 때 직원 한마디. 크리스마스·설날은 팩 한 덩이 추가로 끝.
-     개발용 쿼리 ?season=halloween(그 팩 기간 강제, 쉼표로 여럿) · ?season=off(모든 시즌 팩 닫힘) · ?season=11-20(오늘을 그 월-일로) — 저장에는 반영하지 않음
-   - 저장 ctx.store "decor" = { v: 1, fl: { 프로젝트: { s: {칸: id}, at: {칸: 산 시각(초)}, seen, wilt, wat } }, wh: { 프로젝트: { s, at, put } }, last: { p, slot, id, t, back }, sp: "팩id:해" }
-     (sp = 그 시즌에 꾸미기 판을 한 번 열어 봄 → 🎨 버튼의 🎃 점을 거둠. v 1에 더한 필드라 없으면 빈 값)
+     개발용 쿼리 ?season=halloween(그 팩 기간 강제, 쉼표로 여럿) · ?season=off(모든 시즌 팩 닫힘) · ?season=11-20(오늘을 그 월-일로) — sp(🎃 점)는 저장하지 않음
+     모르는 소품 id(다운그레이드 등)는 그리지 않고 저장은 그대로 · 판에선 ❔ 카드 + 옮기기만(되팔기 없음)
+   - 저장 ctx.store "decor" = { v: 1, fl: { 프로젝트: { s: {칸: id}, at: {칸: 산 시각(초)}, seen, wilt, wat } }, wh: { 프로젝트: { s, at, put } }, last: { p, slot, id, t, back }, sp: "팩id:해,…" }
+     (sp = 그 시즌에 꾸미기 판을 한 번 열어 본 팩 키들(쉼표) → 🎨 버튼의 🎃 점을 거둠. v 1에 더한 필드라 없으면 빈 값, 옛 키 하나짜리도 그대로. 개발용 ?season= 쿼리일 땐 쓰지 않음)
      큰 화면만 쓰고 미니 보기는 읽기만(1초마다·상태가 올 때). 모르는 새 버전(v > 1)이면 읽기만 하고 덮어쓰지 않음 */
 const DECOR = (() => {
   const K = "#4a3560";
@@ -3572,7 +3573,7 @@ const DECOR = (() => {
     hwpot: { r: [".KKKKKKKKKKKKKK.", "KGGLGGGGGGLGGGGK", "KKKKKKKKKKKKKKKK", ".KDDDDDDDDDDDDK.", "KDDHDDDDDDDDDDDK", "KDHDDDDDDDDDDDDK", "KDHDDDDDDDDDDDDK", "KDDDDDDDDDDDDDDK", ".KDDDDDDDDDDDDK.", "..KKKKKKKKKKKK..", "..KK.RYR.RYR.KK.", ".KK..RRR.RRR..KK"], p: { K, G: "#7adf6a", L: "#c8ff9a", D: "#4a4060", H: "#7a7096", R: "#ff8a3d", Y: "#ffd23f" } },
   }, items: [
     { id: "hw_web", slot: "wall", p: 150, lv: 1, a: "hwweb", n: ["거미줄", "Spider web"] },
-    { id: "hw_bats", slot: "wall", p: 240, lv: 1, a: "hwbats", n: ["박쥐 가랜드", "Bat garland"] },
+    { id: "hw_bats", slot: "wall", p: 240, lv: 1, a: "hwbats", n: ["박쥐 가랜드", "Bat garland"], dx: -4 },
     { id: "hw_candy", slot: "desk", p: 180, lv: 1, a: "hwcandy", n: ["사탕 바구니", "Candy bucket"], hi: ["사탕이다! 하나만…", "Candy! Just one…"] },
     { id: "hw_jack", slot: "desk", p: 300, lv: 1, a: "hwjack", n: ["호박 등불", "Pumpkin lamp"], note: ["반짝반짝", "Flickers"], hi: ["해피 할로윈! 🎃", "Happy Halloween! 🎃"] },
     { id: "hw_ghost", slot: "floor", p: 380, lv: 1, a: "hwghost", n: ["꼬마 유령", "Little ghost"], note: ["둥실둥실", "Floats"], hi: ["으앗, 유령?! 👻", "Eek, a ghost?! 👻"] },
@@ -3580,13 +3581,14 @@ const DECOR = (() => {
   ] }] };
   /* 작은 그림 여러 개를 한 판에 찍기(가랜드처럼 반복되는 그림) */
   const stamp = (w, hh, parts) => { const g = Array.from({ length: hh }, () => Array(w).fill(".")); parts.forEach(([r, x, y]) => r.forEach((row, j) => [...row].forEach((c, i) => { if (c !== "." && g[y + j] && x + i >= 0 && x + i < w) g[y + j][x + i] = c; }))); return g.map(r => r.join("")); };
-  {   // 🦇 박쥐 가랜드: 양끝 끈(5칸, 벽 칸 위쪽의 이름표에 안 가리게 내려 걺) + 처진 줄(가운데 3칸 아래) + 박쥐 3 · 주황 깃발 2
-    const W = 27, sag = x => Math.round(3 * (1 - ((x - 13) / 13) ** 2)), line = [];
-    for (let x = 0; x < W; x++) line.push([["K"], x, sag(x)]);
+  {   // 🦇 박쥐 가랜드: 양끝 끈(5칸, 벽 칸 위쪽에서 내려 걺) + 처진 줄(가운데 3칸 아래) + 박쥐 2 · 주황 깃발 1. 폭 17칸 = 큰 화면 51px(벽 1 칸 안 — 직원 이름표와 안 겹치게)
+    const W = 17, sag = x => Math.round(3 * (1 - ((x - 8) / 8) ** 2)), line = [], pin = ["K", "K", "K", "K", "K"];
+    for (let x = 0; x < W; x++) line.push([["K"], x, sag(x) + 5]);
     const bat = ["..P.P..", "P.PPP.P", "PPYPYPP", ".P.P.P."], flag = ["OOO", ".O."];
-    CAT.packs.find(pk => pk.id === "halloween").art.hwbats = { r: stamp(W, 13, [...line.map(([c, x, y]) => [c, x, y + 5]), [bat, 0, sag(3) + 6], [bat, 10, sag(13) + 6], [bat, 20, sag(23) + 6], [flag, 7, sag(8) + 6], [flag, 17, sag(18) + 6], [["K", "K", "K", "K", "K"], 0, 0], [["K", "K", "K", "K", "K"], W - 1, 0]]), p: { K, P: "#5a3a7a", Y: "#ffe36b", O: "#ff8a3d" } };
+    CAT.packs.find(pk => pk.id === "halloween").art.hwbats = { r: stamp(W, 13, [...line, [bat, 0, sag(3) + 6], [bat, 10, sag(13) + 6], [flag, 7, sag(8) + 6], [pin, 0, 0], [pin, W - 1, 0]]), p: { K, P: "#5a3a7a", Y: "#ffe36b", O: "#ff8a3d" } };
   }
-  const ITEMS = {}, PACK = {};   // ITEMS = 모든 팩(기간과 상관없이 — 이미 산 소품을 찾을 때) · PACK = 팩 id → 팩
+
+  const ITEMS = Object.create(null), PACK = Object.create(null);   // ITEMS = 모든 팩(기간과 상관없이 — 이미 산 소품을 찾을 때) · PACK = 팩 id → 팩. 프로토타입 없는 맵(저장의 모르는 id가 toString 같은 이름이어도 안전)
   CAT.packs.forEach(pk => { PACK[pk.id] = pk; Object.assign(ART, pk.art || {}); pk.items.forEach(it => { ITEMS[it.id] = Object.assign({ pack: pk.id }, it); }); });
   /* 🎃 시즌: 오늘(새벽 4시 경계, 퇴근 일보·달력과 같음)의 월·일 → 팩 기간 안인지. 개발용 ?season= (위 설명) */
   const SDEV = (() => { const o = { on: new Set(), off: false, md: 0 }; try { const v = (new URLSearchParams(location.search).get("season") || "").trim(), m = v.match(/^(\d{1,2})-(\d{1,2})$/);
@@ -3602,7 +3604,8 @@ const DECOR = (() => {
   const onSale = (id, t) => !!ITEMS[id] && packOpen(PACK[ITEMS[id].pack], t);
   const seasons = t => CAT.packs.filter(pk => pk.win && packOpen(pk, t));
   /* 시즌 키(🎃 점을 거둔 기록): 해를 넘기는 팩은 시작한 해 기준 */
-  const seasonKey = (pk, t) => pk.id + ":" + (yearOf(t) - (pk.win.from[0] * 100 + pk.win.from[1] > pk.win.to[0] * 100 + pk.win.to[1] && mdOf(t) <= pk.win.to[0] * 100 + pk.win.to[1] ? 1 : 0));
+  const seasonKey = (pk, t) => pk.id + ":" + (yearOf(t) - (pk.win.from[0] * 100 + pk.win.from[1] > pk.win.to[0] * 100 + pk.win.to[1] && (SDEV.md || mdOf(t)) <= pk.win.to[0] * 100 + pk.win.to[1] ? 1 : 0));   // ?season=MM-DD면 그 가짜 날짜로
+  const devSeason = () => !!(SDEV.on.size || SDEV.md || SDEV.off);   // 개발용 쿼리로 본 시즌은 sp(🎃 점 거둠)에 남기지 않음
   const untilOf = pk => pk.win.to[0] + "/" + pk.win.to[1];
   const LIKES = { ham: ["snack", "plant"], peng: ["tank", "lamp"], bvr: ["rug", "plant"], otr: ["tank", "snack"], oct: ["tank", "neon"], bot: ["neon", "lamp"], cat: ["tank", "rug"] };
   const SLOTS = ["W1", "W2", "D1", "F1", "F2"], KIND = { W1: "wall", W2: "wall", D1: "desk", F1: "floor", F2: "floor" };
@@ -3671,15 +3674,15 @@ const DECOR = (() => {
       if (o.anim) { const bb = (t * .8) % 1; h += `<i style="position:absolute;left:${sc * 12}px;top:${Math.round(sc * (7 - bb * 5))}px;width:${sc}px;height:${sc}px;background:#fff;opacity:.8"></i>`; }
     }
     if (id === "hw_jack") {   // 🎃 촛불이 살랑(움직임 줄이기면 가만히) · 다크에서 더 밝게
-      const fl = o.anim ? .82 + .1 * Math.sin(t * 7.3) + .08 * Math.sin(t * 17.9) : 1, al = ((o.dark ? .5 : .28) * fl).toFixed(2);
-      h = `<i style="position:absolute;left:${-s.w / 2}px;top:${-s.h / 3}px;width:${s.w * 2}px;height:${s.h * 1.6}px;background:radial-gradient(ellipse at 50% 60%,rgba(255,170,60,${al}),transparent 62%);pointer-events:none"></i>` + h;
+      /* 살랑임은 CSS 애니메이션(stu-hwflk) — 그림 문자열이 시각과 무관해서 매 프레임 innerHTML을 다시 쓰지 않음 */
+      h = `<i style="position:absolute;left:${-s.w / 2}px;top:${-s.h / 3}px;width:${s.w * 2}px;height:${s.h * 1.6}px;background:radial-gradient(ellipse at 50% 60%,rgba(255,170,60,${o.dark ? .5 : .28}),transparent 62%);pointer-events:none${o.anim ? ";animation:stu-hwflk 1.9s ease-in-out infinite" : ""}"></i>` + h;
     }
     if (id === "hw_ghost") {   // 👻 둥실둥실(정지면 살짝 뜬 채) + 바닥 그림자
-      const dy = Math.round(sc * (o.anim ? 2 + 1.5 * Math.sin(t * 2.2) : 2));
-      h = `<i style="position:absolute;left:${sc * 2}px;top:${s.h - sc}px;width:${s.w - sc * 4}px;height:${sc}px;border-radius:50%;background:rgba(46,32,64,${o.dark ? .35 : .18})"></i>` + pimg(art, sc, 0, -dy, "", pk);
+      h = `<i style="position:absolute;left:${sc * 2}px;top:${s.h - sc}px;width:${s.w - sc * 4}px;height:${sc}px;border-radius:50%;background:rgba(46,32,64,${o.dark ? .35 : .18})"></i>` + pimg(art, sc, 0, -sc * 2, o.anim ? `--b:${sc * 1.5}px;animation:stu-hwbob 2.9s ease-in-out infinite` : "", pk);   // 둥실(stu-hwbob, --b만큼)
     }
     if (id === "hw_pot") {   // 🧪 보글보글 거품(정지면 하나만) · 다크에서 초록 김
-      for (let i = 0; i < (o.anim ? 3 : 1); i++) { const u = o.anim ? (t * .7 + i / 3) % 1 : .4, bx = sc * [4, 9, 12][i]; h += `<i style="position:absolute;left:${Math.round(bx + (o.anim ? Math.sin(u * 7 + i) * sc / 2 : 0))}px;top:${Math.round(-u * sc * 5)}px;width:${sc * (i === 1 ? 2 : 1)}px;height:${sc * (i === 1 ? 2 : 1)}px;background:#c8ff9a;border:1px solid #3a8a3a;opacity:${(1 - u * .8).toFixed(2)}"></i>`; }
+      for (let i = 0; i < (o.anim ? 3 : 1); i++) { const bx = sc * [4, 9, 12][i], z = sc * (i === 1 ? 2 : 1);   // 거품은 CSS 애니메이션(stu-hwbub, --b만큼 솟음) · 정지면 하나만 떠 있음
+        h += `<i style="position:absolute;left:${bx}px;top:${o.anim ? 0 : -sc * 2}px;width:${z}px;height:${z}px;background:#c8ff9a;border:1px solid #3a8a3a;${o.anim ? `--b:${sc * 5}px;opacity:0;animation:stu-hwbub 1.45s linear ${(-i * .48).toFixed(2)}s infinite` : "opacity:.7"}"></i>`; }
       if (o.dark) h = `<i style="position:absolute;left:${-s.w / 4}px;top:${-s.h / 2}px;width:${s.w * 1.5}px;height:${s.h}px;background:radial-gradient(ellipse at 50% 70%,rgba(122,223,106,.3),transparent 65%);pointer-events:none"></i>` + h;
     }
     if (id === "lamp" && o.dark) h = `<i style="position:absolute;left:${-s.w}px;top:${sc * 2}px;width:${s.w * 3}px;height:${s.h}px;background:radial-gradient(ellipse at 50% 0,rgba(255,230,140,.45),transparent 70%);pointer-events:none"></i>` + h;   // 다크에서만 불빛
@@ -3710,11 +3713,11 @@ const DECOR = (() => {
   }
   /* 소품 칸 하나 그리기 정보(큰 화면 sc 3 · 로비 sc 2): { x, y, w, ht, z, h } */
   function place(id, slot, a, sc, o) {
-    const it = itemHTML(id, sc, o), k = KIND[slot];
-    return { x: Math.round(a.x - it.w / 2), y: k === "wall" ? a.y : a.y - it.ht, w: it.w, ht: it.ht, z: zOf(id, k), h: it.h };
+    const it = itemHTML(id, sc, o), k = KIND[slot], dx = ITEMS[id] && ITEMS[id].dx || 0;   // dx = 그림 칸 단위 가로 비킴(박쥐 가랜드: 직원 이름표 쪽에서 왼쪽으로)
+    return { x: Math.round(a.x - it.w / 2 + dx * sc), y: k === "wall" ? a.y : a.y - it.ht, w: it.w, ht: it.ht, z: zOf(id, k), h: it.h };
   }
   const nameOf = (id, en) => ITEMS[id] ? ITEMS[id].n[en ? 1 : 0] : id;
-  return { PACK, SDEV, packOpen, onSale, seasons, seasonKey, untilOf, ART, CAT, ITEMS, LIKES, SLOTS, KIND, SLOTN, MINI, MSC, VER, DAY, bigAt, load, dump, touch, sweep, plantArt, likeSlot, itemHTML, boxHTML, canHTML, hearts, place, nameOf, hasPlant };
+  return { PACK, SDEV, devSeason, packOpen, onSale, seasons, seasonKey, untilOf, ART, CAT, ITEMS, LIKES, SLOTS, KIND, SLOTN, MINI, MSC, VER, DAY, bigAt, load, dump, touch, sweep, plantArt, likeSlot, itemHTML, boxHTML, canHTML, hearts, place, nameOf, hasPlant };
 })();
 
 /* ---------- 🎨 큰 화면: HUD [🎨 꾸미기] → 층 탭 → 칸 → 소품 카드(택배로 배달). h = 스튜디오 본체 연결 ---------- */
@@ -3735,7 +3738,10 @@ function decorBig(h) {
   const floorN = r => (h.n() + 1 - r.i) + "F";
   const cell = p => d.fl[p] || (d.fl[p] = { s: {}, at: {}, seen: nowS(), wilt: 0 });
   const liked = (an, id) => (D.LIKES[an] || []).includes(id);
-  const seaKey = () => { const t = nowS(), pk = D.seasons(t)[0]; return pk ? D.seasonKey(pk, t) : ""; };   // 지금 시즌(첫 팩) 키 · 없으면 ""
+  /* 🎃 지금 열린 시즌 팩들의 키 · 판을 열어 본 키(sp = 쉼표로 이은 키 — 옛 저장의 키 하나짜리도 그대로 읽힘) */
+  const seaKeys = () => { const t = nowS(); return D.seasons(t).map(pk => ({ pk, k: D.seasonKey(pk, t) })); };
+  const seenSet = () => new Set(String(d.sp || "").split(",").filter(Boolean));
+  const ownIt = id => !!id && !!D.ITEMS[id];   // 모르는 소품(다운그레이드 · 새 버전 팩) 가드
 
   /* 상태 → 층마다 touch(창고 복원·시듦) · 오래 안 온 층은 창고로 */
   function read(floors, tc, first) {
@@ -3783,7 +3789,7 @@ function decorBig(h) {
     const u = tc - R.t0; if (u > 3.4) { react.delete(keyOf(f)); return null; } if (u < 1.1 || a.moving || a.loc !== "home") return null;
     const lk = liked(f.animal, R.id), n = nm(R.id);
     return { p: { view: "front", seated: 1, arms: lk ? "u" : "", mouth: "o", eyes: "o" }, dy: lk && anim ? -Math.round(ph.hop * 3) * 4 : 0,
-      say: lk ? X(`${n}${josa(n, "이다", "다")}! ♥`, `A ${n.toLowerCase()}! ♥`) : D.ITEMS[R.id] && D.ITEMS[R.id].hi ? D.ITEMS[R.id].hi[en() ? 1 : 0] : R.id === "tank" ? X("오, 물고기! 🐟", "Ooh, fish! 🐟") : X("오~ 새거다", "Ooh, something new") };
+      say: lk ? X(`${n}${josa(n, "이다", "다")}! ♥`, `A ${n.toLowerCase()}! ♥`) : ownIt(R.id) && D.ITEMS[R.id].hi && D.onSale(R.id, nowS()) ? D.ITEMS[R.id].hi[en() ? 1 : 0] : R.id === "tank" ? X("오, 물고기! 🐟", "Ooh, fish! 🐟") : X("오~ 새거다", "Ooh, something new") };
   }
   /* 완료 보상 → 자금 옆 +n · 시든 화분이면 물 주기(완료 배너 4.5초가 걷힌 뒤 1.6초, 그때까지 시든 채) */
   const WATER_AT = 4.6;
@@ -3880,8 +3886,11 @@ function decorBig(h) {
       const now = nowS();
       body = `<div class="cards">` + D.CAT.packs.map(pk => { const ids = pk.items.filter(it => it.slot === kind && (D.packOpen(pk, now) || have === it.id)).map(it => it.id); if (!ids.length) return "";
         const on = D.packOpen(pk, now), head = pk.win ? `<span class="dc-sec${on ? "" : " past"}" data-dcap="${esc(on ? X(`${pk.n[0]} 시즌 소품 · ${D.untilOf(pk)}까지만 살 수 있어요 · 산 소품은 시즌이 끝나도 그대로예요`, `${pk.n[1]} items · on sale until ${D.untilOf(pk)} · what you buy stays after the season`) : X("지난 시즌 소품 · 옮기기·되팔기는 그대로 돼요", "Past-season item · you can still move or sell it"))}"><b>${pk.e || "🎁"}</b>${esc(pk.n[en() ? 1 : 0])}<em>${on ? X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`) : X("시즌 끝", "Season over")}</em></span>` : "";
-        return head + ids.map(id => card(id, F, an)).join(""); }).join("") + `</div>`;
-      if (have && !ui.hold) body = body.replace(/<\/div>$/, `<div class="acts"><button type="button" class="dc-btn" data-act="dc-move" data-dcap="${esc(X("다른 칸(같은 종류 · 다른 층도)으로 옮겨요 · 무료", "Move to another spot of the same kind (any floor) · free"))}">↔ ${X("옮기기", "Move")}</button><button type="button" class="dc-btn sell" data-act="dc-sell" data-dcap="${esc(X(`되팔면 산 값의 반 💰${Math.floor(D.ITEMS[have].p / 2)}을 돌려받아요`, `Sell back for half: 💰${Math.floor(D.ITEMS[have].p / 2)}`))}">💰 ${X("되팔기", "Sell")} +${Math.floor(D.ITEMS[have].p / 2)}</button></div></div>`);
+        return head + ids.map(id => card(id, F, an)).join(""); }).join("")
+        /* ❔ 이 버전이 모르는 소품(새 버전에서 산 시즌 팩 등 — 다운그레이드): 저장은 그대로 두고 카드만 보여 줌 · 되팔기 없음(값을 모름) · 옮기기는 같은 종류 칸끼리라 안전 */
+        + (have && !ownIt(have) ? `<button type="button" class="dc-card here unk" aria-disabled="true" data-dcap="${esc(X("새 버전에서 산 소품이에요 · 이 버전에선 보이지 않지만 저장은 그대로라 앱을 다시 올리면 돌아와요 · 옮기기만 돼요", "Item from a newer version · hidden here but kept, it comes back when you update · move only"))}"><span class="art unk">❔</span><span class="ft"><span>${X("새 버전 소품", "Newer item")}</span><b>✓ ${X("놓음", "Placed")}</b></span></button>` : "") + `</div>`;
+      const hv = ownIt(have) ? D.ITEMS[have] : null, back = hv ? Math.floor(hv.p / 2) : 0;
+      if (have && !ui.hold) body = body.replace(/<\/div>$/, `<div class="acts"><button type="button" class="dc-btn" data-act="dc-move" data-dcap="${esc(X("다른 칸(같은 종류 · 다른 층도)으로 옮겨요 · 무료", "Move to another spot of the same kind (any floor) · free"))}">↔ ${X("옮기기", "Move")}</button>${hv ? `<button type="button" class="dc-btn sell" data-act="dc-sell" data-dcap="${esc(X(`되팔면 산 값의 반 💰${back}을 돌려받아요`, `Sell back for half: 💰${back}`))}">💰 ${X("되팔기", "Sell")} +${back}</button>` : ""}</div></div>`);
     }
     const holdT = ui.hold ? `<span class="hold">↔ ${esc(nm(ui.hold.id))} · ${X("옮길 칸을 눌러요", "click where to put it")} <button type="button" class="dc-btn" data-act="dc-cancel">${X("취소", "Cancel")}</button></span>` : "";
     html(tray, `<div class="hd"><b class="ti">🎨 ${X("꾸미기", "Decorate")}</b>${chips}<span class="sp"></span>${D.seasons(nowS()).map(pk => `<span class="sea" data-dcap="${esc(X(`${pk.n[0]} 시즌 소품을 ${D.untilOf(pk)}까지 팔아요 · 칸을 누르면 보여요`, `${pk.n[1]} items on sale until ${D.untilOf(pk)} · pick a spot to see them`))}">${pk.e || "🎁"} ${X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`)}</span>`).join("")}${holdT}${cur && ui.slot && !ui.hold ? `<span class="where">${floorN({ i: cur.i })} · ${esc(sn(ui.slot))} ${X("칸", "")}</span>` : ""}<span class="fund">💰 ${funds.toLocaleString("en-US")}</span><button type="button" class="dc-btn ok" data-act="dc-done">✓ ${X("완료", "Done")}</button></div><div class="bd">${body}</div><div class="dc-cap"></div>`);
@@ -3894,7 +3903,7 @@ function decorBig(h) {
     if (ui.on === !!on) return;
     ui.on = !!on; ui.slot = null; ui.hold = null; cap = "";
     if (on && !ui.p) { const fs = floorsUI(); if (fs.length === 1) ui.p = fs[0].p; }
-    if (on) { const sk = seaKey(); if (sk && d.sp !== sk) { d.sp = sk; save(); } }   // 🎃 이번 시즌 판을 열어 봄 → 버튼 점 거둠
+    if (on && !D.devSeason()) { const ks = seaKeys().map(x => x.k), sp = ks.join(","); if (ks.length && ks.some(k => !seenSet().has(k))) { d.sp = sp; save(); } }   // 🎃 이번 시즌 판을 열어 봄 → 버튼 점 거둠(개발용 ?season= 쿼리면 저장 안 함)
     h.app.classList.toggle("dc-on", ui.on);
     renderTray(); h.layout(); h.kick(); h.hud();
   }
@@ -3933,8 +3942,8 @@ function decorBig(h) {
       if (sl === "F2") h.rebuild();
     }
     else if (act === "dc-sell") {
-      const F = d.fl[ui.p], id = F && F.s[ui.slot]; if (!id) return;
-      const back = Math.floor((D.ITEMS[id] ? D.ITEMS[id].p : 0) / 2);
+      const F = d.fl[ui.p], id = F && F.s[ui.slot]; if (!id || !ownIt(id)) return renderTray();   // ❔ 모르는 소품은 되팔지 않음(지우면 새 버전에서 잃음)
+      const back = Math.floor(D.ITEMS[id].p / 2);
       delete F.s[ui.slot]; delete F.at[ui.slot]; h.spend(-back); float = { amt: back, t0: tc }; save(); h.saveNow();
       h.log("💰", X(`${nm(id)} 되팔기 +${back}`, `Sold ${nm(id)} +${back}`));
       if (ui.slot === "F2") h.rebuild();
@@ -3950,8 +3959,11 @@ function decorBig(h) {
     trayH: () => ui.on ? tray.offsetHeight + 8 : 0,
     size: w => sty(tray, "width", Math.max(240, w) + "px"),
     key: e => { if (!ui.on || e.key !== "Escape") return false; if (ui.hold) { ui.hold = null; renderTray(); } else set(false); return true; },
-    hudBtn: b => { const sk = seaKey(), pk = sk && D.PACK[sk.split(":")[0]], dot = !!pk && d.sp !== sk && !ui.on;   // 🎃 시즌 중 아직 판을 안 열어 봤으면 작은 점
-      html(b, "🎨 " + X("꾸미기", "Decorate") + (dot ? `<span class="dc-new" aria-label="${esc(X(`${pk.n[0]} 시즌 소품`, `${pk.n[1]} items`))}">${pk.e || "🎁"}</span>` : "")); b.title = dot ? X(`${pk.n[0]} 시즌 소품이 왔어요 · ${D.untilOf(pk)}까지`, `${pk.n[1]} items are here · until ${D.untilOf(pk)}`) : ""; b.classList.toggle("on", ui.on); },
+    hudBtn: b => { const seen = seenSet(), nw = ui.on ? null : seaKeys().find(x => !seen.has(x.k)), pk = nw && nw.pk;   // 🎃 열린 시즌 중 아직 판을 안 열어 본 게 있으면 작은 점
+      html(b, "🎨 " + X("꾸미기", "Decorate") + (pk ? `<span class="dc-new" aria-hidden="true">${pk.e || "🎁"}</span>` : ""));
+      const lab = pk ? X(`꾸미기 · ${pk.n[0]} 시즌 소품이 왔어요 (${D.untilOf(pk)}까지)`, `Decorate · ${pk.n[1]} items are here (until ${D.untilOf(pk)})`) : "";
+      if (b.title !== lab) { b.title = lab; if (lab) b.setAttribute("aria-label", lab); else b.removeAttribute("aria-label"); }
+      b.classList.toggle("on", ui.on); },
   };
 }
 
@@ -4004,7 +4016,7 @@ function decorMini(h) {
     if (e.id === "tank" && an) return X(`📦 어항 도착 · 물고기가 ${nmA}${h.josa(nmA, "을", "를")} 따라 헤엄쳐요`, `📦 Fish tank · the fish follows ${nmA}`);
     if (e.id === "poster" && fl) return X(`📦 포스터 도착 · ${fl.pname} 색 테마`, `📦 Poster · ${fl.pname} colors`);
     if (e.id === "plant") return X("📦 화분 도착 · 날마다 자라요 🌱", "📦 Plant · grows every day 🌱");
-    const it = D.ITEMS[e.id]; if (it && it.hi && D.PACK[it.pack].win) return X(`📦 ${n} 도착 · ${D.PACK[it.pack].e || ""} ${it.hi[0]}`, `📦 ${n} arrived · ${D.PACK[it.pack].e || ""} ${it.hi[1]}`);
+    const it = D.ITEMS[e.id]; if (it && it.hi && D.PACK[it.pack].win && D.onSale(e.id, Date.now() / 1000)) return X(`📦 ${n} 도착 · ${D.PACK[it.pack].e || ""} ${it.hi[0]}`, `📦 ${n} arrived · ${D.PACK[it.pack].e || ""} ${it.hi[1]}`);
     return X(`📦 ${n} 도착 · ${fl ? fl.floor + "F " + nmA : ""}`, `📦 ${n} arrived · ${fl ? fl.floor + "F " + nmA : ""}`);
   }
   return { read, sig, noPlant, room, restX, draw, sub, keyOf, take: () => evq.shift() || null, peek: () => evq[0] || null };

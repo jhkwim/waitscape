@@ -452,6 +452,12 @@ body[data-mode="studio"] .stu .dc-sec.past em { background: #ddd5e4; }
 body[data-mode="studio"] .stu .dc-card.sea:not(.here):not(.lock):not(.poor):not(.dis) { background: #fff3e4; }
 body[data-mode="studio"] .stu .dc-card .note.ltd { color: #fff; background: #8a5ac8; border: 2px solid var(--deep); padding: 0 3px; font-weight: 900; top: 1px; left: 1px; }
 body[data-mode="studio"] .stu .dc-tray .sea { border: 3px solid var(--deep); background: #ffd9a8; padding: 1px 6px; }
+body[data-mode="studio"] .stu .dc-card.unk { background: #e4dcea; }
+body[data-mode="studio"] .stu .dc-card .art.unk { left: 50%; top: 14px; transform: translateX(-50%); font-size: 34px; line-height: 40px; }
+/* 시즌 소품 움직임(itemHTML이 움직임 켜짐일 때만 붙임 — 그림 문자열이 매 프레임 같아서 innerHTML을 다시 쓰지 않음) */
+@keyframes stu-hwflk { 0%, 100% { opacity: 1; } 30% { opacity: .72; } 45% { opacity: .9; } 70% { opacity: .78; } }
+@keyframes stu-hwbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--b) * -1)); } }
+@keyframes stu-hwbub { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(calc(var(--b) * -1)); opacity: .15; } }
 body[data-mode="studio"] .stu .tbtn .dc-new { display: inline-block; margin-left: 3px; font-size: 12px; line-height: 1; vertical-align: 2px; }
 body[data-mode="studio"] .stu .dc-card:not([aria-disabled]):hover { background: #ffe27a; }
 body[data-mode="studio"] .stu .dc-card:not([aria-disabled]):active { transform: translateY(2px); }
