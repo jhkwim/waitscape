@@ -369,6 +369,7 @@ export interface UpdateStatus {
   current: string;
   available: { version: string; notes: string; date: string | null } | null;
   phase: "" | "checking" | "downloading" | "installing";
+  /** 마지막으로 확인에 성공한 시각(ms). 실패만 했으면 null */
   lastCheck: number | null;
 }
 

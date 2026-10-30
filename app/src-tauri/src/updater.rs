@@ -113,9 +113,12 @@ impl Updates {
     }
 
     /// 확인 1회를 끝낸다: 시각·실패 횟수를 적고 phase를 비우고 기다리는 쪽을 깨운다
+    /// phase는 "checking"일 때만 비운다 — 확인하는 동안 시작된 설치("downloading"·"installing")를 지우지 않게
     fn finish(&self, ok: bool, now: SystemTime) {
         let mut g = self.inner.lock().unwrap();
-        g.phase = "";
+        if g.phase == "checking" {
+            g.phase = "";
+        }
         g.last_try = Some(now);
         if ok {
             g.last_check = Some(now);
@@ -146,6 +149,54 @@ impl Updates {
     fn due(&self, now: SystemTime) -> bool {
         let g = self.inner.lock().unwrap();
         is_due(g.last_try, g.fails, now)
+    }
+
+    /// 설치 시작: 단계 검사와 "downloading" 표시를 한 락 안에서 한다(이중 설치 방지).
+    /// `take`가 설치할 것을 꺼내면 Ok, 이미 설치 중이면 Err(Claim::Busy), 꺼낼 게 없으면 Err(Claim::Missing)
+    fn claim_install<T>(&self, take: impl FnOnce(&Inner) -> Option<T>) -> Result<T, Claim> {
+        let mut g = self.inner.lock().unwrap();
+        if matches!(g.phase, "downloading" | "installing") {
+            return Err(Claim::Busy);
+        }
+        let t = take(&g).ok_or(Claim::Missing)?;
+        g.phase = "downloading";
+        Ok(t)
+    }
+}
+
+/// `Updates::claim_install` 실패 이유
+#[cfg_attr(not(feature = "updater"), allow(dead_code))]
+#[derive(Debug, PartialEq)]
+enum Claim {
+    Busy,
+    Missing,
+}
+
+/// `begin()`이 Start를 준 뒤 들고 있는 가드. 확인 도중 패닉이 나도 Drop에서 실패로 끝내
+/// phase가 "checking"에 영원히 남지 않게 한다. 정상 경로는 `done(ok)`
+#[cfg_attr(not(feature = "updater"), allow(dead_code))]
+struct CheckGuard<'a> {
+    u: &'a Updates,
+    armed: bool,
+}
+
+#[cfg_attr(not(feature = "updater"), allow(dead_code))]
+impl<'a> CheckGuard<'a> {
+    fn new(u: &'a Updates) -> Self {
+        Self { u, armed: true }
+    }
+
+    fn done(mut self, ok: bool) {
+        self.armed = false;
+        self.u.finish(ok, SystemTime::now());
+    }
+}
+
+impl Drop for CheckGuard<'_> {
+    fn drop(&mut self) {
+        if self.armed {
+            self.u.finish(false, SystemTime::now());
+        }
     }
 }
 
@@ -278,8 +329,8 @@ pub async fn install(app: AppHandle) -> Result<(), String> {
 
 #[cfg(feature = "updater")]
 mod imp {
-    use super::{status, Begin, Found, Updates, WAIT_MAX};
-    use std::time::{Duration, SystemTime};
+    use super::{status, Begin, CheckGuard, Claim, Found, Updates, WAIT_MAX};
+    use std::time::Duration;
     use tauri::{AppHandle, Emitter, Manager};
     use tauri_plugin_updater::UpdaterExt;
 
@@ -304,7 +355,8 @@ mod imp {
     /// 확인 1회. Ok(Some) = 새 버전, Ok(None) = 최신, Err = 확인 못 함(로그만)
     /// 이미 확인하는 중이면 새로 묻지 않고 그 확인이 끝나기를 기다려 같은 결과를 돌려준다(#67: 예전엔 바로 "최신"으로 보였음)
     pub async fn check(app: &AppHandle) -> Result<Option<Found>, ()> {
-        match app.state::<Updates>().begin() {
+        let st = app.state::<Updates>();
+        match st.begin() {
             Begin::Start => {}
             Begin::Busy(found) => return Ok(found),
             Begin::Wait(seen) => {
@@ -314,11 +366,11 @@ mod imp {
                     .unwrap_or(Err(()));
             }
         }
+        let guard = CheckGuard::new(&st);
         let r = match updater(app) {
             Ok(u) => u.check().await,
             Err(e) => Err(e),
         };
-        let st = app.state::<Updates>();
         let mut first = None;
         let out = {
             let mut g = st.inner.lock().unwrap();
@@ -349,7 +401,7 @@ mod imp {
                 }
             }
         };
-        st.finish(out.is_ok(), SystemTime::now());
+        guard.done(out.is_ok());
         if let Some(v) = first {
             let be = app.try_state::<std::sync::Arc<crate::backend::Backend>>();
             let (en, quiet, plain) = be
@@ -382,28 +434,22 @@ mod imp {
 
     pub async fn install(app: AppHandle, en: bool) -> Result<(), String> {
         let msg = |ko: &str, e: &str| if en { e.to_string() } else { ko.to_string() };
-        let pending = {
-            let st = app.state::<Updates>();
-            let g = st.inner.lock().unwrap();
-            if matches!(g.phase, "downloading" | "installing") {
-                return Err(msg("이미 업데이트하는 중이에요", "Already updating"));
-            }
-            g.pending.clone()
-        };
-        let upd = match pending {
-            Some(u) => u,
-            None => {
+        let busy = || msg("이미 업데이트하는 중이에요", "Already updating");
+        let claim = || app.state::<Updates>().claim_install(|g| g.pending.clone());
+        let upd = match claim() {
+            Ok(u) => u,
+            Err(Claim::Busy) => return Err(busy()),
+            Err(Claim::Missing) => {
                 let _ = check(&app).await;
-                app.state::<Updates>()
-                    .inner
-                    .lock()
-                    .unwrap()
-                    .pending
-                    .clone()
-                    .ok_or_else(|| msg("새 버전을 찾지 못했어요", "No new version found"))?
+                match claim() {
+                    Ok(u) => u,
+                    Err(Claim::Busy) => return Err(busy()),
+                    Err(Claim::Missing) => return Err(msg("새 버전을 찾지 못했어요", "No new version found")),
+                }
             }
         };
-        set_phase(&app, "downloading");
+        // phase는 claim_install이 이미 "downloading"으로 바꿨다. 화면에 알린다
+        app.emit("update", status(&app)).ok();
         let (mut got, mut last_pct) = (0u64, u64::MAX);
         let r = upd
             .download_and_install(
@@ -552,6 +598,52 @@ mod tests {
         u.begin();
         let Begin::Wait(seen) = u.begin() else { panic!() };
         assert_eq!(u.wait_result(seen, Duration::from_millis(20)), Err(()));
+    }
+
+    #[test]
+    fn finishing_check_keeps_install_phase() {
+        // 확인하는 동안 설치가 시작되면(phase "downloading") 확인이 끝나도 지우지 않는다
+        let u = Updates::default();
+        assert_eq!(u.begin(), Begin::Start);
+        assert_eq!(u.claim_install(|_| Some(())), Ok(()));
+        u.finish(true, SystemTime::now());
+        assert_eq!(u.inner.lock().unwrap().phase, "downloading");
+        // 이미 설치 중이면 두 번째 설치는 막힌다
+        assert_eq!(u.claim_install(|_| Some(())), Err(Claim::Busy));
+        assert_eq!(u.begin(), Begin::Busy(None));
+    }
+
+    #[test]
+    fn claim_install_needs_something_to_install() {
+        let u = Updates::default();
+        assert_eq!(u.claim_install(|_| None::<()>), Err(Claim::Missing));
+        assert_eq!(u.inner.lock().unwrap().phase, ""); // 실패하면 phase 그대로
+        assert_eq!(u.claim_install(|_| Some(7)), Ok(7));
+        assert_eq!(u.inner.lock().unwrap().phase, "downloading");
+    }
+
+    #[test]
+    fn guard_finishes_as_failure_on_panic() {
+        let u = Updates::default();
+        assert_eq!(u.begin(), Begin::Start);
+        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _g = CheckGuard::new(&u);
+            panic!("확인 도중 패닉");
+        }));
+        assert!(r.is_err());
+        let g = u.inner.lock().unwrap();
+        assert_eq!((g.phase, g.fails, g.last_failed, g.checks), ("", 1, true, 1));
+    }
+
+    #[test]
+    fn guard_done_finishes_once() {
+        let u = Updates::default();
+        u.begin();
+        CheckGuard::new(&u).done(true);
+        let g = u.inner.lock().unwrap();
+        // disarm 뒤 Drop에서 다시 finish(false)를 하지 않는다
+        assert_eq!((g.phase, g.fails, g.last_failed, g.checks), ("", 0, false, 1));
+        assert!(g.last_check.is_some());
     }
 
     #[test]
