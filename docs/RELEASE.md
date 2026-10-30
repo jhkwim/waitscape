@@ -55,13 +55,15 @@ python3 scripts/version.py notes 0.2.0               # CHANGELOG의 그 절 (릴
 ## 3. 릴리스하는 법
 
 1. 평소에 PR마다 `CHANGELOG.md`의 `[Unreleased]`에 한 줄씩 적는다(안 적어도 릴리스 때 PR 제목으로 채워진다).
+   - **릴리스 전 점검**(메인테이너, 선택): main에서 `.github/review/release_check.sh`를 돌린다(문서 ↔ 코드 사실·ko/en 문구 점검 + 노트 초안, 약 10분).
+     Claude가 지적을 코드로 검증해 맞는 문서·문구만 Release Prep **전에** 작은 PR로 고치고, 노트 초안(`release-<버전>-notes.md`)의 사실을 CHANGELOG·코드와 대조해 다듬는다(`.github/review/TRIAGE.md` §7.2). Gemini 결과를 검증 없이 반영하지 않는다.
 2. GitHub → **Actions → Release Prep → Run workflow** → 브랜치 `main`, 버전에 `0.2.0` 또는 `minor` 등.
 3. `release/v0.2.0` PR이 생긴다. **CI를 돌린다(§4)**. CHANGELOG 문구를 다듬고 싶으면 그 브랜치에 커밋을 더한다.
 4. PR을 병합한다 → 태그 `v0.2.0`이 붙고 Release 워크플로가 시작된다(Actions 탭에서 확인).
 5. 끝나면 **Releases의 초안**을 연다. 확인할 것:
    - 파일: `.dmg`, `.app.zip`, `.exe`, `.msi`, `SHA256SUMS.txt` (업데이터 서명을 켰다면 `.app.tar.gz`, `*.sig`, `latest.json`)
    - `latest.json`의 `version`이 태그와 같고 `platforms`에 `darwin-aarch64`·`darwin-x86_64`·`windows-x86_64`가 있는지
-   - 노트(바뀐 점)
+   - 노트(바뀐 점) — 릴리스 전 점검에서 다듬은 노트가 있으면 「바뀐 점」 자리를 그것으로 바꾼다(위 서명 안내·파일 줄은 그대로)
 6. **Publish release**. 이때부터 설치된 앱이 새 버전을 찾는다(다음 시작 때 또는 하루 안에).
 
 손으로 할 때(워크플로를 못 쓸 때): `python3 scripts/version.py bump 0.2.0` → PR → 병합 → `git tag v0.2.0 <병합 커밋> && git push origin v0.2.0`. 사람이 push한 태그는 release.yml을 바로 깨운다.
