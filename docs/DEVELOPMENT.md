@@ -234,6 +234,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     rust_parity.sh      Rust 러너 실행 → compare.py(23/23) + check_transcript_only.py(24/24) 한 번에
     test_daylog.py      일지 회귀: 4시 경계·자동 퇴근(오후·45분)·재활동 갱신·어제 seen·보존 정리·여러 프로세스 동시 쓰기·HTTP(CSRF 규칙)
     test_mcp_reports.py MCP 보고 회귀: 정화 규칙 fixture·hook.py 훅 골든·server.py reports.jsonl 리더(줄 경계·파일 교체·pid·off)·오늘 집계/일지 피드·멀티플렉서 이동 정보(fixtures/mux)
+    test_review_report.sh  run_review.sh Waitscape 보고 스모크: 옛 wr-hook(report 없음) 감지·멈추지 않음, 진행·done·bye, 실패는 bye만, WR_REPORT=0·WR_DRY=1
     build_sidecar.sh    wr-hook을 따로 빌드해 app/src-tauri/binaries/wr-hook-<triple>로 복사 (cargo tauri dev/build가 자동 실행)
     make_icons.sh       앱·트레이 아이콘 생성 (SVG → PNG/icns/ico)
     selftest_transcript_only.py  위 검사기·기대값 자체 점검 (엔진이 생기는 P1 전까지 CI에서)
@@ -320,6 +321,7 @@ python3 scripts/compare.py fixtures/expected <다른 구현의 결과 폴더>
 sh scripts/rust_parity.sh             # Rust(wr-core) 동등성 23/23 + 트랜스크립트 전용 24/24
 python3 scripts/test_daylog.py        # 퇴근 일보 일지 회귀 (임시 폴더만 씀, server.py는 빈 포트(7800 우선)로 잠깐 띄움)
 python3 scripts/test_mcp_reports.py   # MCP 보고 회귀 (임시 폴더만 씀)
+bash scripts/test_review_report.sh target/debug/wr-hook   # run_review.sh 보고 스모크(가짜 gh·agy, 옛 wr-hook 흉내, 임시 폴더만 씀)
 cargo test --workspace                # 단위 테스트 + 동등성 + HTTP(포트 7792, 사용 중이면 빈 포트)
 python3 scripts/check_secrets.py --leak         # 시크릿·개인 경로 패턴 + 기준 결과 마스킹 유출
 python3 scripts/selftest_transcript_only.py     # 트랜스크립트 전용 규칙 검사기 자체 점검
@@ -371,16 +373,23 @@ MCP 세션의 끝난 일도 오늘 완료 수와 퇴근 일보에 들어가고(`
   진단 로그는 `WR_MCP_DEBUG=1`일 때만 stderr
 
 ## 다른 AI를 부를 때 보이게 하기 (`wr-hook report` · `wr-hook run`)
-한 AI가 다른 AI를 명령줄로 부르면(Claude Code의 Bash에서 `agy -p`, Codex에서 `claude -p`, 스크립트에서 `codex exec` …) 불려 간 쪽은 MCP 연결이 없어
-화면에 나오지 않는다. 이때 `wr-hook`의 두 하위 명령으로 그 AI를 스튜디오 직원 한 명으로 보이게 한다. 둘 다 사이드카(`wr-hook mcp`)와 **같은 형식·같은 정화**로
-`reports.jsonl`에 쓰므로 앱 설정의 "MCP 보고"가 켜져 있으면(브라우저 서버는 기본으로 읽음) 바로 보인다. 네트워크 없음, 설정 파일은 건드리지 않는다.
+한 AI가 다른 AI를 명령줄로 부르면(Claude Code의 Bash에서 `agy -p`, Codex·스크립트에서 `codex exec` …) 불려 간 쪽은 MCP 연결이 없어
+화면에 나오지 않는다(Claude Code는 예외 — 아래 주의). 이때 `wr-hook`의 두 하위 명령으로 그 AI를 스튜디오 직원 한 명으로 보이게 한다. 둘 다 사이드카(`wr-hook mcp`)와 **같은 형식·같은 정화**로
+`reports.jsonl`에 쓰므로 앱 설정의 "MCP 보고 (실험)"가 켜져 있으면(브라우저 서버는 기본으로 읽음) 바로 보인다. 네트워크 없음, 설정 파일은 건드리지 않는다.
 실행 파일은 앱이 훅을 설치한 `~/.claude/waiting-room/bin/wr-hook`(Windows `wr-hook.exe`)이다.
+**이 기능이 있는 wr-hook이 필요하다**(0.5.1 이하에는 없음). `report`·`run`을 모르는 옛 wr-hook은 인자를 무시하고 훅 모드로 stdin을 끝까지 읽으므로
+(단말에서는 멈추고, stdin에 JSON이 있으면 엉뚱한 이벤트를 남김) 스크립트는 **모든 호출에 `</dev/null`**을 붙이고, 먼저
+`"$WH" report --help </dev/null 2>&1 | grep -q waitscape-report-cli-v1`로 확인한다(버전 번호로는 구분 못 함 — 이 문자열이 기능 표시).
 
 - **`wr-hook run [옵션] -- <명령…>`** — 아무 명령이나 감싼다. 시작에 `hello`·`status working`(제목 = `--title`, 없으면 실행 파일 이름. 인자·프롬프트는 싣지 않음),
   끝에 `status done`(종료 코드가 0이 아니면 한마디 "실패(코드 N)", 10분 넘게 걸려 성공하면 큰 일)·`bye`. stdin/stdout/stderr·종료 코드는 그대로 통과(신호로 끝나면 128+신호).
+  신호로 중단되면 `done` 없이 `bye`만 남긴다(끝낸 일이 아니므로 오늘 완료 수·퇴근 일보에 넣지 않음).
   pid는 래퍼 자신이라 래퍼가 죽으면 직원도 사라진다. unix는 SIGTERM·SIGHUP을 자식에게 전달하고, SIGINT는 단말 Ctrl-C면(자식도 이미 받음) 다시 보내지 않고 `kill -INT`면 전달한다.
-  Windows는 기본 동작. 보고를 못 쓰거나 보고 옵션이 틀려도(경고 한 줄) 명령은 그대로 실행된다.
-  옵션: `--provider claude|codex|gemini|other` 또는 `--client 이름`(표시 이름 규칙: `antigravity-cli` → Gemini 소품·"Antigravity", `codex-mcp-client` → Codex, `claude-code` → Claude),
+  이미 무시(SIG_IGN)로 물려받은 신호(`nohup`, 비대화형 셸의 `&`)는 무시를 유지한다. 신호는 **직계 자식에게만** 보낸다(손자 프로세스에는 전달되지 않음 — 자식이 정리해야 함).
+  Windows에서는 Ctrl-C가 같은 콘솔의 래퍼·자식에게 함께 가서 래퍼가 바로 끝난다(done·bye 없이 pid 확인으로 직원이 사라짐).
+  보고를 못 써도 명령은 그대로 실행된다. `--` 앞의 보고 옵션이 틀리거나 모르는 옵션이면 경고 한 줄(`reporting off`)만 내고 명령은 실행한다.
+  `--` 없이 첫 비옵션 인자에서 명령이 시작되는 형식은 옵션 경계를 알 수 없어 옵션 오류면 실행하지 않고 2로 끝난다(스크립트에는 `--`를 쓴다).
+  옵션: `--provider codex|gemini|other` 또는 `--client 이름`(표시 이름 규칙: `antigravity-cli` → Gemini 소품·"Antigravity", `codex-mcp-client` → Codex),
   `--title`, `--key`(기본 `<provider>-run-<pid>-<ms>`), `--cwd`(기본 현재 폴더 — 프로젝트 이름), `--parent`, `--cheer`(성공 때 한마디), `--reports <절대 경로|off>`.
 - **`wr-hook report <hello|status|board|bye> --key K (--provider P | --client 이름) [--cwd D] [--pid N] [--parent X] …`** — 한 줄만 쓰고 바로 끝난다.
   status: `--state working|asking|done [--title T] [--step N --total M] [--big] [--cheer C]`, board: `--line 글 (1–4번) [--done 0,2]`. 길이·마스킹·범위 규칙은
@@ -396,22 +405,26 @@ MCP 세션의 끝난 일도 오늘 완료 수와 퇴근 일보에 들어가고(`
 # 1) Claude Code → Antigravity(Gemini): Claude가 Bash 도구로 agy를 부를 때. 직원 이름은 "Antigravity"
 $WH run --client antigravity-cli --title "결제 모듈 리뷰" -- agy -p "…" --mode plan
 
-# 2) Codex → Claude: Codex가 셸에서 claude -p를 부를 때
-$WH run --client claude-code --title "테스트 보강" -- claude -p "…"
+# 2) Codex → Claude: Codex가 셸에서 claude -p를 부를 때 — 감싸지 않는다. Waitscape 훅이 켜져 있으면 claude -p도 훅으로 이미 직원으로 보인다
+claude -p "…"
 
 # 3) 스크립트 → Codex: 야간 스크립트가 codex exec를 돌릴 때 (cwd가 저장소라 프로젝트 이름이 붙음)
 cd ~/dev/shop && $WH run --client codex-mcp-client --title "의존성 점검" -- codex exec "…"
 
-# 4) 여러 단계를 스스로 알리는 스크립트 (report): 한 key = 직원 한 명, pid=$$로 스크립트가 죽으면 사라짐
-R() { $WH report "$@" --client antigravity-cli --key "nightly-$(date +%Y%m%d)" --pid $$ >/dev/null 2>&1 || true; }
+# 4) 여러 단계를 스스로 알리는 스크립트 (report): 한 key = 직원 한 명, pid=$$로 스크립트가 죽으면 사라짐.
+#    이 기능이 있는 wr-hook인지 먼저 확인하고(없으면 R은 아무것도 안 함), 모든 호출에 </dev/null
+"$WH" report --help </dev/null 2>&1 | grep -q waitscape-report-cli-v1 || WH=""
+R() { [ -n "$WH" ] && "$WH" report "$@" --client antigravity-cli --key "nightly-$(date +%Y%m%d)" --pid $$ </dev/null >/dev/null 2>&1 || true; }
 R hello; R status --state working --title "야간 리뷰" --step 1 --total 3
 R board --line "수집" --line "⏳ 분석" --line "· 정리" --done 0   # 끝난 줄은 --done(스튜디오가 체크를 그림)
 R status --state done --cheer "지적 2건"; R bye
 ```
 
-- 주의: `claude -p`는 Waitscape 훅이 켜져 있으면 훅으로도 이미 보인다 → `run`으로 감싸면 같은 일이 직원 둘(Claude 세션 + run 세션)로 보일 수 있다. 지금은 막지 않는다.
+- 주의: **Claude Code(`claude`, `claude -p`)는 `run`으로 감싸지 않는다.** Claude는 Waitscape 훅으로 이미 보이고, provider `claude` 보고는 직원을 만들지 않는다
+  (같은 폴더의 Claude 세션에 붙일 후보일 뿐 — 훅이 동작 중이면 버림). `run`에 provider `claude`(`--client claude-code`)를 주면 경고 한 줄을 내고 명령은 그대로 실행한다.
 - 같은 일을 병렬로 여러 번 돌리는 스크립트(예: `.github/review/run_review.sh`의 렌즈 패스)는 패스마다 `run`으로 감싸면 직원이 여럿 생긴다.
-  직원 한 명으로 보이게 하려면 바깥 스크립트가 `report`로 한 key에만 쓴다(run_review.sh는 이 방식 — 패스 진행을 보드에, 끝에 지적 수를 한마디로. `WR_REPORT=0`이면 끔).
+  직원 한 명으로 보이게 하려면 바깥 스크립트가 `report`로 한 key에만 쓴다(run_review.sh는 이 방식 — 패스 진행은 3초마다 도는 poller가 보드에, 끝에 지적 수를 한마디로,
+  중단·실패면 done 없이 bye만. `WR_REPORT=0`이면 끔). 스모크 테스트: `bash scripts/test_review_report.sh [새 wr-hook 경로]`(가짜 gh·agy, 옛 wr-hook 흉내 포함).
 
 ## 놀거리
 - 🎵 연주회: 도구 호출마다 음이 울림 (읽기=피아노, 수정=마림바, 실행=드럼, 검색=벨). 아기 햄찌는 한 옥타브 위

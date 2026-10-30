@@ -121,7 +121,7 @@ WR_LENSES= .github/review/run_review.sh 12 --auto   # 렌즈 끄기(기본은 Fl
 - 모델 하나가 실패(1회 재시도 후)해도 나머지 결과로 진행하고 `meta.failed_models`에 남는다. 전부 실패하면 종료 코드 4.
 - 출력이 비면(headless에서 `command` 권한 자동 거부 등) `run_review.sh`가 도구 없는 엄격 프롬프트로 1회 재시도한다. 원인·해결은 `CALIBRATION.md`의 "Flash headless 실행 실패". 프롬프트에 diff가 이미 들어 있고 셸 금지·읽기 도구만 쓰라고 지시한다.
 - 실행 중에는 Waitscape 스튜디오에 **Antigravity 직원 1명**으로 보인다(리뷰 1회 = 1명, 프로젝트 = 메인 체크아웃): 제목 "PR #N 교차 리뷰", 단계 = 끝난 패스 + 1 / 패스 수,
-  보드에 패스 진행(끝난 패스는 체크, ⏳ 실행 중, ✗ 실패, 패스 4개 이하면 패스별 지적 수), 끝나면 한마디 "지적 🔴 🟡 🔵 ❓"(10분 넘으면 큰 일). PR 번호·패스 이름·지적 수만 싣는다(코드·diff 없음).
-  `wr-hook report`(WR_HOOK > `~/.claude/waiting-room/bin/wr-hook`)를 쓰고 없거나 실패하면 조용히 건너뛴다. 끄려면 `WR_REPORT=0`, `WR_DRY=1`도 보고하지 않는다. 앱 설정 "MCP 보고"가 켜져 있어야 보인다.
+  보드에 패스 진행(끝난 패스는 체크, ⏳ 실행 중, ✗ 실패, 패스 4개 이하면 패스별 지적 수), 끝나면 한마디 "지적 🔴 🟡 🔵 ❓"(10분 넘으면 큰 일), 중단·실패면 done 없이 사라진다(완료로 세지 않음). PR 번호·패스 이름·지적 수만 싣는다(코드·diff 없음).
+  `wr-hook report`(WR_HOOK > `~/.claude/waiting-room/bin/wr-hook`)를 쓰고 없거나, report 기능이 없는 이전 버전이거나(`report --help` 출력으로 확인), 실패하면 건너뛴다. 끄려면 `WR_REPORT=0`, `WR_DRY=1`도 보고하지 않는다. 앱 설정 "MCP 보고 (실험)"가 켜져 있어야 보인다.
 - 교차 리뷰 원칙상 Gemini 계열만 쓴다(Claude 계열 모델 금지). `--dangerously-skip-permissions`는 쓰지 않는다.
 - 모델을 바꾸는 규칙(기준 숫자 800줄, tier 조건)은 `metrics.md`의 정확도·놓친 문제 열이 쌓이면 재검토한다. Flash의 정확도가 Argon보다 15%p 넘게 낮게 두 번 측정되면 light를 Argon low로 바꾼다.

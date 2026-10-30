@@ -194,13 +194,19 @@ fn run_wraps_command() {
         .output()
         .unwrap();
     assert_eq!(o.status.code(), Some(0));
-    // 보고 옵션이 틀려도 명령은 실행(경고만)
+    // 보고 옵션이 틀려도(값이 틀림·모르는 옵션) `--` 뒤 명령은 실행(경고만)
+    for bad in [&["--provider", "cursor"][..], &["--frobnicate", "x", "--provider", "gemini"]] {
+        let o = cmd(&p).arg("run").args(bad).args(["--", "sh", "-c", "exit 5"]).output().unwrap();
+        assert_eq!(o.status.code(), Some(5), "{bad:?}");
+        assert!(String::from_utf8_lossy(&o.stderr).contains("reporting off"));
+    }
+    // provider claude: 직원이 생기지 않는다는 경고 한 줄, 실행은 그대로
     let o = cmd(&p)
-        .args(["run", "--provider", "cursor", "--", "sh", "-c", "exit 5"])
+        .args(["run", "--client", "claude-code", "--", "sh", "-c", "exit 0"])
         .output()
         .unwrap();
-    assert_eq!(o.status.code(), Some(5));
-    assert!(String::from_utf8_lossy(&o.stderr).contains("reporting off"));
+    assert_eq!(o.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&o.stderr).contains("provider claude"));
     // 없는 명령 → 127
     let o = cmd(&p)
         .args(["run", "--provider", "gemini", "--", "/nonexistent/agy-xyz"])
@@ -239,8 +245,47 @@ fn run_forwards_sigterm() {
     };
     assert_eq!(st.code(), Some(128 + 15));
     let all = records(&p);
-    assert_eq!(all[all.len() - 2]["cheer"], json!("실패(코드 143)"));
-    assert_eq!(all.last().unwrap()["type"], "bye");
+    let types: Vec<_> = all.iter().map(|l| l["type"].as_str().unwrap().to_string()).collect();
+    assert_eq!(types, ["hello", "status", "bye"], "중단은 done 없이 bye만(일지 집계에 넣지 않음)");
     assert!(m.snapshot(&ctx()).sessions.is_empty());
     std::fs::remove_dir_all(p.parent().unwrap()).ok();
+}
+
+/// 무시(SIG_IGN)로 물려받은 SIGTERM(nohup·`&`)은 되살리지 않는다: 래퍼도 자식도 계속 돌고 정상 끝(done) 보고
+#[cfg(unix)]
+#[test]
+fn run_keeps_ignored_signals() {
+    let p = tmp("ign");
+    let script = format!("trap '' TERM; exec '{}' run --provider gemini -- sleep 1", bin());
+    let mut child = Command::new("sh")
+        .args(["-c", &script])
+        .env("WAITING_ROOM_REPORTS", &p)
+        .env_remove("WAITSCAPE_PARENT")
+        .stdin(Stdio::null())
+        .spawn()
+        .unwrap();
+    let t0 = std::time::Instant::now();
+    while records(&p).len() < 2 && t0.elapsed() < std::time::Duration::from_secs(10) {
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    Command::new("kill").args(["-TERM", &child.id().to_string()]).status().unwrap();
+    let st = child.wait().unwrap();
+    assert_eq!(st.code(), Some(0), "무시된 SIGTERM으로 끝나면 안 됨");
+    let all = records(&p);
+    let types: Vec<_> = all.iter().map(|l| l["type"].as_str().unwrap().to_string()).collect();
+    assert_eq!(types, ["hello", "status", "status", "bye"]);
+    assert_eq!(all[2]["state"], "done");
+    std::fs::remove_dir_all(p.parent().unwrap()).ok();
+}
+
+/// `report --help`는 기능 표시 문자열을 내고 0 (스크립트가 옛 wr-hook과 구분하는 데 씀)
+#[test]
+fn report_help_has_capability() {
+    let o = Command::new(bin())
+        .args(["report", "--help"])
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(o.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&o.stderr).contains("waitscape-report-cli-v1"));
 }

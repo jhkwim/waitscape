@@ -576,13 +576,13 @@ fn on_signals() {
         STOP.store(true, std::sync::atomic::Ordering::SeqCst);
     }
     extern "C" {
-        fn signal(sig: i32, handler: extern "C" fn(i32)) -> usize;
+        fn signal(sig: i32, handler: usize) -> usize;
     }
     // SIGHUP 1, SIGINT 2, SIGTERM 15 (macOS·Linux 같음)
     for sig in [1, 2, 15] {
         // SAFETY: 처리기는 원자 변수 하나만 바꾼다(async-signal-safe)
         unsafe {
-            signal(sig, on_sig);
+            signal(sig, on_sig as extern "C" fn(i32) as usize);
         }
     }
 }

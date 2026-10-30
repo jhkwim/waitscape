@@ -136,13 +136,13 @@ C.registerMode({
 ### 다른 AI를 부를 때 (`wr-hook run` · `wr-hook report`)
 
 AI가 다른 AI를 명령줄로 부르면(MCP 연결 없이) 불려 간 쪽도 `source: "mcp"` 세션으로 들어온다 — 모드 입장에서는 Codex·Antigravity MCP 세션과 똑같다(`provider`, `report.board`·`step`·`cheer`).
-감싸는 쪽이 `--client`로 표시 이름을 고른다(`antigravity-cli` → `gemini` 프로바이더·이름 "Antigravity", `codex-mcp-client` → Codex, `claude-code` → Claude).
+감싸는 쪽이 `--client`로 표시 이름을 고른다(`antigravity-cli` → `gemini` 프로바이더·이름 "Antigravity", `codex-mcp-client` → Codex). Claude Code는 감싸지 않는다 — 훅으로 이미 보인다.
 기록 줄의 `parent`(누가 시켰나)는 아직 `/state`에 내보내지 않는다. 자세한 옵션은 [개발 문서 「다른 AI를 부를 때 보이게 하기」](docs/DEVELOPMENT.md#다른-ai를-부를-때-보이게-하기-wr-hook-report--wr-hook-run).
 
 ```sh
 WH=~/.claude/waiting-room/bin/wr-hook
 $WH run --client antigravity-cli --title "결제 모듈 리뷰" -- agy -p "…"      # Claude Code의 Bash → Antigravity
-$WH run --client claude-code --title "테스트 보강" -- claude -p "…"          # Codex → Claude (훅이 켜져 있으면 중복으로 보일 수 있음)
+claude -p "…"                                                                # Codex → Claude: 감싸지 않음(훅으로 이미 보임)
 $WH run --client codex-mcp-client --title "의존성 점검" -- codex exec "…"   # 스크립트 → Codex
 ```
 

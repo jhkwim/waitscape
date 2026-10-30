@@ -25,6 +25,9 @@ pub const PARENT_ENV: &str = "WAITSCAPE_PARENT";
 /// `run`이 자식 종료·신호를 확인하는 주기
 const POLL: std::time::Duration = std::time::Duration::from_millis(100);
 
+/// `report --help`에 들어가는 기능 표시 — 스크립트가 이 문자열로 report 지원 여부를 확인한다
+/// (`report`를 모르는 옛 wr-hook은 훅 모드로 아무것도 출력하지 않는다. 버전 번호로는 구분할 수 없음)
+pub const CAPABILITY: &str = "waitscape-report-cli-v1";
 const REPORT_USAGE: &str = "usage: wr-hook report <hello|status|board|bye> --key KEY [--provider claude|codex|gemini|other] [--client NAME]
   [--cwd DIR] [--pid N] [--parent KEY] [--reports PATH|off]
   status: --state working|asking|done [--title T] [--step N --total M] [--big] [--cheer C]
@@ -262,7 +265,7 @@ pub fn payload(typ: &str, o: &Opts) -> Result<Map<String, Value>, String> {
 /// `wr-hook report …` → 종료 코드
 pub fn report_main(args: &[String]) -> i32 {
     if args.is_empty() || matches!(args[0].as_str(), "-h" | "--help") {
-        eprintln!("{REPORT_USAGE}");
+        eprintln!("{CAPABILITY}\n{REPORT_USAGE}");
         return if args.is_empty() { 2 } else { 0 };
     }
     match report_cmd(args, &env) {
@@ -324,11 +327,16 @@ pub fn done_payload(code: i32, secs: f64, title: &Option<String>, cheer: &Option
 
 #[cfg(unix)]
 mod sig {
-    use std::sync::atomic::{AtomicI32, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
     /// 받은 신호 (0 = 없음). 처리기는 이 값만 바꾼다
     pub static GOT: AtomicI32 = AtomicI32::new(0);
+    /// 실행 중에 종료 신호를 받은 적이 있나 (중단 → done 없이 bye만)
+    pub static HIT: AtomicBool = AtomicBool::new(false);
+    /// `SIG_IGN` (macOS·Linux 모두 1)
+    const SIG_IGN: usize = 1;
     extern "C" {
-        fn signal(sig: i32, handler: extern "C" fn(i32)) -> usize;
+        // mcp.rs와 같은 선언이어야 한다(clashing_extern_declarations) — 처리기는 주소(usize)로 넘긴다
+        fn signal(sig: i32, handler: usize) -> usize;
         fn kill(pid: i32, sig: i32) -> i32;
         fn getpgrp() -> i32;
         fn tcgetpgrp(fd: i32) -> i32;
@@ -336,12 +344,14 @@ mod sig {
     extern "C" fn on_sig(s: i32) {
         GOT.store(s, Ordering::SeqCst);
     }
-    /// SIGHUP 1, SIGINT 2, SIGTERM 15 (macOS·Linux 같음)
+    /// SIGHUP 1, SIGINT 2, SIGTERM 15 (macOS·Linux 같음). 이미 무시(SIG_IGN)로 물려받은 신호(nohup·`&`로 띄운 경우)는 무시를 유지한다
     pub fn install() {
         for s in [1, 2, 15] {
-            // SAFETY: 처리기는 원자 변수 하나만 바꾼다(async-signal-safe)
+            // SAFETY: 처리기는 원자 변수 하나만 바꾼다(async-signal-safe). 이전 처리기가 SIG_IGN이면 바로 되돌린다
             unsafe {
-                signal(s, on_sig);
+                if signal(s, on_sig as extern "C" fn(i32) as usize) == SIG_IGN {
+                    signal(s, SIG_IGN);
+                }
             }
         }
     }
@@ -351,6 +361,7 @@ mod sig {
         if s == 0 {
             return;
         }
+        HIT.store(true, Ordering::SeqCst);
         // SAFETY: 읽기 전용 조회와 자식 pid로의 신호 전송
         unsafe {
             if s == 2 && tcgetpgrp(0) == getpgrp() {
@@ -363,13 +374,39 @@ mod sig {
     }
 }
 
+/// 자식이 신호로 끝났나 (unix)
+fn by_signal(st: &std::process::ExitStatus) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        st.signal().is_some()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = st;
+        false
+    }
+}
+
 /// `wr-hook run …` → 종료 코드 (자식의 종료 코드)
 pub fn run_main(args: &[String]) -> i32 {
     if args.first().is_some_and(|a| matches!(a.as_str(), "-h" | "--help")) {
         eprintln!("{RUN_USAGE}");
         return 0;
     }
-    let (o, cmd) = match parse(args, true) {
+    // `--`가 있으면 그 앞만 보고 옵션: 모르는 옵션·틀린 값이어도 경고만 하고 명령은 실행한다(보고만 끔).
+    // `--` 없이 첫 비옵션 인자에서 명령이 시작되는 형식은 옵션 경계를 알 수 없으므로 옵션 오류면 실행하지 않는다(2)
+    let parsed = match args.iter().position(|a| a == "--") {
+        Some(i) => {
+            let cmd = args[i + 1..].to_vec();
+            match parse(&args[..i], false) {
+                Ok((o, _)) => Ok((o, cmd, None)),
+                Err(e) => Ok((Opts::default(), cmd, Some(e))),
+            }
+        }
+        None => parse(args, true).map(|(o, c)| (o, c, None)),
+    };
+    let (o, cmd, opt_err) = match parsed {
         Ok(x) if !x.1.is_empty() => x,
         Ok(_) => {
             eprintln!("wr-hook run: missing command\n{RUN_USAGE}");
@@ -398,13 +435,17 @@ pub fn run_main(args: &[String]) -> i32 {
     let mut o = o;
     o.pid = Some(me.to_string());
     // 보고 옵션이 틀려도 명령은 실행한다(보고만 끔)
-    let who = match Who::from(&o, &env, Some(default_key)) {
+    let who = match opt_err.map_or_else(|| Who::from(&o, &env, Some(default_key)), Err) {
         Ok(w) => Some(w),
         Err(e) => {
             eprintln!("wr-hook run: reporting off: {e}");
             None
         }
     };
+    if who.as_ref().is_some_and(|w| w.provider == "claude") {
+        // provider claude 보고는 직원을 만들지 않는다(같은 폴더의 Claude 세션에 붙일 후보일 뿐). Claude는 훅으로 이미 보인다
+        eprintln!("wr-hook run: warning: provider claude does not add a staff member (Claude Code shows up via hooks); no need to wrap it");
+    }
     let report = |typ: &str, p: Map<String, Value>| {
         if let Some(w) = &who {
             w.write(typ, p);
@@ -425,6 +466,7 @@ pub fn run_main(args: &[String]) -> i32 {
     }
     #[cfg(unix)]
     sig::install();
+    let mut interrupted = false;
     let code = match c.spawn() {
         Err(e) => {
             eprintln!("wr-hook run: cannot run {}: {}", report::clean(&prog, 64), e.kind());
@@ -438,13 +480,23 @@ pub fn run_main(args: &[String]) -> i32 {
             #[cfg(unix)]
             sig::forward(child.id());
             match child.try_wait() {
-                Ok(Some(st)) => break exit_code(st),
+                Ok(Some(st)) => {
+                    interrupted = by_signal(&st);
+                    break exit_code(st);
+                }
                 Ok(None) => std::thread::sleep(POLL),
                 Err(_) => break child.wait().map(exit_code).unwrap_or(1),
             }
         },
     };
-    report("status", done_payload(code, now() - start, &None, &o.cheer));
+    #[cfg(unix)]
+    {
+        interrupted |= sig::HIT.load(std::sync::atomic::Ordering::SeqCst);
+    }
+    // 중단(신호)은 끝낸 일이 아니므로 done 없이 bye만 — 오늘 완료 수·일지에 넣지 않는다. 0이 아닌 코드로 끝난 건 done + "실패(코드 N)"
+    if !interrupted {
+        report("status", done_payload(code, now() - start, &None, &o.cheer));
+    }
     report("bye", Map::new());
     code
 }

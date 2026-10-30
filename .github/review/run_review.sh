@@ -26,8 +26,9 @@
 #   WR_KEEP=1     임시 체크아웃을 지우지 않음
 #   WR_DRY=1      프롬프트만 조립해 저장하고 agy는 실행하지 않음(Waitscape 보고도 하지 않음)
 #   WR_REPORT=0   Waitscape 보고 끔. 기본은 켬: 리뷰 1회가 스튜디오에 Antigravity(Gemini) 직원 1명으로 보인다(패스 진행 보드·지적 수).
-#                 `wr-hook report`(WR_HOOK > ~/.claude/waiting-room/bin/wr-hook)로 reports.jsonl에 append — 없거나 실패하면 조용히 건너뜀.
-#                 싣는 내용은 PR 번호·패스 이름·지적 수뿐(코드·diff·프롬프트 없음). 앱에서는 설정 → AI 연결 → "MCP 보고"가 켜져 있어야 보인다
+#                 `wr-hook report`(WR_HOOK > ~/.claude/waiting-room/bin/wr-hook)로 reports.jsonl에 append — 없거나, report 기능이 없는 이전 버전이거나
+#                 (`report --help` 출력으로 확인), 실패하면 건너뜀. 중단·실패면 done 없이 bye만(완료로 세지 않음).
+#                 싣는 내용은 PR 번호·패스 이름·지적 수뿐(코드·diff·프롬프트 없음). 앱에서는 설정 → AI 연결 → "MCP 보고 (실험)"가 켜져 있어야 보인다
 #   WR_HOOK       wr-hook 실행 파일 (기본 ~/.claude/waiting-room/bin/wr-hook)
 #
 # 모델 자동 선택(근거: CALIBRATION.md §Flash 비교). 아래 "Flash 1회"는 렌즈가 켜져 있으면(기본) Flash 기본 패스 + 렌즈 5개를 동시에(§렌즈):
@@ -86,8 +87,14 @@ mkdir -p "$OUT"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BASE="$OUT/pr$PR-$STAMP"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/wr-review-$PR-XXXXXX")"
-PIDS=""
-cleanup() { [ -n "$PIDS" ] && { kill $PIDS 2>/dev/null; wait 2>/dev/null; }; [ "${WR_KEEP:-0}" = 1 ] && echo "체크아웃 유지: $WORK/repo" >&2 || rm -rf "$WORK"; }
+PIDS=""; POLLER=""
+# 프로세스와 그 자손(서브셸 → agy)을 모두 끝낸다 — 서브셸만 죽이면 agy가 고아로 남는다
+killtree() { local c; for c in $(pgrep -P "$1" 2>/dev/null); do killtree "$c"; done; kill -TERM "$1" 2>/dev/null || true; }
+cleanup() {
+  local p; for p in $POLLER $PIDS; do killtree "$p"; done
+  [ -n "$PIDS$POLLER" ] && wait 2>/dev/null
+  [ "${WR_KEEP:-0}" = 1 ] && echo "체크아웃 유지: $WORK/repo" >&2 || rm -rf "$WORK"
+}
 trap cleanup EXIT
 trap 'exit 130' INT TERM   # 렌즈 실행은 백그라운드라 Ctrl-C를 받지 못함 → 여기서 끝내면 cleanup이 agy를 정리
 
@@ -211,15 +218,20 @@ done
 if [ "${WR_DRY:-0}" = 1 ]; then echo "$BASE.prompt.md"; case " $MODELS " in *" $FLASH "*) for l in $LENSES; do echo "$BASE.$l.prompt.md"; done ;; esac; exit 0; fi
 
 # 5b) Waitscape 보고 (best-effort, #58): 리뷰 1회 = Antigravity 직원 1명. 패스마다 직원을 따로 만들지 않도록 agy를 `wr-hook run`으로
-#     감싸지 않고, 이 스크립트(부모)만 `wr-hook report`로 쓴다(한 곳에서만 써서 백그라운드 패스끼리 경합 없음).
-#     pid=$$ → 스크립트가 죽으면 세션도 사라진다. 실패는 모두 무시(리뷰 동작은 보고가 꺼졌을 때와 같다)
+#     감싸지 않고, 이 스크립트 쪽 한 곳(진행 poller → 끝나면 부모)만 `wr-hook report`로 쓴다.
+#     pid=$$ → 스크립트가 죽으면 세션도 사라진다. 실패는 모두 무시(리뷰 동작은 보고가 꺼졌을 때와 같다).
+#     `report`를 모르는 옛 wr-hook(0.5.0 이하)은 인자를 무시하고 훅 모드로 stdin을 끝까지 읽으므로, 모든 호출에 </dev/null을 붙이고
+#     먼저 `report --help` 출력의 고유 문자열로 기능을 확인한다(버전 번호로는 구분 못 함). 없으면 보고를 끈다
 WRH="${WR_HOOK:-$HOME/.claude/waiting-room/bin/wr-hook}"
 { [ "${WR_REPORT:-1}" = 0 ] || [ ! -x "$WRH" ]; } && WRH=""
+if [ -n "$WRH" ] && ! "$WRH" report --help </dev/null 2>&1 | grep -q 'waitscape-report-cli-v1'; then
+  echo "Waitscape 보고 끔: $WRH 에 report 기능이 없음(앱을 업데이트하면 생김)" >&2; WRH=""
+fi
 RKEY="review-pr$PR-$STAMP"
 # 프로젝트 이름이 저장소(waitscape)가 되게 메인 체크아웃 경로를 쓴다(worktree에서 돌려도)
 RCWD="$(cd "$HERE" && cd "$(git rev-parse --git-common-dir 2>/dev/null || echo ../..)/.." 2>/dev/null && pwd || echo "$HERE")"
 REPORTED=0
-rep() { [ -n "$WRH" ] || return 0; "$WRH" report "$@" --provider gemini --client antigravity-cli --key "$RKEY" --cwd "$RCWD" --pid $$ >/dev/null 2>&1 || true; }
+rep() { [ -n "$WRH" ] || return 0; "$WRH" report "$@" --provider gemini --client antigravity-cli --key "$RKEY" --cwd "$RCWD" --pid $$ </dev/null >/dev/null 2>&1 || true; }
 # 패스 목록(결과 접두 순서와 같음): 레이블 → 짧은 이름 (gemini-3.8-flash-medium/state → state, gemini-4-argon-medium → argon)
 PASSES=""
 for model in $MODELS; do
@@ -239,7 +251,7 @@ progress() {
     elif [ -f "$BASE.m$i.fail" ]; then st="✗ $lab 실패"; g_fail="$g_fail $lab"; fin=$((fin+1))
     elif [ -f "$BASE.m$i.label" ]; then st="⏳ $lab"; g_run="$g_run $lab"
     else st="· $lab"; g_wait="$g_wait $lab"; fi
-    lines+=("$st"); { [ -f "$BASE.m$i.ok" ] || [ -f "$BASE.m$i.fail" ]; } && done_ix="$done_ix,$((i-1))"
+    lines+=("$st"); [ -f "$BASE.m$i.ok" ] && done_ix="$done_ix,$((i-1))"   # 체크는 성공한 패스만(실패 줄에 체크가 붙지 않게)
   done
   if [ "$NPASS" -gt 4 ]; then   # 보드는 4줄·줄당 32자까지 → 상태별로 묶는다
     lines=(); done_ix=""
@@ -262,33 +274,27 @@ report_progress() {  # 바뀌었을 때만 board + status(단계 = 끝난 패스
   LAST_STEP=$step
   rep board "${PROG_ARGS[@]}"
 }
-# 백그라운드 패스를 기다리며 3초마다 진행 보고 (보고가 꺼져 있으면 예전처럼 wait만)
-wait_passes() {
-  if [ -z "$WRH" ]; then wait $PIDS || true; return 0; fi
-  local p alive
-  while :; do
-    alive=0; for p in $PIDS; do kill -0 "$p" 2>/dev/null && alive=1; done
-    report_progress
-    [ "$alive" = 1 ] || break
-    sleep 3
-  done
-  wait $PIDS || true
-}
-report_end() {  # $1 = cheer (없으면 지적 수 요약). 10분 이상 걸렸으면 큰 일
+stop_poller() { [ -n "$POLLER" ] || return 0; killtree "$POLLER"; wait "$POLLER" 2>/dev/null || true; POLLER=""; }
+# 정상 끝: 마지막 보드 → done(지적 수, 10분 이상이면 큰 일) → bye
+report_end() {
   [ -n "$WRH" ] && [ "$REPORTED" = 1 ] || return 0
-  REPORTED=2
+  REPORTED=2; stop_poller
   report_progress
-  local big=""; [ "$SECONDS" -ge 600 ] && [ -z "${1:-}" ] && big="--big"
-  rep status --state done --title "PR #$PR 교차 리뷰" --cheer "${1:-$(python3 -c 'import json,sys
+  local big=""; [ "$SECONDS" -ge 600 ] && big="--big"
+  rep status --state done --title "PR #$PR 교차 리뷰" --cheer "$(python3 -c 'import json,sys
 f=json.load(open(sys.argv[1])).get("findings",[]); c=lambda k: sum(1 for x in f if x.get("severity")==k)
-print("지적 🔴%d 🟡%d 🔵%d ❓%d" % (c("critical"), c("warning"), c("info"), c("question")))' "$BASE.json" 2>/dev/null || echo "리뷰 끝")}" $big
+print("지적 🔴%d 🟡%d 🔵%d ❓%d" % (c("critical"), c("warning"), c("info"), c("question")))' "$BASE.json" 2>/dev/null || echo "리뷰 끝")" $big
   rep bye
 }
+# 중단·실패: done 없이 bye만(끝낸 일이 아니므로 오늘 완료 수·일지에 넣지 않음). cleanup을 먼저 돌려 보고가 늦거나 실패해도 정리는 된다
+on_exit() { cleanup; [ "$REPORTED" = 1 ] && { REPORTED=2; rep bye; }; return 0; }
 if [ -n "$WRH" ]; then
   SECONDS=0; REPORTED=1
+  trap on_exit EXIT
   rep hello
   report_progress
-  trap 'report_end "중단·실패"; cleanup' EXIT   # 중간에 끝나도 done·bye를 남긴다(죽어도 pid로 사라짐)
+  # 진행 보고는 따로 도는 poller가 3초마다(패스 실행 방식은 보고가 꺼졌을 때와 같다). 스크립트가 사라지면 스스로 멈춘다
+  ( trap - EXIT; while sleep 3 && kill -0 $$ 2>/dev/null; do report_progress; done ) </dev/null & POLLER=$!
 fi
 
 # 6) agy 실행 (plan 모드 = 읽기 전용, 구조화 출력). 모델마다 실패하면 1회 재시도
@@ -321,9 +327,7 @@ run_one() {  # $1=모델 $2=결과 접두 $3=프롬프트 $4=엄격 프롬프트
 OKS=""; FAILS=""; N=0
 for model in $MODELS; do
   if [ -z "$LENSES" ] || [ "$model" != "$FLASH" ]; then   # 렌즈는 Flash에만(Argon은 토큰 소비가 큼)
-    N=$((N+1))
-    if [ -n "$WRH" ]; then run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo" & PIDS="$PIDS $!"; wait_passes; PIDS=""
-    else run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo"; fi
+    N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.prompt.md" "$BASE.strict.md" "$model" "$WORK/repo"
     continue
   fi
   # 기본 패스(체크리스트·보안 담당) + 렌즈마다 1회. 렌즈별 체크아웃은 **실행 전에 모두 복제**(APFS면 클론 — 돌고 있는 agy와 겹치지 않게), 1초씩 엇갈려 시작
@@ -332,7 +336,7 @@ for model in $MODELS; do
   for l in $LENSES; do
     sleep 1; N=$((N+1)); run_one "$model" "$BASE.m$N" "$BASE.$l.prompt.md" "$BASE.$l.strict.md" "$model/$l" "$WORK/repo-$l" & PIDS="$PIDS $!"
   done
-  wait_passes; PIDS=""
+  wait $PIDS || true; PIDS=""
 done
 for i in $(seq 1 "$N"); do
   if [ -f "$BASE.m$i.ok" ]; then OKS="$OKS $i:$(cat "$BASE.m$i.ok")"
