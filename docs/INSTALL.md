@@ -33,7 +33,7 @@
 앱에 든 `wr-hook`을 `~/.claude/waiting-room/bin/`에 복사하고, `~/.claude/settings.json`을 백업한 뒤 Waitscape 항목만 추가합니다(확인 창이 먼저 뜹니다). 사용 한도 조회도 설정에서 동의해야 켜집니다(기본 꺼짐).
 
 ### 4. 업데이트
-- 앱이 **시작할 때 + 하루 1번** 새 버전을 확인합니다(`jhkwim/waitscape` 릴리스의 `latest.json`만 읽어요. 보내는 것: IP·User-Agent. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`를 읽었어요).
+- 앱이 **시작할 때 + 하루 1번** 새 버전을 확인합니다(`jhkwim/waitscape` 릴리스의 `latest.json`만 읽어요. 보내는 것: IP·User-Agent. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`를 읽었어요). 인터넷이 끊겨 확인하지 못했으면 1시간 뒤 다시 확인합니다.
 - 새 버전이 있으면 OS 알림 **"새 버전 나왔어요!"**, 트레이(메뉴바)에 **🎁 업데이트 있음**, 창 아래 배너(스튜디오 모드에서는 1층 사장님 말풍선)가 나옵니다.
 - 눌러서 **지금 업데이트하고 다시 시작**을 고를 때만 내려받고, 서명(minisign)을 확인한 뒤 설치하고 다시 시작합니다. 몰래 설치하지 않습니다. 설정·사용자 모드·메모는 그대로입니다.
 - 끄기: **설정 → 일반 → 업데이트 → 새 버전 확인** 끄기. [지금 확인]으로 직접 확인할 수도 있습니다.
@@ -95,7 +95,7 @@ From 0.4.2, open the `.dmg`, drag Waitscape to Applications, open it and click *
 Waitscape works from Claude Code transcripts alone. To also use hooks, turn them on in **Settings → AI tools → Turn on hooks**. The app copies its bundled `wr-hook` to `~/.claude/waiting-room/bin/`, backs up `~/.claude/settings.json`, and adds only its own entries (after a confirmation dialog). Usage-limit polling is also opt-in (off by default).
 
 ### 4. Updates
-- The app checks for a new version **at start and once a day** (it only fetches `latest.json` from the `jhkwim/waitscape` releases; sends your IP and User-Agent. Up to 0.4.0 it read the separate `jhkwim/waitscape-releases` repository).
+- The app checks for a new version **at start and once a day** (it only fetches `latest.json` from the `jhkwim/waitscape` releases; sends your IP and User-Agent. Up to 0.4.0 it read the separate `jhkwim/waitscape-releases` repository). If a check fails because you're offline, it tries again in an hour.
 - When one is out you get an OS notification **"A new version is out!"**, a **🎁 Update available** tray item, and a banner (in Studio mode, the boss says it in a speech bubble).
 - Nothing is installed until you press **[Update now and restart]**: it downloads, verifies the minisign signature, installs and restarts. Settings, user modes and memos are kept.
 - To turn checks off: **Settings → General → Updates → Check for new versions**. **Check now** checks on demand.
