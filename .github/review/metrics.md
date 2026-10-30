@@ -48,5 +48,6 @@
 | 2026-10-30 | #65 | 첫 커밋 | auto (Flash 기본+렌즈 5) + Claude 전문가 | 255 | 0/0/0/0 → Claude 2/4/6/0 | 100% | 100% | - | 0% | - | - | Flash 6패스 0건 → Claude가 공격 페이지·심볼릭 링크로 외부 통신 차단 우회(🔴, 재현)·루트 밖 파일 노출(🔴, 재현) 등 보안 결함 (Flash medium 렌즈·Claude) |
 | 2026-10-30 | #69 | 첫 커밋 | auto (full: Flash 기본+렌즈 5 + Argon) + Claude 전문가 | - | 0/1/2/0 → Claude 0/3/7/0 | 100% | 100% | 33% | 0% | Gemini F1 백틱 치환·F3 I18N 2인자 오탐 | - | Gemini는 재시도 지시 중복 1건만 실제 → Claude가 실패해도 빈 프롬프트 전송·모듈 이름 정규식·Ctrl-C 고아 agy(재현) 등 (Flash 렌즈·Argon·Claude) |
 | 2026-10-30 | #70 | b40baa6 | auto (Flash 기본+렌즈 5) + Claude 전문가 | - | 0/0/0/0 · Claude 0/1/4/0 | 100% | 100% | 100% | 0% | - | - | Flash 6패스 0건 → Claude가 build.rs에 남은 같은 잘못된 bump 안내(🟡)·태그 불일치 문구·dry-run 표시·sync 문서·회귀 테스트 (Flash medium 렌즈·Claude) |
+| 2026-10-30 | #71 | 9d38184 | auto (security: Argon) + Claude 전문가 | - | 0/0/0/0 · Claude 0/0/5/0 | 100% | 80% | 100% | 0% | - | - | Argon 0건, Claude도 데이터 손실 경로 없음 확인 → 동시 커밋 잠금·최근 백업 복원·Windows 재시도·CHANGELOG 정확도 (Argon medium·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
