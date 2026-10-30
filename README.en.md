@@ -170,7 +170,7 @@ For the browser version (`python3 server.py`), tests and the API, see the [devel
 | Folder | What's inside |
 |---|---|
 | `app/src-tauri/` | Desktop app (Tauri 2) |
-| `crates/` | Rust core (`wr-core`), hook (`wr-hook`), browser server (`wr-server`) |
+| `crates/` | Rust core (`wr-core`), hook and report CLI (`wr-hook`), browser server (`wr-server`) |
 | `web/` | UI: shared core and mode packages (no build step) |
 | `types/` | Official types for `/state`, `/trace` and the mode API |
 | `fixtures/`, `scripts/` | Test data and checks |

@@ -710,6 +710,8 @@ Rust 설치 후:   P1-a ∥ P1-b ∥ P1-d ∥ P1-e  → P1-c, P1-f     │
   모르는 도구 -32602, 필수 인자·enum 위반은 `isError:true` + 고칠 방법 한 줄, 길이·범위 초과는 조용히 정화 후 `ok`, 쓰기 실패·패닉도 `ok`(요청마다 catch_unwind — 모델 재시도 방지를 위한 의도적 예외).
   stdout은 compact JSON 응답만(`#![deny(clippy::print_stdout)]`), stdin 한 줄 1MB 상한·`\r\n` 허용. 2026-07-28(handshake 없음) 지원은 PR 4 후보.
 - **기록 줄 v1**: 모든 줄에 `v, ts, type(hello|status|board|bye), key, provider, cwd, pid, (unix ppid), wr`(자기완결 — 창 밖으로 밀려도 세션을 잃지 않음), hello에 `client`·`proto`.
+  선택 필드 `parent`(이 작업을 시킨 세션의 key·sid, #58 — `wr-hook report`·`run`만 씀). 두 리더는 모르는 필드를 무시하므로 v는 1 그대로이고, 화면 연결은 아직 없음(데이터만).
+  `wr-hook report`(한 줄)·`wr-hook run`(명령 감싸기)은 같은 기록 함수(`mcp::append`)·같은 정화를 쓰고 `pid`는 호출자가 고른다(report `--pid`, run은 래퍼 자신. report에 `--pid`가 없으면 pid 없음 → bye·STALE로만 끝남).
   `key = <provider>-<pid>-<시작 ms>-<난수 8hex>`. 쓸 때마다 열기·한 번 write·닫기(회전 대비, 부분 쓰기 재시도 없음), 줄 2KB 상한(넘으면 보드 줄부터 덜어 냄).
   속도 제한: 버스트 6·초당 0.5 토큰, 같은 내용 생략, state 전이는 별도 버킷(버스트 10·초당 1)으로 즉시, 넘치면 종류별 **최신 1건 보류** → 토큰이 차면(타이머) 또는 EOF 때 기록(마지막 상태를 버리지 않음).
   done을 기록할 때는 보류된 보드를 먼저 쓴다. unix는 SIGTERM·SIGINT·SIGHUP을 `signal()` FFI로 받아 플래그만 세우고 루프(200ms 확인)가 보류분·`bye`를 쓰고 끝낸다.

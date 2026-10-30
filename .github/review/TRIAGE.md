@@ -120,14 +120,44 @@ WR_LENSES= .github/review/run_review.sh 12 --auto   # 렌즈 끄기(기본은 Fl
 - 결과 JSON의 `meta`에 tier·이유·모델·소요가, 각 지적에 `found_by`(어느 모델이 찾았나)가 있다. 두 모델이 모두 찾은 지적은 확신이 높다. 한 모델만 찾은 지적도 똑같이 코드로 검증한다.
 - 모델 하나가 실패(1회 재시도 후)해도 나머지 결과로 진행하고 `meta.failed_models`에 남는다. 전부 실패하면 종료 코드 4.
 - 출력이 비면(headless에서 `command` 권한 자동 거부 등) `run_review.sh`가 도구 없는 엄격 프롬프트로 1회 재시도한다. 원인·해결은 `CALIBRATION.md`의 "Flash headless 실행 실패". 프롬프트에 diff가 이미 들어 있고 셸 금지·읽기 도구만 쓰라고 지시한다.
+- 실행 중에는 Waitscape 스튜디오에 **Antigravity 직원 1명**으로 보인다(리뷰 1회 = 1명, 프로젝트 = 메인 체크아웃): 제목 "PR #N 교차 리뷰", 단계 = 끝난 패스 + 1 / 패스 수,
+  보드에 패스 진행(끝난 패스는 체크, ⏳ 실행 중, ✗ 실패, 패스 4개 이하면 패스별 지적 수), 끝나면 한마디 "지적 🔴 🟡 🔵 ❓"(10분 넘으면 큰 일), 중단·실패면 done 없이 사라진다(완료로 세지 않음). PR 번호·패스 이름·지적 수만 싣는다(코드·diff 없음).
+  `wr-hook report`(WR_HOOK > `~/.claude/waiting-room/bin/wr-hook`)를 쓰고 없거나, report 기능이 없는 이전 버전이거나(`report --help` 출력으로 확인), 실패하면 건너뛴다. 끄려면 `WR_REPORT=0`, `WR_DRY=1`도 보고하지 않는다. 앱 설정 "MCP 보고 (실험)"가 켜져 있어야 보인다.
 - 교차 리뷰 원칙상 Gemini 계열만 쓴다(Claude 계열 모델 금지). `--dangerously-skip-permissions`는 쓰지 않는다.
 - 모델을 바꾸는 규칙(기준 숫자 800줄, tier 조건)은 `metrics.md`의 정확도·놓친 문제 열이 쌓이면 재검토한다. Flash의 정확도가 Argon보다 15%p 넘게 낮게 두 번 측정되면 light를 Argon low로 바꾼다.
 
-## 6. 모듈 점검(sweep)과 릴리스 전 점검 (#60·#61)
+## 6. 화면 검수(visual) — 스크린샷을 Gemini에 보여 주고 Claude가 확인
+
+코드 리뷰(`run_review.sh`)와 별개인 **선택 패스**다. Gemini 지적은 **후보**일 뿐이고, Claude가 같은 스크린샷을 직접 열어 확인한 것만 반영한다(품질 기준은 코드 리뷰와 같다).
+
+**언제**: `web/`(특히 `web/modes/studio/`, `web/core/*.css`) 화면이 바뀌는 PR. 문서·Rust·CI만 바뀐 PR은 돌리지 않는다. 촬영은 PR의 web JS를 헤드리스 Chrome에서 **실행**한다. 외부 요청 차단(촬영 서버 포트·data:·blob:만 허용 — 127.0.0.1의 다른 포트·WebSocket·Service Worker·WebRTC UDP 차단)과 웹 루트 밖 차단(심볼릭 링크가 있으면 종료 코드 3)이 있어도, **외부(포크) PR·신뢰할 수 없는 PR은 §3.1대로 일회용 환경(버리는 VM·컨테이너 등)에서만** 돌린다. 메인테이너 기기에서는 신뢰하는 브랜치(본인·Claude 작성)만.
+
+```sh
+# 준비(1회): 저장소에 의존성을 넣지 않는다 — 임시 폴더에 playwright-core만 (Chrome은 시스템 것을 씀, WR_CHROME로 변경)
+mkdir -p /tmp/wr-pw && (cd /tmp/wr-pw && npm i playwright-core) && export WR_PLAYWRIGHT=/tmp/wr-pw/node_modules/playwright-core
+.github/review/visual_review.sh <PR번호>                       # PR 헤드 vs merge-base (git fetch만, GitHub API 안 씀)
+.github/review/visual_review.sh --base main                    # 지금 작업 트리의 추적 파일(커밋 전 수정 포함) vs main
+.github/review/visual_review.sh --base A --head B --matrix quick --extra 'decor=noask=1|click=[data-act="decor"]'   # PR별 장면 추가
+WR_DRY=1 .github/review/visual_review.sh --base main           # 촬영·프롬프트만(agy 안 부름) — 스크린샷을 Claude가 직접 볼 때도 이것
+```
+
+- 촬영(`visual/capture.js` + 가짜 백엔드 `visual/mock.js`): studio `normal`을 light/dark × 움직임 줄이기 끔/켬 × ko/en × 1280/980(16장) + `needs_input`·`blackout`(정전)·`nunchi`(눈치 모드)를 light/dark(+ 정전 dark rm) + `--extra` 장면. `--modes all`이면 다른 내장 모드 6개를 light/dark 1장씩. 날짜는 오늘 14:00(Asia/Seoul, 컨텍스트 시간대와 같음)으로 고정(`WR_VIS_TIME`), `Math.random`은 시드 고정(`WR_VIS_SEED`). 그래도 애니메이션 위치는 장마다 다르다(rm 장면은 거의 정지라 base↔head 픽셀 비교가 깨끗하다).
+- 검수(`lenses/visual.md`): (모드·테마)별 묶음(기본 최대 10장)을 **동시에** Flash로. 지적의 `file`은 스크린샷 경로, `line`은 1, `evidence`에 대략 좌표·영역. 결과 `vis-<라벨>-<시각>.json`(id `V1…`, `meta.batches`에 묶음별 초·토큰), 스크린샷은 옆의 `.shots/`.
+
+**Claude 검증(지적마다)**:
+1. `evidence`의 스크린샷을 **직접 연다**(Read). 좌표는 축소본 기준일 수 있다(1차 측정에서 약 0.78배) — 좌표가 틀려도 같은 문제가 근처에 보이면 맞는 것으로 본다.
+2. 같은 상황의 다른 장면(언어·rm·너비)에서도 보이는지 본다 — 움직이는 그림의 **순간 겹침**이면 ❌(`transient`).
+3. `[회귀]`는 base 스크린샷과 나란히 보고, PR이 **의도한** 변화(diff·PR 설명)인지 확인한다. base에도 똑같이 있으면 `out-of-scope`(기존 문제 — 따로 이슈로).
+4. 필요하면 `--extra`로 그 장면만 다시 찍거나 배율을 올려(`WR_VIS_DSF=2`) 확인한다. 고친 뒤 같은 장면을 다시 찍어 사라졌는지 확인한다.
+5. 판정은 §1과 같다. 기각 사유는 §1 분류 + 화면 전용 `transient`(움직임 순간 포착) · `intended`(의도된 연출, 근거 문서·diff 위치 필요) · `misread`(이미지를 잘못 읽음 — 글자·색을 지어냄).
+
+**지표**: `metrics.md`에 코드 리뷰와 같은 표로 한 줄, `체크리스트` 열에 `visual(장수·묶음 수)`, `소요` 열에 `촬영+검수 최대` 초, 비고에 토큰 합계. 예: `| 2026-10-30 | #57 | <해시> | visual(25장·4묶음) | 94+288 | 0/0/3/2 | … | (Flash medium, 토큰 257k) |`. 측정 회차는 `CALIBRATION.md` §화면 검수.
+
+## 7. 모듈 점검(sweep)과 릴리스 전 점검 (#60·#61)
 
 PR 리뷰와 별도로, Gemini 토큰을 **후보 찾기**에 쓰는 정기 점검 두 가지. 원칙은 같다: **Gemini 출력은 후보일 뿐이고, Claude가 코드로 검증한 것만 바뀌거나 이슈가 된다.** 앱 코드는 점검 결과만 보고 고치지 않는다.
 
-### 6.1 모듈 점검 — `sweep.sh`
+### 7.1 모듈 점검 — `sweep.sh`
 
 ```sh
 .github/review/sweep.sh list                 # 모듈·렌즈·패스 수·입력 토큰 추정
@@ -149,7 +179,7 @@ WR_LENSES= .github/review/sweep.sh updater   # 렌즈 없이 기본 패스만(�
   - `repeat_of`가 붙은 지적은 지난 판정을 먼저 본다. 지난번 ✅(이슈 있음)면 이슈 번호만 확인, ❌면 새 근거가 있을 때만 다시 검증.
 - 지표: 점검마다 `CALIBRATION.md` §모듈 점검 측정 표에 한 줄(모듈·패스·소요·지적 수·실제/오탐/질문·이슈 번호). 정확도 < 40%가 두 번 이어지는 렌즈는 그 모듈에서 뺀다.
 
-### 6.2 릴리스 전 점검 — `release_check.sh`
+### 7.2 릴리스 전 점검 — `release_check.sh`
 
 ```sh
 .github/review/release_check.sh                       # 가장 가까운 태그 이후, 노트 버전은 추정

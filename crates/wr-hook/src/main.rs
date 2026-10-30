@@ -1,5 +1,6 @@
 //! wr-hook — Claude Code 훅. stdin 이벤트 JSON을 요약해 events.jsonl에 한 줄 추가한다 (hook.py 동등).
 //! `wr-hook mcp`면 MCP stdio 서버(보고 사이드카, `mcp.rs`)로 동작한다 — 훅 모드의 `read_to_end`로 들어가지 않는다.
+//! `wr-hook report`·`wr-hook run`은 스크립트·래퍼가 같은 형식으로 보고하는 명령줄 입구(`cli.rs`).
 //!
 //! - **절대 실패하지 않는다**: 어떤 입력·오류에도 아무것도 출력하지 않고 종료 코드 0.
 //!   (UserPromptSubmit 훅의 stdout은 Claude 컨텍스트에 들어가므로 stdout에 쓰지 않는다)
@@ -24,6 +25,7 @@ mod report;
 #[path = "../../wr-core/src/term.rs"]
 mod term;
 
+mod cli;
 mod mcp;
 
 use describe::{describe, kind_of, short, sval, todos_of};
@@ -231,6 +233,15 @@ fn main() {
     if args.get(1).map(String::as_str) == Some("mcp") {
         mcp::serve(&args[2..]);
         std::process::exit(0);
+    }
+    // 스크립트·래퍼용 보고 (cli.rs): 결과를 종료 코드·stderr 한 줄로 알린다
+    match args.get(1).map(String::as_str) {
+        Some("report") => {
+            let code = std::panic::catch_unwind(|| cli::report_main(&args[2..])).unwrap_or(1);
+            std::process::exit(code);
+        }
+        Some("run") => std::process::exit(cli::run_main(&args[2..])),
+        _ => {}
     }
     let _ = std::panic::catch_unwind(run);
     std::process::exit(0);
