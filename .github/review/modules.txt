@@ -25,7 +25,10 @@ manager        | frontend          | state screen interact data | web/core/manag
 nunchi         | frontend rust     | state screen interact platform | web/core/nunchi.js web/core/nunchi.css app/src-tauri/src/nunchi.rs
 
 # --- 스튜디오 (web/modes/studio/mode.js 구역별) ---
-studio-main    | frontend | state screen interact data | web/modes/studio/mode.js:159-240 web/modes/studio/mode.js@C.registerMode(
+# studio-main: 머리 주석(1–8) + 팔레트·스프라이트 그리기(palOf·nxPix 등, 43–158) + 해시·날짜(159–240) + 본체(registerMode~끝).
+#   9–42줄(CH 7종의 문자 그림·legs·pal·meta 표)은 순수 데이터라 일부러 뺐다(약 20KB, 로직 없음 — 그림을 바꾸는 PR은 PR 리뷰가 본다).
+#   표 값이 의심되면 리뷰어가 read_file로 직접 연다. 줄이 밀리면 이 범위도 맞춘다(`grep -n '^const BYID' web/modes/studio/mode.js` = 43).
+studio-main    | frontend | state screen interact data | web/modes/studio/mode.js:1-8 web/modes/studio/mode.js:43-240 web/modes/studio/mode.js@C.registerMode(
 studio-mini    | frontend | state screen interact data | web/modes/studio/mode.js@전력·날씨 web/modes/studio/mode.js@미니_보기_(작은_창
 studio-blocks  | frontend | state screen interact data | web/modes/studio/mode.js@🧑‍🏫_회의실_화이트보드 web/modes/studio/mode.js@👆_클릭_반응
 studio-dayrep  | frontend | state screen interact data | web/modes/studio/mode.js@📋_퇴근_일보 crates/wr-core/src/daylog.rs:1-120

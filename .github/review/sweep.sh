@@ -21,7 +21,8 @@
 # 비용: 모듈당 (1 + 렌즈 수)회 × 입력 약 (프롬프트 바이트 ÷ 3) 토큰 + 읽은 파일. `list`가 모듈별 추정치를 보여 준다. 권장 주기: 주 1회(TRIAGE.md §6).
 # 결과: $WR_OUT/sweep-<날짜-시각>-<모듈>.json (schema.json 형식 + found_by·repeat_of·meta) + .prompt.md·.m<N>.raw.json
 #       같은 모듈의 지난 결과가 있으면 같은 지적(파일 같고 줄 ±3 + 제목 비슷, 또는 제목이 거의 같음)에 repeat_of를 붙인다.
-# 종료 코드: 0 성공 / 2 사용법 / 3 실제 형태 시크릿 발견(전송 중단) / 4 모든 패스 실패
+# 종료 코드: 0 성공 / 2 사용법·모듈 프롬프트 준비 실패(그 모듈은 보내지 않음) / 3 실제 형태 시크릿 발견(전송 중단) / 4 모든 패스 실패
+#            all이면 실패한 모듈을 끝에 모아 보여 주고 첫 실패 코드로 끝난다(나머지 모듈은 계속 돈다)
 # 외부 통신: Antigravity CLI(대상 Google) — 프롬프트(모듈 코드 포함) + 리뷰어가 읽는 스냅숏 파일. 보내기 전에 스냅숏 전체와 프롬프트의 실제 형태 시크릿을 검사한다.
 set -euo pipefail
 
@@ -45,7 +46,7 @@ ALL="$(LIB modules "$MODS")"
 case "$TARGET" in
   all) TARGETS="$ALL" ;;
   list) TARGETS="$ALL" ;;
-  *) echo "$ALL" | grep -qx -- "$TARGET" || die "모르는 모듈: $TARGET ($(echo $ALL))"; TARGETS="$TARGET" ;;
+  *) printf '%s\n' "$ALL" | grep -qxF -- "$TARGET" || die "모르는 모듈: $TARGET ($(echo $ALL))"; TARGETS="$TARGET" ;;
 esac
 
 lenses_of() {  # 모듈의 렌즈(WR_LENSES가 설정돼 있으면 그쪽)
@@ -61,9 +62,8 @@ lenses_of() {  # 모듈의 렌즈(WR_LENSES가 설정돼 있으면 그쪽)
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/wr-sweep-XXXXXX")"
 PIDS=""
-cleanup() { [ -n "$PIDS" ] && { kill $PIDS 2>/dev/null; wait 2>/dev/null; }; [ "${WR_KEEP:-0}" = 1 ] && echo "체크아웃 유지: $WORK/repo" >&2 || rm -rf "$WORK"; }
-trap cleanup EXIT
-trap 'exit 130' INT TERM
+trap wr_cleanup EXIT                # 패스와 agy 손자 프로세스까지 정리(lib.sh wr_killtree) + 임시 폴더 삭제
+trap 'exit 130' INT; trap 'exit 143' TERM   # 패스는 백그라운드라 신호를 직접 받지 못함 → 여기서 끝내면 EXIT 트랩이 정리
 
 COMMIT="$(git -C "$ROOT" rev-parse "$REF")"
 wr_snapshot "$ROOT" "$COMMIT" "$WORK/repo"
@@ -73,7 +73,8 @@ if [ "$TARGET" = list ]; then
   tot=0
   for m in $TARGETS; do
     ls_="$(lenses_of "$m")" || exit 2; n=$(( 1 + $(echo $ls_ | wc -w) ))
-    b=$(LIB embed "$MODS" "$m" "$WORK/repo" "$EMBED" 2>/dev/null | wc -c); b=$((b + 30000))   # + 공통 프롬프트·context·체크리스트 약 30KB
+    LIB embed "$MODS" "$m" "$WORK/repo" "$EMBED" > "$WORK/list.md" || die "모듈 코드를 만들지 못함: $m (modules.txt의 파일·표지 확인)"
+    b=$(wc -c < "$WORK/list.md"); b=$((b + 30000))   # + 공통 프롬프트·context·체크리스트 약 30KB
     printf '%-16s %-26s %5d %9d %12s\n' "$m" "${ls_:-(없음)}" "$n" $((b/1024)) "$((n*b/3/1000))k"
     tot=$((tot + n*b/3))
   done
@@ -89,15 +90,18 @@ LENS_RULE='- 이 패스는 위 관점만 본다. 파일 읽기는 이 패스에 
 - 관점의 항목마다 summary에 "항목 N: 확인한 파일:줄 — 결론"을 남긴다(문제가 없으면 왜 없는지 근거를). 지적은 근거 규칙(§3)을 그대로 따른다.
 - **오탐 방지**: 함수 인자·값의 존재·호출 순서·"다음 프레임에 덮인다" 같은 지적은 정의(넘겨받은 헬퍼면 넘겨주는 곳까지)나 그 값을 설정·갱신하는 코드를 직접 확인하고 evidence에 인용한 뒤에만 쓴다. 확인하지 못했으면(읽기 한도 포함) question으로만, 확인할 파일·심볼을 적는다.'
 
-sweep_one() {  # $1=모듈 → 0 성공 / 4 전부 실패
-  local mod="$1" lists lenses base n l prev started
-  lists="$(LIB module "$MODS" "$mod" | cut -f1)"
-  lenses="$(lenses_of "$mod")" || exit 2
+sweep_one() {  # $1=모듈 → 0 성공 / 2 프롬프트 준비 실패(보내지 않음) / 3 시크릿(즉시 종료) / 4 모든 패스 실패
+  # `if sweep_one`으로 불리므로 set -e가 꺼져 있다 — 실패할 수 있는 단계는 모두 직접 검사한다
+  local mod="$1" lists lenses base n l prev started B
+  lists="$(LIB module "$MODS" "$mod")" || { echo "sweep: $mod — modules.txt 항목을 읽지 못함" >&2; return 2; }
+  lists="$(printf '%s' "$lists" | cut -f1)"
+  lenses="$(lenses_of "$mod")" || { echo "sweep: $mod — 렌즈 확인 실패" >&2; return 2; }
   base="$OUT/sweep-$(date +%Y%m%d-%H%M%S)-$mod"
   started=$(date +%s)
   echo "== 모듈 $mod: 체크리스트 [${lists:-없음}] 렌즈 [${lenses:-없음}] 모델 $MODEL 커밋 ${COMMIT:0:12}" >&2
 
-  LIB embed "$MODS" "$mod" "$WORK/repo" "$EMBED" > "$WORK/$mod.code.md"
+  LIB embed "$MODS" "$mod" "$WORK/repo" "$EMBED" > "$WORK/$mod.code.md" && [ -s "$WORK/$mod.code.md" ] \
+    || { echo "sweep: $mod — 모듈 코드를 만들지 못함(파일·표지가 이 커밋에 없음?) — 프롬프트를 만들지 않고 건너뜀" >&2; return 2; }
   {
     cat "$HERE/REVIEW_PROMPT.md"
     printf '\n\n---\n\n# 프로젝트 요약 (context)\n\n'; cat "$HERE/context.md"
@@ -109,12 +113,14 @@ sweep_one() {  # $1=모듈 → 0 성공 / 4 전부 실패
     printf -- '- 파일 확인은 읽기 전용 도구만: read_file/view_file, grep_search, list_dir, find_by_name. 파일을 만들거나 고치지 않는다.\n'
     printf -- '- 모듈 코드는 아래에 이미 있다. 파일 읽기는 **최대 8회**, 모듈 밖 정의·호출부 확인에만, 한 번에 넓은 줄 범위로. 8회 안에 끝내고 JSON을 출력한다.\n'
     printf '\n## 모듈 코드\n\n'; cat "$WORK/$mod.code.md"
-    printf '\n\n---\n\n%s\n' "$WR_LAST"
-  } > "$base.prompt.md"
-  { cat "$base.prompt.md"; printf '\n\n---\n\n%s\n' "$WR_STRICT_TAIL"; } > "$base.strict.md"
+  } > "$WORK/$mod.body.md" || { echo "sweep: $mod — 프롬프트 조립 실패" >&2; return 2; }
+  # 본문(마지막 지시 없음) + 패스별 꼬리 + 마지막 지시 한 번. 엄격 재시도도 본문만 이어 붙인다(지시문 중복 방지)
+  B="$WORK/$mod.body.md"
+  { cat "$B"; printf '\n\n---\n\n%s\n' "$WR_LAST"; } > "$base.prompt.md"
+  { cat "$B"; printf '\n\n---\n\n%s\n\n%s\n' "$WR_STRICT_TAIL" "$WR_LAST"; } > "$base.strict.md"
   for l in $lenses; do
-    { cat "$base.prompt.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; printf '\n\n## 렌즈 패스 규칙\n\n%s\n\n---\n\n%s\n' "$LENS_RULE" "$WR_LAST"; } > "$base.$l.prompt.md"
-    { cat "$base.prompt.md"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; printf '\n\n---\n\n%s\n\n%s\n' "$WR_STRICT_TAIL" "$WR_LAST"; } > "$base.$l.strict.md"
+    { cat "$B"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; printf '\n\n## 렌즈 패스 규칙\n\n%s\n\n---\n\n%s\n' "$LENS_RULE" "$WR_LAST"; } > "$base.$l.prompt.md"
+    { cat "$B"; printf '\n\n---\n\n'; cat "$HERE/lenses/$l.md"; printf '\n\n---\n\n%s\n\n%s\n' "$WR_STRICT_TAIL" "$WR_LAST"; } > "$base.$l.strict.md"
   done
   if wr_secret_scan "$base".*.md; then rm -f "$base".*.md; exit 3; fi
   echo "프롬프트 $(( $(wc -c < "$base.prompt.md") / 1024 ))KB × 패스 $(( 1 + $(echo $lenses | wc -w) ))개" >&2
@@ -135,7 +141,7 @@ p, mod, commit, ref, lists, lenses, model, fails, wall = sys.argv[1:]
 json.dump({"kind": "sweep", "module": mod, "commit": commit, "ref": ref, "checklists": lists.split(), "lenses": lenses.split(),
            "model": model, "failed_models": fails.split(), "wall_seconds": int(wall)}, open(p, "w", encoding="utf-8"), ensure_ascii=False)
 PY
-  LIB merge "$base" "$base.meta.json" $OKS
+  LIB merge "$base" "$base.meta.json" $OKS || { echo "sweep: $mod — 결과 병합 실패: $base.m*.json" >&2; return 4; }
   # 지난 점검(같은 모듈, 이번 것보다 앞선 최종 결과 파일)
   prev="$(ls "$OUT" | grep -E "^sweep-[0-9]{8}-[0-9]{6}-${mod}\.json$" | grep -vx "$(basename "$base").json" | sort | tail -1 || true)"
   if [ -n "$prev" ]; then prev="$OUT/$prev"; else prev="-"; fi
@@ -143,9 +149,12 @@ PY
   echo "결과: $base.json ($(( $(date +%s) - started ))초)"
 }
 
-rc=0; okc=0
+rc=0; FAILED=""
 for m in $TARGETS; do
-  if sweep_one "$m"; then okc=$((okc+1)); else rc=$?; [ "$rc" = 3 ] && exit 3; fi
+  if sweep_one "$m"; then :; else
+    r=$?; [ "$r" = 3 ] && exit 3
+    FAILED="$FAILED $m($r)"; [ "$rc" = 0 ] && rc=$r
+  fi
 done
-[ "$okc" -gt 0 ] || exit 4
+if [ -n "$FAILED" ]; then echo "sweep: 실패한 모듈:$FAILED" >&2; exit "$rc"; fi
 exit 0

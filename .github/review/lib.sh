@@ -15,11 +15,39 @@ wr_secret_scan() {
   return 0
 }
 
-# wr_snapshot <git 루트> <ref> <대상 폴더>: 추적 파일만(.git·빌드 산출물·.env 없음) 풀어 리뷰어 체크아웃으로 쓴다
+# wr_snapshot <git 루트> <ref> <대상 폴더>: 추적 파일만(.git·빌드 산출물·.env 없음) 풀어 리뷰어 체크아웃으로 쓴다.
+# 바이너리 추적 파일(이미지·폰트·GIF 등 git이 binary로 보는 것)은 뺀다 — 리뷰에 쓸모가 없고 시크릿 검사(grep -I)도 건너뛰는 파일이라
+# 보내지 않는 쪽이 안전하다. 뺀 파일 수는 stderr에.
 wr_snapshot() {
+  local bins
   mkdir -p "$3"
   git -C "$1" archive --format=tar "$2" | tar -x -C "$3"
+  # numstat에서 바이너리는 "-<TAB>-<TAB>경로" (빈 트리와 비교 = 모든 추적 파일)
+  bins="$(git -C "$1" -c core.quotepath=off diff --numstat "$(git -C "$1" hash-object -t tree /dev/null)" "$2" | awk -F'\t' '$1=="-" && $2=="-" {print $3}')"
+  if [ -n "$bins" ]; then
+    printf '%s\n' "$bins" | while IFS= read -r f; do rm -f -- "$3/$f"; done
+    echo "스냅숏: 바이너리 파일 $(printf '%s\n' "$bins" | wc -l | tr -d ' ')개는 빼고 보냄" >&2
+  fi
   mkdir -p "$3/.review"
+}
+
+# wr_killtree <pid>...: 자손까지(agy가 띄운 손자 프로세스 포함) 아래부터 TERM. pgrep -P 재귀
+wr_killtree() {
+  local p c
+  for p in "$@"; do
+    for c in $(pgrep -P "$p" 2>/dev/null); do wr_killtree "$c"; done
+    kill "$p" 2>/dev/null || true
+  done
+}
+
+# wr_cleanup: 백그라운드 패스(PIDS)와 그 자손 정리 + 임시 폴더 삭제(WR_KEEP=1이면 유지). EXIT 트랩에서 부른다
+wr_cleanup() {
+  if [ -n "${PIDS:-}" ]; then
+    # shellcheck disable=SC2086
+    wr_killtree $PIDS
+    wait 2>/dev/null || true
+  fi
+  if [ "${WR_KEEP:-0}" = 1 ]; then echo "체크아웃 유지: $WORK/repo" >&2; else rm -rf -- "$WORK"; fi
 }
 
 # wr_run_agy <모델> <결과 접두> <프롬프트 파일> <체크아웃> [스키마] — plan 모드(읽기 전용) + 구조화 출력

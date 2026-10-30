@@ -11,7 +11,7 @@
   i18n-keys <i18n.js> [코드 파일...]             ko/en 사전에서 한쪽에만 있는 키·자리표시자 차이·코드가 부르는데 없는 키(마크다운)
   unreleased <CHANGELOG.md>                      [Unreleased] 절 본문
   section <CHANGELOG.md> <버전>                  [버전] 절 본문
-  next-version <현재 버전> <CHANGELOG.md>         [Unreleased]에 "추가"가 있으면 minor, 아니면 patch를 올린 추정 버전
+  next-version <현재 버전> <CHANGELOG.md>         [Unreleased]에 "추가|바뀜" 절이 있으면 minor, 아니면 patch를 올린 추정 버전
 """
 import difflib
 import fnmatch

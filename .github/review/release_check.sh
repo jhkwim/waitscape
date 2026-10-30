@@ -19,7 +19,7 @@
 #
 # 결과: $WR_OUT/release-<버전>-check.json (docs·i18n 지적 합집합, schema.json 형식 + found_by·meta)
 #       $WR_OUT/release-<버전>-notes.md   (노트 초안 + 맨 아래 「검토용」 절 — 확인할 것·뺀 항목. 릴리스 본문에 붙이기 전에 지운다)
-# 비용: 패스 3회 × 입력 약 70~90k 토큰(+ 읽은 파일). 릴리스마다 1회.
+# 비용(1차 실측 프롬프트 크기 ÷ 3): docs 약 77k · i18n 약 40k · notes 소량(1~2k) 입력 토큰 + 읽은 파일. 릴리스마다 1회.
 # 종료 코드: 0 성공 / 2 사용법 / 3 실제 형태 시크릿 발견(전송 중단) / 4 모든 패스 실패
 # 외부 통신: Antigravity CLI(대상 Google) — 프롬프트(문서·i18n 사전·CHANGELOG·태그 이후 diff 일부) + 리뷰어가 읽는 스냅숏 파일. 보내기 전에 시크릿 검사.
 set -euo pipefail
@@ -52,14 +52,13 @@ for p in $PASSES; do case "$p" in docs|i18n|notes) ;; *) die "WR_PASSES는 docs�
 COMMIT="$(git -C "$ROOT" rev-parse "$REF")"
 [ -n "$SINCE" ] || SINCE="$(git -C "$ROOT" describe --tags --abbrev=0 "$COMMIT")" || die "태그를 찾지 못함 — --since로 지정"
 git -C "$ROOT" rev-parse -q --verify "$SINCE^{commit}" >/dev/null || die "태그·커밋 없음: $SINCE"
-case "$VER" in ''|[0-9]*.[0-9]*.[0-9]*) ;; *) die "--version은 X.Y.Z: $VER" ;; esac
+[ -z "$VER" ] || printf '%s\n' "$VER" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+' || die "--version은 X.Y.Z(숫자만): $VER"
 [ -x "$AGY" ] || [ "${WR_DRY:-0}" = 1 ] || die "Antigravity CLI 없음: $AGY"
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/wr-release-XXXXXX")"
 PIDS=""
-cleanup() { [ -n "$PIDS" ] && { kill $PIDS 2>/dev/null; wait 2>/dev/null; }; [ "${WR_KEEP:-0}" = 1 ] && echo "체크아웃 유지: $WORK/repo" >&2 || rm -rf "$WORK"; }
-trap cleanup EXIT
-trap 'exit 130' INT TERM
+trap wr_cleanup EXIT                # 패스와 agy 손자 프로세스까지 정리(lib.sh wr_killtree) + 임시 폴더 삭제
+trap 'exit 130' INT; trap 'exit 143' TERM   # 패스는 백그라운드라 신호를 직접 받지 못함 → 여기서 끝내면 EXIT 트랩이 정리
 
 wr_snapshot "$ROOT" "$COMMIT" "$WORK/repo"
 R="$WORK/repo"
@@ -95,26 +94,31 @@ header() {  # 공통 머리: 공통 프롬프트 + context + 릴리스 점검 �
   printf -- '- **오탐 방지**: 코드 쪽 사실(상수·키·기본값)은 직접 찾아 evidence에 `파일:줄`로 인용한 뒤에만 지적한다. 찾지 못했으면 question으로만, 찾을 심볼을 적는다.\n\n---\n\n'
   cat "$WORK/since.md"
 }
-build_pass() {  # $1=패스 → $BASE.$1.prompt.md / .strict.md
-  local p="$1" f="$BASE.$1.prompt.md"
+build_pass() {  # $1=패스 → $BASE.$1.prompt.md / .strict.md (본문을 먼저 만들고 마지막 지시는 끝에 한 번만)
+  local p="$1" f="$WORK/$1.body.md"
   case "$p" in
     docs)
       { header; printf '\n\n---\n\n## 문서\n\n'; ( cd "$R" && LIB embed-files . "$EMBED" $DOCS )
-        printf '\n\n---\n\n'; cat "$HERE/lenses/docs.md"; printf '\n\n---\n\n%s\n' "$WR_LAST"; } > "$f" ;;
+        printf '\n\n---\n\n'; cat "$HERE/lenses/docs.md"; } > "$f" ;;
     i18n)
       { header; printf '\n\n---\n\n## 키 대조\n\n'; ( cd "$R" && LIB i18n-keys web/core/i18n.js web/core/*.js )
         printf '\n\n## 사전·모드 이름\n\n'; ( cd "$R" && LIB embed-files . "$EMBED" web/core/i18n.js web/modes/*/mode.json )
-        printf '\n\n---\n\n'; cat "$HERE/lenses/i18n.md"; printf '\n\n---\n\n%s\n' "$WR_LAST"; } > "$f" ;;
+        printf '\n\n---\n\n'; cat "$HERE/lenses/i18n.md"; } > "$f" ;;
     notes)
       { cat "$HERE/RELEASE_NOTES_PROMPT.md"
         printf '\n\n---\n\n# 자료\n\n- 새 버전: %s (지금 %s, 지난 태그 %s)%s\n\n## CHANGELOG [Unreleased]\n\n```markdown\n' "$VER" "$CUR" "$SINCE" "$( [ -n "${VER_GIVEN:-}" ] || echo ' — 버전은 추정값')"
         LIB unreleased "$R/CHANGELOG.md" | sed 's/```/ˋˋˋ/g'
         printf '```\n\n## 지난 태그 이후 커밋 제목 (참고 — 노트의 사실은 CHANGELOG를 따른다)\n\n```text\n'
         git -C "$ROOT" log --no-merges --format='%s' "$SINCE..$COMMIT" | sed 's/```/ˋˋˋ/g'
-        printf '```\n\n---\n\n이제 초안을 써라. 출력은 notes_schema.json 형식의 JSON 하나뿐이다(도구 호출 금지).\n'; } > "$f" ;;
+        printf '```\n'; } > "$f" ;;
   esac
-  if [ "$p" = notes ]; then cp "$f" "$BASE.$p.strict.md"
-  else { cat "$f"; printf '\n\n---\n\n%s\n\n%s\n' "$WR_STRICT_TAIL" "$WR_LAST"; } > "$BASE.$p.strict.md"; fi
+  if [ "$p" = notes ]; then   # 도구를 쓰지 않는 패스라 엄격 재시도도 같은 프롬프트
+    { cat "$f"; printf '\n---\n\n이제 초안을 써라. 출력은 notes_schema.json 형식의 JSON 하나뿐이다(도구 호출 금지).\n'; } > "$BASE.$p.prompt.md"
+    cp "$BASE.$p.prompt.md" "$BASE.$p.strict.md"
+  else
+    { cat "$f"; printf '\n\n---\n\n%s\n' "$WR_LAST"; } > "$BASE.$p.prompt.md"
+    { cat "$f"; printf '\n\n---\n\n%s\n\n%s\n' "$WR_STRICT_TAIL" "$WR_LAST"; } > "$BASE.$p.strict.md"
+  fi
 }
 [ -n "$(LIB unreleased "$R/CHANGELOG.md")" ] || echo "주의: CHANGELOG [Unreleased]가 비어 있음 — notes 초안이 빈약할 수 있다" >&2
 for p in $PASSES; do build_pass "$p"; done
