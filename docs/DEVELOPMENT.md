@@ -66,7 +66,7 @@ cargo tauri build --target universal-apple-darwin   # 배포용 universal (.app�
 
 설치·업데이트(사용자):
 - 설치: [Releases](https://github.com/jhkwim/waitscape/releases/latest)에서 `.dmg`(맥) 또는 `.exe`·`.msi`(윈도우). 안내: [`docs/INSTALL.md`](INSTALL.md)
-- **업데이트**: 앱이 시작할 때 + 하루 1번 새 버전을 확인한다(이 저장소 릴리스의 `latest.json`만 읽음. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`). 새 버전이면 OS 알림 "새 버전 나왔어요!" + 트레이 **🎁 업데이트 있음** + 창 배너(스튜디오 모드는 사장님 말풍선). 눌러서 **[지금 업데이트하고 다시 시작]**을 고를 때만 내려받아 서명(minisign)을 확인하고 설치한다 — 몰래 설치하지 않는다. 설정 → 일반 → 업데이트에서 확인을 끄거나 [지금 확인]
+- **업데이트**: 앱이 시작할 때 + 하루 1번 새 버전을 확인한다(이 저장소 릴리스의 `latest.json`만 읽음. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`). 확인에 실패하면(오프라인 등) 하루를 기다리지 않고 1시간 뒤 다시 해 보고, 연달아 실패하면 1→2→4→8→16→24시간으로 늘린다. 이미 확인하는 중에 [지금 확인]을 누르면 그 확인이 끝나기를 기다려 같은 결과를 보여 준다. 새 버전이면 OS 알림 "새 버전 나왔어요!" + 트레이 **🎁 업데이트 있음** + 창 배너(스튜디오 모드는 사장님 말풍선). 눌러서 **[지금 업데이트하고 다시 시작]**을 고를 때만 내려받아 서명(minisign)을 확인하고 설치한다 — 몰래 설치하지 않는다. 설정 → 일반 → 업데이트에서 확인을 끄거나 [지금 확인]
 - 설치 파일·`latest.json`의 공식 위치는 이 저장소의 GitHub Releases다(앱의 업데이터도 여기만 본다). 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`였고, 0.4.1·0.4.2를 거기에도 복사해 옛 앱이 넘어오게 한 뒤 보관했다: [`docs/RELEASE.md`](RELEASE.md) §6. 업데이터 공개 키가 없는 옛 빌드(0.3.0 이전)는 새 설치 파일을 한 번 받아 덮어 설치한다(설정·모드는 그대로).
 
 릴리스(관리자, 자세히: [`docs/RELEASE.md`](RELEASE.md)):
@@ -194,7 +194,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     icons/                    앱 아이콘(원본 icons/src/app-icon/: 배경 SVG + 햄찌 도트) · 트레이 아이콘(icons/src/tray*.svg → scripts/make_icons.sh)
     src/lib.rs                플러그인(single-instance·notification·dialog·autostart·updater·global-shortcut), wrmode: 프로토콜, 실행 루프
     src/applog.rs             진단 파일 로그 `wlog!`(stderr + 앱 로그 폴더 waitscape.log, 1MB 회전, 시크릿 마스킹·홈 `~`) · 시작 줄(버전·OS·WebView) · 멈춤 감시(5초)
-    src/updater.rs            앱 안 업데이트(feature `updater`): 시작 + 하루 1번 latest.json 확인 → 알림·트레이·`update` 이벤트, 누를 때만 내려받기·서명 검증·설치·재시작
+    src/updater.rs            앱 안 업데이트(feature `updater`): 시작 + 하루 1번 latest.json 확인(실패하면 1시간부터 늘려 가며 재시도) → 알림·트레이·`update` 이벤트, 누를 때만 내려받기·서명 검증·설치·재시작
     src/backend.rs            Engine(Mutex) + 파일 감시·2초 tick push + 전이 감지 → OS 알림 + 사용 한도 폴링 스레드
     src/commands.rs           Core.api tauri 명령 (get_state·get_trace·get_daylog·daylog_seen·save_image(일보 카드 PNG 저장 대화상자)·settings·list_modes·위젯·트레이·훅·mcp_status/plan/apply(MCP 연결, 메인 창 전용)·한도·모드 설치·터미널·app_info·open_log_dir·open_licenses(오픈소스 라이선스 고지를 기본 브라우저로)·update_*)
     src/detect.rs             완료/입력 필요/멈춤 의심 전이 → 알림 문구 (ko/en)
