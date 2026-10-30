@@ -195,11 +195,39 @@ fn run_wraps_command() {
         .unwrap();
     assert_eq!(o.status.code(), Some(0));
     // 보고 옵션이 틀려도(값이 틀림·모르는 옵션) `--` 뒤 명령은 실행(경고만)
-    for bad in [&["--provider", "cursor"][..], &["--frobnicate", "x", "--provider", "gemini"]] {
+    for bad in [
+        &["--provider", "cursor"][..],
+        &["--frobnicate=x", "--provider", "gemini"],
+        &["--frobnicate", "--provider", "gemini"],
+        &["--reports", "rel.jsonl", "--provider", "gemini"],
+    ] {
         let o = cmd(&p).arg("run").args(bad).args(["--", "sh", "-c", "exit 5"]).output().unwrap();
         assert_eq!(o.status.code(), Some(5), "{bad:?}");
         assert!(String::from_utf8_lossy(&o.stderr).contains("reporting off"));
     }
+    // 모르는 옵션 뒤의 값(`--frobnicate x`)은 명령의 시작으로 본다(옵션 경계가 먼저) → 옵션 오류로 실행하지 않음(2)
+    let o = cmd(&p)
+        .args(["run", "--frobnicate", "x", "--provider", "gemini", "--", "sh", "-c", "exit 5"])
+        .output()
+        .unwrap();
+    assert_eq!(o.status.code(), Some(2));
+    // F1: 앞쪽 `--`를 생략해도 명령 안의 `--`는 명령 몫 (`cargo test -- --nocapture` 같은 형식)
+    let o = cmd(&p)
+        .args([
+            "run",
+            "--client",
+            "codex-mcp-client",
+            "sh",
+            "-c",
+            "echo \"$@\"",
+            "_",
+            "--",
+            "--nocapture",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(o.status.code(), Some(0), "{}", String::from_utf8_lossy(&o.stderr));
+    assert_eq!(String::from_utf8_lossy(&o.stdout), "-- --nocapture\n");
     // provider claude: 직원이 생기지 않는다는 경고 한 줄, 실행은 그대로
     let o = cmd(&p)
         .args(["run", "--client", "claude-code", "--", "sh", "-c", "exit 0"])

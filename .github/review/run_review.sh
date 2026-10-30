@@ -246,7 +246,7 @@ progress() {
   for lab in $PASSES; do
     i=$((i+1)); lab="$(short "$lab")"
     if [ -f "$BASE.m$i.ok" ]; then
-      [ -f "$WORK/m$i.n" ] || python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("findings",[])))' "$BASE.m$i.json" > "$WORK/m$i.n" 2>/dev/null || echo 0 > "$WORK/m$i.n"
+      [ -f "$WORK/m$i.n" ] || python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1], encoding="utf-8")).get("findings",[])))' "$BASE.m$i.json" > "$WORK/m$i.n" 2>/dev/null || echo 0 > "$WORK/m$i.n"
       n="$(cat "$WORK/m$i.n")"; st="$lab ${n}건"; g_ok="$g_ok $lab"; fin=$((fin+1))
     elif [ -f "$BASE.m$i.fail" ]; then st="✗ $lab 실패"; g_fail="$g_fail $lab"; fin=$((fin+1))
     elif [ -f "$BASE.m$i.label" ]; then st="⏳ $lab"; g_run="$g_run $lab"
@@ -282,7 +282,7 @@ report_end() {
   report_progress
   local big=""; [ "$SECONDS" -ge 600 ] && big="--big"
   rep status --state done --title "PR #$PR 교차 리뷰" --cheer "$(python3 -c 'import json,sys
-f=json.load(open(sys.argv[1])).get("findings",[]); c=lambda k: sum(1 for x in f if x.get("severity")==k)
+f=json.load(open(sys.argv[1], encoding="utf-8")).get("findings",[]); c=lambda k: sum(1 for x in f if x.get("severity")==k)
 print("지적 🔴%d 🟡%d 🔵%d ❓%d" % (c("critical"), c("warning"), c("info"), c("question")))' "$BASE.json" 2>/dev/null || echo "리뷰 끝")" $big
   rep bye
 }

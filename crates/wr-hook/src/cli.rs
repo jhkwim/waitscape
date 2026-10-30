@@ -113,6 +113,42 @@ pub fn parse(args: &[String], run: bool) -> Result<(Opts, Vec<String>), String> 
     Ok((o, vec![]))
 }
 
+/// 값을 받는 옵션 (`--opt 값`). `run`의 옵션/명령 경계를 찾을 때 쓴다 — `parse`의 match와 같은 목록
+const VALUE_OPTS: [&str; 15] = [
+    "--provider",
+    "--client",
+    "--client-version",
+    "--key",
+    "--cwd",
+    "--pid",
+    "--parent",
+    "--reports",
+    "--state",
+    "--title",
+    "--step",
+    "--total",
+    "--cheer",
+    "--line",
+    "--done",
+];
+
+/// `run` 인자 → (옵션 부분, 명령, `--`로 나뉘었나). 첫 `--` 또는 첫 비옵션 인자(옵션 값 제외) 중 **먼저 오는 쪽**에서 멈춘다 —
+/// 명령 안의 `--`(예: `cargo test -- --nocapture`)는 명령 몫으로 그대로 둔다. 모르는 옵션은 값 없는 옵션으로 본다
+pub fn split_run(args: &[String]) -> (&[String], &[String], bool) {
+    let mut i = 0;
+    while i < args.len() {
+        let a = args[i].as_str();
+        if a == "--" {
+            return (&args[..i], &args[i + 1..], true);
+        }
+        if !a.starts_with("--") {
+            return (&args[..i], &args[i..], false);
+        }
+        i += if !a.contains('=') && VALUE_OPTS.contains(&a) { 2 } else { 1 };
+    }
+    (&args[..args.len().min(i)], &[], false)
+}
+
 /// 정수 인자 (bool·실수는 거절 — status_of와 같은 규칙으로 넘기기 위해 JSON 정수로)
 fn int_arg(name: &str, v: &Option<String>) -> Result<Option<Value>, String> {
     match v {
@@ -184,6 +220,12 @@ impl Who {
             Some(c) => here.join(c),
             None => here,
         };
+        // 사이드카는 상대 경로를 조용히 무시하지만(CLI 작업 폴더에 파일을 만들지 않게), 명령줄 입구에서는 틀린 값을 알린다
+        if let Some(v) = o.reports.get(1) {
+            if !(v == "off" || v.starts_with('~') || std::path::Path::new(v).is_absolute()) {
+                return Err("--reports must be off, ~/… or an absolute path".into());
+            }
+        }
         Ok(Who {
             path: reports_path(&o.reports),
             key,
@@ -374,6 +416,40 @@ mod sig {
     }
 }
 
+/// Windows: `Command::new("codex")`는 PATH에서 `.exe`만 찾는다 → npm 설치 도구(`codex.cmd`)를 못 찾음.
+/// 확장자·경로 없는 이름이고 `<이름>.exe`가 PATH에 없으면 PATHEXT 순서로 `.cmd`·`.bat`을 찾아 **전체 경로**를 돌려준다.
+/// 실행은 그대로 `Command::new(<…>.cmd)` — std(1.77.2+, CVE-2024-24576 수정)가 cmd.exe 인자를 이스케이프하고,
+/// 안전하게 이스케이프할 수 없는 인자면 spawn이 `InvalidInput`으로 실패한다(셸 주입 없음). 직접 `cmd /C`로 감싸지 않는다.
+/// (모든 플랫폼에서 컴파일해 타입 검사를 받는다 — 부르는 곳은 Windows뿐)
+#[cfg_attr(not(windows), allow(dead_code))]
+fn win_program(prog: &str) -> std::ffi::OsString {
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    let ext = std::env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".into());
+    script_on_path(prog, &std::env::split_paths(&path).collect::<Vec<_>>(), &ext)
+        .map(|p| p.into_os_string())
+        .unwrap_or_else(|| prog.into())
+}
+
+/// `win_program`의 순수 부분 (테스트용으로 플랫폼 무관): `.exe`가 먼저 있으면 None(std가 찾음), 아니면 첫 `.cmd`/`.bat`
+#[cfg_attr(not(windows), allow(dead_code))]
+fn script_on_path(prog: &str, dirs: &[PathBuf], pathext: &str) -> Option<PathBuf> {
+    let p = std::path::Path::new(prog);
+    if prog.is_empty() || p.extension().is_some() || p.components().count() != 1 {
+        return None;
+    }
+    for d in dirs {
+        if d.join(format!("{prog}.exe")).is_file() {
+            return None;
+        }
+        for e in pathext.split(';').map(|e| e.trim().to_ascii_lowercase()) {
+            if (e == ".cmd" || e == ".bat") && d.join(format!("{prog}{e}")).is_file() {
+                return Some(d.join(format!("{prog}{e}")));
+            }
+        }
+    }
+    None
+}
+
 /// 자식이 신호로 끝났나 (unix)
 fn by_signal(st: &std::process::ExitStatus) -> bool {
     #[cfg(unix)]
@@ -394,17 +470,14 @@ pub fn run_main(args: &[String]) -> i32 {
         eprintln!("{RUN_USAGE}");
         return 0;
     }
-    // `--`가 있으면 그 앞만 보고 옵션: 모르는 옵션·틀린 값이어도 경고만 하고 명령은 실행한다(보고만 끔).
-    // `--` 없이 첫 비옵션 인자에서 명령이 시작되는 형식은 옵션 경계를 알 수 없으므로 옵션 오류면 실행하지 않는다(2)
-    let parsed = match args.iter().position(|a| a == "--") {
-        Some(i) => {
-            let cmd = args[i + 1..].to_vec();
-            match parse(&args[..i], false) {
-                Ok((o, _)) => Ok((o, cmd, None)),
-                Err(e) => Ok((Opts::default(), cmd, Some(e))),
-            }
-        }
-        None => parse(args, true).map(|(o, c)| (o, c, None)),
+    // 옵션은 첫 `--` 또는 첫 비옵션 인자 중 먼저 오는 쪽까지(`split_run`). `--`로 나뉘었으면 모르는 옵션·틀린 값이어도 경고만 하고
+    // 명령은 실행한다(보고만 끔). `--` 없이 명령이 시작되는 형식은 옵션 경계가 불확실하므로 옵션 오류면 실행하지 않는다(2)
+    let (opts, cmd, sep) = split_run(args);
+    let cmd = cmd.to_vec();
+    let parsed = match parse(opts, false) {
+        Ok((o, _)) => Ok((o, cmd, None)),
+        Err(e) if sep => Ok((Opts::default(), cmd, Some(e))),
+        Err(e) => Err(e),
     };
     let (o, cmd, opt_err) = match parsed {
         Ok(x) if !x.1.is_empty() => x,
@@ -459,6 +532,9 @@ pub fn run_main(args: &[String]) -> i32 {
         }
         report("status", status_of(&d).unwrap_or_default());
     }
+    #[cfg(windows)]
+    let mut c = std::process::Command::new(win_program(&cmd[0]));
+    #[cfg(not(windows))]
     let mut c = std::process::Command::new(&cmd[0]);
     c.args(&cmd[1..]);
     if let Some(w) = &who {
@@ -491,7 +567,9 @@ pub fn run_main(args: &[String]) -> i32 {
     };
     #[cfg(unix)]
     {
-        interrupted |= sig::HIT.load(std::sync::atomic::Ordering::SeqCst);
+        // 자식이 끝나기 직전에 온 신호는 전달되지 않았어도(GOT만 켜짐) 중단으로 본다
+        use std::sync::atomic::Ordering::SeqCst;
+        interrupted |= sig::HIT.load(SeqCst) || sig::GOT.load(SeqCst) != 0;
     }
     // 중단(신호)은 끝낸 일이 아니므로 done 없이 bye만 — 오늘 완료 수·일지에 넣지 않는다. 0이 아닌 코드로 끝난 건 done + "실패(코드 N)"
     if !interrupted {
@@ -646,6 +724,56 @@ mod tests {
         let d = done_payload(0, RUN_BIG_AFTER, &None, &Some("좋아".into()));
         assert_eq!(Value::Object(d), json!({"state": "done", "big": true, "cheer": "좋아"}));
         std::fs::remove_dir_all(p.parent().unwrap()).ok();
+    }
+
+    /// F1: 앞쪽 `--`를 생략해도 명령 안의 `--`에서 자르지 않는다
+    #[test]
+    fn split_run_stops_at_first_boundary() {
+        let v = a(&["--client", "x", "cargo", "test", "--", "--nocapture"]);
+        let (o, c, sep) = split_run(&v);
+        assert_eq!((o, c, sep), (&v[..2], &v[2..], false));
+        let v = a(&["--title=t", "--big", "--", "cargo", "test", "--", "--nocapture"]);
+        let (o, c, sep) = split_run(&v);
+        assert_eq!((o.len(), c, sep), (2, &v[3..], true));
+        let v = a(&["--frob", "--", "sh"]);
+        assert_eq!(split_run(&v).1, &v[2..]);
+        let v = a(&["--provider", "gemini"]);
+        assert!(split_run(&v).1.is_empty());
+        // 목록은 parse가 값을 받는 옵션과 같아야 한다
+        for o in VALUE_OPTS {
+            let (_, rest) = parse(&a(&[o, "v", "cmd"]), true).unwrap();
+            assert_eq!(rest, a(&["cmd"]), "{o}");
+        }
+    }
+
+    /// F2: --reports는 off·~·절대 경로만 (빈 값·상대 경로는 2)
+    #[test]
+    fn reports_option_must_be_absolute() {
+        for bad in ["", "r.jsonl", "./r.jsonl"] {
+            let v = a(&["bye", "--provider", "gemini", "--key", "k", "--reports", bad]);
+            assert!(report_cmd(&v, &no_env).is_err(), "{bad:?}");
+        }
+    }
+
+    /// F5: Windows용 .cmd 찾기 (순수 부분)
+    #[test]
+    fn finds_cmd_scripts_on_path() {
+        let d = tmp("cmd").parent().unwrap().to_path_buf();
+        let (d1, d2) = (d.join("a"), d.join("b"));
+        std::fs::create_dir_all(&d1).unwrap();
+        std::fs::create_dir_all(&d2).unwrap();
+        std::fs::write(d2.join("codex.cmd"), "").unwrap();
+        let ext = ".COM;.EXE;.BAT;.CMD";
+        assert_eq!(script_on_path("codex", &[d1.clone(), d2.clone()], ext), Some(d2.join("codex.cmd")));
+        std::fs::write(d1.join("codex.exe"), "").unwrap();
+        assert_eq!(script_on_path("codex", &[d1, d2.clone()], ext), None, ".exe가 먼저면 std에 맡김");
+        assert_eq!(
+            script_on_path("codex.cmd", std::slice::from_ref(&d2), ext),
+            None,
+            "확장자가 있으면 그대로"
+        );
+        assert_eq!(script_on_path("sub/codex", &[d2], ext), None, "경로면 그대로");
+        std::fs::remove_dir_all(&d).ok();
     }
 
     #[test]
