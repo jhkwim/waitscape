@@ -170,7 +170,7 @@ cargo tauri build    # 설치 파일 만들기
 | 폴더 | 내용 |
 |---|---|
 | `app/src-tauri/` | 데스크톱 앱 (Tauri 2) |
-| `crates/` | Rust 코어(`wr-core`)·훅(`wr-hook`)·브라우저용 서버(`wr-server`) |
+| `crates/` | Rust 코어(`wr-core`)·훅·보고 CLI(`wr-hook`)·브라우저용 서버(`wr-server`) |
 | `web/` | 화면: 공통 코어와 모드 패키지 (빌드 단계 없음) |
 | `types/` | `/state`·`/trace`·모드 API 공식 타입 |
 | `fixtures/`, `scripts/` | 테스트 데이터와 검사 도구 |
