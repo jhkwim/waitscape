@@ -68,7 +68,7 @@ fn main() {
     assert_eq!(
         conf["version"].as_str(),
         Some(ver.as_str()),
-        "tauri.conf.json의 version이 Cargo.toml workspace 버전({ver})과 달라요. python3 scripts/version.py bump {ver} 로 맞춰 주세요"
+        "tauri.conf.json의 version이 Cargo.toml workspace 버전({ver})과 달라요. python3 scripts/version.py sync 로 맞춰 주세요"
     );
     println!("cargo:rerun-if-changed=../../brand.json");
 
