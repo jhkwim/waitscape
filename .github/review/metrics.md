@@ -50,5 +50,6 @@
 | 2026-10-30 | #70 | b40baa6 | auto (Flash 기본+렌즈 5) + Claude 전문가 | - | 0/0/0/0 · Claude 0/1/4/0 | 100% | 100% | 100% | 0% | - | - | Flash 6패스 0건 → Claude가 build.rs에 남은 같은 잘못된 bump 안내(🟡)·태그 불일치 문구·dry-run 표시·sync 문서·회귀 테스트 (Flash medium 렌즈·Claude) |
 | 2026-10-30 | #71 | 9d38184 | auto (security: Argon) + Claude 전문가 | - | 0/0/0/0 · Claude 0/0/5/0 | 100% | 80% | 100% | 0% | - | - | Argon 0건, Claude도 데이터 손실 경로 없음 확인 → 동시 커밋 잠금·최근 백업 복원·Windows 재시도·CHANGELOG 정확도 (Argon medium·Claude) |
 | 2026-10-30 | #72 | e366372 | auto (security: Argon) + Claude 전문가 | - | 0/0/0/0 · Claude 0/2/7/0 | 100% | 100% | 100% | 0% | - | - | Argon 0건 → Claude가 확인 끝이 설치 phase를 지워 이중 설치 가능(🟡, 기존 경합)·패닉 시 checking 고정(🟡)·문구 (Argon medium·Claude) |
+| 2026-10-30 | #73 | f470f87 | auto (Flash 기본+렌즈 5) + visual quick + Claude 전문가 | - | 0/0/0/0 · visual 0 · Claude 0/1/6/0 | 100% | 100% | 100% | 0% | - | - | Gemini 코드·화면 모두 0건 → Claude가 980 질문 중 1층 줄이 말풍선 밑으로 가 승인 대기 칩이 가려짐(🟡, 실측)·글꼴 로드·리플로·aria 등 (Flash medium 렌즈·visual·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
