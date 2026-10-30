@@ -64,6 +64,8 @@ impl Backend {
             .filter(|v| !v.is_empty())
             .map(|v| wr_core::paths::expand_tilde(&v, &home))
             .unwrap_or_else(|| app_data.join("modes"));
+        // 업데이트 도중 앱이 꺼져 남은 .<id>.new-*/.<id>.old-* 정리 (기존 판이 비켜 있기만 하면 되돌린다)
+        crate::mode_install::recover(&user_modes);
         Backend {
             engine: Mutex::new(engine),
             settings: Mutex::new(settings),
