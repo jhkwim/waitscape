@@ -136,7 +136,7 @@ HEADER = "# 변경 내역 / Changelog\n\n형식: [Keep a Changelog](https://keep
 def git_notes(root: pathlib.Path) -> list[str]:
     """지난 v* 태그 이후 main(first-parent)의 커밋 제목. PR 병합 커밋은 PR 제목(본문 첫 줄)을 쓴다"""
     def git(*a: str) -> str:
-        r = subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True)
+        r = subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True, encoding="utf-8", errors="replace")
         return r.stdout if r.returncode == 0 else ""
 
     last = git("describe", "--tags", "--abbrev=0", "--match", "v[0-9]*").strip()
@@ -206,7 +206,7 @@ def cmd_check(root: pathlib.Path, tag: str | None) -> int:
         print(f"{k:32} {v}")
     if bad:
         for k, v in bad.items():
-            print(f"::error::{k}의 버전({v})이 Cargo.toml({cv})과 달라요. python3 scripts/version.py bump {cv} 로 맞추세요", file=sys.stderr)
+            print(f"::error::{k}의 버전({v})이 Cargo.toml({cv})과 달라요. python3 scripts/version.py sync 로 Cargo.toml 버전에 맞추세요", file=sys.stderr)
         return 1
     print(f"OK: 모두 {cv}")
     return 0
@@ -223,6 +223,8 @@ def main() -> int:
     b.add_argument("to", help="X.Y.Z 또는 major|minor|patch")
     b.add_argument("--dry-run", action="store_true")
     b.add_argument("--date", default=dt.date.today().isoformat())
+    s_ = sub.add_parser("sync", help="tauri.conf.json·Cargo.lock 버전을 Cargo.toml(원본)에 맞춤")
+    s_.add_argument("--dry-run", action="store_true")
     n = sub.add_parser("notes")
     n.add_argument("version")
     a = ap.parse_args()
@@ -233,6 +235,12 @@ def main() -> int:
         return 0
     if a.cmd == "check":
         return cmd_check(root, a.tag)
+    if a.cmd == "sync":
+        cv = cargo_version(root)
+        for f in set_versions(root, cv, a.dry_run):
+            print(f"  맞춤: {f}", file=sys.stderr)
+        print(cv)
+        return 0
     if a.cmd == "notes":
         s = notes_for(root, a.version.removeprefix("v"))
         if s:
