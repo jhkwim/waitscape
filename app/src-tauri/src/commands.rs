@@ -701,6 +701,7 @@ pub async fn commit_mode_install(w: WebviewWindow, be: B<'_>, stage: String) -> 
         .unwrap()
         .remove(&stage)
         .ok_or("설치 준비가 만료됐어요. 다시 선택해 주세요")?;
+    // 실패해도 commit이 기존 판을 되돌려 두므로 스테이징은 지워도 된다
     let r = mode_install::commit(&st, &be.user_modes);
     std::fs::remove_dir_all(&st.dir).ok();
     r?;
