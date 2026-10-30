@@ -558,3 +558,54 @@ body[data-mode="studio"] .stu .tn-bossb { z-index: 30; pointer-events: none; }
 @media (prefers-color-scheme: dark) {
   body[data-mode="studio"] .stu .tn-beam { background: linear-gradient(90deg, rgba(255, 240, 160, .9), rgba(255, 240, 160, 0)); }
 }
+
+/* ---------- 🍩 간식 · 🍖 회식 — mode.js 「TREAT」 블록 (#79) ---------- */
+body[data-mode="studio"] .stu .tr-desk { pointer-events: none; }   /* 책상 위 간식: 누르기는 그 아래 👆 직원 자리로 */
+body[data-mode="studio"] .stu .tr-desk img { image-rendering: pixelated; }
+body[data-mode="studio"] .stu .tr-nom { position: absolute; left: -18px; top: 6px; z-index: 31; font-size: 12px; font-weight: 900; font-style: italic; color: #c8503a; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; white-space: nowrap; pointer-events: none; }
+body[data-mode="studio"] .stu .dc-tray .msg.sm { padding: 8px 6px 4px; }
+body[data-mode="studio"] .stu .tr-rows { display: flex; flex-direction: column; gap: 6px; padding: 2px 2px 8px; }
+body[data-mode="studio"] .stu .tr-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 3px; }
+body[data-mode="studio"] .stu .tr-h { flex: none; margin-right: 2px; }
+body[data-mode="studio"] .stu .tr-h em { font-style: normal; font-size: 12px; color: #6d5d7d; border: 2px solid #c9b8d8; padding: 0 4px; margin-left: 2px; }
+body[data-mode="studio"] .stu .dc-btn.tr-buy { background: #fff3e4; }
+body[data-mode="studio"] .stu .dc-btn.tr-buy b { border: 2px solid var(--deep); background: #ffd23f; padding: 0 3px; font-size: 12px; }
+body[data-mode="studio"] .stu .dc-btn.tr-buy i { font-style: normal; color: #ff5a8a; }
+body[data-mode="studio"] .stu .dc-btn.tr-buy.dis { opacity: .5; }
+/* 옥상(연출 중에만 · 건물 위 −104px부터): 난간 · 전구 줄 · 계단실 · 그릴 연기 · 지글지글 */
+body[data-mode="studio"] .stu .dn-roof { z-index: 6; pointer-events: none; }
+body[data-mode="studio"] .stu .dn-roof img { image-rendering: pixelated; }
+body[data-mode="studio"] .stu .dn-rail { height: 4px; background: #5a3f72; z-index: 1; }
+body[data-mode="studio"] .stu .dn-post { width: 4px; height: 18px; background: #5a3f72; z-index: 1; }
+body[data-mode="studio"] .stu .dn-pole { width: 4px; background: #6e4528; z-index: 2; }
+body[data-mode="studio"] .stu .dn-wire { border-top: 2px solid #3a2a4a; z-index: 2; box-sizing: border-box; }
+body[data-mode="studio"] .stu .dn-bulb { width: 6px; height: 8px; border: 2px solid #3a2a4a; z-index: 3; box-shadow: 0 0 6px 2px rgba(255, 230, 140, .55); }
+body[data-mode="studio"] .stu .dn-bulb.off { box-shadow: none; filter: brightness(.7); }
+body[data-mode="studio"] .stu .dn-hut { width: 76px; height: 58px; background: #e0cfa8; border: 3px solid #4a3560; border-bottom: none; box-sizing: border-box; z-index: 2; box-shadow: inset 0 6px 0 #b8a07a; }
+body[data-mode="studio"] .stu .dn-door { position: absolute; left: 22px; bottom: 0; width: 26px; height: 38px; background: #8a5a3a; border: 3px solid #4a3560; border-bottom: none; box-sizing: border-box; }
+body[data-mode="studio"] .stu .dn-smoke { background: rgba(240, 240, 250, .9); border-radius: 2px; z-index: 7; }
+body[data-mode="studio"] .stu .dn-sz { z-index: 8; font-size: 12px; font-weight: 900; font-style: italic; color: #e8603a; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; white-space: nowrap; }
+/* 📷 1층 어제 회식 사진(액자) */
+body[data-mode="studio"] .stu .dn-photo { width: 50px; height: 40px; z-index: 4; border: 3px solid #8a5a3a; outline: 2px solid #4a3560; background: linear-gradient(#ffb36b 0, #ff8ab0 60%, #6a4a7a 60%); overflow: hidden; }
+body[data-mode="studio"] .stu .dn-photo img { position: absolute; image-rendering: pixelated; }
+body[data-mode="studio"] .stu .dn-photo .dn-pl { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: #f6a43c; border-top: 1px solid #4a3560; z-index: 1; }
+/* 정지 장면 카드(움직임 줄이기) */
+body[data-mode="studio"] .stu .dn-ov { position: absolute; inset: 0; z-index: 180; display: grid; place-items: center; background: rgba(18, 12, 30, .72); }
+body[data-mode="studio"] .stu .dn-box { width: 380px; max-width: calc(100% - 24px); background: #fff8e8; border: 4px solid #2e2040; box-shadow: 0 6px 0 #2e2040; padding: 10px; color: #2e2040; font-weight: 800; font-size: 13px; }
+body[data-mode="studio"] .stu .dn-hd { font-size: 15px; font-weight: 900; margin-bottom: 8px; }
+body[data-mode="studio"] .stu .dn-sc { position: relative; height: 150px; overflow: hidden; border: 3px solid #2e2040; background: linear-gradient(#5a4a8a 0, #ff9a7a 75%, #ffc89a 100%); }
+body[data-mode="studio"] .stu .dn-sc img { position: absolute; image-rendering: pixelated; z-index: 2; }
+body[data-mode="studio"] .stu .dn-sc .dn-flr { position: absolute; left: 0; right: 0; bottom: 0; height: 24px; background: #f6a43c; border-top: 3px solid #4a3560; z-index: 1; }
+body[data-mode="studio"] .stu .dn-sc .dn-lt { position: absolute; left: 10px; right: 10px; top: 14px; height: 10px; border-top: 2px solid #3a2a4a; background: radial-gradient(circle at 6px 6px, #ffd23f 3px, transparent 4px) 0 0 / 28px 10px repeat-x; }
+body[data-mode="studio"] .stu .dn-say { position: absolute; left: 180px; top: 26px; transform: translateX(-50%); background: #fff; border: 3px solid #2e2040; padding: 1px 8px; font-weight: 900; z-index: 3; white-space: nowrap; }
+body[data-mode="studio"] .stu .dn-ft { margin-top: 8px; color: #6d5d7d; }
+body[data-mode="studio"] .stu .dr-dn { margin-top: 6px; }
+body[data-mode="studio"] .stu .dr-dn button { flex: 1; background: #ffd9a8; }
+body[data-mode="studio"] .stu .dr-dn button.dis { background: #e4dcea; color: #6d5d7d; box-shadow: 0 3px 0 #6d5d7d; }
+body[data-mode="studio"] .stu .dr-dn[hidden] { display: none; }
+@media (prefers-color-scheme: dark) {
+  body[data-mode="studio"] .stu .dn-box { background: #2e2a48; color: #f0e8f8; border-color: #0e0a22; box-shadow: 0 6px 0 #0e0a22; }
+  body[data-mode="studio"] .stu .dn-ft { color: #c9c0d8; }
+  body[data-mode="studio"] .stu .dn-sc { background: linear-gradient(#1c2547 0, #5a4a8a 75%, #8a5a7a 100%); }
+  body[data-mode="studio"] .stu .dn-bulb { box-shadow: 0 0 10px 4px rgba(255, 230, 140, .7); }
+}
