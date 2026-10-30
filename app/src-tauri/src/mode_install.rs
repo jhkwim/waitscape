@@ -337,6 +337,7 @@ pub fn prepare(src: &Path, stage_dir: &Path, builtin: &[String], user_modes: &Pa
 /// 3. `.new-*` → `<id>`. 실패하면 `.old-*`를 `<id>`로 되돌린다.
 /// 4. 성공하면 `.old-*`를 지운다(실패해도 다음 `recover`가 지움).
 pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
+    let _g = install_lock();
     std::fs::create_dir_all(user_modes).map_err(|e| e.to_string())?;
     if !id_ok(&st.id) {
         return err("잘못된 모드 id");
@@ -376,7 +377,7 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
     // 2. 기존 판을 비켜 둔다
     let old = user_modes.join(format!(".{}.old-{nonce}", st.id));
     if existing {
-        if let Err(e) = step("backup", || std::fs::rename(&dst, &old)) {
+        if let Err(e) = step("backup", || rename_retry(&dst, &old)) {
             std::fs::remove_dir_all(&new).ok();
             return err(format!(
                 "기존 모드를 옮기지 못해 업데이트하지 않았어요 (사용 중인 파일이 있으면 닫고 다시 시도해 주세요): {e}"
@@ -384,10 +385,10 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
         }
     }
     // 3. 바꿔 끼우기. 실패하면 기존 판을 되돌린다
-    if let Err(e) = step("swap", || std::fs::rename(&new, &dst)) {
+    if let Err(e) = step("swap", || rename_retry(&new, &dst)) {
         std::fs::remove_dir_all(&new).ok();
         if existing {
-            if let Err(e2) = std::fs::rename(&old, &dst) {
+            if let Err(e2) = rename_retry(&old, &dst) {
                 // 되돌리기마저 실패: 기존 판은 .old-* 이름으로 남아 있고 다음 실행 때 recover가 되돌린다
                 return err(format!(
                     "업데이트에 실패했어요: {e} (기존 모드 복구도 실패: {e2}. 앱을 다시 켜면 복구를 다시 시도해요)"
@@ -408,6 +409,28 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
 #[cfg(test)]
 thread_local! {
     static FAIL_STEP: std::cell::RefCell<Vec<&'static str>> = const { std::cell::RefCell::new(vec![]) };
+}
+
+/// 설치·업데이트·삭제·정리를 한 번에 하나만 한다. 같은 id를 동시에 커밋할 때
+/// 한쪽의 `recover_id`가 다른 쪽이 만들고 있는 `.new-*`·`.old-*`를 지우거나 되돌리지 않게 한다
+static INSTALL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn install_lock() -> std::sync::MutexGuard<'static, ()> {
+    // 앞선 작업이 패닉했어도 보호하는 데이터가 없으므로 그대로 이어서 쓴다
+    INSTALL.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// 같은 폴더 안 rename. Windows에서는 바이러스 검사기·검색 색인이 막 만든 파일을 잠깐 잡고 있어
+/// 실패할 수 있으므로 150ms 간격으로 두 번 더 시도한다(테스트 훅 `step`은 이 함수를 부르기 전에 실패시킨다)
+fn rename_retry(from: &Path, to: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    for _ in 0..2 {
+        if std::fs::rename(from, to).is_ok() {
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(150));
+    }
+    std::fs::rename(from, to)
 }
 
 /// 파일 시스템 한 단계. 테스트에서는 이름으로 골라 실제로 실행하지 않고 실패시킬 수 있다
@@ -461,6 +484,7 @@ fn leftover(name: &str) -> Option<(&str, bool)> {
 /// - `.new-*`: 완성됐는지 알 수 없으므로 지운다
 /// - `.old-*`: `<id>`가 없으면(바꿔 끼우기 전에 꺼짐) 되돌리고, 있으면 지운다
 pub fn recover(user_modes: &Path) {
+    let _g = install_lock();
     recover_matching(user_modes, None);
 }
 
@@ -471,22 +495,38 @@ fn recover_id(user_modes: &Path, id: &str) {
 fn recover_matching(user_modes: &Path, only: Option<&str>) {
     let Ok(rd) = std::fs::read_dir(user_modes) else { return };
     let mut names: Vec<String> = rd.flatten().filter_map(|e| e.file_name().into_string().ok()).collect();
-    // .new-를 먼저 지우고 .old-를 나중에 처리한다
-    names.sort_by_key(|n| leftover(n).map(|(_, old)| old));
-    for name in names {
-        let Some((id, is_old)) = leftover(&name) else { continue };
+    names.sort();
+    // id별 .old-* 후보: (mtime, 이름)
+    let mut olds: std::collections::BTreeMap<String, Vec<(std::time::SystemTime, PathBuf)>> = Default::default();
+    for name in &names {
+        let Some((id, is_old)) = leftover(name) else { continue };
         if only.is_some_and(|o| o != id) {
             continue;
         }
-        let p = user_modes.join(&name);
-        match std::fs::symlink_metadata(&p) {
-            Ok(md) if md.is_dir() && !md.file_type().is_symlink() => {}
+        let p = user_modes.join(name);
+        let mtime = match std::fs::symlink_metadata(&p) {
+            Ok(md) if md.is_dir() && !md.file_type().is_symlink() => md.modified().unwrap_or(std::time::UNIX_EPOCH),
             _ => continue,
-        }
-        let dst = user_modes.join(id);
-        if is_old && std::fs::symlink_metadata(&dst).is_err() {
-            std::fs::rename(&p, &dst).ok();
+        };
+        if is_old {
+            olds.entry(id.to_string()).or_default().push((mtime, p));
         } else {
+            std::fs::remove_dir_all(&p).ok();
+        }
+    }
+    for (id, mut list) in olds {
+        let dst = user_modes.join(&id);
+        // <id>가 없으면 가장 최근 백업(mtime, 같으면 이름이 큰 것) 하나만 되돌리고 나머지는 지운다
+        list.sort();
+        if std::fs::symlink_metadata(&dst).is_err() {
+            if let Some((_, newest)) = list.pop() {
+                if std::fs::rename(&newest, &dst).is_err() {
+                    // 되돌리지 못했으면 다른 백업도 지우지 않는다 (다음 실행 때 다시 시도)
+                    continue;
+                }
+            }
+        }
+        for (_, p) in list {
             std::fs::remove_dir_all(&p).ok();
         }
     }
@@ -500,6 +540,7 @@ fn chrono_now() -> f64 {
 }
 
 pub fn remove(user_modes: &Path, id: &str) -> Result<(), String> {
+    let _g = install_lock();
     if !id_ok(id) {
         return err("잘못된 모드 id");
     }
@@ -762,6 +803,32 @@ mod tests {
         }
         for keep in [".c.old-zz", ".c.old-", ".Bad.old-1", ".c.bak-1", ".hidden", "c.old-1", ".d.old-1"] {
             assert!(modes.join(keep).exists(), "{keep}");
+        }
+        // 같은 id의 백업이 여럿이고 <id>가 없으면 가장 최근 것 하나만 되돌리고 나머지는 지운다
+        // (폴더 mtime을 File::open으로 바꾸는 건 unix에서만 된다. 앱 테스트는 Linux·macOS에서 돈다)
+        #[cfg(unix)]
+        {
+            mk(".f.old-a1", "1.0.0");
+            mk(".f.old-b2", "3.0.0");
+            mk(".f.old-c3", "2.0.0");
+            let at = |name: &str, secs: u64| {
+                let t = std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs);
+                std::fs::File::open(modes.join(name)).unwrap().set_modified(t).unwrap();
+            };
+            at(".f.old-a1", 1_000);
+            at(".f.old-b2", 3_000);
+            at(".f.old-c3", 2_000);
+            // mtime이 같으면 이름이 큰 쪽
+            mk(".g.old-1", "1.0.0");
+            mk(".g.old-2", "2.0.0");
+            at(".g.old-1", 5_000);
+            at(".g.old-2", 5_000);
+            recover(&modes);
+            assert_eq!(version_of(&modes.join("f")), "3.0.0");
+            assert_eq!(version_of(&modes.join("g")), "2.0.0");
+            for gone in [".f.old-a1", ".f.old-b2", ".f.old-c3", ".g.old-1", ".g.old-2"] {
+                assert!(!modes.join(gone).exists(), "{gone}");
+            }
         }
         #[cfg(unix)]
         {
