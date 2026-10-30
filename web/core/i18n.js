@@ -242,7 +242,7 @@ Object.assign(S.en, {
   "nx.log": "Recent activity", "nx.ev.start": "Session started", "nx.ev.done": "Task finished", "nx.ev.ask": "Input requested", "nx.ev.resume": "Input received · resumed",
   "nx.live": "Live", "nx.hooks": "Hooks connected", "nx.local": "Local data", "nx.shh": "Shh", "nx.mini.sum": "{r} running · {a} waiting", "nx.big": "Full window",
   "nx.col.g": "Progress", "nx.pg.todo": "Todo {d}/{n}", "nx.b.stall": "May be stuck", "nx.b.ctx": "Context {v}%", "nx.b.pace": "Over pace",
-  "nx.subs": "{n} sub-agents", "nx.go": "Go to {m}", "nx.nogo": "Only sessions opened in cmux or Orca can be opened directly",
+  "nx.subs": "sub-agents: {n}", "nx.go": "Go to {m}", "nx.nogo": "Only sessions opened in cmux or Orca can be opened directly",
   "nx.td.done": "Done today", "nx.td.n": "{n}", "nx.td.work": "Work time", "nx.td.long": "Longest task", "nx.td.wait": "Avg. input wait", "nx.sec": "{n}s",
   "g.nunchi.theme": "Brightness", "g.nunchi.theme.system": "System (default)", "g.nunchi.theme.light": "Light", "g.nunchi.theme.dark": "Dark",
   "nx.n.done": "Task finished", "nx.n.doneM": "Task finished · {m} min", "nx.n.ask": "Input needed", "nx.n.stall": "No response · {m} min",

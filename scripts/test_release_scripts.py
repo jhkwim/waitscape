@@ -105,6 +105,17 @@ def test_version() -> None:
         cl = (d / "CHANGELOG.md").read_text()
         assert "## [0.2.1] - 2026-01-03\n\n### 수정\n- 손으로 적음\n" in cl and cl.count("## [Unreleased]") == 1
         assert run(d, "bump", "major").stdout.strip() == "1.0.0"
+        # sync: 따라가는 파일이 어긋나면 check 실패 → sync --dry-run은 쓰지 않음 → sync 뒤 OK, Cargo.toml(원본)은 그대로
+        conf_p = d / "app/src-tauri/tauri.conf.json"
+        conf_p.write_text(conf_p.read_text().replace('"version": "1.0.0"', '"version": "0.9.9"', 1))
+        r = run(d, "check", ok=False)
+        assert "version.py sync" in r.stderr, r.stderr
+        run(d, "sync", "--dry-run")
+        run(d, "check", ok=False)
+        cargo_before = (d / "Cargo.toml").read_text()
+        assert run(d, "sync").stdout.strip() == "1.0.0"
+        run(d, "check")
+        assert (d / "Cargo.toml").read_text() == cargo_before
 
 
 def test_latest_json() -> None:
