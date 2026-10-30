@@ -42,7 +42,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 <td width="44%" align="center"><img src="docs/assets/mini.gif" width="300" alt="Mini view — question close-up, back to work, rooftop celebration, report to the boss"></td>
 <td width="56%" valign="middle">
 <h3>📌 Mini view</h3>
-A tiny always-on-top "lobby camera". It watches the boss's office, and when something happens it flies to that floor. Questions get a close-up and a caption; big wins get fireworks on the roof and a report to the boss. Scroll or press ↑↓ to look around the floors yourself.
+A tiny always-on-top "lobby camera". The big window hides and only this small one stays above your other apps. It watches the boss's office, and when something happens it goes to that floor. Questions get a close-up and a caption; big wins get fireworks on the roof and a report to the boss. When subagents spin up, it follows the elevator to the meeting room. Scroll or press ↑↓ to look around the floors yourself.
 </td>
 </tr>
 <tr>
@@ -53,11 +53,11 @@ Your 5-hour usage drives the building's day. From 50% the sun sets and lights co
 </td>
 </tr>
 <tr>
-<td width="56%" valign="middle">
+<td colspan="2" valign="middle">
 <h3>🙈 Low-profile mode</h3>
-Looks too much like a game at the office? Press <b>⌃Q</b> (Windows <b>Alt+`</b>), even while using another app. The blinds drop and you get "Agent Sessions", a plain work tool with a session table, progress and limit bars. Notifications turn plain too. Press again and the staff walk back in with coffee.
+Looks too much like a game at the office? Press <b>⌃Q</b> (Windows <b>Alt+`</b>), even while using another app. The blinds drop and you get "Agent Sessions", a plain work tool with a session table, progress, limit bars and recent activity. The window title and OS notifications turn plain too, with no sounds. Press again and the blinds go up, back to the studio. Set Settings → General → Low-profile mode → Transition to "With staff leaving & arriving" (Studio) and the staff head home before the blinds close; on the way back a cat peeks through the closed blinds, then everyone walks in with coffee (GIF below).
+<p align="center"><img src="docs/assets/nunchi.gif" width="860" alt="Low-profile mode (leave & arrive animation) — the staff head home, the blinds close into the plain Agent Sessions work tool, then a cat peeks through the closed blinds, the blinds go up and the staff walk back in"></p>
 </td>
-<td width="44%" align="center"><img src="docs/assets/nunchi.png" width="420" alt="Low-profile mode — a plain Agent Sessions work-tool screen"></td>
 </tr>
 <tr>
 <td width="44%" align="center"><img src="docs/assets/modes.png" width="420" alt="Hamster · Scoreboard · Orbit · Work modes"></td>
@@ -74,6 +74,36 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 </td>
 </tr>
 </table>
+
+## Using it
+
+### 🙈 Low-profile mode
+
+| Where | Toggle |
+|---|---|
+| Even in other apps | **⌃Q** (Windows **Alt+`**): change it in Settings → General, or turn it off with the switch |
+| With the Waitscape window in front | **B** or **⌘1** (Windows **Ctrl+1**) |
+| Menus | Menu bar (tray) · window right-click → 🙈 Low-profile mode |
+
+- **Stays the same:** session data, done alerts, session jumps and funds. It stays on after you restart the app.
+- **Changes:** the screen (a work tool), the window title and OS notification text (e.g. "api-server · Task finished · 13 min"), and no sounds. The mini view becomes a small list too.
+- **Settings → General → 🙈 Low-profile mode:** brightness (System, Light, Dark) and the transition (short blinds by default; pick "With staff leaving & arriving" and in Studio the staff take their bags down the elevator, then come back with coffee).
+- Press again mid-transition to finish it right away. With reduce motion or meeting mode it switches instantly.
+
+### 📌 Mini view
+
+| To do this | Use |
+|---|---|
+| Go mini | Studio's **📌 Mini view** button · **⌘2** (Windows **Ctrl+2**) · menu bar (tray) · window right-click |
+| Back to the big window | **⤢** (shows on hover) · **⌘2** (Windows **Ctrl+2**) · right-click menu · Dock icon (macOS) · menu bar (tray) "Full Window" |
+| Look around the floors | Wheel or trackpad (one floor at a time) · ▲▼ (on hover) · **↑↓** keys · status dots at the top · the "Next" chip |
+| Back to the auto camera | **Esc**, or leave it alone for 10 seconds |
+
+- You see either the big window or the mini view, never both. If you quit in the mini view, the next launch starts there too.
+- While you look around, new questions and completions pile up on the "Next" chip, and the auto camera shows them once it takes over again.
+- The **🎥Cut / 🎥Pan** button (on hover) picks how the camera moves between floors (cut = quick jump, pan = glide up and down).
+- Click a floor's name tag chip to jump straight to that session's terminal (app).
+- In 📌 Pocket mode, the pin button that floats it on top is the mini view (app; a PiP window in the browser). The widget expands by itself when input is needed.
 
 ## And more
 
