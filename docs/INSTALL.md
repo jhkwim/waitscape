@@ -65,7 +65,7 @@
 - 파일은 1MB가 넘으면 `waitscape.old.log`로 한 번 돌아가므로 두 개를 넘지 않습니다.
 
 ### 현재 한계
-코드 서명·공증은 아직 없습니다. 그래서 위 경고가 나옵니다. 서명은 인증서가 준비되면 릴리스 워크플로에서 시크릿으로 켤 수 있게 자리만 만들어 두었습니다.
+macOS는 0.4.2부터 Developer ID 서명·Apple 공증을 받습니다. **Windows는 아직 코드 서명이 없어** 처음 실행할 때 SmartScreen 경고가 나옵니다.
 앱 안 업데이트는 업데이터 서명 키가 들어간 빌드부터 동작합니다(관리자 안내: [RELEASE.md](RELEASE.md)).
 
 ---
@@ -117,5 +117,5 @@ If a button does nothing or a window doesn't appear, please attach the app's dia
 - When the file passes 1MB it is rotated once to `waitscape.old.log`, so there are never more than two.
 
 ### Limitations
-No code signing or notarization yet, hence the warnings. The release workflow has a placeholder that turns signing on when certificate secrets are configured.
+macOS builds are signed with a Developer ID and notarized by Apple since 0.4.2. **Windows builds are not code-signed yet**, so SmartScreen warns on first launch.
 In-app updates work from the first build that carries the updater public key (maintainers: [RELEASE.md](RELEASE.md)).
