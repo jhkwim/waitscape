@@ -6,7 +6,7 @@
 const C = window.Core;
 const { esc } = C;
 
-/* ================= 도트 캐릭터 7종 (16열 문자 그림 → 스프라이트) ================= */
+/* ================= 도트 캐릭터 11종 (16열 문자 그림 → 스프라이트) ================= */
 const P0 = { O: "#3a2430", P: "#2c2030", Q: "#2c2030", W: "#ffffff", Z: "#8a2d3c", C: "#ff9aa6", N: "#d9667a", M: "#b5504a", I: "#f7a9a0" };
 const CH = [
 { id: "ham", rows: ["..FF........FF..", ".FIFF......FFIF.", ".FFFFFFFFFFFFFF.", "FFFFFFFFFFFFFFFF", "FFFFFLLLLLLFFFFF", "FFFLLLLLLLLLLFFF", "FFLPWLLLLLLPWLFF", "FFLQQLLLLLLQQLFF", "FFCCLLLNNLLLCCFF", "FFLCLLLMMLLLCLFF", ".FFLLLLLLLLLLFF.", ".FFFBBBBBBBBFFF.", "..FFBBBBBBBBFF..", "..FFBBBBBBBBFF.."],
@@ -39,6 +39,30 @@ const CH = [
   tail: [[13, 14, "F"], [13, 15, "F"], [12, 15, "F"], [11, 15, "F"], [10, 15, "S"], [9, 15, "S"]],
   pal: { F: "#e8944a", S: "#c46f2a", L: "#fff1dc", I: "#f7a9a0", N: "#d9667a", M: "#8a4a40", B: "#6c7aa0" }, arm: { y: 13, x: 2, s: "F", h: "L" },
   meta: { er: 5, xl: 3, xr: 10, neck: 10, n0: 3, n1: 12, hat: 2, h0: 1, h1: 14 }, hands: { w: 16, c: "#fff1dc" } },
+/* #85 새 직원 4종 — 여우·판다는 바로 출근, 부엉이·고슴도치는 잠김(HIRE). 버릇은 아래 HABIT */
+{ id: "fox", rows: [".KK..........KK.", ".FFF........FFF.", ".FIFF......FFIF.", ".FIIFFFFFFFFIIF.", "FFFFFFFFFFFFFFFF", "FFFPWFFFFFFPWFFF", "FFFQQFFFFFFQQFFF", "FLLLLLLNNLLLLLLF", ".LLLLLLMMLLLLLL.", "..LLLLLLLLLLLL..", "...FFFFFFFFFF...", "..FFBBBBBBBBFF..", "..FFBBBBBBBBFF..", "..FFBBBBBBBBFF..", "...FBBBBBBBBF..."],
+  legs: { s: ["...KK......KK...", "...KK......KK..."], a: ["..KK........KK..", "..KK........KK.."], b: ["....KK....KK....", "....KK....KK...."] },
+  /* 꼬리: 몸통 오른쪽 아래에서 머리 옆까지 솟음(앉아도 책상 위로 흰 끝이 보이게) · tail2 = 살랑(끝이 바깥으로) — mkGrid o.tw */
+  tail: [[13, 14, "F"], [12, 14, "F"], [12, 15, "F"], [11, 15, "F"], [11, 16, "F"], [10, 16, "F"], [10, 17, "F"], [9, 17, "F"], [9, 18, "F"], [8, 17, "F"], [8, 18, "F"], [7, 17, "L"], [7, 18, "L"], [6, 17, "L"], [6, 18, "L"]],
+  tail2: [[13, 14, "F"], [12, 14, "F"], [12, 15, "F"], [11, 15, "F"], [11, 16, "F"], [10, 16, "F"], [10, 17, "F"], [9, 17, "F"], [9, 18, "F"], [8, 18, "F"], [8, 19, "F"], [7, 18, "L"], [7, 19, "L"], [6, 19, "L"], [6, 20, "L"]],
+  pal: { F: "#ec8a3c", K: "#4a2e2a", L: "#fff4e4", I: "#3a2430", N: "#2e2040", M: "#b5504a", B: "#5a7ac8" }, closed: "F", arm: { y: 13, x: 2, s: "F", h: "K" },
+  meta: { er: 5, xl: 3, xr: 11, neck: 10, n0: 3, n1: 12, hat: 2, h0: 1, h1: 14 }, hands: { w: 16, c: "#4a2e2a" } },
+{ id: "panda", rows: ["..KK........KK..", ".KKKK......KKKK.", ".KKLLLLLLLLLLKK.", "..LLLLLLLLLLLL..", ".LLLLLLLLLLLLLL.", ".LLKKKLLLLKKKLL.", ".LKPWKLLLLKPWKL.", ".LKQQKLLLLKQQKL.", ".LLKKLLNNLLKKLL.", ".LLLLLLMMLLLLLL.", "..LLLLLLLLLLLL..", "..KKBBBBBBBBKK..", ".KKKBBBBBBBBKKK.", ".KKKBBBBBBBBKKK.", "..KKBBBBBBBBKK.."],
+  legs: { s: ["...KKK....KKK...", "...KKK....KKK..."], a: ["..KKK......KKK..", "..KKK......KKK.."], b: ["....KKK..KKK....", "....KKK..KKK...."] },
+  pal: { K: "#3e3848", L: "#fbf8f2", P: "#140e1c", Q: "#140e1c", N: "#2e2040", M: "#b5504a", B: "#f0ebe2" }, closed: "K", arm: { y: 13, x: 2, s: "K", h: "K" },
+  meta: { er: 6, xl: 3, xr: 11, neck: 10, n0: 2, n1: 13, hat: 2, h0: 1, h1: 14 }, hands: { w: 16, c: "#3e3848" } },
+{ id: "owl", rows: [".FF..........FF.", ".FFF........FFF.", "..FFFFFFFFFFFF..", ".FFFFFFFFFFFFFF.", ".FLLLLFFFFLLLLF.", "FLEEEELFFLEEEELF", "FLEPWELFFLEPWELF", "FLEQQELYYLEQQELF", "FLLEELLLMLLEELLF", ".FLLLLLLLLLLLLF.", "..FFFFFFFFFFFF..", "..FFBBBBBBBBFF..", ".FFFBDBBDBBDBFFF", ".FFFBBBBBBBBFFF.", "..FFBBDBBDBBFF..", "...FFBBBBBBFF..."],
+  legs: { s: ["....YY....YY....", "...Y.Y....Y.Y..."], a: ["...YY......YY...", "..Y.Y......Y.Y.."], b: [".....YY..YY.....", "....Y.Y..Y.Y...."] },
+  /* 🦉 밤(22~6시) 눈 크게: 눈 테(E)가 위아래로 한 칸씩 커지고 눈동자도 한 칸 더 — mkGrid o.eyes "w" */
+  wide: [[4, 2, "E"], [4, 3, "E"], [4, 4, "E"], [4, 5, "E"], [4, 10, "E"], [4, 11, "E"], [4, 12, "E"], [4, 13, "E"], [5, 3, "P"], [5, 4, "P"], [5, 11, "P"], [5, 12, "P"], [8, 2, "E"], [8, 5, "E"], [8, 10, "E"], [8, 13, "E"]],
+  pal: { F: "#8a6446", L: "#f3e2c3", E: "#ffcf4a", Y: "#ff9a3a", B: "#e9d2a8", D: "#a8825e", M: "#ff9a3a" }, closed: "E", arm: { y: 13, x: 2, s: "F", h: "F" },
+  meta: { er: 6, xl: 3, xr: 11, neck: 10, n0: 2, n1: 13, hat: 2, h0: 1, h1: 14 }, hands: { w: 16, c: "#8a6446" } },
+{ id: "hog", rows: ["..K..K..K..K..K.", ".KKSKKSKKSKKSKK.", "KKSKKSKKSKKSKKSK", "KSKKLLLLLLLLKKSK", "KKKLLLLLLLLLLKKK", "KSLLPWLLLLPWLLSK", "KKLLQQLLLLQQLLKK", ".KLCLLLNNLLLCLK.", ".KKLLLLMMLLLLKK.", "..KKLLLLLLLLKK..", "..KKBBBBBBBBKK..", ".KKKBBBBBBBBKKK.", ".KSKBBBBBBBBKSK.", "..KKBBBBBBBBKK.."],
+  legs: { s: ["...LL......LL...", "...LL......LL..."], a: ["..LL........LL..", "..LL........LL.."], b: ["....LL....LL....", "....LL....LL...."] },
+  /* 🦔 쭈뼛(오래 기다림): 가시 끝이 위·옆으로 한 칸씩 더 — mkGrid o.spk */
+  spk: [[0, 0, "S"], [0, 3, "S"], [0, 6, "S"], [0, 9, "S"], [0, 12, "S"], [0, 15, "S"], [1, 0, "K"], [1, 15, "K"], [2, -1, "S"], [2, 16, "S"], [4, -1, "S"], [4, 16, "S"], [6, -1, "S"], [6, 16, "S"], [3, -1, "K"], [3, 16, "K"]],
+  pal: { K: "#6a4a3a", S: "#c8a07a", L: "#f2d6b0", C: "#ff9aa6", N: "#2e2040", M: "#b5504a", B: "#6aa86a" }, arm: { y: 12, x: 2, s: "L", h: "L" },
+  meta: { er: 5, xl: 4, xr: 10, neck: 9, n0: 3, n1: 12, hat: 1, h0: 2, h1: 13 }, hands: { w: 16, c: "#f2d6b0" } },
 ];
 const BYID = {}; CH.forEach(c => (BYID[c.id] = c));
 const SP = CH.map(c => c.id);
@@ -47,11 +71,17 @@ BYID.boss = BOSS;
 /* ✨ 반짝이(희귀 색) 팔레트 */
 const SH = { ham: { F: "#f7b6cf", L: "#fff6fb", B: "#b86ad8" }, peng: { K: "#6a4ab8", L: "#fffaf0", Y: "#ffd23f" }, bvr: { F: "#6fb6a0", L: "#e6f5dc", B: "#c8508a", R: "#4a7a6a" },
   otr: { F: "#5fb2d8", L: "#e2f6ff", B: "#e8a23c", R: "#3f86a8" }, oct: { F: "#ff8fb3", L: "#ffe0ea", M: "#a83a5c" }, bot: { F: "#f3d36b", K: "#a8863a", B: "#d9b24f" },
-  cat: { F: "#cdd6ff", S: "#8f9be8", L: "#ffffff", B: "#8d7ae0" } };
+  cat: { F: "#cdd6ff", S: "#8f9be8", L: "#ffffff", B: "#8d7ae0" },
+  fox: { F: "#dfe6f2", K: "#6a7690", L: "#ffffff", I: "#8f9be8", B: "#c8508a" }, panda: { K: "#b8603a", L: "#fff3e4", B: "#ffe9c8" },
+  owl: { F: "#e6e9f2", L: "#ffffff", D: "#9aa4b8", B: "#f4f6fb", E: "#9ad8ff" }, hog: { K: "#e8c8d4", S: "#ffffff", L: "#ffe4ea", B: "#8d7ae0" } };
 /* 🌺 금요일 오후 하와이안 셔츠(TINY, 큰 화면만): 몸통(B) 색 — 동물 기본 몸통 색과 다른 계열 · 몸통이 없는 펭귄·문어는 꽃 목걸이 */
-const ALOHA = { ham: "#2bb5a8", bvr: "#ff7a6b", otr: "#ff7a9a", cat: "#ff9a3c", bot: "#2bb5a8" };
-const NAME = { ham: ["햄찌", "Hamster"], peng: ["펭귄", "Penguin"], bvr: ["비버", "Beaver"], otr: ["수달", "Otter"], oct: ["문어", "Octopus"], bot: ["로봇", "Robot"], cat: ["고양이", "Cat"] };
-const EMO = { ham: "🐹", peng: "🐧", bvr: "🦫", otr: "🦦", oct: "🐙", bot: "🤖", cat: "🐱" };
+const ALOHA = { ham: "#2bb5a8", bvr: "#ff7a6b", otr: "#ff7a9a", cat: "#ff9a3c", bot: "#2bb5a8", fox: "#2bb5a8", panda: "#ff7a6b", owl: "#2bb5a8", hog: "#ff7a9a" };
+const NAME = { ham: ["햄찌", "Hamster"], peng: ["펭귄", "Penguin"], bvr: ["비버", "Beaver"], otr: ["수달", "Otter"], oct: ["문어", "Octopus"], bot: ["로봇", "Robot"], cat: ["고양이", "Cat"],
+  fox: ["여우", "Fox"], panda: ["판다", "Panda"], owl: ["부엉이", "Owl"], hog: ["고슴도치", "Hedgehog"] };
+/* 🌑 정전 때 눈이 빛나는 동물(촛불 대신 눈만): 고양이 연두 · 로봇 하늘색 · 부엉이 호박색(#85 — 밤눈이 밝음) */
+const GLOW = { cat: "#c8ff6a", bot: "#6af0ff", owl: "#ffc83a" };
+const glowA = c => "rgba(" + [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)).join(",") + ",.35)";
+const EMO = { ham: "🐹", peng: "🐧", bvr: "🦫", otr: "🦦", oct: "🐙", bot: "🤖", cat: "🐱", fox: "🦊", panda: "🐼", owl: "🦉", hog: "🦔" };
 /* 프로바이더 소품: Claude 주황 목도리 · Codex 초록 비니 · Gemini 파란 안경 · 그 외 회색 모자 */
 const PROV = {
   claude: { c: "#ff7a3c", tag: "#f28a3d", acc: "scarf" }, codex: { c: "#2fbf71", tag: "#2fa862", acc: "hat" },
@@ -79,7 +109,9 @@ function mkGrid(ch, o) {
   if (!o.seated) rows = rows.concat(ch.legs[o.legs || "s"]);
   const g = rows.map(r => ("." .repeat(PAD) + r + ".".repeat(PAD)).split(""));
   const set = (y, x, c) => { const X = x + PAD; if (g[y] && X >= 0 && X < g[y].length) g[y][X] = c; };
-  if (ch.tail) ch.tail.forEach(([y, x, c]) => set(y, x, c));
+  (o.tw && ch.tail2 ? ch.tail2 : ch.tail || []).forEach(([y, x, c]) => set(y, x, c));   // 🦊 o.tw = 꼬리 살랑 프레임
+  if (o.spk && ch.spk) ch.spk.forEach(([y, x, c]) => set(y, x, c));   // 🦔 가시 쭈뼛
+  if (o.eyes === "w" && ch.wide) ch.wide.forEach(([y, x, c]) => set(y, x, c));   // 🦉 밤에 눈 크게
   if (o.eyes === "c") {
     const cl = ch.closed || "L";
     g.forEach(r => r.forEach((c, i) => { if (c === "P") r[i] = cl; }));
@@ -191,6 +223,104 @@ function tokenFrom(text) {
   const m = String(text || "").match(/\.[A-Za-z]{1,5}(?![A-Za-z0-9])/g);   // 파일 확장자(.rs .ts …)만
   return m && m.length ? m[Math.floor(Math.random() * m.length)] : null;
 }
+
+/* ================= 👔 채용(#85): 잠금 · 새 캐릭터가 들어온 시각 · 세션을 처음 본 시각 — "지금 직원은 그대로" =================
+   동물 = (그 세션의 후보 ∩ 설정 풀)[fnv(sid) % 길이]. 후보가 세션마다 정해져 있어서 캐릭터가 늘거나 잠금이 풀려도 이미 본 세션의 동물은 바뀌지 않는다.
+   - BASE(원래 7종)는 늘 후보. 새 캐릭터(NEW)는 들어온 시각 at[id](초)가 그 세션을 처음 본 시각보다 앞일 때만 후보.
+     여우·판다(FREE)는 이 버전을 처음 연 순간 at을 적고(바로 출근), 부엉이·고슴도치(LOCK)는 잠김 — unlock(id) 하는 순간 at을 적는다(#86 뽑기 「입사 지원서」).
+   - 처음 본 시각 = 처음 보는 sid면 min(지금, since, started)(업데이트 전부터 있던 세션이 조금 늦게 보여도 옛 풀). 상태에 없는 sid는 0(옛 풀, 적지 않음).
+   - 큰 화면·미니 보기(로비) 등 모든 창이 같은 저장을 읽고, 처음 보는 sid는 저장을 다시 읽은 뒤 적는다(먼저 적은 창의 값이 이김) → 같은 sid는 어느 창에서나 같은 동물.
+   - 설정 풀(cfg.animals)·고정(cfg.fixed)은 예전처럼 바꾸면 바로 반영: 풀은 그 세션 후보 안에서 고르고, 겹치는 게 없으면 풀린 동물 중 설정 풀, 그것도 없으면 후보 전체.
+     고정은 잠기지 않은 동물이면 모든 세션. cfg.rv < 2(이 버전 전에 저장한 설정)면 새 캐릭터 4종을 켠 것으로 더함(normCfg) — 잠긴 동물은 켜져 있어도 풀리기 전엔 안 나옴.
+   - 저장 ctx.store "hire" = { v: 1, at: { 동물 id: 들어온 시각(초) } } — LOCK 동물은 at에 있으면 잠금 해제. 모르는 새 버전(v > 1)이면 읽기만.
+     ctx.store "seen" = { v: 1, s: { sid: [처음 본 초, 마지막 본 초] } } — 21일 안 본 sid는 지우고 최대 400개(오래 안 본 것부터). 마지막 본 시각은 6시간마다, 쓰기는 30초에 한 번 몰아서.
+   - 개발용 ?tiny=unlock(이 창에서만 모두 풀림 · 저장 안 함 · 들어온 시각 0이라 기존 세션에도 섞임) · ?tiny=<동물 id>(모두 그 동물, 도감에 안 남김 — 예전 ?tiny=oct) */
+const HIRE = (() => {
+  const BASE = ["ham", "peng", "bvr", "otr", "oct", "bot", "cat"], FREE = ["fox", "panda"], LOCK = ["owl", "hog"], NEW = FREE.concat(LOCK);
+  const VER = 1, S_MAX = 400, S_AWAY = 21 * 86400, TOUCH = 6 * 3600;
+  const q = (() => { try { return new Set((new URLSearchParams(location.search).get("tiny") || "").split(",")); } catch { return new Set(); } })();
+  const devUnlock = q.has("unlock"), devAll = SP.find(id => q.has(id)) || "";
+  const num = v => typeof v === "number" && Number.isFinite(v) && v >= 0;
+  const parse = raw => { try { const j = JSON.parse(raw || "null"); return j && typeof j === "object" && !Array.isArray(j) ? j : null; } catch { return null; } };
+  function loadAt(raw) {
+    const j = parse(raw), at = Object.create(null);
+    if (j && j.at && typeof j.at === "object") NEW.forEach(id => { if (Object.prototype.hasOwnProperty.call(j.at, id) && num(j.at[id])) at[id] = j.at[id]; });
+    return { at, ro: !!j && typeof j.v === "number" && j.v > VER };
+  }
+  function loadSeen(raw) {
+    const j = parse(raw), s = Object.create(null);
+    if (j && j.s && typeof j.s === "object") Object.keys(j.s).forEach(k => { const e = j.s[k]; if (Array.isArray(e) && num(e[0]) && num(e[1])) s[k] = [e[0], e[1]]; });
+    return { s, ro: !!j && typeof j.v === "number" && j.v > VER };
+  }
+  /* 설정 정리(큰 화면·미니 보기 같은 규칙): rv 2 전에 저장한 풀엔 새 캐릭터를 켠 것으로 더함 */
+  function normCfg(cfg) {
+    if (!Array.isArray(cfg.animals)) cfg.animals = SP.slice();
+    if (!(cfg.rv >= 2)) { NEW.forEach(id => { if (!cfg.animals.includes(id)) cfg.animals.push(id); }); cfg.rv = 2; }
+    return cfg;
+  }
+  function create(ctx) {
+    let H = null, hRaw = null, Sn = null, sRaw = null, dirty = false, lastW = 0;
+    const read = () => {
+      const a = ctx.store.get("hire", "") || "";
+      if (a !== hRaw) { hRaw = a; H = loadAt(a);
+        const now = ctx.now(); let fx = false;   // 시계가 앞선 채 적힌 미래 시각(1분 넘게)은 지금으로 — 아니면 그 시각까지 새 세션에 안 섞임
+        Object.keys(H.at).forEach(id => { if (H.at[id] > now + 60) { H.at[id] = now; fx = true; } });
+        if (fx) writeAt(); }
+      const b = ctx.store.get("seen", "") || ""; if (b !== sRaw) { sRaw = b; Sn = loadSeen(b); }
+    };
+    const writeAt = () => { if (H.ro) return; try { hRaw = JSON.stringify({ v: VER, at: H.at }); ctx.store.set("hire", hRaw); } catch {} };
+    /* 다른 창이 그새 적은 것과 합쳐서 씀: 처음 본 시각은 작은 값, 마지막 본 시각은 큰 값 · 오래 안 본 것 정리 */
+    function writeSeen(now) {
+      const mine = Sn.s; sRaw = null; read();
+      Object.keys(mine).forEach(k => { const o = Sn.s[k], m = mine[k]; Sn.s[k] = o ? [Math.min(o[0], m[0]), Math.max(o[1], m[1])] : m; });
+      if (Sn.ro) { dirty = false; lastW = now; return; }   // 모르는 새 버전: 저장은 그대로, 합친 값은 이 창 메모리에만
+      let ks = Object.keys(Sn.s).filter(k => now - Sn.s[k][1] <= S_AWAY);
+      if (ks.length > S_MAX) ks = ks.sort((x, y) => Sn.s[y][1] - Sn.s[x][1]).slice(0, S_MAX);
+      const out = {}; ks.forEach(k => { out[k] = Sn.s[k]; });
+      try { sRaw = JSON.stringify({ v: VER, s: out }); ctx.store.set("seen", sRaw); Sn = loadSeen(sRaw); } catch {}
+      dirty = false; lastW = now;
+    }
+    read();
+    /* 여우·판다: 이 버전을 처음 연 순간 들어옴(다른 창이 먼저 적었으면 그 값) */
+    if (!H.ro && FREE.some(id => H.at[id] == null)) { const t = ctx.now(); FREE.forEach(id => { if (H.at[id] == null) H.at[id] = t; }); writeAt(); }
+    const lockedReal = id => LOCK.includes(id) && H.at[id] == null;   // 실제 잠금(설정 칩·고정 저장 기준)
+    const locked = id => lockedReal(id) && !devUnlock;   // 배정 기준(?tiny=unlock이면 이 창에서만 풀림)
+    const joinAt = id => BASE.includes(id) ? -1 : devUnlock && LOCK.includes(id) ? 0 : H.at[id] != null ? H.at[id] : Infinity;
+    /* 이 sid를 처음 본 시각(처음이면 적음) */
+    function seenAt(sid) {
+      const now = ctx.now();
+      let e = Sn.s[sid];
+      if (!e) { sRaw = null; read(); e = Sn.s[sid]; }   // 다른 창이 먼저 적었을 수도
+      if (e) { if (now - e[1] > TOUCH) { e[1] = now; dirty = true; } return e[0]; }
+      const st = ctx.state, s = st && st.sessions ? st.sessions.find(x => x.sid === sid) : null;
+      if (!s) return 0;
+      const t = Math.min(now, ...[s.since, s.started].filter(num));
+      Sn.s[sid] = [t, now]; writeSeen(now);
+      return Sn.s[sid] ? Sn.s[sid][0] : t;
+    }
+    function animalOf(sid, cfg) {
+      const shiny = fnv(sid + "*") % 64 === 0;
+      if (devAll) return { id: devAll, shiny };
+      if (cfg.fixed && SP.includes(cfg.fixed) && !locked(cfg.fixed)) return { id: cfg.fixed, shiny };
+      /* 풀 순서 = 설정에 저장된 순서(이 버전 전과 같은 fnv % 길이 결과 — 껐다 켠 동물은 뒤로 가 있음), 설정이 없으면 SP 순서 (#87 리뷰) */
+      const t = seenAt(sid), cand = SP.filter(id => joinAt(id) < t), ord = Array.isArray(cfg.animals) ? cfg.animals : SP;
+      const pick = ok => ord.filter(id => SP.includes(id) && ok(id));   // 중복도 예전처럼 그대로(손으로 고친 저장까지 같은 결과)
+      let pool = pick(id => cand.includes(id));
+      if (!pool.length) pool = pick(id => !locked(id));
+      if (!pool.length) pool = cand;
+      return { id: pool[fnv(sid) % pool.length], shiny };
+    }
+    return {
+      animalOf, locked, lockedReal, seenAt,
+      /* 상태가 올 때마다(sync): 다른 창이 바꾼 저장 다시 읽기 · 마지막 본 시각 몰아서 쓰기 */
+      refresh() { read(); const now = ctx.now(); if (dirty && now - lastW > 30) writeSeen(now); },
+      /* 🔓 #86 뽑기 「입사 지원서」가 부를 곳: 잠긴 동물을 풀고 true(이미 풀렸거나 모르는 id면 false). 그 순간부터 새 세션에만 섞임 */
+      unlock(id) { hRaw = null; read(); if (!LOCK.includes(id) || H.at[id] != null || H.ro) return false; H.at[id] = ctx.now(); writeAt(); return true; },
+      unlocked: () => SP.filter(id => !locked(id)),
+    };
+  }
+  return { BASE, FREE, LOCK, NEW, VER, devAll, devUnlock, normCfg, loadAt, loadSeen, create };
+})();
 
 /* ================= 모드 ================= */
 const MAXF = 6;          // 최대 층 수 (1층 사장실 제외)
@@ -431,7 +561,7 @@ function powerBig(h) {
     G.out = mkEl("div", "b pw-out", bld, { display: "none" });
     G.save = mkEl("div", "b pw-tagc", bld, { display: "none" }, X("절전", "Saving"));
     G.torch = mkEl("div", "b", bld, { zIndex: 26, display: "none" }); box(G.torch, 0, 0, 16, 7, "#5a6070", { border: "2px solid #2e2040" }); box(G.torch, 14, -1, 4, 9, "#fff3a8");
-    G.eyes = [0, 1, 2, 3].map(() => box(bld, 0, 0, 8, 8, "#c8ff6a", { zIndex: 26, display: "none" }));
+    G.eyes = Array.from({ length: 12 }, (_, j) => j).map(() => box(bld, 0, 0, 8, 8, "#c8ff6a", { zIndex: 26, display: "none" }));
     G.lifts = [];
     G.sign = bld.querySelector(".sign");
     G.shaft = bld.querySelector(".shaft");
@@ -513,8 +643,8 @@ function powerBig(h) {
       if (!E || !G || !G.fl[i]) return null;
       const r = G.fl[i], fb = r.fb;
       if (E.ph === "out") {
-        const cat = f.animal === "cat";
-        const say = cat && E.o >= .8 && E.o < 3 ? X("(눈만 반짝)", "(just eyes)") : G.torchI === i && E.o >= 2.2 && E.o < 4.6 ? X("손전등 있어요 🔦", "Got a flashlight 🔦") : "";
+        const cat = f.animal === "cat" || f.animal === "owl";
+        const say = cat && E.o >= .8 && E.o < 3 ? (f.animal === "owl" ? X("(밤눈은 자신 있어요)", "(I see fine in the dark)") : X("(눈만 반짝)", "(just eyes)")) : G.torchI === i && E.o >= 2.2 && E.o < 4.6 ? X("손전등 있어요 🔦", "Got a flashlight 🔦") : "";
         return { p: { view: "front", seated: 1, eyes: "o", mouth: E.o < 1.4 ? "o" : "" }, scr: "off", say };
       }
       if (E.ph === "reset") {
@@ -576,7 +706,7 @@ function powerBig(h) {
       let torchI = -1, k = 0;
       const staff = (i) => { const f = A.model.floors[i], a = f && A.actors.get(f.sid); return f && a && a.loc === "home" && !a.moving && !["ask", "stall"].includes(f.kind) && f.layout !== "meet" ? { f, a } : null; };
       G.fl.forEach(r => { const s = !r.boss && staff(r.i); if (s && s.f.animal === "peng" && torchI < 0) torchI = r.i; });
-      if (torchI < 0) { const t = G.fl.find(r => { const s = !r.boss && staff(r.i); return s && s.f.animal !== "cat" && s.f.animal !== "bot"; }); if (t) torchI = t.i; }
+      if (torchI < 0) { const t = G.fl.find(r => { const s = !r.boss && staff(r.i); return s && !GLOW[s.f.animal]; }); if (t) torchI = t.i; }
       G.torchI = torchI;
       let ei = 0;
       G.fl.forEach(r => {
@@ -599,9 +729,9 @@ function powerBig(h) {
         }
         if (r.scr && m !== "off" && (r.boss || s)) L.push({ x: r.scr.x + r.scr.w / 2, y: r.T0 + r.scr.y + r.scr.h / 2, r: 44, i: .8 });
         if (r.steam) r.steam.forEach((e, j) => { const on = j < E.steam && !!s; show(e, on); if (on) sty(e, "top", (r.B - 62 - (E.still ? 0 : Math.floor(T * 4 + j * 2) % 3 * 2)) + "px"); });
-        /* 촛불: 정전 뒤 하나씩(고양이는 눈만 반짝) */
+        /* 촛불: 정전 뒤 하나씩(고양이·부엉이는 눈만 반짝) */
         if (r.candle) {
-          const cat = !r.boss && A.model.floors[r.i] && A.model.floors[r.i].animal === "cat";
+          const cat = !r.boss && A.model.floors[r.i] && ["cat", "owl"].includes(A.model.floors[r.i].animal);
           const on = !cat && E.candle(r.fb, k++); show(r.candle, on);
           if (on) { const fl = E.flick(r.i); sty(r.flame, "height", (fl > .9 ? 8 : 6) + "px"); sty(r.flame, "top", (fl > .9 ? 0 : 2) + "px"); L.push({ x: r.cx, y: r.cy, r: 66, i: fl }); }
         }
@@ -619,12 +749,12 @@ function powerBig(h) {
         /* 손전등 · 눈 */
         if (s && E.ph === "out") {
           const an = s.f.animal, el = s.a.el, x0 = parseFloat(el.style.left) || 0, y0 = r.T0 + (parseFloat(el.style.top) || 0);
-          if ((an === "cat" || an === "bot") && E.o >= .6) {
-            const blinkOff = an === "cat" && !E.still && Math.floor(T * 1.3) % 5 === 0;
-            pwEyes(BYID[an], { view: "front", seated: 1, eyes: "o", prov: s.f.pk, shiny: s.f.shiny }).forEach(([cx, cy]) => {
+          if (GLOW[an] && E.o >= .6) {
+            const blinkOff = an !== "bot" && !E.still && Math.floor(T * 1.3) % 5 === 0;
+            pwEyes(BYID[an], { view: "front", seated: 1, eyes: an === "owl" && HABIT.night ? "w" : "o", prov: s.f.pk, shiny: s.f.shiny }).forEach(([cx, cy]) => {
               const e = G.eyes[ei++]; if (!e) return;
               sty(e, "left", (x0 + cx * 4) + "px"); sty(e, "top", (y0 + cy * 4) + "px"); show(e, !blinkOff);
-              sty(e, "background", an === "cat" ? "#c8ff6a" : "#6af0ff"); sty(e, "boxShadow", `0 0 0 2px ${an === "cat" ? "rgba(200,255,106,.35)" : "rgba(106,240,255,.35)"}`);
+              sty(e, "background", GLOW[an]); sty(e, "boxShadow", `0 0 0 2px ${glowA(GLOW[an])}`);
             });
             if (an === "bot") L.push({ x: x0 + 60, y: y0 + 28, r: 34, i: .7 });
           }
@@ -755,7 +885,7 @@ function powerMini(h) {
     staff(R, f) {
       if (!E || !R.pw) return null;
       const fb = R.pw.fb;
-      if (E.ph === "out") return { o: { mouth: E.o < 1.4 ? "o" : "", arms: "" }, say: f.animal === "cat" && E.o >= .8 && E.o < 3 ? X("(눈만 반짝)", "(just eyes)") : "" };
+      if (E.ph === "out") return { o: { mouth: E.o < 1.4 ? "o" : "", arms: "" }, say: (f.animal === "cat" || f.animal === "owl") && E.o >= .8 && E.o < 3 ? (f.animal === "owl" ? X("(밤눈은 자신 있어요)", "(I see fine in the dark)") : X("(눈만 반짝)", "(just eyes)")) : "" };
       if (E.ph === "reset" && E.stretch(fb)) return { o: { arms: "u", eyes: "c" } };
       return null;
     },
@@ -807,7 +937,7 @@ function powerMini(h) {
         }
         if (P.steam) P.steam.forEach((e, j) => show(e, occupied && j < E.steam));
         /* 촛불(고양이는 눈만) */
-        const candle = (occupied || R.type === "meet" && A.meetBusy()) && P.animal !== "cat" && E.candle(fb, fb);
+        const candle = (occupied || R.type === "meet" && A.meetBusy()) && P.animal !== "cat" && P.animal !== "owl" && E.candle(fb, fb);
         show(P.candle, candle);
         if (candle) { const f = E.flick(fb + 2); sty(P.flame, "height", (f > .9 ? 6 : 4) + "px"); sty(P.flame, "top", (f > .9 ? 0 : 2) + "px"); L.push({ x: P.cx, y: P.cy, r: 48, i: f }); }
         /* 자판기 */
@@ -816,9 +946,9 @@ function powerMini(h) {
         let ei = 0;
         if (R.type === "staff" && occupied && E.ph === "out" && R.actor && R.actor.style.display !== "none") {
           const an = P.animal, x0 = parseFloat(R.actor.style.left) || 0, y0 = parseFloat(R.actor.style.top) || 0;
-          if ((an === "cat" || an === "bot") && E.o >= .6) {
-            const off = an === "cat" && !E.still && Math.floor(T * 1.3) % 5 === 0;
-            pwEyes(BYID[an], { trim: 1, seated: 1 }).forEach(([cx, cy]) => { const e = P.eyes[ei++]; if (!e) return; sty(e, "left", (x0 + cx * 3) + "px"); sty(e, "top", (y0 + cy * 3) + "px"); show(e, !off); sty(e, "background", an === "cat" ? "#c8ff6a" : "#6af0ff"); });
+          if (GLOW[an] && E.o >= .6) {
+            const off = an !== "bot" && !E.still && Math.floor(T * 1.3) % 5 === 0;
+            pwEyes(BYID[an], an === "owl" && HABIT.isNight(Date.now() / 1000) ? { trim: 1, seated: 1, eyes: "w" } : { trim: 1, seated: 1 }).forEach(([cx, cy]) => { const e = P.eyes[ei++]; if (!e) return; sty(e, "left", (x0 + cx * 3) + "px"); sty(e, "top", (y0 + cy * 3) + "px"); show(e, !off); sty(e, "background", GLOW[an]); });
             if (an === "bot") L.push({ x: x0 + 24, y: y0 + 21, r: 26, i: .7 });
           }
           const torch = an === "peng" && E.o >= 2; show(P.torch, torch);
@@ -862,17 +992,18 @@ function mountLobby(root, ctx) {
   const ease5 = k => { k = clamp(k, 0, 1); return k * k * k * (k * (k * 6 - 15) + 10); };
   const mss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   const josa = (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; };   // 받침 있으면 a
-  /* 동물 배정은 메인 스튜디오와 같은 설정(ctx.store "cfg")·같은 해시. 메인 창에서 바꾸면 다음 sync에 반영 */
-  let cfg, pool, cfgRaw = null;
+  /* 동물 배정은 메인 스튜디오와 같은 설정(ctx.store "cfg")·같은 해시·같은 👔 채용 저장(HIRE: 잠금·세션을 처음 본 시각). 메인 창에서 바꾸면 다음 sync에 반영 */
+  let cfg, cfgRaw = null;
+  const hire = HIRE.create(ctx);
   function readCfg() {
+    hire.refresh();
     const raw = ctx.store.get("cfg", "") || "";
     if (raw === cfgRaw) return;
-    cfgRaw = raw; cfg = { animals: SP.slice(), fixed: null };
-    try { const j = JSON.parse(raw || "null"); if (j && typeof j === "object") cfg = Object.assign(cfg, j); } catch {}
-    pool = Array.isArray(cfg.animals) ? cfg.animals.filter(a => SP.includes(a)) : [];
+    cfgRaw = raw; cfg = { animals: SP.slice(), fixed: null, rv: 2 };
+    try { const j = JSON.parse(raw || "null"); if (j && typeof j === "object") cfg = HIRE.normCfg(Object.assign(cfg, { rv: 0 }, j)); } catch {}
   }
   readCfg();
-  const animalOf = sid => ({ id: cfg.fixed && SP.includes(cfg.fixed) ? cfg.fixed : (pool.length ? pool : SP)[fnv(sid) % (pool.length || SP.length)], shiny: fnv(sid + "*") % 64 === 0 });
+  const animalOf = sid => hire.animalOf(sid, cfg);
   const camPref = () => ctx.store.get("lobbyCam", "cut") === "pan" ? "pan" : "cut";
 
   /* ---------- 틀: 상단 바 · 뷰포트(세계) · 자막 · 다음 칩 · 버튼 ---------- */
@@ -916,7 +1047,9 @@ function mountLobby(root, ctx) {
     if (o.op != null) sty(a, "opacity", String(o.op));
   }
   const hide = a => sty(a, "display", "none");
-  const sprOf = (v, o, sc) => sprite(doc, BYID[v.animal], Object.assign({ trim: 1, prov: v.pk, shiny: v.shiny }, o), sc || U);
+  const sprOf = (v, o, sc) => { const p = Object.assign({ trim: 1, prov: v.pk, shiny: v.shiny }, o);
+    if (v.animal === "owl" && p.eyes !== "c" && HABIT.isNight(ctx.now())) p.eyes = "w";   // 🦉 밤엔 눈 크게(#85, 큰 화면과 같게)
+    return sprite(doc, BYID[v.animal], p, sc || U); };
   const bossSpr = o => sprite(doc, BOSS, Object.assign({ trim: 1, boss: 1 }, o), U);
   function bubble(e, h, x, y, tx) { sty(e, "display", "block"); html(e, h); sty(e, "left", x + "px"); sty(e, "top", y + "px"); if (e._tx !== tx) { e._tx = tx; e.style.setProperty("--tx", tx + "px"); } }
 
@@ -1712,8 +1845,10 @@ function mountLobby(root, ctx) {
 const WB = (() => {
   const INK = ["#2a62c9", "#d23a4a", "#1f9a5a", "#8a4ad0"];
   const TYPEN = { Explore: ["둘러보기", "Explore"], "general-purpose": ["일반 작업", "General"], Plan: ["계획", "Plan"], agent: ["맡은 일", "Task"] };
-  /* 동물별 글씨: 펭귄 반듯 · 비버 굵게 · 햄찌 통통 튐 · 고양이 낙서 · 문어 물결 · 로봇 또박또박(자간) · 수달 살짝 기울임 */
-  const HAND = { peng: {}, bvr: { b: 1 }, ham: { jy: 1 }, cat: { jy: 2, rot: 7 }, oct: { wave: 1 }, bot: { ls: 1 }, otr: { jy: 1, rot: 3 } };
+  /* 동물별 글씨: 펭귄 반듯 · 비버 굵게 · 햄찌 통통 튐 · 고양이 낙서 · 문어 물결 · 로봇 또박또박(자간) · 수달 살짝 기울임
+     · 여우 날렵하게 기울임(반대쪽) · 판다 굵고 통통 · 부엉이 또박또박 살짝 기울임 · 고슴도치 삐죽빼죽 */
+  const HAND = { peng: {}, bvr: { b: 1 }, ham: { jy: 1 }, cat: { jy: 2, rot: 7 }, oct: { wave: 1 }, bot: { ls: 1 }, otr: { jy: 1, rot: 3 },
+    fox: { rot: -5 }, panda: { b: 1, jy: 1 }, owl: { ls: 1, rot: 2 }, hog: { jy: 2 } };
   const ART = {
     box: { r: ["KKKKKKK", "K.....K", "K.....K", "K.....K", "K.....K", "K.....K", "KKKKKKK"], p: { K: "#6a6a80" } },
     chk: { r: [".......G", "......GG", "G....GG.", "GG..GG..", ".GGGG...", "..GG...."], p: { G: "#1f9a5a" } },
@@ -1960,7 +2095,7 @@ const WB = (() => {
 })();
 
 /* ================= 👆 클릭 반응 · 이스터에그 (POKE: 큰 화면 pokeBig · 미니 보기 pokeMini 공용) =================
-   직원(동물 7종 + 사장님)과 소품을 누르면 작게 반응한다. 규칙(시안 studio-click 그대로):
+   직원(동물 11종 + 사장님)과 소품을 누르면 작게 반응한다. 규칙(시안 studio-click 그대로):
    - 대상마다 반응 3~4개를 셔플 주머니로 돌림 → 같은 반응이 연속으로 나오지 않음. 직원을 0.8초 안쪽 간격으로 4번 연타하면 짜증("일하는 중이에요!" 💢 💧)
    - 누른 자리 작은 파티클 + 0.25초 squash · 커서를 올리면 포인터 + 흰 도트 외곽선(미니 보기는 1px)
    - 회의 모드·움직임 줄이기 = 움직임 없이 말풍선(과 결과)만. 소리는 🔊 켰을 때만(Web Audio 합성, 작게 · 회의 모드면 끔), "♪ 꽥" 표기도 그때만
@@ -1989,6 +2124,7 @@ const PK = (() => {
     book: { r: ["KKKKK", "KRRRK", "KRWRK", "KRRRK", "KKKKK"], p: { K, R: "#5aa8ff", W: "#fff" } },
     obook: { r: ["KK...KK", "KWWKWWK", "KWWKWWK", ".KKKKK."], p: { K, W: "#fff" } },
     seed: { r: [".K.", "KWK", "KSK", "KSK", ".K."], p: { K: "#2e2040", W: "#fff7e0", S: "#5a4a40" } },
+    bamboo: { r: ["KKK....", "KGGKKKK", ".KKKSSK", "...KSSK", "...KDDK", "...KSSK", "...KSSK", "...KDDK", "...KSSK", "...KKKK"], p: { K: "#2e4a2a", G: "#6fd05a", S: "#8ad86a", D: "#4f9a3a" } },   // 🐼 판다 👆 "대나무 냠"(habitBig 대나무와 같은 그림)
     hammer: { r: ["KKKKK", "KGGGK", "KKKKK", "..KB.", "..KB.", "..KB.", "..KK."], p: { K, G: "#bcc6d6", B: "#c98d5a" } },
     letter: { r: ["KKKKKKK", "KKWWWKK", "KWKWKWK", "KWWKWWK", "KKKKKKK"], p: { K, W: "#fff" } },
     sweat: { r: [".B.", "BBB", "BWB", ".B."], p: { B: "#5aa8ff", W: "#dff4ff" } },
@@ -2022,6 +2158,10 @@ const PK = (() => {
     bvr: [{ n: P_("앞니 반짝", "Tooth shine"), t: P_("딱딱!", "Clack clack!"), s: P_("딱", "clack"), m: "teeth", snd: "tick" }, { n: P_("꼬리 탁", "Tail slap"), t: P_("탁!", "Slap!"), s: P_("탁", "slap"), m: "tail", snd: "thud" }, { n: P_("망치 번쩍", "Hammer time"), t: P_("뚝딱!", "Bang bang!"), s: P_("뚝딱", "bang"), m: "tool", snd: "hammer" }],
     otr: [{ n: P_("조약돌 저글링", "Pebble juggling"), t: P_("헤헤 보세요", "Hehe, look!"), s: P_("달그락", "clatter"), m: "juggle", snd: "rattle" }, { n: P_("손 비비기", "Paw rub"), t: P_("뭐 줄 거예요?", "Got a treat?"), s: P_("슥슥", "rub"), m: "rub", snd: "whoosh" }, { n: P_("배 통통", "Belly pat"), t: P_("통통!", "Pat pat!"), s: P_("통통", "pat"), m: "pat", snd: "thud2" }],
     oct: [{ n: P_("먹물 퐁", "Ink puff"), t: P_("앗, 미안!", "Oops, sorry!"), s: P_("퐁", "poof"), m: "ink", snd: "pop" }, { n: P_("팔 흔들기", "Arm wave"), t: P_("안녕안녕!", "Hi hi!"), s: P_("흔들", "wave"), m: "wave", snd: "whoosh" }, { n: P_("빨개짐", "Blush"), t: P_("부끄…", "So shy…"), s: P_("뿅", "boop"), m: "blush", snd: "blip" }],
+    fox: [{ n: P_("귀 쫑긋", "Ears up"), t: P_("캥?", "Yip?"), s: P_("캥", "yip"), m: "ear", snd: "squeak" }, { n: P_("꼬리 살랑", "Tail swish"), t: P_("살랑살랑~", "Swish swish~"), s: P_("살랑", "swish"), m: "sway", snd: "whoosh" }, { n: P_("고개 갸웃", "Head tilt"), t: P_("…캥?", "…Yip?"), s: P_("뿅", "boop"), m: "tilt", snd: "blip" }],
+    panda: [{ n: P_("데굴", "Roll"), t: P_("데굴~", "Roll~"), s: P_("데굴", "roll"), m: "roll", snd: "roll" }, { n: P_("대나무 냠", "Bamboo nom"), t: P_("오물오물", "Munch munch"), s: P_("오독", "crunch"), m: "bamboo", snd: "crunch" }, { n: P_("하품", "Big yawn"), t: P_("하아암~", "Yaaawn~"), s: P_("하암", "yawn"), m: "stretch", snd: "purr" }],
+    owl: [{ n: P_("날개 파닥", "Wing flap"), t: P_("부엉!", "Hoo!"), s: P_("부엉", "hoo"), m: "flap", snd: "flap" }, { n: P_("고개 갸웃", "Head tilt"), t: P_("부엉?", "Hoo?"), s: P_("뿅", "boop"), m: "tilt", snd: "blip" }, { n: P_("꾸벅", "Nod off"), t: P_("(꾸벅…)", "(nodding…)"), s: P_("꾸벅", "nod"), m: "nod", snd: "thud2" }],
+    hog: [{ n: P_("동글동글", "Curl up"), t: P_("동글!", "Curl!"), s: P_("데굴", "roll"), m: "roll", snd: "roll" }, { n: P_("코 킁킁", "Sniff sniff"), t: P_("킁킁", "Sniff sniff"), s: P_("킁", "sniff"), m: "cheek", snd: "squeak" }, { n: P_("깡충", "Hop"), t: P_("뿅!", "Boing!"), s: P_("뿅", "boing"), m: "bhop", snd: "blip" }],
     ham: [{ n: P_("볼 빵빵", "Puffy cheeks"), t: P_("찍!", "Squeak!"), s: P_("찍", "squeak"), m: "cheek", snd: "squeak" }, { n: P_("해바라기씨", "Sunflower seed"), t: P_("냠냠", "Nom nom"), s: P_("오독", "crunch"), m: "seed", snd: "crunch" }, { n: P_("데굴", "Roll"), t: P_("데굴데굴~", "Rolly rolly~"), s: P_("데굴", "roll"), m: "roll", snd: "roll" }],
   };
   const ANGRY = [P_("일하는 중이에요!", "I'm working!"), P_("집중 깨져요~", "You broke my focus~"), P_("나중에 놀아요!", "Play later!")];
@@ -2246,7 +2386,7 @@ function pkPose(R, ua, o, still, k, u) {
     else if (m === "wave") { if (ua < 1.2) o.arms = ["l", "u", "r", "u"][Math.floor(ua / .15) % 4]; }
     else if (m === "blush") { if (ua < 1.4) o.shiny = 1; o.eyes = "c"; ex.push("cheek"); }
     else if (m === "cheek") { if (ua < .9) { P.sx = 1.13; P.sy = .93; } ex.push("cheek"); }
-    else if (m === "seed") { if (ua < 1.2) o.mouth = Math.floor(ua * 8) % 2 ? "o" : ""; ex.push("seed"); }
+    else if (m === "seed" || m === "bamboo") { if (ua < 1.2) o.mouth = Math.floor(ua * 8) % 2 ? "o" : ""; ex.push(m); }   // 🐼 bamboo = 같은 몸짓, 대나무 그림
     else if (m === "roll") { if (ua < .8) { P.rot = ease(ua / .8) * 360; P.dy = -Math.sin(ua / .8 * Math.PI) * 10 * k; } }
     else if (m === "spill") { o.eyes = "o"; o.arms = "r"; if (ua < .3) P.dy = -Math.sin(ua / .3 * Math.PI) * 8 * k; ex.push("spill"); }
     else if (m === "startle") { o.eyes = "o"; o.mouth = "o"; o.arms = "u"; if (ua < .35) P.dy = -Math.sin(ua / .35 * Math.PI) * 12 * k; ex.push("bang"); }
@@ -2280,6 +2420,7 @@ function pkAround(R, ua, P, A, still, k, mini) {
   if (ex.includes("ink") && ua < 1.3) { const a = clamp(ua / 1.3, 0, 1); for (let j = 0; j < 3; j++) h += pkIm(PK.ART.ink, mini ? 2 : 3 + Math.floor(a * 2), hx - 10 * k + (j - 1) * 12 * k * (.5 + a), top + A.h - 14 * k - a * 8 * k * (j % 2), `opacity:${(1 - a).toFixed(2)}`); }
   if (ex.includes("cheek") && (ua < 1.3 || still)) [[meta.xl - 1, meta.er + 2], [meta.xr + 1, meta.er + 2]].forEach(c => { const [x, y] = E(c); h += pkIp(x, y, A.sc * 2, A.sc, "#ff8ab0", "opacity:.9"); });
   if (ex.includes("seed") && ua < 1.2) { const [x, y] = E([7, 9]); h += pkIm(PK.ART.seed, mini ? 1 : 2, x, y - 2 * k); }
+  if (ex.includes("bamboo") && ua < 1.2) { const [x, y] = E([8, 4]); h += pkIm(PK.ART.bamboo, mini ? 1 : 2, x, y - 2 * k); }
   if (ex.includes("bang") && ua < 1) { h += pkLab(hx + 18 * k, top - 14 * k, "!", `font-size:${pkR(20 * k)}px;line-height:${pkR(20 * k)}px;color:#ff5a5a;${PK_OUT}`); for (let j = 0; j < 3; j++) h += pkLab(hx + (j - 1) * 18 * k * ua * 2, top - ua * 30 * k, "Z", `font-size:${pkR(12 * k)}px;color:#5a63c8;opacity:${clamp(1 - ua * 1.5, 0, 1).toFixed(2)}`); }
   if (ex.includes("thumb") && ua < 1.2) h += `<div class="b emo" style="left:${pkR(A.left + A.w - 10 * k)}px;top:${pkR(top + 10 * k - (still ? 0 : Math.min(ua, .2) * 20 * k))}px;font-size:${pkR(18 * k)}px;line-height:1">👍</div>`;
   if (ex.includes("spill") && ua < .9 && !still) { const a = ua / .9, cx = A.left + A.w - 6 * k, cy = top + 30 * k; for (let j = 0; j < 3; j++) h += pkIm(PK.ART.drop, s2, cx + (j - 1) * 8 * k + a * (j - 1) * 10 * k, cy - 10 * k + a * a * 40 * k - (1 - a) * a * 30 * k, `opacity:${(1 - a).toFixed(2)}`); }
@@ -3614,7 +3755,8 @@ const DECOR = (() => {
   const seasonKey = (pk, t) => pk.id + ":" + (yearOf(t) - (pk.win.from[0] * 100 + pk.win.from[1] > pk.win.to[0] * 100 + pk.win.to[1] && (SDEV.md || mdOf(t)) <= pk.win.to[0] * 100 + pk.win.to[1] ? 1 : 0));   // ?season=MM-DD면 그 가짜 날짜로
   const devSeason = () => !!(SDEV.on.size || SDEV.md || SDEV.off);   // 개발용 쿼리로 본 시즌은 sp(🎃 점 거둠)에 남기지 않음
   const untilOf = pk => pk.win.to[0] + "/" + pk.win.to[1];
-  const LIKES = { ham: ["snack", "plant"], peng: ["tank", "lamp"], bvr: ["rug", "plant"], otr: ["tank", "snack"], oct: ["tank", "neon"], bot: ["neon", "lamp"], cat: ["tank", "rug"] };
+  const LIKES = { ham: ["snack", "plant"], peng: ["tank", "lamp"], bvr: ["rug", "plant"], otr: ["tank", "snack"], oct: ["tank", "neon"], bot: ["neon", "lamp"], cat: ["tank", "rug"],
+    fox: ["rug", "neon"], panda: ["plant", "snack"], owl: ["lamp", "plant"], hog: ["rug", "snack"] };
   const SLOTS = ["W1", "W2", "D1", "F1", "F2"], KIND = { W1: "wall", W2: "wall", D1: "desk", F1: "floor", F2: "floor" };
   const SLOTN = { W1: ["벽 1", "Wall 1"], W2: ["벽 2", "Wall 2"], D1: ["책상", "Desk"], F1: ["바닥 1", "Floor 1"], F2: ["바닥 2", "Floor 2"] };
   /* 칸 기준점: 벽 = 위 가운데, 책상·바닥 = 아래 가운데. 큰 화면(층 좌표, B = 층 바닥선) · 미니 보기(방 좌표, FY = 132).
@@ -4065,7 +4207,7 @@ function decorMini(h) {
      🎂 설치 기념일 — 처음 연 날(저장 fd, 새벽 4시 기준)과 같은 월·일이면 N주년(첫해 당일 0주년은 없음, 2/29 설치면 평년엔 2/28): 책상에 케이크(초 N개, 최대 9 · 촛불 깜빡)
        + "🎉 N주년" 딱지 + 그날 한 번 사장님 한마디 "벌써 N년이네요!" — 사장님 말풍선·👆 반응·머그 딱지가 비어 있을 때까지 미뤘다가 말하고 그때 cd(한마디 한 날) 저장
    - 개발용 쿼리 ?tiny=night(밤처럼) · ?tiny=streak(3일 연속인 척) · ?tiny=cups(50분 일한 척) · ?tiny=desk(컨텍스트 92% · 도구 520 · 75분 · 로봇 배터리 0칸)
-     · ?tiny=wait1(질문 1분 30초) · wait3(4분) · oct(모두 문어, 도감엔 안 남김) · monday · friday · pigeon(곧 앉음) · rain(비) · repair · clean(계속 청소) · cake(1주년) · mug(누른 문구 저장 안 함), 쉼표로 여럿. 저장에는 반영하지 않음 */
+     · ?tiny=wait1(질문 1분 30초) · wait3(4분) · oct(모두 문어 — fox·panda·owl·hog 등 다른 동물 id도, 도감엔 안 남김 · HIRE) · unlock(잠긴 동물 풀기, HIRE) · monday · friday · pigeon(곧 앉음) · rain(비) · repair · clean(계속 청소) · cake(1주년) · mug(누른 문구 저장 안 함), 쉼표로 여럿. 저장에는 반영하지 않음 */
 const TINY = (() => {
   const K = "#2e2040";
   const dev = (() => { try { return new Set((new URLSearchParams(location.search).get("tiny") || "").split(",")); } catch { return new Set(); } })();   // 개발용 쿼리(위 목록)
@@ -4087,7 +4229,7 @@ const TINY = (() => {
   const CUP_X = [421, 487, 437, 453];   // 잔 왼쪽 x(책상 cx 420 기준): 직원 오른쪽 · 모니터 아래(받침 472~484 비킴) · 머그(508~) 앞까지
   const CUP_SEC = 1200, CUP_MAX = 4, KEEP = 14, VER = 1, P_MAX = 60, S_MAX = 100, S_AWAY = 2 * 86400;
   const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 370;   // 서 있는 자리(가운데 x): 화분 누를 자리(~350)와 커피머신(392~)·현관문(438~) 사이, 창 누를 자리(~B−30)보다 아래
-  const COAT = { ham: "#e85050", peng: "#3a6ad8", bvr: "#5f8a3a", otr: "#c8783a", oct: "#8a5ac8", bot: "#5a6078", cat: "#d9668a" };
+  const COAT = { ham: "#e85050", peng: "#3a6ad8", bvr: "#5f8a3a", otr: "#c8783a", oct: "#8a5ac8", bot: "#5a6078", cat: "#d9668a", fox: "#2a8a8a", panda: "#3fa35a", owl: "#7a4a8a", hog: "#e8a23c" };
   const PILE_X = 537, FLAG_X = 497, COAT_X = 344, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(의자 왼쪽) · 콘센트(커피머신 ~316과 책상 330 사이)
   const FLAGS = [[1000, "1K", "#ffd23f"], [500, "500", "#5aa8ff"], [100, "100", "#6adf8a"]];
   const sheets = c => c >= 90 ? 4 : c >= 85 ? 3 : c >= 80 ? 2 : 0;
@@ -4383,6 +4525,72 @@ function tinyBig(h) {
   return { read, build, frame, actor, pre };
 }
 
+/* ================= 🐾 새 직원 버릇(#85, 큰 화면 · 부엉이 밤눈만 미니 보기도) =================
+   placeActor·tinyBig 몸짓 다음(간식·👆 반응보다 먼저)에 덮어씀. 📋 일보 연출·🍖 회식·🙈 눈치 모드 동안은 쉼(딱지도 걷음).
+   움직임 줄이기·회의 모드(anim false)면 움직이는 것(흔들기·오물오물·꾸벅·굴러가기)은 없고 상태 그림만(부엉이 큰 눈·고슴도치 쭈뼛·판다 대나무).
+   - 🦊 여우: 일을 마치면(완료로 바뀐 순간) 2.4초 꼬리를 살랑 → 완료인 동안 7초마다 한 번 더(1초). 질문하러 1층 사장님 앞에 서 있으면 9초마다 1.4초 "👀☕"(사장님 머그를 힐끔)
+   - 🐼 판다: 쉬는 동안(쉼·완료, 책상에 앉아 있을 때) 대나무를 들고 오물오물(1.6초 씹고 1.2초 쉼, 쉬면서 눈 깜빡). 꾸벅·커피 대신. 🎨 좋아하는 소품 옆에서 쉬면 없음
+   - 🦉 부엉이: 밤(22~6시, ?tiny=night)엔 눈을 뜬 모든 장면에서 눈이 커지고(미니 보기도) 타자가 빨라짐(손 · 화면 줄 · 키 소리 간격).
+     낮엔 일하다 22초마다 1.8초 꾸벅(눈 감고 손 멈춤 + 머리 왼쪽 "꾸벅…") — 세션마다 박자가 다름
+   - 🦔 고슴도치: 질문 대기 1분↑(그 자리에 온 때 또는 상태가 바뀐 때부터 · ?tiny=wait1)이면 가시가 쭈뼛(어디에 서 있든) · 일을 마치면(완료로 바뀐 순간) 0.8초 동그랗게 한 바퀴 콩 */
+const HABIT = { night: false, isNight: now => TINY.dev.has("night") || TINY.night(new Date(now * 1000)) };
+function habitBig(h) {
+  const { mkEl, sty, txt, X } = h;
+  const BAMBOO = { r: ["KKK....", "KGGKKKK", ".KKKSSK", "...KSSK", "...KDDK", "...KSSK", "...KSSK", "...KDDK", "...KSSK", "...KKKK"], p: { K: "#2e4a2a", G: "#6fd05a", S: "#8ad86a", D: "#4f9a3a" } };
+  const X_ = a => a.hb || (a.hb = { bam: mkEl("img", "hb-bam", a.el, { display: "none" }), lab: mkEl("div", "tn-yawn hb-lab", a.el, { display: "none" }), k: "", t: -9 });
+  /* 쉬는 동안(📋·🍖·🙈)에도 상태는 따라가 둠 — 끝나는 순간 지난 완료 연출이 뒤늦게 재생되지 않게(E.t는 그대로) */
+  function off(a, f) { if (f && ["fox", "panda", "owl", "hog"].includes(f.animal)) X_(a).k = f.kind; if (!a.hb) return; sty(a.hb.bam, "display", "none"); sty(a.hb.lab, "display", "none"); }
+  /* 본체 frame 맨 앞: 부엉이 밤 판정(setP가 같은 프레임에 읽음) */
+  function pre() { HABIT.night = HABIT.isNight(h.ctx.now()); }
+  function actor(i, fl, f, a, T, tc, anim) {
+    const an = f.animal;
+    if (!["fox", "panda", "owl", "hog"].includes(an)) return;
+    const E = X_(a); let bam = false, lab = "";
+    if (h.hidden()) { off(a, f); return; }
+    /* 완료로 바뀐 순간(🦊 꼬리 · 🦔 굴러가기) — 처음 본 상태는 연출 없음 */
+    if (E.k !== f.kind) { if (E.k && f.kind === "done" && E.k !== "idle") E.t = tc; E.k = f.kind; }
+    const desk = a.loc === "home" && !a.moving && a.par === fl.F && f.layout !== "meet" && !a.lift && (a.x == null || Math.abs(a.x - DESK_X) < 2);   // 자기 책상(a.x 없음 = 책상 자리)
+    const pose = () => JSON.parse(a.pose || "{}");
+    const seated = desk && a.pose.includes('"seated":1');
+    const ph = h.pwPh ? h.pwPh() : "day", dark = ph === "out" || ph === "reset";   // 정전·리셋(깜깜함·기지개) 동안은 버릇 쉼
+    const busy = dark || (h.aiSt && h.aiSt(fl, f, tc, anim)) || (a.tnx && a.tnx.yw.style.display === "block");   // ✍️ 보드 기지개 · 🥱 월요일 하품
+    if (an === "fox") {
+      const u = tc - E.t, wag = anim && seated && f.kind === "done" && (u < 2.4 || (u - 2.4) % 7 < 1);
+      if (wag) h.setP(a, Object.assign(pose(), { tw: Math.floor(tc / .18) % 2 }));
+      const peek = anim && a.loc === "boss" && a.goal === "boss" && !a.moving && ((tc + fnv(f.sid) % 9) % 9) < 1.4;
+      if (peek) lab = "👀☕";
+    } else if (an === "panda") {
+      if (seated && !busy && (f.kind === "idle" || f.kind === "done") && !(a.restX != null && a.x === a.restX)) {
+        const u = (tc + fnv(f.sid) % 5) % 2.8, chew = anim && u < 1.6, o = pose();
+        h.setP(a, Object.assign(o, { eyes: anim && u > 2.2 && u < 2.36 ? "c" : "o", mouth: chew && Math.floor(tc / .2) % 2 ? "o" : "", arms: "" }));
+        fl.zs.forEach(z => sty(z, "display", "none")); sty(fl.sweat, "display", "none");   // 꾸벅 z · ☕ 대신 대나무
+        bam = true;
+        const p = WB.pix(BAMBOO, 3); if (E.bam._u !== p.url) { E.bam._u = p.url; E.bam.src = p.url; E.bam.alt = ""; E.bam.draggable = false; sty(E.bam, "width", p.w + "px"); sty(E.bam, "height", p.h + "px"); }
+        sty(E.bam, "left", Math.round(a.w / 2 + 8) + "px"); sty(E.bam, "top", (8 + (chew && Math.floor(tc / .2) % 2 ? 2 : 0)) + "px");   // 오른쪽 볼 옆에 세워 듦(잎이 입 쪽 · 책상에 안 가리게)
+      }
+    } else if (an === "owl") {
+      const work = f.kind === "work" || f.kind === "agents";
+      if (!HABIT.night && anim && seated && work && !dark && ((tc + fnv(f.sid) % 22) % 22) < 1.8) {   // ☀️ 낮엔 꾸벅
+        h.setP(a, Object.assign(pose(), { eyes: "c" })); if (fl.desk) fl.desk.hands.forEach(e => sty(e, "display", "none"));
+        sty(a.el, "top", (parseFloat(a.el.style.top) + 4) + "px"); lab = X("꾸벅…", "nod…");
+      }
+    } else if (an === "hog") {
+      if (f.kind === "ask") {
+        const w = Math.max(h.ctx.now() - (f.s.since || h.ctx.now()), TINY.dev.has("wait3") || TINY.dev.has("wait1") ? 90 : 0);
+        if (w >= 60) h.setP(a, Object.assign(pose(), { spk: 1 }));
+      }
+      const u = tc - E.t;
+      if (anim && seated && f.kind === "done" && u < .8) {   // 🦔 동그랗게 한 바퀴 콩
+        h.setP(a, Object.assign(pose(), { eyes: "c", mouth: "", arms: "" }));
+        sty(a.img, "transformOrigin", "50% 60%"); sty(a.img, "transform", `translateY(${-Math.round(Math.sin(u / .8 * Math.PI) * 10)}px) rotate(${Math.round(ease(u / .8) * 360)}deg)`);
+      }
+    }
+    sty(E.bam, "display", bam ? "block" : "none");
+    sty(E.lab, "display", lab ? "block" : "none"); if (lab) { txt(E.lab, lab); sty(E.lab, "left", "-30px"); }
+  }
+  return { pre, actor, off };
+}
+
 /* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig만 — 미니 보기는 읽지 않음. 본체에는 연결 줄만, jhkwim/waitscape#79) =================
    모은 자금(💰)을 날마다 조금씩 쓰는 곳. 보기용(기능·보상 없음), 하루 = 새벽 4시 경계(TINY.dayKey — 퇴근 일보·달력과 같음).
    - 🍩 간식: 🎨 꾸미기 판에서 층(프로젝트)을 고르면 칸 안내 아래에 "🍩 간식" 줄 — 그 층 직원(세션 sid)에게 ☕ 커피 30 · 🍩 도넛 50 · 🍕 피자 80 · 🍰 케이크 100.
@@ -4412,7 +4620,7 @@ const TREAT = (() => {
   ];
   const KIND = Object.create(null); KINDS.forEach(k => { KIND[k.id] = k; });
   /* 좋아하는 간식(동물마다 하나) — 받으면 ♥ */
-  const FAV = { ham: "donut", peng: "cake", bvr: "pizza", otr: "donut", oct: "pizza", bot: "coffee", cat: "cake" };
+  const FAV = { ham: "donut", peng: "cake", bvr: "pizza", otr: "donut", oct: "pizza", bot: "coffee", cat: "cake", fox: "donut", panda: "pizza", owl: "coffee", hog: "cake" };   // 🐼 판다 = 피자(#85)
   const MAX = 2, DINNER = 1200, VER = 1, S_MAX = 40, W_MAX = 6;
   const BITES = [8, 600, 1800], BITES_DEV = [3, 8, 13], DEV_CYC = 18;   // 산 뒤 한 입 시각(초) — 세 번째에 빈 접시
   const dev = (() => { const o = { treat: false, dinner: "" }; try { const q = new URLSearchParams(location.search); o.treat = q.get("treat") === "on"; o.dinner = q.get("dinner") || ""; } catch {} o.any = o.treat || !!o.dinner; return o; })();
@@ -4850,8 +5058,9 @@ C.registerMode({
     const DEF = () => ({ funds: 0, earned: 0, dones: {}, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0 });
     const readJson = (k, d) => { try { const j = JSON.parse(ctx.store.get(k, "") || "null"); return j && typeof j === "object" ? j : d; } catch { return d; } };
     const sv = Object.assign(DEF(), readJson("save", {}));
-    const cfg = Object.assign({ animals: SP.slice(), fixed: null, sound: true, frags: true, weather: false, hideText: false }, readJson("cfg", {}));   // hideText: 🤫 프로젝트·작업 문구 숨김(미니 보기도 같은 cfg)
-    if (!Array.isArray(cfg.animals) || !cfg.animals.some(a => SP.includes(a))) cfg.animals = SP.slice();
+    const cfgJ = readJson("cfg", null);   // rv: 👔 동물 목록 버전(2 = 새 캐릭터 4종 이후) — 그 전 저장이면 새 캐릭터를 켠 것으로(HIRE.normCfg)
+    const cfg = HIRE.normCfg(Object.assign({ animals: SP.slice(), fixed: null, sound: true, frags: true, weather: false, hideText: false, rv: cfgJ ? 0 : 2 }, cfgJ || {}));   // hideText: 🤫 프로젝트·작업 문구 숨김(미니 보기도 같은 cfg)
+    if (!cfg.animals.some(a => SP.includes(a))) cfg.animals = SP.slice();
     let dirty = false;
     const saveSoon = () => { dirty = true; };
     const flush = () => { if (!dirty) return; dirty = false; try { ctx.store.set("save", JSON.stringify(sv)); } catch {} };
@@ -4860,10 +5069,8 @@ C.registerMode({
 
     /* ---------- 상태 파생 ---------- */
     const isStall = s => !!(s.health && s.health.level === "stall");
-    const animalOf = sid => {
-      const pool = cfg.animals.filter(a => SP.includes(a));
-      return { id: TINY.dev.has("oct") ? "oct" : cfg.fixed && SP.includes(cfg.fixed) ? cfg.fixed : (pool.length ? pool : SP)[fnv(sid) % (pool.length || SP.length)], shiny: fnv(sid + "*") % 64 === 0 };
-    };
+    const hire = HIRE.create(ctx);   // 👔 잠금 · 지금 직원은 그대로(세션을 처음 본 시각) — 미니 보기와 같은 저장
+    const animalOf = sid => hire.animalOf(sid, cfg);
     const wbT = WB.tracker(), aiT = WB.aiTracker();
     function classify(s, st, now) {
       const status = C.sessionStatus(s, now);
@@ -4899,7 +5106,9 @@ C.registerMode({
       return a;
     }
     function setP(a, p) {
-      const o = Object.assign({ prov: a.opt.prov, shiny: a.opt.shiny, baby: a.opt.baby, boss: a.opt.boss }, p, TINY.fri && !a.opt.boss ? { aloha: 1 } : null), k = JSON.stringify(o);   // 🌺 금요일 오후 셔츠
+      const o = Object.assign({ prov: a.opt.prov, shiny: a.opt.shiny, baby: a.opt.baby, boss: a.opt.boss }, p, TINY.fri && !a.opt.boss ? { aloha: 1 } : null);   // 🌺 금요일 오후 셔츠
+      if (HABIT.night && a.ch.id === "owl" && o.eyes !== "c") o.eyes = "w";   // 🦉 밤엔 눈 크게(#85)
+      const k = JSON.stringify(o);
       if (a.pose !== k) { a.pose = k; const s = sprite(doc, a.ch, o, a.scale); a.img.src = s.url; a.img.style.width = s.w + "px"; a.img.style.height = s.h + "px"; a.w = s.w; a.h = s.h; a.sp = s; }
     }
     function put(a, parent, x, feet, o = {}) {
@@ -5057,6 +5266,8 @@ C.registerMode({
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
       lv: () => lvOf(), funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs) });   // 🍩 층을 고르면 간식 줄
+    const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
+      aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
     const trB = treatBig({ bossAct: () => bossAct, ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
       funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
@@ -5255,7 +5466,7 @@ C.registerMode({
     function keyTick(a, tc) {
       if (tc < a.keyAt) return;
       if (a.keyBurst <= 0) { a.keyBurst = 6 + Math.floor(Math.random() * 10); a.keyAt = tc + .4 + Math.random() * .8; return; }
-      a.keyBurst--; a.keyAt = tc + .06 + Math.random() * .1;
+      a.keyBurst--; a.keyAt = tc + (HABIT.night && a.ch.id === "owl" ? .035 + Math.random() * .05 : .06 + Math.random() * .1);   // 🦉 밤엔 더 빠르게
       if (soundOk()) keyClick(tc);
     }
 
@@ -5446,7 +5657,7 @@ C.registerMode({
     function frame(T, dt, anim) {
       if (wbT.due(clockT())) sync();   // 🧑‍🏫 회의 정리 시간이 끝난 층 → 책상 배치로 다시 짓기
       const tc = clockT(), n = nSess;
-      tnB.pre();   // 🌺 금요일 셔츠 · 🥱 월요일 판정
+      tnB.pre(); hbB.pre();   // 🌺 금요일 셔츠 · 🥱 월요일 · 🦉 밤 판정
       if (!FL.length) return;
       const DRon = drB.active();   // 📋 퇴근 일보 연출 중: 직원·사장님·엘리베이터를 연출이 그림
       if (DRon && dcB.on()) dcB.set(false);   // 🎨 꾸미기 판은 닫음
@@ -5488,6 +5699,7 @@ C.registerMode({
         }
         if (info && info.babies) placeBabies(i, fl, f, a, T, ph, anim, tc);
         if (!DRon && !dnm) tnB.actor(i, fl, f, a, T, tc, anim);   // 🤸 질문 대기 발 동동·주저앉기 · 문어 다리 타자 · 월요일 하품
+        if (!DRon && !dnm) hbB.actor(i, fl, f, a, T, tc, anim); else hbB.off(a, f);   // 🐾 새 직원 버릇(#85): 여우 꼬리 · 판다 대나무 · 부엉이 밤눈/꾸벅 · 고슴도치 쭈뼛/굴러가기
         if (!DRon && !dnm) trB.actor(i, fl, f, a, T, tc, anim);   // 🍩 간식 받은 만세 · 한 입 · 회식에서 돌아옴
         if (!DRon && !dnm) pkB.actor(i, fl, f, a, T, tc, anim);   // 👆 누르면 몸짓·둘레 효과
       }
@@ -5734,7 +5946,8 @@ C.registerMode({
       /* 작업 중: 타이핑 + 코드 조각 + 소리 */
       const slow = f.s.health && f.s.health.level === "slow";
       setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }); put(a, F, sx, B - 6, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
-      setScreen("type", T); hands(true, ph.ty);
+      const owlN = f.animal === "owl" && HABIT.night && anim;   // 🦉 밤엔 타자가 빨라짐(#85)
+      setScreen("type", owlN ? T * 1.8 : T); hands(true, owlN ? Math.floor(T * 14) % 2 : ph.ty);
       if (slow) { cup(true, "💧"); sty(fl.sweat, "left", (sx + 26) + "px"); sty(fl.sweat, "top", Math.round(B - 6 - a.h + 6 + ((T * 2) % 1) * 4) + "px"); sty(fl.sweat, "opacity", Math.floor(T * 2) % 2 ? "1" : ".5"); }
       if (anim) {
         keyTick(a, tc);
@@ -5997,7 +6210,7 @@ C.registerMode({
       if (!st) return;
       lastState = st;
       const now = ctx.now(), tc = clockT();
-      pwB.read(st, now);
+      pwB.read(st, now); hire.refresh();   // 👔 다른 창이 적은 첫 만남 · 마지막 본 시각 몰아 쓰기
       const list = st.sessions.map(s => classify(s, st, now));
       wbT.sweep(tc);
       list.sort((a, b) => a.rank - b.rank || (a.kind === "ask" ? a.s.since - b.s.since : 0) || (a.sid < b.sid ? -1 : a.sid > b.sid ? 1 : 0));
@@ -6029,7 +6242,7 @@ C.registerMode({
       }
       if (prevRaw.size > 120) [...prevRaw.keys()].slice(0, 40).forEach(k => prevRaw.delete(k));
       /* 도감: 처음 출근한 날 */
-      for (const f of TINY.dev.has("oct") ? [] : floors) {   // 개발용 ?tiny=oct(모두 문어)는 도감에 남기지 않음
+      for (const f of HIRE.devAll || HIRE.devUnlock ? [] : floors) {   // 개발용 ?tiny=<동물>(예: oct — 모두 그 동물)·?tiny=unlock은 도감에 남기지 않음
         const d = sv.dex[f.animal] || (sv.dex[f.animal] = {}), key = f.shiny ? "s" : "n";
         if (!d[key]) { d[key] = ymd(); saveSoon(); if (!firstSync) pushLog("📖", X(`새 동료 발견! ${f.shiny ? "✨ " : ""}${aName(f.animal)}`, `New staff! ${f.shiny ? "✨ " : ""}${aName(f.animal)}`)); }
       }
@@ -6153,7 +6366,7 @@ C.registerMode({
       const dc = dexCounts();
       setSec("dex", "dexcard", "").onclick = openDex;
       const dcard = side.querySelector("[data-sec=dex]"); dcard.setAttribute("role", "button"); dcard.tabIndex = 0;
-      html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/7 · ✨${dc.sh}</small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
+      html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/${SP.length} · ✨${dc.sh}</small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
       const lv = lvOf();
       setSec("shop", "", `<h3><span>🛒 ${X("상점 · 꾸미기", "Shop · decorate")}</span><span>💰 ${sv.funds.toLocaleString("en-US")}</span></h3><div class="shop">${SHOP.map(it => {
         const own = owned(it.id), locked = lv < it.lv, afford = sv.funds >= it.p, nm = it.n[ctx.lang === "en" ? 1 : 0];
@@ -6176,14 +6389,17 @@ C.registerMode({
     }
     function renderDex() {
       const dc = dexCounts(), bs = sprite(doc, BOSS, { view: "front", legs: "s", eyes: "o", boss: 1, trim: 1 }, 2);
-      const on = id => cfg.animals.includes(id);
+      const on = id => cfg.animals.includes(id) && !hire.lockedReal(id);
+      /* 🔒 잠긴 동물(#85): 켜기/끄기·고정 칩을 누를 수 없음. 도감 칸 이름은 "🔒 ???"(만난 적이 있으면 그대로) */
+      const lockT = X("🔒 아직 잠겨 있어요 · 곧 「입사 지원서」로 만날 수 있어요", "🔒 Locked for now · a job application will bring them in soon");
+      const lk = id => hire.lockedReal(id);   // ?tiny=unlock과 무관하게 실제 잠금
       const w = $(".dex .win");
-      w.innerHTML = `<h2>📖 ${X("직원 도감", "Staff dex")} <span class="cnt">${dc.sp}/7 · ✨${dc.sh}</span><span class="mas"><img alt="" src="${bs.url}" style="width:${bs.w}px;height:${bs.h}px"><span>👑 ${X("사장님 햄찌 = 마스코트 (도감 7종과 별개)", "Boss hamster = mascot (not in the 7)")}</span></span><button class="x" type="button" data-act="dexclose">✕ ${X("닫기", "Close")}</button></h2>
+      w.innerHTML = `<h2>📖 ${X("직원 도감", "Staff dex")} <span class="cnt">${dc.sp}/${SP.length} · ✨${dc.sh}</span><span class="mas"><img alt="" src="${bs.url}" style="width:${bs.w}px;height:${bs.h}px"><span>👑 ${X(`사장님 햄찌 = 마스코트 (도감 ${SP.length}종과 별개)`, `Boss hamster = mascot (not in the ${SP.length})`)}</span></span><button class="x" type="button" data-act="dexclose">✕ ${X("닫기", "Close")}</button></h2>
       <div class="sub">${X("출근한 적 있는 동물만 등록돼요. 어떤 동물이 올지는 세션 ID로 정해지고(해시), ✨반짝이는 작업량과 무관한 순수한 운이에요 (확률 1/64).", "Only animals that showed up are listed. The animal comes from the session ID hash; ✨ shiny is pure luck (1/64), unrelated to workload.")}</div>
-      <div class="grid">${SP.map(id => { const d = sv.dex[id] || {}; return `<div class="col"><div class="nm"><span>${d.n || d.s ? EMO[id] + " " + esc(aName(id)) : "❔ ???"}</span><span>${d.n && d.s ? "✓✨" : d.s ? "✨" : d.n ? "✓" : ""}</span></div>${dexCell(id, false)}${dexCell(id, true)}</div>`; }).join("")}</div>
+      <div class="grid">${SP.map(id => { const d = sv.dex[id] || {}; return `<div class="col"><div class="nm"><span>${d.n || d.s ? EMO[id] + " " + esc(aName(id)) : lk(id) ? "🔒 ???" : "❔ ???"}</span><span>${d.n && d.s ? "✓✨" : d.s ? "✨" : d.n ? "✓" : ""}</span></div>${dexCell(id, false)}${dexCell(id, true)}</div>`; }).join("")}</div>
       ${pkB.dexHtml()}
-      <div class="set"><div><h4>⚙ ${X("설정 · 동물별 켜기/끄기", "Settings · animals on/off")}</h4><div class="chips">${SP.map(id => `<button class="chip ${on(id) ? "" : "off"}" type="button" data-act="animal" data-id="${id}">${EMO[id]} ${esc(aName(id))} ${on(id) ? "ON" : "OFF"}</button>`).join("")}</div>
-        <h4 style="margin-top:8px">${X("모두 ○○로 고정", "Everyone is a …")}</h4><div class="chips"><button class="chip fx2 ${cfg.fixed ? "" : "on"}" type="button" data-act="fixed" data-id="">🎲 ${X("랜덤 (기본)", "Random")}</button>${SP.map(id => `<button class="chip fx2 ${cfg.fixed === id ? "on" : ""}" type="button" data-act="fixed" data-id="${id}" title="${esc(aName(id))}">${EMO[id]}</button>`).join("")}</div>
+      <div class="set"><div><h4>⚙ ${X("설정 · 동물별 켜기/끄기", "Settings · animals on/off")}</h4><div class="chips">${SP.map(id => lk(id) ? `<button class="chip off lock" type="button" disabled aria-disabled="true" title="${esc(lockT)}">🔒 ${esc(aName(id))}</button>` : `<button class="chip ${on(id) ? "" : "off"}" type="button" data-act="animal" data-id="${id}">${EMO[id]} ${esc(aName(id))} ${on(id) ? "ON" : "OFF"}</button>`).join("")}</div>
+        <h4 style="margin-top:8px">${X("모두 ○○로 고정", "Everyone is a …")}</h4><div class="chips"><button class="chip fx2 ${cfg.fixed ? "" : "on"}" type="button" data-act="fixed" data-id="">🎲 ${X("랜덤 (기본)", "Random")}</button>${SP.map(id => lk(id) ? `<button class="chip fx2 lock" type="button" disabled aria-disabled="true" title="${esc(aName(id) + " · " + lockT)}" aria-label="${esc(aName(id) + " · " + lockT)}">🔒</button>` : `<button class="chip fx2 ${cfg.fixed === id ? "on" : ""}" type="button" data-act="fixed" data-id="${id}" title="${esc(aName(id))}">${EMO[id]}</button>`).join("")}</div>
         <h4 style="margin-top:8px">${X("효과", "Effects")}</h4><div class="chips"><button class="chip ${cfg.sound ? "" : "off"}" type="button" data-act="soundcfg">🔊 ${X("타자 소리", "Typing sound")} ${cfg.sound ? "ON" : "OFF"}</button><button class="chip ${cfg.frags ? "" : "off"}" type="button" data-act="fragcfg">{ } ${X("코드 조각", "Code bits")} ${cfg.frags ? "ON" : "OFF"}</button><button class="chip ${cfg.weather ? "" : "off"}" type="button" data-act="wxcfg" title="${esc(X("주간 한도를 날씨로: 60% 구름 · 80% 비 · 90% 눈(옥상에 쌓임). 건물 밖 하늘과 창에만", "Weekly limit as weather: 60% clouds · 80% rain · 90% snow on the roof. Sky and windows only"))}">🌦️ ${X("날씨(주간 한도)", "Weather (weekly)")} ${cfg.weather ? "ON" : "OFF"}</button></div></div>
         <div><h4>🤫 ${X("화면 공유용", "For screen sharing")}</h4><div class="chips"><button class="chip ${cfg.hideText ? "" : "off"}" type="button" data-act="hidetext" title="${esc(X("켜면 회의 보드에 \"🤫 비밀 회의\"와 물결 낙서만 (✓는 그대로) · 층 이름표의 프로젝트도 숨김 · 미니 보기·퇴근 일보 카드도 같이", "Meeting boards show \"🤫 Secret meeting\" and squiggles (✓ stays), floor tags hide project names, mini view and daily report card too"))}">🤫 ${X("프로젝트·작업 문구 숨김", "Hide project & task text")} ${cfg.hideText ? "ON" : "OFF"}</button></div>
         ${drB.can ? `<h4 style="margin-top:8px">📋 ${X("퇴근 일보 · 고급: 퇴근 시각", "Daily report · advanced: clock-out time")}</h4><div class="chips">${[null, "17:00", "18:00", "18:30", "19:00", "20:00", "21:00"].map(t => `<button class="chip fx2 ${(cfg.offAt || null) === t ? "on" : ""}" type="button" data-act="offat" data-id="${t || ""}" title="${esc(t ? X(`${t}이 지나면 사장님이 일보를 들고 알려요(누르면 발표)`, `After ${t} the boss holds up the report (click to present)`) : X("기본: 오후에 45분 동안 조용하면 자동으로 알려요", "Default: notifies after 45 quiet minutes in the afternoon"))}">${t ? "⏰ " + t : X("끄기 (기본: 자동)", "Off (default: auto)")}</button>`).join("")}</div>
@@ -6217,8 +6433,10 @@ C.registerMode({
       else if (act === "update") { if (ctx.core.update) ctx.core.update.open(); }
       else if (act === "nxdoor") { NX.ring(clockT()); if (soundOk() && cfg.sound) PK.play(ctx.audio(), "bell"); if (!animOn()) staticDraw(); }   // 🙈 현관 종(깨알)
       else if (act === "buy") { const it = SHOP.find(x => x.id === id); if (it && !owned(id) && sv.funds >= it.p && lvOf() >= it.lv) { sv.funds -= it.p; sv.shop[id] = 1; saveSoon(); pushLog("🛒", X(`${it.n[0]} 구입! (보기용)`, `Bought ${it.n[1]}!`)); sync(); } }
-      else if (act === "animal") { const i = cfg.animals.indexOf(id); if (i >= 0) { if (cfg.animals.length > 1) cfg.animals.splice(i, 1); } else cfg.animals.push(id); saveCfg(); buildSig = ""; sync(); renderDex(); }
-      else if (act === "fixed") { cfg.fixed = id || null; saveCfg(); buildSig = ""; sync(); renderDex(); }
+      else if (act === "animal") { if (!SP.includes(id) || hire.lockedReal(id)) return;   // 🔒 잠긴 동물은 못 고름
+        const i = cfg.animals.indexOf(id), onN = cfg.animals.filter(a => SP.includes(a) && !hire.lockedReal(a)).length;
+        if (i >= 0) { if (onN > 1) cfg.animals.splice(i, 1); } else cfg.animals.push(id); saveCfg(); buildSig = ""; sync(); renderDex(); }
+      else if (act === "fixed") { if (id && (!SP.includes(id) || hire.lockedReal(id))) return; cfg.fixed = id || null; saveCfg(); buildSig = ""; sync(); renderDex(); }
       else if (act === "soundcfg") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); renderDex(); if (cfg.sound) ctx.audio(); }
       else if (act === "fragcfg") { cfg.frags = !cfg.frags; saveCfg(); renderDex(); }
       else if (act === "wxcfg") { cfg.weather = !cfg.weather; saveCfg(); renderDex(); renderHud(); if (!animOn()) staticDraw(); }
