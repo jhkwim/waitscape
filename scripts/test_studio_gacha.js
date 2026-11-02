@@ -73,4 +73,23 @@ assert.ok(hasV(G("ham", { prov: "gemini" })) && !hasV(G("ham", { prov: "gemini",
 assert.ok(hasV(G("ham", { prov: "claude", ac: "crown" })), "목도리는 그대로");
 const tall = mkG(BYID.ham, { legs: "s", ac: "cone" }), base = mkG(BYID.ham, { legs: "s" });
 assert.ok(tall.length > base.length && tall.pre === tall.length - base.length, "머리 위로 넘치면 줄이 늘고 pre에 기록");
+// 지원서 unlock 실패(👔 hire 저장 ro 등) → 지원서를 빼고 다시 뽑음 · 성공이면 그대로 · 개발용(unlock 없음)은 풀지 않음
+const forceApp = { id: "app_owl" };
+let calls = 0;
+assert.strictEqual(GA.draw(GA.load(""), seq([.1, 0]), allLocked, forceApp, () => { calls++; return true; }).it.id, "app_owl"); assert.strictEqual(calls, 1);
+const fail = GA.draw(GA.load(""), seq([.1, 0]), allLocked, forceApp, () => false); assert.notStrictEqual(fail.it.k, "app", "못 풀면 지원서가 나오지 않음");
+for (let i = 0; i < 500; i++) assert.notStrictEqual(GA.draw(GA.load(""), lcg, allLocked, null, () => false).it.k, "app");
+assert.strictEqual(GA.draw(GA.load(""), seq([.1, 0]), allLocked, forceApp, null).it.id, "app_owl", "unlock 없음 = 개발용: 그대로");
+// 돌리기 가능 여부: 새 버전 저장(ro) · 자금 부족 · 공짜
+assert.strictEqual(GA.why(GA.load(JSON.stringify({ v: 2 })), 9999, false), "ro"); assert.strictEqual(GA.why(GA.load(""), 149, false), "poor");
+assert.strictEqual(GA.why(GA.load(""), 0, true), ""); assert.strictEqual(GA.why(GA.load(""), 150, false), "");
+// 회수: 화면에 없는 층·창고에 놓인 뽑기 소품도 찾아서 모두 뺌(한 개뿐 · 중복 놓임도 정리)
+const dd = DECOR.load(JSON.stringify({ v: 1, fl: { gone: { s: { D1: "ga_trophy", W1: "poster" }, at: { D1: 1 } }, here: { s: {}, at: {} } }, wh: { old: { s: { D1: "ga_trophy" }, at: {}, put: 1 } } }));
+assert.deepStrictEqual(DECOR.findAt(dd, "ga_trophy"), { p: "gone", sl: "D1", wh: false });
+assert.strictEqual(DECOR.pull(dd, "ga_trophy").length, 2); assert.strictEqual(DECOR.findAt(dd, "ga_trophy"), null);
+assert.deepStrictEqual(dd.fl.gone.s, { W1: "poster" }, "다른 소품은 그대로"); assert.deepStrictEqual(dd.wh.old.s, {});
+// 선글라스: 렌즈 안에 눈동자(P)가 남아 정전 눈빛 자리가 있음 · 밤 부엉이 큰 눈은 선글라스 밖으로 안 나옴
+const eyesP = g => g.reduce((n, r) => n + r.filter(c => c === "P").length, 0);
+for (const ch of CH) assert.ok(eyesP(mkG(ch, { seated: 1, af: "sun" })) >= 2, ch.id + " 선글라스 눈빛 자리");
+assert.strictEqual(JSON.stringify(mkG(BYID.owl, { seated: 1, af: "sun", eyes: "w" })), JSON.stringify(mkG(BYID.owl, { seated: 1, af: "sun", eyes: "o" })));
 console.log("studio gacha: ok");

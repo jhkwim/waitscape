@@ -104,7 +104,8 @@ const GA_ACC = {
     ...[-1, 0, 1].flatMap(dy => [[m.er + dy, m.h0 - 1, "2"], [m.er + dy, m.h0, "2"], [m.er + dy, m.h1, "2"], [m.er + dy, m.h1 + 1, "2"]])] },
   straw: { s: "h", pal: { 1: "#f0c86a", 2: "#e85050", 3: "#d9a84a" }, pts: m => [...gaRow(m.hat, m.h0 - 1, m.h1 + 1, "1"), ...gaRow(m.hat - 1, m.h0 + 2, m.h1 - 2, "2"), ...gaRow(m.hat - 2, m.h0 + 2, m.h1 - 2, "1"), ...gaRow(m.hat - 3, m.h0 + 3, m.h1 - 3, "3")] },
   crown: { s: "h", pal: { 1: "#ffd23f", 2: "#e85050" }, pts: m => gaPat(["1..11..1", "11.11.11", "11111111", "12111121"], 4, m.hat - 3) },
-  sun: { s: "f", pal: { 5: "#1f1f2e", 6: "#8a9ad8" }, pts: m => [...[m.xl, m.xr].flatMap(x => [...gaRow(m.er, x - 1, x + 2, "5"), ...gaRow(m.er + 1, x - 1, x + 2, "5"), [m.er, x, "6"]]), ...gaRow(m.er, m.xl + 3, m.xr - 2, "5")] },
+  /* 선글라스: 렌즈 안에 눈동자 P를 한 칸 남김 — 정전 때 눈빛(pwEyes는 P 자리)이 렌즈 안에서 반짝 */
+  sun: { s: "f", pal: { 5: "#1f1f2e", 6: "#8a9ad8" }, pts: m => [...[m.xl, m.xr].flatMap(x => [...gaRow(m.er, x - 1, x + 2, "5"), ...gaRow(m.er + 1, x - 1, x + 2, "5"), [m.er, x, "6"], [m.er, x + 1, "P"]]), ...gaRow(m.er, m.xl + 3, m.xr - 2, "5")] },
 };
 const PAD = 6, PL = 6, S = 4, SB = 3;
 function lighten(h, k) { const n = parseInt(h.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255, f = v => Math.round(v + (255 - v) * k); return "#" + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2, "0")).join(""); }
@@ -128,7 +129,7 @@ function mkGrid(ch, o) {
   const set = (y, x, c) => { const X = x + PAD; if (g[y] && X >= 0 && X < g[y].length) g[y][X] = c; };
   (o.tw && ch.tail2 ? ch.tail2 : ch.tail || []).forEach(([y, x, c]) => set(y, x, c));   // 🦊 o.tw = 꼬리 살랑 프레임
   if (o.spk && ch.spk) ch.spk.forEach(([y, x, c]) => set(y, x, c));   // 🦔 가시 쭈뼛
-  if (o.eyes === "w" && ch.wide) ch.wide.forEach(([y, x, c]) => set(y, x, c));   // 🦉 밤에 눈 크게
+  if (o.eyes === "w" && ch.wide && o.af !== "sun") ch.wide.forEach(([y, x, c]) => set(y, x, c));   // 🦉 밤에 눈 크게(🕶 선글라스를 쓰면 렌즈 밖으로 삐져나와서 생략)
   if (o.eyes === "c") {
     const cl = ch.closed || "L";
     g.forEach(r => r.forEach((c, i) => { if (c === "P") r[i] = cl; }));
@@ -2643,7 +2644,7 @@ function pokeBig(h) {
         wn("win", 330, 40, 100, 62); wn("win2", 580, 40, 100, 62);
         r.els = Object.assign(r.els, { mon: [fl.mon], clock: [ce], vend: [ve], cart: [fl.cart] });
         hit(F, fk, "a", 56, B - 88, 86, 84); hit(F, fk, "mon", 200, B - 98, 76, 58); hit(F, fk, "clock", 514, 24, 48, 48); hit(F, fk, "vend", 494, B - 58, 56, 60);
-        hit(F, fk, "win", 330, 40, 100, 62); hit(F, fk, "win2", 580, 40, 92, 62); hit(F, fk, "cart", 792, B - 62, 50, 62);
+        hit(F, fk, "win", 330, 40, 100, B - 57 - 40); hit(F, fk, "win2", 580, 40, 92, 62); hit(F, fk, "cart", 792, B - 62, 50, 62);   // 🎰 창 아래쪽은 뽑기 기계(#86)가 앞에 서 있어 그 위까지만
         /* 사장님 평소 몸짓(커피·꾸벅): 전용 요소(매 프레임 HTML을 만들지 않음) */
         r.zs = [0, 1, 2].map(() => mkEl("div", "b pk-z", F, { display: "none", zIndex: "26" }, "Z"));
         r.cup = pimg(F, PK.ART.cup, 3, 0, 0, 14); r.cup.style.display = "none";
@@ -3921,7 +3922,10 @@ const DECOR = (() => {
     return { x: Math.round(a.x - it.w / 2 + dx * sc), y: k === "wall" ? a.y : a.y - it.ht, w: it.w, ht: it.ht, z: zOf(id, k), h: it.h };
   }
   const nameOf = (id, en) => ITEMS[id] ? ITEMS[id].n[en ? 1 : 0] : id;
-  return { PACK, SDEV, devSeason, packOpen, onSale, seasons, seasonKey, untilOf, ART, CAT, ITEMS, LIKES, SLOTS, KIND, SLOTN, MINI, MSC, VER, DAY, bigAt, load, dump, touch, sweep, plantArt, likeSlot, itemHTML, boxHTML, canHTML, hearts, place, nameOf, hasPlant };
+  /* 🎰 뽑기 소품(한 개뿐): 어디(층·창고)에 놓였나 · 모두 회수(지운 칸 목록) */
+  const findAt = (d, id) => { for (const m of [d.fl, d.wh]) for (const p of Object.keys(m)) for (const sl of Object.keys(m[p].s || {})) if (m[p].s[sl] === id) return { p, sl, wh: m === d.wh }; return null; };
+  function pull(d, id) { const out = []; for (let at = findAt(d, id); at; at = findAt(d, id)) { const e = (at.wh ? d.wh : d.fl)[at.p]; delete e.s[at.sl]; if (e.at) delete e.at[at.sl]; out.push(at); } return out; }
+  return { findAt, pull, PACK, SDEV, devSeason, packOpen, onSale, seasons, seasonKey, untilOf, ART, CAT, ITEMS, LIKES, SLOTS, KIND, SLOTN, MINI, MSC, VER, DAY, bigAt, load, dump, touch, sweep, plantArt, likeSlot, itemHTML, boxHTML, canHTML, hearts, place, nameOf, hasPlant };
 })();
 
 /* ---------- 🎨 큰 화면: HUD [🎨 꾸미기] → 층 탭 → 칸 → 소품 카드(택배로 배달). h = 스튜디오 본체 연결 ---------- */
@@ -3934,7 +3938,7 @@ function decorBig(h) {
   const ga = () => h.ga && h.ga();   // 🎰 뽑기(소품 보관함 · 👒 착용 줄 · 도감) — 본체가 나중에 만들어서 함수로
   /* 🎰 뽑기 소품: 가졌고(한 개) 아직 어느 책상(층·창고)에도 안 놓였으면 놓을 수 있음 */
   const gaPk = id => !!D.ITEMS[id] && D.ITEMS[id].pack === "gacha";
-  const placedAt = id => { for (const m of [d.fl, d.wh]) for (const p of Object.keys(m)) for (const sl of Object.keys(m[p].s || {})) if (m[p].s[sl] === id) return { p, sl, wh: m === d.wh }; return null; };
+  const placedAt = id => D.findAt(d, id);
   const dl = [], react = new Map(), water = new Map();   // 택배 { p, slot, id, t0 } · 새 소품 반응 프로젝트 → { id, t0 } · 물 주기 프로젝트 → t0
   let G = null, float = null, cap = "";
   const tray = mkEl("div", "dc-tray", h.main); tray.hidden = true;
@@ -3956,6 +3960,8 @@ function decorBig(h) {
     const now = nowS(), live = new Set(floors.map(keyOf).filter(Boolean));
     let ch = false;
     live.forEach(p => { const r = D.touch(d, p, now); if (!r) return; ch = ch || r.ch;
+      if (r.back) r.back = r.back.filter(sl => { const id = d.fl[p].s[sl]; if (!gaPk(id)) return true; d.fl[p].s[sl] = null; const dup = placedAt(id); d.fl[p].s[sl] = id;   // 🎰 창고에서 돌아온 뽑기 소품이 그새 다른 책상에 있으면(한 개뿐) 여기서 뺌
+        if (!dup) return true; delete d.fl[p].s[sl]; delete d.fl[p].at[sl]; ch = true; return false; });
       if (r.back && r.back.length) { r.back.forEach((sl, j) => dl.push({ p, slot: sl, id: d.fl[p].s[sl], t0: tc + j * .25 })); if (!first) { d.last = { p, slot: r.back[0], id: d.fl[p].s[r.back[0]], t: Date.now(), back: 1 }; h.log("📦", X(`창고에서 돌아왔어요 · ${p} 소품 ${r.back.length}개`, `Back from storage · ${r.back.length} item(s) for ${p}`)); } } });
     if (D.sweep(d, now, live)) ch = true;
     if (ui.p && !live.has(ui.p)) { ui.p = null; ui.slot = null; }
@@ -4081,15 +4087,17 @@ function decorBig(h) {
   }
   /* 🎰 뽑기 소품 카드: 값 대신 보관함 상태 — 놓기(무료) · 다른 책상에 있음(↔ 옮기기로) · 여기 놓임 */
   function gcard(id, F) {
-    const it = D.ITEMS[id], here = F && F.s[ui.slot] === id, at = here ? null : placedAt(id), full = F && F.s[ui.slot] && !here;
+    const it = D.ITEMS[id], here = F && F.s[ui.slot] === id, at = here ? null : placedAt(id), full = F && F.s[ui.slot] && !here, dv = !!(ga() && ga().dev());
+    const where = at ? (h.hideText() ? X(at.wh ? "창고" : "다른 층", at.wh ? "storage" : "another floor") : at.wh ? X(`창고(${at.p})`, `storage (${at.p})`) : X(`${at.p} 층`, `${at.p}`)) : "";   // 🤫면 프로젝트 이름 대신
     const ih = D.itemHTML(id, 3, { t: 0 }), k = Math.min(1, 64 / ih.ht, 92 / ih.w);
     const capT = here ? X(`${it.n[0]} · 여기 놓여 있어요 · 빼면 보관함으로(되팔기 없음)`, `${it.n[1]} · placed here · removing puts it back in storage (no selling)`)
-      : at ? X(`${at.wh ? "창고(" + at.p + ")" : at.p + " 층 책상"}에 있어요 · 그 칸에서 ↔ 옮기기로 가져와요`, `On ${at.wh ? "storage (" + at.p + ")" : at.p + "'s desk"} · use ↔ Move from there`)
+      : dv ? X("개발용 쿼리(?gacha=)에선 놓지 않아요(꾸밈 저장에 남지 않게)", "Not placed with the dev query (?gacha=) so decor isn't saved")
       : full ? X("칸이 차 있어요 · 지금 소품을 옮기거나 빼면 놓을 수 있어요", "This spot is taken · move or remove the current item first")
+      : at ? X(`${where}에 놓여 있어요 · 누르면 여기로 가져와요(화면에 없는 층·창고에서도)`, `It's on ${where} · click to bring it here (even from an off-screen floor or storage)`)
       : X(`보관함에서 꺼내 ${sn(ui.slot)} 칸에 놓아요 · 무료`, `Take it out of storage onto ${sn(ui.slot)} · free`);
-    return `<button type="button" class="dc-card ga${here ? " here" : at || full ? " dis" : ""}" data-act="dc-buy" data-id="${id}" data-dcap="${esc(capT)}"${here || at || full ? ` aria-disabled="true"` : ""}>
+    return `<button type="button" class="dc-card ga${here ? " here" : full || dv ? " dis" : ""}" data-act="dc-buy" data-id="${id}" data-dcap="${esc(capT)}"${here || full || dv ? ` aria-disabled="true"` : ""}>
       <span class="art" style="width:${ih.w}px;height:${ih.ht}px;transform:translateX(-50%) scale(${k.toFixed(3)})">${ih.h}</span>${it.note ? `<span class="note">${esc(it.note[en() ? 1 : 0])}</span>` : ""}
-      <span class="ft"><span>${esc(it.n[en() ? 1 : 0])}</span><b>${here ? "✓ " + X("놓음", "Placed") : at ? "↔" : "🎰 " + X("놓기", "Place")}</b></span></button>`;
+      <span class="ft"><span>${esc(it.n[en() ? 1 : 0])}</span><b>${here ? "✓ " + X("놓음", "Placed") : at ? "↩ " + X("가져오기", "Bring") : "🎰 " + X("놓기", "Place")}</b></span></button>`;
   }
   function renderTray() {
     tray.hidden = !ui.on; if (!ui.on) return;
@@ -4159,8 +4167,9 @@ function decorBig(h) {
     }
     else if (act === "dc-buy" && gaPk(b.dataset.id)) {   // 🎰 보관함에서 꺼내 놓기(무료)
       const id = b.dataset.id, p = ui.p, sl = ui.slot;
-      if (!p || !sl || D.KIND[sl] !== D.ITEMS[id].slot || !ga() || !ga().has(id) || placedAt(id)) return renderTray();
+      if (!p || !sl || D.KIND[sl] !== D.ITEMS[id].slot || !ga() || !ga().has(id) || ga().dev()) return renderTray();
       const F = cell(p); if (F.s[sl]) return renderTray();
+      if (D.pull(d, id).some(at => !at.wh && at.sl === "F2")) h.rebuild();   // 다른 층·창고(화면에 없는 층도)에 있으면 회수 — 한 개뿐
       F.s[sl] = id; F.at[sl] = nowS(); deliver(p, sl, id, tc); save();
       h.log("🎰", X(`${nm(id)} 놓았어요 · ${p} ${sn(sl)}`, `Placed ${nm(id)} · ${p} ${sn(sl)}`));
     }
@@ -4317,7 +4326,7 @@ const TINY = (() => {
   const MUG = ["#fff8e8", "#ffc8d8", "#cfe6ff", "#fff1a8"];
   const CUP_X = [421, 487, 437, 453];   // 잔 왼쪽 x(책상 cx 420 기준): 직원 오른쪽 · 모니터 아래(받침 472~484 비킴) · 머그(508~) 앞까지
   const CUP_SEC = 1200, CUP_MAX = 4, KEEP = 14, VER = 1, P_MAX = 60, S_MAX = 100, S_AWAY = 2 * 86400;
-  const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 370;   // 서 있는 자리(가운데 x): 화분 누를 자리(~350)와 커피머신(392~)·현관문(438~) 사이, 창 누를 자리(~B−30)보다 아래
+  const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 414;   // 서 있는 자리(가운데 x): 🎰 뽑기 기계(346~388) 오른쪽 · 현관문(438~) 앞, 창 누를 자리(~B−30)보다 아래
   const COAT = { ham: "#e85050", peng: "#3a6ad8", bvr: "#5f8a3a", otr: "#c8783a", oct: "#8a5ac8", bot: "#5a6078", cat: "#d9668a", fox: "#2a8a8a", panda: "#3fa35a", owl: "#7a4a8a", hog: "#e8a23c" };
   const PILE_X = 537, FLAG_X = 497, COAT_X = 344, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(의자 왼쪽) · 콘센트(커피머신 ~316과 책상 330 사이)
   const FLAGS = [[1000, "1K", "#ffd23f"], [500, "500", "#5aa8ff"], [100, "100", "#6adf8a"]];
@@ -4757,7 +4766,15 @@ const GACHA = (() => {
     const ks = Object.keys(d.wear); if (ks.length > WEAR_MAX) ks.sort((a, b) => d.wear[a].t - d.wear[b].t).slice(0, ks.length - WEAR_MAX).forEach(k => delete d.wear[k]);
   }
   const count = d => ({ have: ITEMS.filter(it => has(d, it.id)).length, all: ITEMS.length });
-  return { VER, PRICE, BACK, RATES, TIER, ITEMS, BY, back, staffKey, load, dump, has, poolOf, roll, apply, wearOf, setWear, count };
+  /* 한 번 뽑기(결제·저장 전): 지원서면 먼저 unlock — 못 풀면(👔 hire 저장이 새 버전 등) 지원서를 빼고 다시. unlock이 없으면(개발용) 풀지 않음 */
+  function draw(d, rng, locked, force, unlock) {
+    let res = roll(d, rng, locked, force);
+    if (res.it.k === "app" && unlock && !unlock(res.it.an)) res = roll(d, rng, () => false, force && force.id ? null : force);
+    return res;
+  }
+  /* 돌릴 수 있나: "" | ro(새 버전 저장) | poor */
+  const why = (d, funds, free) => d.ro ? "ro" : !free && funds < PRICE ? "poor" : "";
+  return { VER, PRICE, BACK, RATES, TIER, ITEMS, BY, back, staffKey, load, dump, has, poolOf, roll, draw, why, apply, wearOf, setWear, count };
 })();
 
 /* ---------- 🎰 큰 화면: 1층 뽑기 기계 · 연출 · 결과 카드 · 착용 · 도감 HTML. h = 스튜디오 본체 연결 ---------- */
@@ -4798,7 +4815,7 @@ function gachaBig(h) {
     G = { F: fl.F, B, top: B - ms.h };
     G.m = mkEl("div", "b ga-m", fl.F, { left: MX + "px", top: G.top + "px", width: ms.w + "px", height: ms.h + "px" });
     /* 누를 자리는 따로(👆 창 누를 자리 z 60보다 위) — 기계 그림은 z 6이라 지나가는 직원이 앞에 보임 */
-    G.hit = mkEl("div", "b ga-hit", fl.F, { left: MX + "px", top: G.top + "px", width: ms.w + "px", height: ms.h + "px" });
+    G.hit = mkEl("div", "b ga-hit", fl.F, { left: (MX + 6) + "px", top: G.top + "px", width: (ms.w - 6) + "px", height: ms.h + "px" });   // 왼쪽 6px은 비움: 큰 화분 👆(~350)과 안 겹치게 · 위는 창 👆(~B−57)과 맞닿음
     G.hit.title = X(`🎰 캡슐 뽑기 · 💰${GA.PRICE}`, `🎰 Capsule machine · 💰${GA.PRICE}`); G.hit.setAttribute("role", "button"); G.hit.setAttribute("aria-label", G.hit.title); G.hit.tabIndex = 0;
     G.body = mkEl("img", "b", G.m, { left: "0", top: "0", width: ms.w + "px", height: ms.h + "px" }); G.body.alt = ""; G.body.draggable = false; G.body.src = ms.url;
     const ks = WB.pix(ART.knob, SC); G.knob = mkEl("img", "b", G.m, { left: 2 * SC + "px", top: 12 * SC + "px", width: ks.w + "px", height: ks.h + "px" }); G.knob.alt = ""; G.knob.src = ks.url;
@@ -4846,12 +4863,15 @@ function gachaBig(h) {
       if (u >= T_END) { spin = null; sty(G.knob, "transform", ""); sty(G.m, "transform", ""); if (ui.pop) render(); }   // [한 번 더] 다시 켬
     }
     html(G.fx, fx);
-    if (ui.pop) place();
+    if (ui.pop) place(tc);
   }
   /* ---------- 판(기계 위 · 앱 좌표) ---------- */
   const pop = mkEl("div", "ga-pop", h.app); pop.hidden = true;
-  function place() {
-    if (!G || G.m.style.display === "none") { pop.hidden = true; return; }
+  let placeT = -9;
+  function place(tc) {
+    if (!G || G.m.style.display === "none") { pop.hidden = true; return; }   // 📋 일보·🍖 회식·🙈 눈치로 기계가 숨으면 판도 잠깐 숨김(돌아오면 다시)
+    pop.hidden = false;
+    if (tc != null && tc - placeT < .25) return; if (tc != null) placeT = tc;   // 자리 재기는 0.25초에 한 번
     const mr = G.m.getBoundingClientRect(), ar = h.app.getBoundingClientRect(), w = pop.offsetWidth || 270, hh = pop.offsetHeight || 200;
     const left = clamp(Math.round(mr.left - ar.left + mr.width / 2 - w / 2), 8, Math.max(8, ar.width - w - 8)), top = Math.max(8, Math.round(mr.top - ar.top - hh - 10));
     sty(pop, "left", left + "px"); sty(pop, "top", top + "px");
@@ -4872,7 +4892,7 @@ function gachaBig(h) {
         <div class="ga-acts">${spinBtn(X("한 번 더", "Again"))}${it.k !== "app" ? `<button type="button" class="dc-btn" data-act="ga-decor">🎨 ${X("꾸미기", "Decorate")}</button>` : ""}<button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
     } else {
       b = `<div class="ga-menu"><div class="ga-art">${img(WB.pix(ART.mach, 2))}</div><div class="ga-tx"><span>${X(`한 번 💰${GA.PRICE} · 횟수 제한 없음`, `💰${GA.PRICE} a spin · no daily limit`)}</span>
-        <span class="ga-odds">${["c", "r", "l"].map(t => `${tierB(t)} ${GA.RATES[t]}%`).join(" ")}</span>
+        <span class="ga-odds">${["c", "r", "l"].map(t => `<span class="ga-o">${tierB(t)} ${GA.RATES[t]}%</span>`).join("")}</span>
         <span>${X("직원 액세서리 · 책상 소품 · 📄 입사 지원서", "Accessories · desk toys · 📄 job applications")}</span>
         <span>${X(`같은 게 나오면 💰${GA.back()} 돌려받아요`, `Duplicates refund 💰${GA.back()}`)}</span></div></div>
         <div class="ga-acts">${spinBtn(X("돌리기", "Spin"))}<button type="button" class="dc-btn" data-act="ga-dex">📖 ${X("도감", "Collection")} ${c.have}/${c.all}</button><button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
@@ -4886,13 +4906,15 @@ function gachaBig(h) {
   /* 돌리기: 결과를 바로 저장(창을 닫아도 안 잃게)하고 연출은 그 뒤 */
   function doSpin() {
     const tc = h.clockT(), free = dev.on.has("free");
-    if (spin || d.ro || tc - lastTap < .5 || (!free && h.funds() < GA.PRICE)) return render();
+    if (spin || tc - lastTap < .5 || GA.why(d, h.funds(), free)) return render();
     lastTap = tc; reload();
+    if (GA.why(d, h.funds(), free)) return render();   // 다시 읽어 보니 그새 새 버전 창이 v2로 씀 → 돈만 빠지지 않게
     const force = dev.on.has("legend") ? { tier: "l" } : dev.on.has("rare") ? { tier: "r" } : (id => id ? { id } : null)([...dev.on].find(x => GA.BY[x]));
-    const res = GA.roll(d, Math.random, locked, force), now = Date.now() / 1000;
+    /* 지원서: 결제·저장 전에 먼저 잠금을 풂 — 못 풀면 지원서를 빼고 다시 뽑음("입사했어요!" 거짓 표시 없음) · 개발용이면 풀지 않음 */
+    const res = GA.draw(d, Math.random, locked, force, dev.any || !h.hire ? null : an => h.hire.unlock(an));
+    const now = Date.now() / 1000;
     GA.apply(d, res, now); save();
-    if (!free) { h.spend(GA.PRICE - res.back); h.float(-(GA.PRICE - res.back)); h.saveNow(); }
-    if (res.it.k === "app" && h.hire && !dev.any) h.hire.unlock(res.it.an);
+    if (!dev.any) { h.spend(GA.PRICE - res.back); h.float(-(GA.PRICE - res.back)); h.saveNow(); }   // 개발용 쿼리(?gacha=)면 자금도 건드리지 않음
     const it = res.it;
     h.log("🎰", X(`뽑기: ${nm(it)} (${GA.TIER[it.t].n[0]})${res.dup ? ` · 중복 +${res.back}` : ""}`, `Gacha: ${nm(it)} (${GA.TIER[it.t].n[1]})${res.dup ? ` · dup +${res.back}` : ""}`));
     ui.res = null; ui.pop = h.anim() ? "" : "res"; if (!h.anim()) ui.res = res;
@@ -4915,7 +4937,10 @@ function gachaBig(h) {
   }
   /* 기계 누르기(캡처 단계 — 👆 창·화분 반응으로 넘기지 않음) · Enter/Space */
   ctx.listen(doc, "click", e => { if (!G || e.target !== G.hit || G.hit.style.display === "none") return; e.stopPropagation(); e.preventDefault(); open(); }, true);
-  ctx.listen(doc, "keydown", e => { if (G && e.target === G.hit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } else if (ui.pop && e.key === "Escape") close(); });
+  ctx.listen(doc, "keydown", e => {
+    const t = e.target, typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ""));
+    if (e.repeat && pop.contains(t)) { e.preventDefault(); return; }   // [한 번 더]에서 Enter를 꾹 눌러도 연달아 돌지 않게
+    if (G && t === G.hit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } else if (ui.pop && e.key === "Escape" && !typing) close(); });
   /* 🎨 꾸미기 판 👒 줄(층을 고르면, 간식 줄 아래) */
   function row(fs) {
     const seen = new Set(), owned = GA.ITEMS.filter(it => it.k === "acc" && GA.has(d, it.id));
@@ -4939,7 +4964,7 @@ function gachaBig(h) {
     if (a.loc !== "home" || a.moving || a.par !== fl.F) return;
     const o = JSON.parse(a.pose || "{}"); h.setP(a, Object.assign(o, { arms: Math.floor(tc / .14) % 2 ? "u" : "", mouth: "o", eyes: "o" }));
   }
-  return { build, read, frame, tap, row, dex, actor, reload, render, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, close };
+  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, close };
 }
 
 /* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig만 — 미니 보기는 읽지 않음. 본체에는 연결 줄만, jhkwim/waitscape#79) =================
@@ -5469,11 +5494,15 @@ C.registerMode({
         sty(a.el, "left", (x - a.w / 2) + "px"); sty(a.el, "top", (feet - a.w / 2 - a.h / 2) + "px");
         sty(a.img, "transformOrigin", "50% 50%"); sty(a.img, "transform", `rotate(-90deg) scale(${o.sc || 1})`);
       } else {
-        sty(a.el, "left", (x - a.w / 2) + "px"); sty(a.el, "top", (feet - a.h + (o.dy || 0)) + "px");
+        const dy = a.sp && a.sp.pre && parent.classList.contains("fl") ? Math.max(o.dy || 0, -(feet - a.h)) : o.dy || 0;   // 🎰 모자 쓴 직원이 콩콩 뛰어도 층 위로 안 넘치게(.fl overflow에 모자가 잘리지 않게)
+        sty(a.el, "left", (x - a.w / 2) + "px"); sty(a.el, "top", (feet - a.h + dy) + "px");
         sty(a.img, "transformOrigin", "50% 100%");
         sty(a.img, "transform", (o.flip ? "scaleX(-1) " : "") + (o.rot ? `rotate(${o.flip ? -o.rot : o.rot}deg)` : ""));
       }
       sty(a.bub, "bottom", ((o.lying ? a.w : a.h) + (a.tag.style.display === "none" ? 8 : 24)) + "px");
+      /* 🎰 모자로 키가 커져 이름표가 층 위로 넘치면(층 6개 · 서 있을 때) 그만큼 내려 모자 끝에 겹침 — .fl overflow에 잘리지 않게 */
+      const over = o.lying ? 0 : Math.min(0, feet - a.h + Math.max(o.dy || 0, -(feet - a.h)) - 22);
+      sty(a.tag, "marginBottom", over < 0 && a.sp && a.sp.pre ? (2 + Math.max(over, -a.sp.pre * a.scale)) + "px" : "");
     }
     function bubble(a, h, on) { sty(a.bub, "display", on ? "block" : "none"); if (on) html(a.bub, h); }
     const tagOn = (a, on) => sty(a.tag, "display", on && !(nSess >= 6 && !a.opt.boss) ? "" : "none");
@@ -5621,7 +5650,7 @@ C.registerMode({
     const gaB = gachaBig({ ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
       funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
       kick: () => { if (!animOn()) staticDraw(); }, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode), dr: () => drB.active() || trB.active(), setP,
-      snd: (n, at) => { if (soundOk()) win.setTimeout(() => PK.play(ctx.audio(), n), Math.round(at * 1000)); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true) });
+      snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true) });
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
