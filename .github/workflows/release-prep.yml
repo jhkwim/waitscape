@@ -94,6 +94,12 @@ jobs:
             echo "## v$NEW 바뀐 점"
             echo
             python3 scripts/version.py notes "$NEW"
+            echo
+            echo "## 앱 안 업데이트 안내 (latest.json notes)"
+            echo
+            echo '```'
+            python3 scripts/version.py summary "$NEW"
+            echo '```'
           } > "$RUNNER_TEMP/pr.md"
           gh pr create --base main --head "$branch" --title "chore(release): v$NEW" --body-file "$RUNNER_TEMP/pr.md"
           {

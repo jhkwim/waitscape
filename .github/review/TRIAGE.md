@@ -188,5 +188,5 @@ WR_LENSES= .github/review/sweep.sh updater   # 렌즈 없이 기본 패스만(�
 
 - 패스 3개를 동시에: **docs**(문서 ↔ 코드 사실: 단축키·숫자·기본값·경로·설정 이름, README ko/en 짝 — `lenses/docs.md`) · **i18n**(`web/core/i18n.js` ko/en 키·자리표시자·번역 안 된 문구·고정 폭 넘침 — `lenses/i18n.md`, 키 대조는 스크립트가 먼저 기계적으로 뽑아 프롬프트에 넣는다) · **notes**(CHANGELOG `[Unreleased]` → 사용자용 노트 초안, `RELEASE_NOTES_PROMPT.md`).
 - 결과: `release-<버전>-check.json`(docs·i18n 지적 합집합) · `release-<버전>-notes.md`(초안 + 맨 아래 「검토용」 절).
-- **Claude 검증**: 지적은 §1 판정대로 — ✅ 문서·문구 오류는 Release Prep **전에** 작은 PR로 고친다(앱 동작을 바꾸는 수정이면 이슈로 넘기고 이번 릴리스에서 뺄지 사용자에게 묻는다). 노트 초안은 숫자·단축키·이슈 번호·기간을 CHANGELOG와 코드에 하나씩 대조해 고치고, 「검토용」 절의 질문을 해결한 뒤 그 절을 지운다. 다듬은 노트는 초안 릴리스 본문의 「바뀐 점」 자리에 넣는다(`docs/RELEASE.md` §3).
+- **Claude 검증**: 지적은 §1 판정대로 — ✅ 문서·문구 오류는 Release Prep **전에** 작은 PR로 고친다(앱 동작을 바꾸는 수정이면 이슈로 넘기고 이번 릴리스에서 뺄지 사용자에게 묻는다). 노트 초안은 숫자·단축키·기간을 CHANGELOG와 코드에 하나씩 대조해 고치고, 「검토용」 절의 질문을 해결한 뒤 그 절을 지운다. 노트 초안의 앱 안내 요약(1~3줄)도 사실을 대조해 Release Prep 전 작은 PR로 CHANGELOG `[Unreleased]`의 `### 요약`에 넣는다(→ `latest.json` `notes`). 다듬은 노트는 초안 릴리스 본문의 CHANGELOG 절들 자리에 넣고 「검토용」 주석을 지운다(`docs/RELEASE.md` §3).
 - 비용: 패스 3회 — 1차 실측 입력 docs 약 77k · i18n 약 40k · notes 소량(+ 읽은 파일), 릴리스마다 1회.

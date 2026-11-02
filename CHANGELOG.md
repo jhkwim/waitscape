@@ -2,9 +2,13 @@
 
 형식: [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/), 버전: [SemVer](https://semver.org/lang/ko/). Mode API 변경은 [`types/CHANGELOG.md`](types/CHANGELOG.md).
 릴리스 때 `scripts/version.py bump`가 [Unreleased]를 새 버전 절로 옮긴다. 비어 있으면 지난 태그 이후 PR 제목으로 채운다(docs/RELEASE.md).
+버전 절의 `### 요약`(선택, 1~3줄)은 앱 안 업데이트 안내에만 쓰이고 릴리스 페이지 초안에서는 빠진다(0.5.4부터).
 0.4.0 절까지의 `#번호`는 공개 전 개발 저장소의 이슈·PR 번호다(이 저장소의 같은 번호와 다를 수 있음). 0.4.0 절은 릴리스 본문으로도 쓰이므로 옛 개발 저장소 번호는 「개발 N번」, 이 저장소 번호는 `jhkwim/waitscape#N`으로 적었다.
 
 ## [Unreleased]
+
+### 바뀜
+- 앱의 🎁 업데이트 안내에 개발자용 변경 내역 대신 짧은 요약(1~3줄)과 「자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.」만 보인다. 릴리스 페이지 초안도 일반 사용자용 틀(바뀐 점 · 받을 파일 · 설치 안내 링크)로 만들고, 서명 상태 등 검토할 사실은 보이지 않는 주석으로만 남긴다(jhkwim/waitscape#83)
 
 ## [0.5.3] - 2026-11-02
 

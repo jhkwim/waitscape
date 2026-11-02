@@ -2,7 +2,7 @@
 # Waitscape 릴리스 전 점검 (#61) — Release Prep 전에 Gemini(Antigravity CLI, plan 모드)로 세 가지를 동시에 돌린다.
 #   docs  : 문서(README·README.en·INSTALL·MODES·DEVELOPMENT) ↔ 코드 사실 대조, ko/en 짝 (lenses/docs.md)
 #   i18n  : web/core/i18n.js ko/en 키·자리표시자·번역 안 된 문구·고정 폭 넘침 (lenses/i18n.md, 키 대조는 스크립트가 먼저 뽑음)
-#   notes : CHANGELOG [Unreleased] → 사용자용 릴리스 노트 초안(한국어 해요체, RELEASE_NOTES_PROMPT.md)
+#   notes : CHANGELOG [Unreleased] → 사용자용 릴리스 노트 초안 + 앱 안내 요약(한국어 해요체, RELEASE_NOTES_PROMPT.md)
 # 메인테이너 전용 선택 도구. 결과는 **후보·초안**이다: Claude가 지적마다 코드로 검증하고 노트의 사실을 대조·다듬은 뒤 사람이 쓴다(docs/RELEASE.md §3).
 #
 # 사용법:
@@ -160,7 +160,10 @@ d = json.load(open(src, encoding="utf-8"))
 with open(dst, "w", encoding="utf-8") as f:
     f.write("<!-- 릴리스 노트 초안 v%s (%s..%s, %s) — Gemini 초안이다. Claude가 CHANGELOG·코드와 대조해 고친 뒤에만 쓴다. -->\n\n" % (ver, since, commit, model))
     f.write(d["notes"].strip() + "\n")
-    f.write("\n\n---\n\n## 검토용 (릴리스 본문에 붙이기 전에 이 절을 지운다)\n\n### 확인할 것\n\n")
+    f.write("\n\n---\n\n## 검토용 (릴리스 본문에 붙이기 전에 이 절을 지운다)\n\n")
+    f.write("### 앱 안내 요약 — 다듬어 Release Prep 전에 CHANGELOG [Unreleased]의 `### 요약`에 넣는다\n\n```markdown\n### 요약\n")
+    f.write("".join("- %s\n" % x.strip().removeprefix("- ") for x in d.get("summary", []) if x.strip()))
+    f.write("```\n\n### 확인할 것\n\n")
     f.write("".join("- %s\n" % q for q in d.get("questions", [])) or "- 없음\n")
     f.write("\n### 노트에서 뺀 항목\n\n")
     f.write("".join("- %s\n" % q for q in d.get("omitted", [])) or "- 없음\n")

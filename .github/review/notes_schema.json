@@ -4,11 +4,18 @@
   "title": "Waitscape 릴리스 노트 초안",
   "type": "object",
   "additionalProperties": false,
-  "required": ["notes", "questions", "omitted"],
+  "required": ["notes", "summary", "questions", "omitted"],
   "properties": {
     "notes": {
       "type": "string",
-      "description": "GitHub 릴리스 본문에 붙일 마크다운 초안(한국어 해요체 본문 + 맨 아래 접힌 English 요약). 코드펜스로 감싸지 않는다."
+      "description": "GitHub 릴리스 본문에 붙일 마크다운 초안(한국어 해요체, 받기 표·설치 안내는 빼고). 코드펜스로 감싸지 않는다."
+    },
+    "summary": {
+      "type": "array",
+      "description": "앱 안 업데이트 안내 1~3줄. 줄마다 이모지로 시작하는 짧은 해요체 한 문장, 마크다운 없음. CHANGELOG의 `### 요약`에 그대로 들어간다.",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": { "type": "string" }
     },
     "questions": {
       "type": "array",

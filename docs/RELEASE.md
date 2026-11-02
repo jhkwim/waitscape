@@ -50,7 +50,8 @@ python3 scripts/version.py check [--tag v0.1.0]      # 모두 같은지 (CI pyth
 python3 scripts/version.py bump minor --dry-run      # 바뀔 파일만 보여 줌
 python3 scripts/version.py bump 0.2.0                # 실제로 (보통은 Release Prep이 대신 함)
 python3 scripts/version.py sync                      # 따라가는 파일이 어긋났을 때 Cargo.toml 버전에 맞춤
-python3 scripts/version.py notes 0.2.0               # CHANGELOG의 그 절 (릴리스 노트·latest.json notes)
+python3 scripts/version.py notes 0.2.0               # CHANGELOG의 그 절에서 `### 요약`을 뺀 것 (릴리스 페이지 초안)
+python3 scripts/version.py summary 0.2.0             # 그 절의 `### 요약` + 릴리스 페이지 안내 (latest.json notes = 앱 안 업데이트 안내)
 ```
 
 ## 3. 릴리스하는 법
@@ -58,13 +59,15 @@ python3 scripts/version.py notes 0.2.0               # CHANGELOG의 그 절 (릴
 1. 평소에 PR마다 `CHANGELOG.md`의 `[Unreleased]`에 한 줄씩 적는다(안 적어도 릴리스 때 PR 제목으로 채워진다).
    - **릴리스 전 점검**(메인테이너, 선택): main에서 `.github/review/release_check.sh`를 돌린다(문서 ↔ 코드 사실·ko/en 문구 점검 + 노트 초안, 약 10분).
      Claude가 지적을 코드로 검증해 맞는 문서·문구만 Release Prep **전에** 작은 PR로 고치고, 노트 초안(`release-<버전>-notes.md`)의 사실을 CHANGELOG·코드와 대조해 다듬는다(`.github/review/TRIAGE.md` §7.2). Gemini 결과를 검증 없이 반영하지 않는다.
+   - **앱 안내 요약**: 앱의 🎁 업데이트 창은 링크를 못 누르는 단순 글자 칸이라, `latest.json` `notes`에는 CHANGELOG 문단 대신 그 버전 절의 `### 요약`(1~3줄, 줄마다 이모지 + 짧은 해요체 한 문장)만 들어간다(`version.py summary`). 노트 초안 「검토용」 절의 요약을 다듬어 같은 작은 PR로 `[Unreleased]` 맨 위에 넣는다. 없으면 앱에는 「자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.」 한 줄만 보인다.
 2. GitHub → **Actions → Release Prep → Run workflow** → 브랜치 `main`, 버전에 `0.2.0` 또는 `minor` 등.
 3. `release/v0.2.0` PR이 생긴다. **CI를 돌린다(§4)**. CHANGELOG 문구를 다듬고 싶으면 그 브랜치에 커밋을 더한다.
 4. PR을 병합한다 → 태그 `v0.2.0`이 붙고 Release 워크플로가 시작된다(Actions 탭에서 확인).
 5. 끝나면 **Releases의 초안**을 연다. 확인할 것:
    - 파일: `.dmg`, `.app.zip`, `.exe`, `.msi`, `SHA256SUMS.txt` (업데이터 서명을 켰다면 `.app.tar.gz`, `*.sig`, `latest.json`)
    - `latest.json`의 `version`이 태그와 같고 `platforms`에 `darwin-aarch64`·`darwin-x86_64`·`windows-x86_64`가 있는지
-   - 노트(바뀐 점) — 릴리스 전 점검에서 다듬은 노트가 있으면 「바뀐 점」 자리를 그것으로 바꾼다(위 서명 안내·파일 줄은 그대로)
+   - 맨 위 「검토용」 주석: macOS 서명이 `notarized`인지, 앱 안내(`latest.json` `notes`)가 짧은 요약인지
+   - 본문은 **일반 사용자가 읽는다**: 제목 아래 CHANGELOG 절들(개발자용 「~했다」체)을 릴리스 전 점검에서 다듬은 노트로 바꾸고, 「검토용」 주석은 지운다. 「받기」 표와 설치 안내 줄은 그대로. 체크섬·서명 설명·개발자용 상세 내역은 넣지 않는다(설치 안내 문서에 있다)
 6. **Publish release**. 이때부터 설치된 앱이 새 버전을 찾는다(다음 시작 때 또는 하루 안에).
 
 손으로 할 때(워크플로를 못 쓸 때): `python3 scripts/version.py bump 0.2.0` → PR → 병합 → `git tag v0.2.0 <병합 커밋> && git push origin v0.2.0`. 사람이 push한 태그는 release.yml을 바로 깨운다.
@@ -210,7 +213,7 @@ GitHub 시크릿은 **넣을 수만 있고 다시 꺼내 볼 수 없다.** 로�
 ```json
 {
   "version": "0.2.0",
-  "notes": "CHANGELOG의 [0.2.0] 절",
+  "notes": "CHANGELOG [0.2.0] 절의 ### 요약 + 릴리스 페이지 안내 (version.py summary)",
   "pub_date": "2026-10-23T03:04:05Z",
   "platforms": {
     "darwin-aarch64":    { "url": ".../v0.2.0/Waitscape-macos-universal.app.tar.gz", "signature": "<.sig 내용>" },
