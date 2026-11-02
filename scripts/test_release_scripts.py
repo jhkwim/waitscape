@@ -49,7 +49,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 
 def run(root: pathlib.Path, *args: str, ok: bool = True) -> subprocess.CompletedProcess[str]:
-    r = subprocess.run([*VERSION, "--root", str(root), *args], capture_output=True, text=True)
+    r = subprocess.run([*VERSION, "--root", str(root), *args], capture_output=True, text=True, encoding="utf-8")
     assert (r.returncode == 0) == ok, (args, r.returncode, r.stdout, r.stderr)
     return r
 
@@ -57,12 +57,12 @@ def run(root: pathlib.Path, *args: str, ok: bool = True) -> subprocess.Completed
 def fake_repo(d: pathlib.Path) -> None:
     (d / "crates/a").mkdir(parents=True)
     (d / "app/src-tauri").mkdir(parents=True)
-    (d / "Cargo.toml").write_text(CARGO)
-    (d / "crates/a/Cargo.toml").write_text('[package]\nname = "a"\nversion.workspace = true\n')
-    (d / "app/src-tauri/Cargo.toml").write_text('[package]\nname = "app"\nversion.workspace = true\n')
-    (d / "app/src-tauri/tauri.conf.json").write_text('{\n  "productName": "X",\n  "version": "0.1.0",\n  "plugins": {"x": {"version": "9.9.9"}}\n}\n')
-    (d / "Cargo.lock").write_text(LOCK)
-    (d / "CHANGELOG.md").write_text("# Changelog\n\n## [Unreleased]\n\n")
+    (d / "Cargo.toml").write_text(CARGO, encoding="utf-8")
+    (d / "crates/a/Cargo.toml").write_text('[package]\nname = "a"\nversion.workspace = true\n', encoding="utf-8")
+    (d / "app/src-tauri/Cargo.toml").write_text('[package]\nname = "app"\nversion.workspace = true\n', encoding="utf-8")
+    (d / "app/src-tauri/tauri.conf.json").write_text('{\n  "productName": "X",\n  "version": "0.1.0",\n  "plugins": {"x": {"version": "9.9.9"}}\n}\n', encoding="utf-8")
+    (d / "Cargo.lock").write_text(LOCK, encoding="utf-8")
+    (d / "CHANGELOG.md").write_text("# Changelog\n\n## [Unreleased]\n\n", encoding="utf-8")
     g = ["git", "-C", str(d), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
     subprocess.run([*g[:3], "init", "-q"], check=True)
     subprocess.run([*g, "add", "-A"], check=True)
@@ -82,16 +82,16 @@ def test_version() -> None:
         assert r.stdout.strip() == "0.2.0"
         for f in ("Cargo.toml", "app/src-tauri/tauri.conf.json", "Cargo.lock", "CHANGELOG.md"):
             assert f"바뀜: {f}" in r.stderr, r.stderr
-        assert '"version": "0.1.0"' in (d / "app/src-tauri/tauri.conf.json").read_text()
+        assert '"version": "0.1.0"' in (d / "app/src-tauri/tauri.conf.json").read_text(encoding="utf-8")
         # 실제로
         assert run(d, "bump", "0.2.0", "--date", "2026-01-02").stdout.strip() == "0.2.0"
         run(d, "check", "--tag", "v0.2.0")
-        conf = json.loads((d / "app/src-tauri/tauri.conf.json").read_text())
+        conf = json.loads((d / "app/src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
         assert conf["version"] == "0.2.0" and conf["plugins"]["x"]["version"] == "9.9.9", "첫 version만"
-        lock = (d / "Cargo.lock").read_text()
+        lock = (d / "Cargo.lock").read_text(encoding="utf-8")
         assert lock.count('version = "0.2.0"') == 2 and 'source = "registry+https://github.com/rust-lang/crates.io-index"' in lock
         assert lock.split("[[package]]")[3].count('"0.1.0"') == 1, "레지스트리 패키지는 그대로"
-        cl = (d / "CHANGELOG.md").read_text()
+        cl = (d / "CHANGELOG.md").read_text(encoding="utf-8")
         assert "## [Unreleased]\n\n## [0.2.0] - 2026-01-02\n" in cl
         assert "- 멋진 PR 제목 (#7)" in cl and "- feat: 첫 기능" in cl, cl
         assert "멋진 PR 제목 (#7)" in run(d, "notes", "v0.2.0").stdout
@@ -102,37 +102,37 @@ def test_version() -> None:
         run(d, "bump", "0.2.0", ok=False)
         run(d, "bump", "1.0", ok=False)
         # 손으로 적은 [Unreleased]는 그대로 옮긴다
-        (d / "CHANGELOG.md").write_text(cl.replace("## [Unreleased]\n", "## [Unreleased]\n\n### 수정\n- 손으로 적음\n", 1))
+        (d / "CHANGELOG.md").write_text(cl.replace("## [Unreleased]\n", "## [Unreleased]\n\n### 수정\n- 손으로 적음\n", 1), encoding="utf-8")
         run(d, "bump", "patch", "--date", "2026-01-03")
-        cl = (d / "CHANGELOG.md").read_text()
+        cl = (d / "CHANGELOG.md").read_text(encoding="utf-8")
         assert "## [0.2.1] - 2026-01-03\n\n### 수정\n- 손으로 적음\n" in cl and cl.count("## [Unreleased]") == 1
         # `### 요약`은 앱 안내(summary)로만 가고 릴리스 페이지 초안(notes)에서는 빠진다
-        (d / "CHANGELOG.md").write_text(cl.replace("### 수정\n", "### 요약\n- 🍩 간식을 사 줄 수 있어요\n<!-- 메모 -->\n- 🍖 옥상 회식!\n\n### 수정\n", 1))
+        (d / "CHANGELOG.md").write_text(cl.replace("### 수정\n", "### 요약\n- 🍩 간식을 사 줄 수 있어요\n<!-- 메모 -->\n- 🍖 옥상 회식!\n\n### 수정\n", 1), encoding="utf-8")
         assert run(d, "summary", "0.2.1").stdout == "🍩 간식을 사 줄 수 있어요\n🍖 옥상 회식!\n\n자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.\n"
         assert run(d, "notes", "0.2.1").stdout == "### 수정\n- 손으로 적음\n"
         assert "멋진 PR 제목 (#7)" in run(d, "notes", "0.2.0").stdout, "다른 버전 절은 그대로"
-        cl = (d / "CHANGELOG.md").read_text()
+        cl = (d / "CHANGELOG.md").read_text(encoding="utf-8")
         # 요약 안의 여러 줄 주석·* 글머리표·하위 헤딩은 앱 안내에 새지 않는다
-        (d / "CHANGELOG.md").write_text(cl.replace("### 요약\n", "### 요약\n<!-- 여러\n줄 -->\n* 별표 줄\n#### 깊은\n", 1))
+        (d / "CHANGELOG.md").write_text(cl.replace("### 요약\n", "### 요약\n<!-- 여러\n줄 -->\n* 별표 줄\n#### 깊은\n", 1), encoding="utf-8")
         assert run(d, "summary", "0.2.1").stdout.startswith("별표 줄\n🍩"), run(d, "summary", "0.2.1").stdout
-        (d / "CHANGELOG.md").write_text(cl)
+        (d / "CHANGELOG.md").write_text(cl, encoding="utf-8")
         # [Unreleased]에 요약만 있으면 바뀐 점은 PR 제목으로 채우고 요약은 앞에 남긴다
-        (d / "CHANGELOG.md").write_text(cl.replace("## [Unreleased]\n", "## [Unreleased]\n\n### 요약\n- 🎁 새 기능\n", 1))
+        (d / "CHANGELOG.md").write_text(cl.replace("## [Unreleased]\n", "## [Unreleased]\n\n### 요약\n- 🎁 새 기능\n", 1), encoding="utf-8")
         run(d, "bump", "0.2.2", "--date", "2026-01-04")
         assert "멋진 PR 제목 (#7)" in run(d, "notes", "0.2.2").stdout
         assert run(d, "summary", "0.2.2").stdout == "🎁 새 기능\n\n자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.\n"
         assert run(d, "bump", "major").stdout.strip() == "1.0.0"
         # sync: 따라가는 파일이 어긋나면 check 실패 → sync --dry-run은 쓰지 않음 → sync 뒤 OK, Cargo.toml(원본)은 그대로
         conf_p = d / "app/src-tauri/tauri.conf.json"
-        conf_p.write_text(conf_p.read_text().replace('"version": "1.0.0"', '"version": "0.9.9"', 1))
+        conf_p.write_text(conf_p.read_text(encoding="utf-8").replace('"version": "1.0.0"', '"version": "0.9.9"', 1), encoding="utf-8")
         r = run(d, "check", ok=False)
         assert "version.py sync" in r.stderr, r.stderr
         run(d, "sync", "--dry-run")
         run(d, "check", ok=False)
-        cargo_before = (d / "Cargo.toml").read_text()
+        cargo_before = (d / "Cargo.toml").read_text(encoding="utf-8")
         assert run(d, "sync").stdout.strip() == "1.0.0"
         run(d, "check")
-        assert (d / "Cargo.toml").read_text() == cargo_before
+        assert (d / "Cargo.toml").read_text(encoding="utf-8") == cargo_before
 
 
 def test_latest_json() -> None:
@@ -143,9 +143,9 @@ def test_latest_json() -> None:
         for n in ("Waitscape-macos-universal.app.tar.gz", "Waitscape_0.2.0_x64-setup.exe", "Waitscape_0.2.0_x64_en-US.msi", "Waitscape.dmg"):
             (d / n).write_bytes(b"x")
         assert make_latest_json.build(d, "v0.2.0", "o/r", "", now) is None, "산출물만 있고 .sig가 없어도 None"
-        (d / "Waitscape-macos-universal.app.tar.gz.sig").write_text("SIGMAC\n")
-        (d / "Waitscape_0.2.0_x64-setup.exe.sig").write_text("SIGNSIS")
-        (d / "Waitscape_0.2.0_x64_en-US.msi.sig").write_text("SIGMSI")
+        (d / "Waitscape-macos-universal.app.tar.gz.sig").write_text("SIGMAC\n", encoding="utf-8")
+        (d / "Waitscape_0.2.0_x64-setup.exe.sig").write_text("SIGNSIS", encoding="utf-8")
+        (d / "Waitscape_0.2.0_x64_en-US.msi.sig").write_text("SIGMSI", encoding="utf-8")
         m = make_latest_json.build(d, "v0.2.0", "o/r", " 노트 \n", now)
         assert m["version"] == "0.2.0" and m["notes"] == "노트" and m["pub_date"] == "2026-01-02T03:04:05Z"
         p = m["platforms"]

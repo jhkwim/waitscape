@@ -244,6 +244,10 @@ def cmd_check(root: pathlib.Path, tag: str | None) -> int:
 
 
 def main() -> int:
+    # Windows 콘솔(cp949 등)에서도 요약의 이모지·한글을 출력할 수 있게
+    for st in (sys.stdout, sys.stderr):
+        if hasattr(st, "reconfigure"):
+            st.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="Waitscape 앱 버전 관리")
     ap.add_argument("--root", default=str(pathlib.Path(__file__).resolve().parent.parent))
     sub = ap.add_subparsers(dest="cmd", required=True)
