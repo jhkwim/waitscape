@@ -56,6 +56,12 @@ sessions = sessions.concat(later.map(sid => ({ sid, since: NOW, started: NOW }))
 const got2 = new Set(later.map(sid => big.animalOf(sid, cfg).id));
 assert.ok(got2.has("owl") && !got2.has("hog"), "해제한 부엉이만 새로 섞임");
 
+// 3-1) 설정 풀 순서: 이 버전 전(cf64631 mountLobby·mount의 animalOf를 그대로 옮긴 oldAnimalOf)과 같은 결과 — 껐다 켠 동물은 저장 순서상 뒤에 있음, 일부만 켠 풀
+const oldAnimalOf = (sid, c) => { const pool = c.animals.filter(x => HIRE.BASE.includes(x)); return c.fixed && HIRE.BASE.includes(c.fixed) ? c.fixed : (pool.length ? pool : HIRE.BASE)[fnv(sid) % (pool.length || 7)]; };
+for (const saved of [["peng", "bvr", "otr", "oct", "bot", "cat", "ham"], ["cat", "ham", "otr"], ["bot"], ["oct", "peng", "oct"]]) {
+  const before = { animals: saved.slice(), fixed: null }, after = HIRE.normCfg(JSON.parse(JSON.stringify(before)));
+  oldSids.forEach(sid => assert.strictEqual(big.animalOf(sid, after).id, oldAnimalOf(sid, before), `저장 순서 ${saved} · ${sid}`));
+}
 // 4) 설정 풀·고정: 사용자가 고르면 바로 반영(잠긴 동물은 고정 불가)
 assert.strictEqual(big.animalOf("old-1", { animals: ["fox"] }).id, "fox", "풀에 여우만 → 옛 세션도 여우");
 assert.strictEqual(big.animalOf("old-1", { animals: SP, fixed: "panda" }).id, "panda");
@@ -69,6 +75,13 @@ mem.set("hire", JSON.stringify({ v: 9, at: {} }));
 const ro = HIRE.create(ctxOf()); assert.strictEqual(ro.unlock("hog"), false, "새 버전 저장은 건드리지 않음");
 assert.strictEqual(mem.get("hire"), JSON.stringify({ v: 9, at: {} }));
 
+// 5-1) 모르는 새 버전 seen: 저장은 안 바꾸고 이 창 메모리에는 남김 · 미래 at(시계가 앞섬)은 지금으로
+mem.clear(); NOW = 3_000_000; sessions = [{ sid: "r1", since: NOW - 50, started: NOW - 50 }];
+mem.set("seen", JSON.stringify({ v: 7, s: {} })); mem.set("hire", JSON.stringify({ v: 1, at: { fox: NOW + 9999, panda: NOW - 10 } }));
+const c3 = HIRE.create(ctxOf());
+assert.strictEqual(JSON.parse(mem.get("hire")).at.fox, NOW, "미래 at 고침");
+assert.strictEqual(c3.seenAt("r1"), NOW - 50); assert.strictEqual(mem.get("seen"), JSON.stringify({ v: 7, s: {} }));
+sessions = []; assert.strictEqual(c3.seenAt("r1"), NOW - 50, "메모리에는 남음");
 // 6) 정리: 21일 안 본 sid는 지우고 최대 400개
 mem.clear(); NOW = 5_000_000; sessions = [];
 const c2 = HIRE.create(ctxOf());
