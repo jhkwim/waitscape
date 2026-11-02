@@ -90,6 +90,23 @@ const PROV = {
 const provKey = id => (PROV[id] ? id : "other");
 const ACC_NAME = { claude: ["🧣 목도리", "🧣 scarf"], codex: ["🧢 비니", "🧢 beanie"], gemini: ["👓 안경", "👓 glasses"], other: ["🎩 회색 모자", "🎩 gray hat"] };
 
+/* 🎰 뽑기 액세서리(#86): 머리(h) 7 · 얼굴(f) 1. 그림은 그 동물 meta(hat·h0·h1·er·xl·xr) 기준 점 목록 → mkG가 그림(머리 위로 넘치면 줄을 늘림).
+   팔레트 키는 숫자(머리 1~4 · 얼굴 5~6)라 동물 색 글자와 안 겹침. 머리 액세서리를 쓰면 프로바이더 모자(Codex 비니 · 그 밖 회색 모자)와 🌺 히비스커스를,
+   얼굴 액세서리를 쓰면 Gemini 안경을 대신함(Claude 목도리는 목이라 그대로) — 프로바이더는 이름표 색으로 여전히 구분 */
+const gaPat = (rows, x0, y0) => { const o = []; rows.forEach((r, j) => [...r].forEach((c, i) => { if (c !== ".") o.push([y0 + j, x0 + i, c]); })); return o; };
+const gaRow = (y, a, b, c) => { const o = []; for (let x = a; x <= b; x++) o.push([y, x, c]); return o; };
+const GA_ACC = {
+  cone: { s: "h", pal: { 1: "#5aa8ff", 2: "#ffd23f", 3: "#ff6b8a" }, pts: m => gaPat(["...33...", "...11...", "..1121..", "..1211..", ".112111.", "11211211"], 4, m.hat - 5) },
+  ribbon: { s: "h", pal: { 1: "#ff6b8a", 2: "#c8385a" }, pts: m => gaPat(["11...11", "1112111", "11...11"], m.h1 - 5, m.hat - 1) },
+  beanie: { s: "h", pal: { 1: "#e85050", 2: "#fff1dc", 3: "#ffffff" }, pts: m => [...gaRow(m.hat + 1, m.h0, m.h1, "2"), ...gaRow(m.hat, m.h0, m.h1, "1"), ...gaRow(m.hat - 1, m.h0 + 1, m.h1 - 1, "1"), ...gaRow(m.hat - 2, m.h0 + 3, m.h1 - 3, "1"), ...gaRow(m.hat - 3, 7, 8, "3"), ...gaRow(m.hat - 4, 7, 8, "3")] },
+  pin: { s: "h", pal: { 1: "#ffb3d0", 2: "#ffd23f", 3: "#5fcf6a" }, pts: m => gaPat([".1.1.", "11211", ".111.", "..3.."], m.h1 - 4, m.hat - 2) },
+  phones: { s: "h", pal: { 1: "#4a4a60", 2: "#ff6b8a" }, pts: m => [...gaRow(m.hat - 1, m.h0 + 1, m.h1 - 1, "1"), ...Array.from({ length: Math.max(0, m.er - 1 - m.hat) }, (_, k) => [[m.hat + k, m.h0, "1"], [m.hat + k, m.h1, "1"]]).flat(),
+    ...[-1, 0, 1].flatMap(dy => [[m.er + dy, m.h0 - 1, "2"], [m.er + dy, m.h0, "2"], [m.er + dy, m.h1, "2"], [m.er + dy, m.h1 + 1, "2"]])] },
+  straw: { s: "h", pal: { 1: "#f0c86a", 2: "#e85050", 3: "#d9a84a" }, pts: m => [...gaRow(m.hat, m.h0 - 1, m.h1 + 1, "1"), ...gaRow(m.hat - 1, m.h0 + 2, m.h1 - 2, "2"), ...gaRow(m.hat - 2, m.h0 + 2, m.h1 - 2, "1"), ...gaRow(m.hat - 3, m.h0 + 3, m.h1 - 3, "3")] },
+  crown: { s: "h", pal: { 1: "#ffd23f", 2: "#e85050" }, pts: m => gaPat(["1..11..1", "11.11.11", "11111111", "12111121"], 4, m.hat - 3) },
+  /* 선글라스: 렌즈 안에 눈동자 P를 한 칸 남김 — 정전 때 눈빛(pwEyes는 P 자리)이 렌즈 안에서 반짝 */
+  sun: { s: "f", pal: { 5: "#1f1f2e", 6: "#8a9ad8" }, pts: m => [...[m.xl, m.xr].flatMap(x => [...gaRow(m.er, x - 1, x + 2, "5"), ...gaRow(m.er + 1, x - 1, x + 2, "5"), [m.er, x, "6"], [m.er, x + 1, "P"]]), ...gaRow(m.er, m.xl + 3, m.xr - 2, "5")] },
+};
 const PAD = 6, PL = 6, S = 4, SB = 3;
 function lighten(h, k) { const n = parseInt(h.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255, f = v => Math.round(v + (255 - v) * k); return "#" + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2, "0")).join(""); }
 function palOf(ch, o) {
@@ -99,6 +116,7 @@ function palOf(ch, o) {
   if (o.prov) { p.V = PROV[o.prov].c; if (ch.tint) p[ch.tint] = PROV[o.prov].c; }
   if (o.specs) p.V = "#2e2040";   // 📋 퇴근 일보: 사장님 발표용 안경(프로바이더 소품 아님)
   if (o.aloha) { if (ALOHA[ch.id]) p.B = ALOHA[ch.id]; p.H = "#fff3a0"; p.h = "#ff5a8a"; }   // 🌺 꽃 H(노랑) · h(분홍)
+  [o.ac, o.af].forEach(id => { if (GA_ACC[id]) Object.assign(p, GA_ACC[id].pal); });   // 🎰 액세서리 색(숫자 키)
   if (o.baby) { for (const k in p) if (!"OPQWZ".includes(k) && !(ch.tint === k)) p[k] = lighten(p[k], .3); p.G = "#5fcf6a"; }
   if (o.sil) { for (const k in p) p[k] = "#3d3358"; p.O = "#241c3a"; }
   return p;
@@ -111,7 +129,7 @@ function mkGrid(ch, o) {
   const set = (y, x, c) => { const X = x + PAD; if (g[y] && X >= 0 && X < g[y].length) g[y][X] = c; };
   (o.tw && ch.tail2 ? ch.tail2 : ch.tail || []).forEach(([y, x, c]) => set(y, x, c));   // 🦊 o.tw = 꼬리 살랑 프레임
   if (o.spk && ch.spk) ch.spk.forEach(([y, x, c]) => set(y, x, c));   // 🦔 가시 쭈뼛
-  if (o.eyes === "w" && ch.wide) ch.wide.forEach(([y, x, c]) => set(y, x, c));   // 🦉 밤에 눈 크게
+  if (o.eyes === "w" && ch.wide && o.af !== "sun") ch.wide.forEach(([y, x, c]) => set(y, x, c));   // 🦉 밤에 눈 크게(🕶 선글라스를 쓰면 렌즈 밖으로 삐져나와서 생략)
   if (o.eyes === "c") {
     const cl = ch.closed || "L";
     g.forEach(r => r.forEach((c, i) => { if (c === "P") r[i] = cl; }));
@@ -138,16 +156,24 @@ function mkG(ch, o) {
   const R = ch.rows.length, g = mkGrid(ch, o);
   const set = (y, x, c) => { const X = x + PL; if (g[y] && X >= 0 && X < g[y].length) g[y][X] = c; };
   if (o.boss) { [6, 8, 10].forEach(x => set(1, x, "A")); for (let x = 5; x <= 11; x++) set(2, x, "A"); set(R - 3, 7, "T"); set(R - 3, 8, "T"); set(R - 2, 7, "T"); set(R - 2, 8, "T"); }
-  acc(g, ch, o.prov);
-  if (o.specs) acc(g, ch, "gemini");   // 안경 모양만 빌려 씀(색은 palOf의 V)
+  const ah = GA_ACC[o.ac] && GA_ACC[o.ac].s === "h" ? o.ac : null, af = GA_ACC[o.af] && GA_ACC[o.af].s === "f" ? o.af : null;   // 🎰 머리 · 얼굴 액세서리
+  const pa = o.prov && PROV[o.prov] ? PROV[o.prov].acc : "";
+  acc(g, ch, (ah && pa === "hat") || (af && pa === "glass") ? null : o.prov);   // 같은 자리 프로바이더 소품은 액세서리가 대신
+  if (o.specs && !af) acc(g, ch, "gemini");   // 안경 모양만 빌려 씀(색은 palOf의 V)
   if (o.aloha) {   // 🌺 몸통 칸에 띄엄띄엄 꽃 · 몸통(B)이 없으면 목에 꽃 목걸이
     let hit = false; g.forEach((r, y) => r.forEach((c, x) => { if (c !== "B") return; hit = true; const q = (x * 2 + y * 3) % 7; if (q === 0) r[x] = "H"; else if (q === 3) r[x] = "h"; }));
     if (!hit) for (let x = ch.meta.n0; x <= ch.meta.n1; x++) set(ch.meta.neck, x, x % 2 ? "H" : "h");
-    const fy = ch.meta.hat, fx = ch.meta.h1 - 1; [[0, 0, "H"], [-1, 0, "h"], [1, 0, "h"], [0, -1, "h"], [0, 1, "h"]].forEach(([dy, dx, c]) => set(fy + dy, fx + dx, c));   // 귀 옆 히비스커스(앉아 있으면 몸통이 책상에 가려서)
+    const fy = ch.meta.hat, fx = ch.meta.h1 - 1; if (!ah) [[0, 0, "H"], [-1, 0, "h"], [1, 0, "h"], [0, -1, "h"], [0, 1, "h"]].forEach(([dy, dx, c]) => set(fy + dy, fx + dx, c));   // 귀 옆 히비스커스(앉아 있으면 몸통이 책상에 가려서 · 머리 액세서리를 쓰면 생략)
+  }
+  if (ah || af) {   // 🎰 액세서리: 머리 위로 넘치면 위에 빈 줄을 더함(g.pre — 발 위치는 그대로)
+    const pts = [].concat(ah ? GA_ACC[ah].pts(ch.meta) : [], af ? GA_ACC[af].pts(ch.meta) : []), up = Math.max(0, -Math.min(0, ...pts.map(q => q[0])));
+    for (let i = 0; i < up; i++) g.unshift(Array(g[0].length).fill("."));
+    g.pre = (g.pre || 0) + up;
+    pts.forEach(([y, x, c]) => set(y + up, x, c));
   }
   if (o.baby && ch.id !== "bot") {   // 아기: 정수리 새싹
     let y = 0; while (y < g.length && g[y][PL + 7] === "." && g[y][PL + 8] === ".") y++;
-    const need = Math.max(0, 2 - y); for (let i = 0; i < need; i++) g.unshift(Array(g[0].length).fill(".")); y += need; g.pre = need;
+    const need = Math.max(0, 2 - y); for (let i = 0; i < need; i++) g.unshift(Array(g[0].length).fill(".")); y += need; g.pre = (g.pre || 0) + need;
     g[y - 1][PL + 7] = "G"; g[y - 1][PL + 8] = "G"; g[y - 2][PL + 6] = "G"; g[y - 2][PL + 9] = "G";
   }
   return g;
@@ -751,7 +777,7 @@ function powerBig(h) {
           const an = s.f.animal, el = s.a.el, x0 = parseFloat(el.style.left) || 0, y0 = r.T0 + (parseFloat(el.style.top) || 0);
           if (GLOW[an] && E.o >= .6) {
             const blinkOff = an !== "bot" && !E.still && Math.floor(T * 1.3) % 5 === 0;
-            pwEyes(BYID[an], { view: "front", seated: 1, eyes: an === "owl" && HABIT.night ? "w" : "o", prov: s.f.pk, shiny: s.f.shiny }).forEach(([cx, cy]) => {
+            pwEyes(BYID[an], Object.assign({ view: "front", seated: 1, eyes: an === "owl" && HABIT.night ? "w" : "o", prov: s.f.pk, shiny: s.f.shiny }, h.wear && h.wear(s.f.sid))).forEach(([cx, cy]) => {
               const e = G.eyes[ei++]; if (!e) return;
               sty(e, "left", (x0 + cx * 4) + "px"); sty(e, "top", (y0 + cy * 4) + "px"); show(e, !blinkOff);
               sty(e, "background", GLOW[an]); sty(e, "boxShadow", `0 0 0 2px ${glowA(GLOW[an])}`);
@@ -948,7 +974,7 @@ function powerMini(h) {
           const an = P.animal, x0 = parseFloat(R.actor.style.left) || 0, y0 = parseFloat(R.actor.style.top) || 0;
           if (GLOW[an] && E.o >= .6) {
             const off = an !== "bot" && !E.still && Math.floor(T * 1.3) % 5 === 0;
-            pwEyes(BYID[an], an === "owl" && HABIT.isNight(Date.now() / 1000) ? { trim: 1, seated: 1, eyes: "w" } : { trim: 1, seated: 1 }).forEach(([cx, cy]) => { const e = P.eyes[ei++]; if (!e) return; sty(e, "left", (x0 + cx * 3) + "px"); sty(e, "top", (y0 + cy * 3) + "px"); show(e, !off); sty(e, "background", GLOW[an]); });
+            pwEyes(BYID[an], Object.assign(an === "owl" && HABIT.isNight(Date.now() / 1000) ? { trim: 1, seated: 1, eyes: "w" } : { trim: 1, seated: 1 }, h.wear && R.f && h.wear(R.f))).forEach(([cx, cy]) => { const e = P.eyes[ei++]; if (!e) return; sty(e, "left", (x0 + cx * 3) + "px"); sty(e, "top", (y0 + cy * 3) + "px"); show(e, !off); sty(e, "background", GLOW[an]); });
             if (an === "bot") L.push({ x: x0 + 24, y: y0 + 21, r: 26, i: .7 });
           }
           const torch = an === "peng" && E.o >= 2; show(P.torch, torch);
@@ -995,8 +1021,12 @@ function mountLobby(root, ctx) {
   /* 동물 배정은 메인 스튜디오와 같은 설정(ctx.store "cfg")·같은 해시·같은 👔 채용 저장(HIRE: 잠금·세션을 처음 본 시각). 메인 창에서 바꾸면 다음 sync에 반영 */
   let cfg, cfgRaw = null;
   const hire = HIRE.create(ctx);
+  /* 🎰 뽑기 액세서리(#86): 큰 화면이 쓴 "gacha" 저장을 읽기만(같은 직원 = 프로젝트 + 프로바이더) */
+  let gaD = GACHA.load(""), gaRaw = null;
+  const wearOf = v => v && v.s ? GACHA.wearOf(gaD, GACHA.staffKey(v.s.project, v.pk)) : null;
   function readCfg() {
     hire.refresh();
+    { const r = ctx.store.get("gacha", "") || ""; if (r !== gaRaw) { gaRaw = r; gaD = GACHA.load(r); } }
     const raw = ctx.store.get("cfg", "") || "";
     if (raw === cfgRaw) return;
     cfgRaw = raw; cfg = { animals: SP.slice(), fixed: null, rv: 2 };
@@ -1019,7 +1049,7 @@ function mountLobby(root, ctx) {
   const iris = mk("div", "iris", vp, { display: "none" });
   const nextEl = mk("span", "chip next", lw); nextEl.hidden = true;
   const subEl = mk("div", "sub", lw, { display: "none" });
-  const pwM = powerMini({ doc, win, mk, sty, txt, html, X, cfg: () => cfg, vp });   // 전력·날씨
+  const pwM = powerMini({ doc, win, mk, sty, txt, html, X, cfg: () => cfg, vp, wear: v => wearOf(v) });   // 전력·날씨
   let bossNow = "work";
   const pkM = pokeMini({ ctx, doc, win, mk, sty, html, X, cfg: () => cfg, clockT, model: () => model, aName, kick: () => kick(), world: () => world, vOff: () => pwM.vOff(),   // 👆 클릭 반응
     home: R => { const f = model.bySid.get(R.key); return !!f && !(V && V.info.sid === f.sid && !["fetch", "home"].includes(V.ph)); }, bossState: () => bossNow, carBusy: () => !!D || !!V,
@@ -1047,7 +1077,7 @@ function mountLobby(root, ctx) {
     if (o.op != null) sty(a, "opacity", String(o.op));
   }
   const hide = a => sty(a, "display", "none");
-  const sprOf = (v, o, sc) => { const p = Object.assign({ trim: 1, prov: v.pk, shiny: v.shiny }, o);
+  const sprOf = (v, o, sc) => { const p = Object.assign({ trim: 1, prov: v.pk, shiny: v.shiny }, wearOf(v), o);
     if (v.animal === "owl" && p.eyes !== "c" && HABIT.isNight(ctx.now())) p.eyes = "w";   // 🦉 밤엔 눈 크게(#85, 큰 화면과 같게)
     return sprite(doc, BYID[v.animal], p, sc || U); };
   const bossSpr = o => sprite(doc, BOSS, Object.assign({ trim: 1, boss: 1 }, o), U);
@@ -2235,6 +2265,7 @@ const PK = (() => {
     fizz: (a, t) => { noise(a, t, .03, "highpass", 2500, 0, .12); noise(a, t + .3, .25, "highpass", 5000, 3000, .05); },
     boing: (a, t) => tone(a, t, "sine", 200, 620, .2, .06),
     keys: (a, t) => [0, .05, .1, .15, .2].forEach(d => noise(a, t + d, .03, "bandpass", 3000, 0, .07)),
+    crank: (a, t) => [0, .25, .5, .75].forEach(d => [0, .05, .1].forEach(e => noise(a, t + d + e, .03, "bandpass", 1100 + e * 4000, 0, .1))),   // 🎰 손잡이 드르륵(90°마다 딸깍딸깍)
     bell: (a, t) => [0, .12].forEach(d => { tone(a, t + d, "triangle", 2637, 0, .22, .03); tone(a, t + d + .01, "sine", 3520, 0, .14, .012); }),   // 🙈 현관 종 딸랑
   };
   function play(ac, name, n) { const f = SND[name]; if (!ac || !f || ac.state !== "running") return; try { f(ac, ac.currentTime + .01, n); } catch {} }
@@ -2613,7 +2644,7 @@ function pokeBig(h) {
         wn("win", 330, 40, 100, 62); wn("win2", 580, 40, 100, 62);
         r.els = Object.assign(r.els, { mon: [fl.mon], clock: [ce], vend: [ve], cart: [fl.cart] });
         hit(F, fk, "a", 56, B - 88, 86, 84); hit(F, fk, "mon", 200, B - 98, 76, 58); hit(F, fk, "clock", 514, 24, 48, 48); hit(F, fk, "vend", 494, B - 58, 56, 60);
-        hit(F, fk, "win", 330, 40, 100, 62); hit(F, fk, "win2", 580, 40, 92, 62); hit(F, fk, "cart", 792, B - 62, 50, 62);
+        hit(F, fk, "win", 330, 40, 100, B - 57 - 40); hit(F, fk, "win2", 580, 40, 92, 62); hit(F, fk, "cart", 792, B - 62, 50, 62);   // 🎰 창 아래쪽은 뽑기 기계(#86)가 앞에 서 있어 그 위까지만
         /* 사장님 평소 몸짓(커피·꾸벅): 전용 요소(매 프레임 HTML을 만들지 않음) */
         r.zs = [0, 1, 2].map(() => mkEl("div", "b pk-z", F, { display: "none", zIndex: "26" }, "Z"));
         r.cup = pimg(F, PK.ART.cup, 3, 0, 0, 14); r.cup.style.display = "none";
@@ -3726,6 +3757,24 @@ const DECOR = (() => {
     { id: "hw_jack", slot: "desk", p: 300, lv: 1, a: "hwjack", n: ["호박 등불", "Pumpkin lamp"], note: ["반짝반짝", "Flickers"], hi: ["해피 할로윈! 🎃", "Happy Halloween! 🎃"] },
     { id: "hw_ghost", slot: "floor", p: 380, lv: 1, a: "hwghost", n: ["꼬마 유령", "Little ghost"], note: ["둥실둥실", "Floats"], hi: ["으앗, 유령?! 👻", "Eek, a ghost?! 👻"] },
     { id: "hw_pot", slot: "floor", p: 800, lv: 1, a: "hwpot", n: ["마녀 솥", "Cauldron"], ltd: 1, hi: ["보글보글… 뭐가 나올까?", "Bubble bubble… what's brewing?"] },
+  ] },
+  /* 🎰 뽑기 소품(#86): 팔지 않음(gacha: 1 — packOpen false) · 1층 뽑기 기계에서 나오고 GACHA 저장의 보관함에서 책상 칸에 놓음. p = 도감 값어치(되팔기 없음, 빼면 보관함으로) */
+  { id: "gacha", n: ["뽑기 소품", "Gacha finds"], e: "🎰", gacha: 1, art: {
+    gaduck: { r: ["...KKKK....", "..KYYYYK...", "..KYYEYKKK.", "..KYYYYKOOK", "...KYYYKKK.", "KK.KYYYYK..", "KYKKYYYYYK.", "KYYYYYYYYK.", ".KYYYYYYK..", "..KKKKKK..."], p: { K, Y: "#ffd23f", E: "#2e2040", O: "#ff8a3d" } },
+    gaslinky: { r: [".KKKKKKKK.", "KRRRRRRRRK", ".KOOOOOOK.", "KYYYYYYYYK", ".KGGGGGGK.", "KBBBBBBBBK", ".KPPPPPPK.", "..KKKKKK.."], p: { K, R: "#ff6b6b", O: "#ff9a3c", Y: "#ffd23f", G: "#6adf8a", B: "#5aa8ff", P: "#b57be0" } },
+    gafan: { r: ["..KKKKKK..", ".KBWWWWBK.", "KWBBWWBBWK", "KWWBKKBWWK", "KWWBKKBWWK", "KWBBWWBBWK", ".KBWWWWBK.", "..KKKKKK..", "....KK....", "...KSSK...", "..KKKKKK.."], p: { K, W: "#eaf6ff", B: "#5aa8ff", S: "#8a8fa0" } },
+    gafan2: { r: ["..KKKKKK..", ".KWWBBWWK.", "KWWWBBWWWK", "KBBBKKBBBK", "KBBBKKBBBK", "KWWWBBWWWK", ".KWWBBWWK.", "..KKKKKK..", "....KK....", "...KSSK...", "..KKKKKK.."], p: { K, W: "#eaf6ff", B: "#5aa8ff", S: "#8a8fa0" } },
+    gaglobe: { r: ["...KKKK...", ".KKCCCCKK.", "KCCWCCCWCK", "KCCCCGCCCK", "KCWCGGGCCK", "KCCGGGGGCK", "KCCCCTCCWK", ".KKCCCCKK.", "..KRRRRK..", ".KRRYRRRK.", ".KKKKKKKK."], p: { K, C: "#cfeeff", W: "#ffffff", G: "#3fa35a", T: "#8a5a3a", R: "#c84a5e", Y: "#ffd23f" } },
+    galava: { r: ["..KK..", ".KSSK.", ".KLLK.", "KLBBLK", "KLLBLK", "KLLLLK", "KBLLLK", "KBBLLK", "KLLLBK", ".KLLK.", ".KSSK.", "KSSSSK", "KKKKKK"], p: { K, S: "#8a8fa0", L: "#ffb36b", B: "#ff5a8a" } },
+    galava2: { r: ["..KK..", ".KSSK.", ".KLLK.", "KLLLLK", "KLBBLK", "KLBBLK", "KLLLLK", "KLLLLK", "KBBLLK", ".KBLK.", ".KSSK.", "KSSSSK", "KKKKKK"], p: { K, S: "#8a8fa0", L: "#ffb36b", B: "#ff5a8a" } },
+    gatrophy: { r: [".KKKKKKKK.", "KKYYWYYYKK", "KYKYWYYKYK", "KYKYYYYKYK", ".KKYYYYKK.", "...KYYK...", "....KK....", "...KYYK...", "..KKKKKK..", "..KDDDDK..", "..KKKKKK.."], p: { K, Y: "#ffd23f", W: "#fff6c0", D: "#8a5a3a" } },
+  }, items: [
+    { id: "ga_duck", slot: "desk", p: 60, lv: 1, a: "gaduck", n: ["고무 오리", "Rubber duck"], hi: ["꽥! 친구다 🦆", "Quack! A buddy 🦆"] },
+    { id: "ga_slinky", slot: "desk", p: 60, lv: 1, a: "gaslinky", n: ["무지개 스프링", "Rainbow spring"], hi: ["띠용띠용~", "Boing boing~"] },
+    { id: "ga_fan", slot: "desk", p: 60, lv: 1, a: "gafan", n: ["미니 선풍기", "Mini fan"], note: ["빙글빙글", "Spins"], hi: ["시원하다~", "Ahh, a breeze~"] },
+    { id: "ga_globe", slot: "desk", p: 150, lv: 1, a: "gaglobe", n: ["스노볼", "Snow globe"], note: ["눈이 내려요", "It snows"], hi: ["눈 온다 ❄️", "It's snowing ❄️"] },
+    { id: "ga_lava", slot: "desk", p: 150, lv: 1, a: "galava", n: ["라바 램프", "Lava lamp"], note: ["말랑말랑", "Bloops"], hi: ["몽글몽글…", "Bloop… bloop…"] },
+    { id: "ga_trophy", slot: "desk", p: 400, lv: 1, a: "gatrophy", n: ["미니 트로피", "Mini trophy"], note: ["반짝", "Gleams"], hi: ["제가 받은 거예요?! 🏆", "Is this for me?! 🏆"] },
   ] }] };
   /* 작은 그림 여러 개를 한 판에 찍기(가랜드처럼 반복되는 그림) */
   const stamp = (w, hh, parts) => { const g = Array.from({ length: hh }, () => Array(w).fill(".")); parts.forEach(([r, x, y]) => r.forEach((row, j) => [...row].forEach((c, i) => { if (c !== "." && g[y + j] && x + i >= 0 && x + i < w) g[y + j][x + i] = c; }))); return g.map(r => r.join("")); };
@@ -3744,6 +3793,7 @@ const DECOR = (() => {
   const mdOf = t => { const d = new Date((t - 4 * 3600) * 1000); return (d.getMonth() + 1) * 100 + d.getDate(); };
   const yearOf = t => new Date((t - 4 * 3600) * 1000).getFullYear();
   function packOpen(pk, t) {
+    if (pk && pk.gacha) return false;   // 🎰 뽑기 소품은 팔지 않음
     if (!pk || !pk.win) return !!pk;
     if (SDEV.off) return false; if (SDEV.on.has(pk.id)) return true;
     const m = SDEV.md || mdOf(t), a = pk.win.from[0] * 100 + pk.win.from[1], b = pk.win.to[0] * 100 + pk.win.to[1];
@@ -3834,6 +3884,12 @@ const DECOR = (() => {
         h += `<i style="position:absolute;left:${bx}px;top:${o.anim ? 0 : -sc * 2}px;width:${z}px;height:${z}px;background:#c8ff9a;border:1px solid #3a8a3a;${o.anim ? `--b:${sc * 5}px;opacity:0;animation:stu-hwbub 1.45s linear ${(-i * .48).toFixed(2)}s infinite` : "opacity:.7"}"></i>`; }
       if (o.dark) h = `<i style="position:absolute;left:${-s.w / 4}px;top:${-s.h / 2}px;width:${s.w * 1.5}px;height:${s.h}px;background:radial-gradient(ellipse at 50% 70%,rgba(122,223,106,.3),transparent 65%);pointer-events:none"></i>` + h;
     }
+    if (id === "ga_fan" && o.anim && Math.floor(t * 8) % 2) h = pimg(ART.gafan2, sc, 0, 0);   // 🎰 날개가 빙글(정지면 그대로)
+    if (id === "ga_lava" && o.anim && Math.floor(t / 1.6) % 2) h = pimg(ART.galava2, sc, 0, 0);   // 몽글몽글(1.6초마다 덩어리가 오르내림)
+    if (id === "ga_lava" && o.dark) h = `<i style="position:absolute;left:${-s.w}px;top:${-s.h / 4}px;width:${s.w * 3}px;height:${s.h * 1.4}px;background:radial-gradient(ellipse at 50% 50%,rgba(255,120,170,.35),transparent 65%);pointer-events:none"></i>` + h;
+    if (id === "ga_globe") for (let i = 0; i < 4; i++) { const u = o.anim ? (t * .35 + i / 4) % 1 : [.2, .5, .7, .35][i];   // ❄️ 눈송이가 천천히 내림
+      h += `<i style="position:absolute;left:${sc * [3, 6, 4, 7][i]}px;top:${Math.round(sc * (2 + u * 4))}px;width:${sc}px;height:${sc}px;background:#fff"></i>`; }
+    if (id === "ga_trophy" && (!o.anim || Math.floor(t * 1.2) % 5 === 0)) h += `<i style="position:absolute;left:${sc * 7}px;top:${-sc * 2}px;color:#fff6c0;font-size:${sc * 4}px;line-height:1;text-shadow:0 0 2px #ffd23f">✦</i>`;   // 반짝
     if (id === "lamp" && o.dark) h = `<i style="position:absolute;left:${-s.w}px;top:${sc * 2}px;width:${s.w * 3}px;height:${s.h}px;background:radial-gradient(ellipse at 50% 0,rgba(255,230,140,.45),transparent 70%);pointer-events:none"></i>` + h;   // 다크에서만 불빛
     return { w: s.w, ht: s.h, h };
   }
@@ -3866,7 +3922,10 @@ const DECOR = (() => {
     return { x: Math.round(a.x - it.w / 2 + dx * sc), y: k === "wall" ? a.y : a.y - it.ht, w: it.w, ht: it.ht, z: zOf(id, k), h: it.h };
   }
   const nameOf = (id, en) => ITEMS[id] ? ITEMS[id].n[en ? 1 : 0] : id;
-  return { PACK, SDEV, devSeason, packOpen, onSale, seasons, seasonKey, untilOf, ART, CAT, ITEMS, LIKES, SLOTS, KIND, SLOTN, MINI, MSC, VER, DAY, bigAt, load, dump, touch, sweep, plantArt, likeSlot, itemHTML, boxHTML, canHTML, hearts, place, nameOf, hasPlant };
+  /* 🎰 뽑기 소품(한 개뿐): 어디(층·창고)에 놓였나 · 모두 회수(지운 칸 목록) */
+  const findAt = (d, id) => { for (const m of [d.fl, d.wh]) for (const p of Object.keys(m)) for (const sl of Object.keys(m[p].s || {})) if (m[p].s[sl] === id) return { p, sl, wh: m === d.wh }; return null; };
+  function pull(d, id) { const out = []; for (let at = findAt(d, id); at; at = findAt(d, id)) { const e = (at.wh ? d.wh : d.fl)[at.p]; delete e.s[at.sl]; if (e.at) delete e.at[at.sl]; out.push(at); } return out; }
+  return { findAt, pull, PACK, SDEV, devSeason, packOpen, onSale, seasons, seasonKey, untilOf, ART, CAT, ITEMS, LIKES, SLOTS, KIND, SLOTN, MINI, MSC, VER, DAY, bigAt, load, dump, touch, sweep, plantArt, likeSlot, itemHTML, boxHTML, canHTML, hearts, place, nameOf, hasPlant };
 })();
 
 /* ---------- 🎨 큰 화면: HUD [🎨 꾸미기] → 층 탭 → 칸 → 소품 카드(택배로 배달). h = 스튜디오 본체 연결 ---------- */
@@ -3875,7 +3934,11 @@ function decorBig(h) {
   const nowS = () => Date.now() / 1000, dark = () => !!(win.matchMedia && win.matchMedia("(prefers-color-scheme: dark)").matches);
   let d = D.load(ctx.store.get("decor", ""));
   const save = () => { if (!d.ro) try { ctx.store.set("decor", D.dump(d)); } catch {} };
-  const ui = { on: false, p: null, slot: null, hold: null };
+  const ui = { on: false, p: null, slot: null, hold: null, gdex: false };   // gdex: 📖 뽑기 도감 보는 중(#86)
+  const ga = () => h.ga && h.ga();   // 🎰 뽑기(소품 보관함 · 👒 착용 줄 · 도감) — 본체가 나중에 만들어서 함수로
+  /* 🎰 뽑기 소품: 가졌고(한 개) 아직 어느 책상(층·창고)에도 안 놓였으면 놓을 수 있음 */
+  const gaPk = id => !!D.ITEMS[id] && D.ITEMS[id].pack === "gacha";
+  const placedAt = id => D.findAt(d, id);
   const dl = [], react = new Map(), water = new Map();   // 택배 { p, slot, id, t0 } · 새 소품 반응 프로젝트 → { id, t0 } · 물 주기 프로젝트 → t0
   let G = null, float = null, cap = "";
   const tray = mkEl("div", "dc-tray", h.main); tray.hidden = true;
@@ -3897,6 +3960,8 @@ function decorBig(h) {
     const now = nowS(), live = new Set(floors.map(keyOf).filter(Boolean));
     let ch = false;
     live.forEach(p => { const r = D.touch(d, p, now); if (!r) return; ch = ch || r.ch;
+      if (r.back) r.back = r.back.filter(sl => { const id = d.fl[p].s[sl]; if (!gaPk(id)) return true; d.fl[p].s[sl] = null; const dup = placedAt(id); d.fl[p].s[sl] = id;   // 🎰 창고에서 돌아온 뽑기 소품이 그새 다른 책상에 있으면(한 개뿐) 여기서 뺌
+        if (!dup) return true; delete d.fl[p].s[sl]; delete d.fl[p].at[sl]; ch = true; return false; });
       if (r.back && r.back.length) { r.back.forEach((sl, j) => dl.push({ p, slot: sl, id: d.fl[p].s[sl], t0: tc + j * .25 })); if (!first) { d.last = { p, slot: r.back[0], id: d.fl[p].s[r.back[0]], t: Date.now(), back: 1 }; h.log("📦", X(`창고에서 돌아왔어요 · ${p} 소품 ${r.back.length}개`, `Back from storage · ${r.back.length} item(s) for ${p}`)); } } });
     if (D.sweep(d, now, live)) ch = true;
     if (ui.p && !live.has(ui.p)) { ui.p = null; ui.slot = null; }
@@ -3938,7 +4003,7 @@ function decorBig(h) {
     const u = tc - R.t0; if (u > 3.4) { react.delete(keyOf(f)); return null; } if (u < 1.1 || a.moving || a.loc !== "home") return null;
     const lk = liked(f.animal, R.id), n = nm(R.id);
     return { p: { view: "front", seated: 1, arms: lk ? "u" : "", mouth: "o", eyes: "o" }, dy: lk && anim ? -Math.round(ph.hop * 3) * 4 : 0,
-      say: lk ? X(`${n}${josa(n, "이다", "다")}! ♥`, `A ${n.toLowerCase()}! ♥`) : ownIt(R.id) && D.ITEMS[R.id].hi && D.onSale(R.id, nowS()) ? D.ITEMS[R.id].hi[en() ? 1 : 0] : R.id === "tank" ? X("오, 물고기! 🐟", "Ooh, fish! 🐟") : X("오~ 새거다", "Ooh, something new") };
+      say: lk ? X(`${n}${josa(n, "이다", "다")}! ♥`, `A ${n.toLowerCase()}! ♥`) : ownIt(R.id) && D.ITEMS[R.id].hi && (D.onSale(R.id, nowS()) || gaPk(R.id)) ? D.ITEMS[R.id].hi[en() ? 1 : 0] : R.id === "tank" ? X("오, 물고기! 🐟", "Ooh, fish! 🐟") : X("오~ 새거다", "Ooh, something new") };
   }
   /* 완료 보상 → 자금 옆 +n · 시든 화분이면 물 주기(완료 배너 4.5초가 걷힌 뒤 1.6초, 그때까지 시든 채) */
   const WATER_AT = 4.6;
@@ -4020,30 +4085,48 @@ function decorBig(h) {
       ${it.ltd ? `<span class="note ltd">${X("✨ 한정판", "✨ Limited")}</span>` : it.note ? `<span class="note">${esc(it.note[en() ? 1 : 0])}</span>` : ""}${like ? `<span class="like">♥ ${esc(h.aName(an))}</span>` : ""}
       <span class="ft"><span>${esc(it.n[en() ? 1 : 0])}${other.length ? ` <em>✓${esc(sn(other[0]))}</em>` : ""}</span><b>${here ? "✓ " + X("놓음", "Placed") : lock ? "Lv." + it.lv : "💰" + it.p}</b></span></button>`;
   }
+  /* 🎰 뽑기 소품 카드: 값 대신 보관함 상태 — 놓기(무료) · 다른 책상에 있음(↔ 옮기기로) · 여기 놓임 */
+  function gcard(id, F) {
+    const it = D.ITEMS[id], here = F && F.s[ui.slot] === id, at = here ? null : placedAt(id), full = F && F.s[ui.slot] && !here, dv = !!(ga() && ga().dev());
+    const where = at ? (h.hideText() ? X(at.wh ? "창고" : "다른 층", at.wh ? "storage" : "another floor") : at.wh ? X(`창고(${at.p})`, `storage (${at.p})`) : X(`${at.p} 층`, `${at.p}`)) : "";   // 🤫면 프로젝트 이름 대신
+    const ih = D.itemHTML(id, 3, { t: 0 }), k = Math.min(1, 64 / ih.ht, 92 / ih.w);
+    const capT = here ? X(`${it.n[0]} · 여기 놓여 있어요 · 빼면 보관함으로(되팔기 없음)`, `${it.n[1]} · placed here · removing puts it back in storage (no selling)`)
+      : dv ? X("개발용 쿼리(?gacha=)에선 놓지 않아요(꾸밈 저장에 남지 않게)", "Not placed with the dev query (?gacha=) so decor isn't saved")
+      : full ? X("칸이 차 있어요 · 지금 소품을 옮기거나 빼면 놓을 수 있어요", "This spot is taken · move or remove the current item first")
+      : at ? X(`${where}에 놓여 있어요 · 누르면 여기로 가져와요(화면에 없는 층·창고에서도)`, `It's on ${where} · click to bring it here (even from an off-screen floor or storage)`)
+      : X(`보관함에서 꺼내 ${sn(ui.slot)} 칸에 놓아요 · 무료`, `Take it out of storage onto ${sn(ui.slot)} · free`);
+    return `<button type="button" class="dc-card ga${here ? " here" : full || dv ? " dis" : ""}" data-act="dc-buy" data-id="${id}" data-dcap="${esc(capT)}"${here || full || dv ? ` aria-disabled="true"` : ""}>
+      <span class="art" style="width:${ih.w}px;height:${ih.ht}px;transform:translateX(-50%) scale(${k.toFixed(3)})">${ih.h}</span>${it.note ? `<span class="note">${esc(it.note[en() ? 1 : 0])}</span>` : ""}
+      <span class="ft"><span>${esc(it.n[en() ? 1 : 0])}</span><b>${here ? "✓ " + X("놓음", "Placed") : at ? "↩ " + X("가져오기", "Bring") : "🎰 " + X("놓기", "Place")}</b></span></button>`;
+  }
   function renderTray() {
     tray.hidden = !ui.on; if (!ui.on) return;
     const fs = floorsUI(), cur = fs.find(x => x.p === ui.p), hide = h.hideText(), funds = h.funds();
     const chips = fs.map(x => `<button type="button" class="dc-chip${x.p === ui.p ? " on" : ""}" data-act="dc-tab" data-p="${esc(x.p)}" data-dcap="${esc(X(`${floorN({ i: x.i })} ${hide ? "🤫" : x.p} 층 꾸미기 · 꾸밈은 프로젝트에 붙어 있어요`, `Decorate ${floorN({ i: x.i })} ${hide ? "🤫" : x.p} · decor stays with the project`))}">${EMO[x.f.animal]} ${floorN({ i: x.i })} ${esc(hide ? "🤫" : cut(x.p, 14))}</button>`).join("");
     const whN = Object.keys(d.wh).length;
     let body;
-    if (!cur) body = `<div class="msg">👆 ${X("꾸밀 층을 골라요 · 층 꾸밈은 <b>프로젝트</b>에 붙어서 세션이 새로 열려도 그대로예요", "Pick a floor · decor sticks to the <b>project</b>, so it stays when a new session opens")}${whN ? ` · 📦 ${X(`창고에 ${whN}층 보관 중(7일 넘게 안 온 프로젝트, 다시 오면 복원)`, `${whN} floor(s) in storage (back when the project returns)`)}` : ""}</div>`;
+    const gc = ga() ? ga().count() : null;
+    if (ui.gdex && ga()) body = ga().dex();
+    else if (!cur) body = `<div class="msg">👆 ${X("꾸밀 층을 골라요 · 층 꾸밈은 <b>프로젝트</b>에 붙어서 세션이 새로 열려도 그대로예요", "Pick a floor · decor sticks to the <b>project</b>, so it stays when a new session opens")}${whN ? ` · 📦 ${X(`창고에 ${whN}층 보관 중(7일 넘게 안 온 프로젝트, 다시 오면 복원)`, `${whN} floor(s) in storage (back when the project returns)`)}` : ""}</div>`;
     else if (!ui.slot) { const an = cur.f.animal, L = D.LIKES[an] || [];
       const tr = h.treats ? h.treats(h.model().floors.filter(f => keyOf(f) === ui.p)) : "";   // 🍩 그 층(프로젝트) 직원에게 간식 — TREAT 블록
-      body = `<div class="msg${tr ? " sm" : ""}">👆 ${X(`${floorN({ i: cur.i })} ${h.aName(an)} 층의 칸(벽 2 · 책상 1 · 바닥 2)을 눌러요`, `Click a spot on ${floorN({ i: cur.i })} (2 wall · 1 desk · 2 floor)`)} · ${EMO[an]} ${X("좋아하는 것", "Likes")}: ${L.map(id => esc(nm(id))).join(", ")}${cur.f.layout === "meet" ? " · " + X("회의 중엔 벽 2·바닥 1만 보여요", "During a meeting only wall 2 · floor 1 show") : ""}</div>${tr}`; }
+      const gw = ga() ? ga().row(h.model().floors.filter(f => keyOf(f) === ui.p)) : "";   // 👒 뽑은 액세서리 씌우기
+      body = `<div class="msg${tr || gw ? " sm" : ""}">👆 ${X(`${floorN({ i: cur.i })} ${h.aName(an)} 층의 칸(벽 2 · 책상 1 · 바닥 2)을 눌러요`, `Click a spot on ${floorN({ i: cur.i })} (2 wall · 1 desk · 2 floor)`)} · ${EMO[an]} ${X("좋아하는 것", "Likes")}: ${L.map(id => esc(nm(id))).join(", ")}${cur.f.layout === "meet" ? " · " + X("회의 중엔 벽 2·바닥 1만 보여요", "During a meeting only wall 2 · floor 1 show") : ""}</div>${tr}${gw}`; }
     else {
       const F = d.fl[ui.p], kind = D.KIND[ui.slot], an = cur.f.animal, have = F && F.s[ui.slot];
       /* 팩 순서대로: 기본 → 시즌 팩(기간 안이면 🎃 머리표 + 카드, 기간 밖이면 이 칸에 놓인 것만 — 되팔기·옮기기용) */
       const now = nowS();
-      body = `<div class="cards">` + D.CAT.packs.map(pk => { const ids = pk.items.filter(it => it.slot === kind && (D.packOpen(pk, now) || have === it.id)).map(it => it.id); if (!ids.length) return "";
+      body = `<div class="cards">` + D.CAT.packs.map(pk => { const ids = pk.items.filter(it => it.slot === kind && (D.packOpen(pk, now) || have === it.id || (pk.gacha && ga() && ga().has(it.id)))).map(it => it.id); if (!ids.length) return "";
+        if (pk.gacha) return `<span class="dc-sec ga" data-dcap="${esc(X("1층 🎰 뽑기 기계에서 나온 소품 · 팔지 않아요 · 한 개씩이라 한 책상에만 · 빼면 보관함으로", "From the 🎰 machine on 1F · not for sale · one each, so one desk at a time · removing puts it back in storage"))}"><b>🎰</b>${X("뽑기", "Gacha")}</span>` + ids.map(id => gcard(id, F)).join("");
         const on = D.packOpen(pk, now), head = pk.win ? `<span class="dc-sec${on ? "" : " past"}" data-dcap="${esc(on ? X(`${pk.n[0]} 시즌 소품 · ${D.untilOf(pk)}까지만 살 수 있어요 · 산 소품은 시즌이 끝나도 그대로예요`, `${pk.n[1]} items · on sale until ${D.untilOf(pk)} · what you buy stays after the season`) : X("지난 시즌 소품 · 옮기기·되팔기는 그대로 돼요", "Past-season item · you can still move or sell it"))}"><b>${pk.e || "🎁"}</b>${esc(pk.n[en() ? 1 : 0])}<em>${on ? X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`) : X("시즌 끝", "Season over")}</em></span>` : "";
         return head + ids.map(id => card(id, F, an)).join(""); }).join("")
         /* ❔ 이 버전이 모르는 소품(새 버전에서 산 시즌 팩 등 — 다운그레이드): 저장은 그대로 두고 카드만 보여 줌 · 되팔기 없음(값을 모름) · 옮기기는 같은 종류 칸끼리라 안전 */
         + (have && !ownIt(have) ? `<button type="button" class="dc-card here unk" aria-disabled="true" data-dcap="${esc(X("새 버전에서 산 소품이에요 · 이 버전에선 보이지 않지만 저장은 그대로라 앱을 다시 올리면 돌아와요 · 옮기기만 돼요", "Item from a newer version · hidden here but kept, it comes back when you update · move only"))}"><span class="art unk">❔</span><span class="ft"><span>${X("새 버전 소품", "Newer item")}</span><b>✓ ${X("놓음", "Placed")}</b></span></button>` : "") + `</div>`;
       const hv = ownIt(have) ? D.ITEMS[have] : null, back = hv ? Math.floor(hv.p / 2) : 0;
-      if (have && !ui.hold) body = body.replace(/<\/div>$/, `<div class="acts"><button type="button" class="dc-btn" data-act="dc-move" data-dcap="${esc(X("다른 칸(같은 종류 · 다른 층도)으로 옮겨요 · 무료", "Move to another spot of the same kind (any floor) · free"))}">↔ ${X("옮기기", "Move")}</button>${hv ? `<button type="button" class="dc-btn sell" data-act="dc-sell" data-dcap="${esc(X(`되팔면 산 값의 반 💰${back}을 돌려받아요`, `Sell back for half: 💰${back}`))}">💰 ${X("되팔기", "Sell")} +${back}</button>` : ""}</div></div>`);
+      if (have && !ui.hold) body = body.replace(/<\/div>$/, `<div class="acts"><button type="button" class="dc-btn" data-act="dc-move" data-dcap="${esc(X("다른 칸(같은 종류 · 다른 층도)으로 옮겨요 · 무료", "Move to another spot of the same kind (any floor) · free"))}">↔ ${X("옮기기", "Move")}</button>${hv && gaPk(have) ? `<button type="button" class="dc-btn" data-act="dc-sell" data-dcap="${esc(X("뽑기 소품은 팔지 않아요 · 빼면 보관함으로 가고 다른 책상에 다시 놓을 수 있어요", "Gacha finds aren't sold · removing puts it back in storage for another desk"))}">📦 ${X("빼기", "Remove")}</button>` : hv ? `<button type="button" class="dc-btn sell" data-act="dc-sell" data-dcap="${esc(X(`되팔면 산 값의 반 💰${back}을 돌려받아요`, `Sell back for half: 💰${back}`))}">💰 ${X("되팔기", "Sell")} +${back}</button>` : ""}</div></div>`);
     }
     const holdT = ui.hold ? `<span class="hold">↔ ${esc(nm(ui.hold.id))} · ${X("옮길 칸을 눌러요", "click where to put it")} <button type="button" class="dc-btn" data-act="dc-cancel">${X("취소", "Cancel")}</button></span>` : "";
-    html(tray, `<div class="hd"><b class="ti">🎨 ${X("꾸미기", "Decorate")}</b>${chips}<span class="sp"></span>${D.seasons(nowS()).map(pk => `<span class="sea" data-dcap="${esc(X(`${pk.n[0]} 시즌 소품을 ${D.untilOf(pk)}까지 팔아요 · 칸을 누르면 보여요`, `${pk.n[1]} items on sale until ${D.untilOf(pk)} · pick a spot to see them`))}">${pk.e || "🎁"} ${X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`)}</span>`).join("")}${holdT}${cur && ui.slot && !ui.hold ? `<span class="where">${floorN({ i: cur.i })} · ${esc(sn(ui.slot))} ${X("칸", "")}</span>` : ""}<span class="fund">💰 ${funds.toLocaleString("en-US")}</span><button type="button" class="dc-btn ok" data-act="dc-done">✓ ${X("완료", "Done")}</button></div><div class="bd">${body}</div><div class="dc-cap"></div>`);
+    html(tray, `<div class="hd"><b class="ti">🎨 ${X("꾸미기", "Decorate")}</b>${chips}<span class="sp"></span>${D.seasons(nowS()).map(pk => `<span class="sea" data-dcap="${esc(X(`${pk.n[0]} 시즌 소품을 ${D.untilOf(pk)}까지 팔아요 · 칸을 누르면 보여요`, `${pk.n[1]} items on sale until ${D.untilOf(pk)} · pick a spot to see them`))}">${pk.e || "🎁"} ${X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`)}</span>`).join("")}${holdT}${cur && ui.slot && !ui.hold ? `<span class="where">${floorN({ i: cur.i })} · ${esc(sn(ui.slot))} ${X("칸", "")}</span>` : ""}${gc ? `<button type="button" class="dc-btn ga-dexb${ui.gdex ? " on" : ""}" data-act="dc-gdex" data-dcap="${esc(X("1층 🎰 뽑기 기계에서 모은 것 · 빈칸은 실루엣", "What you got from the 🎰 machine on 1F · blanks are silhouettes"))}">📖 ${X("뽑기 도감", "Gacha")} ${gc.have}/${gc.all}</button>` : ""}<span class="fund">💰 ${funds.toLocaleString("en-US")}</span><button type="button" class="dc-btn ok" data-act="dc-done">✓ ${X("완료", "Done")}</button></div><div class="bd">${body}</div><div class="dc-cap"></div>`);
     txt(tray.querySelector(".dc-cap"), cap || X("옮기기 무료 · 되팔기 50% · 7일 넘게 안 온 프로젝트의 소품은 창고로 갔다가 다시 오면 돌아와요", "Moving is free · selling returns 50% · items of projects unseen for 7 days go to storage and come back with the project"));
   }
   ctx.listen(tray, "mouseover", e => { const c = e.target.closest ? e.target.closest("[data-dcap]") : null, v = c ? c.dataset.dcap : ""; if (v !== cap) { cap = v; const ce = tray.querySelector(".dc-cap"); if (ce) txt(ce, cap || X("옮기기 무료 · 되팔기 50% · 7일 넘게 안 온 프로젝트의 소품은 창고로 갔다가 다시 오면 돌아와요", "Moving is free · selling returns 50% · items of projects unseen for 7 days go to storage and come back with the project")); } });
@@ -4051,7 +4134,7 @@ function decorBig(h) {
 
   function set(on) {
     if (ui.on === !!on) return;
-    ui.on = !!on; ui.slot = null; ui.hold = null; cap = "";
+    ui.on = !!on; ui.slot = null; ui.hold = null; ui.gdex = false; cap = "";
     if (on && !ui.p) { const fs = floorsUI(); if (fs.length === 1) ui.p = fs[0].p; }
     if (on && !D.devSeason()) { const ks = seaKeys().map(x => x.k), sp = ks.join(","); if (ks.length && ks.some(k => !seenSet().has(k))) { d.sp = sp; save(); } }   // 🎃 이번 시즌 판을 열어 봄 → 버튼 점 거둠(개발용 ?season= 쿼리면 저장 안 함)
     h.app.classList.toggle("dc-on", ui.on);
@@ -4063,6 +4146,8 @@ function decorBig(h) {
     if (act === "dc-toggle") return set(!ui.on);
     if (!ui.on) return;
     if (act === "dc-done") return set(false);
+    if (act === "dc-gdex") { ui.gdex = !ui.gdex; ui.hold = null; return renderTray(); }
+    if (act === "dc-tab" || act === "dc-slot") ui.gdex = false;
     if (act === "dc-tab") { if (ui.p !== b.dataset.p) { ui.p = b.dataset.p; ui.slot = null; } }
     else if (act === "dc-slot") {
       const p = b.dataset.p, sl = b.dataset.slot;
@@ -4080,6 +4165,14 @@ function decorBig(h) {
         }
       } else { ui.p = p; ui.slot = sl; }
     }
+    else if (act === "dc-buy" && gaPk(b.dataset.id)) {   // 🎰 보관함에서 꺼내 놓기(무료)
+      const id = b.dataset.id, p = ui.p, sl = ui.slot;
+      if (!p || !sl || D.KIND[sl] !== D.ITEMS[id].slot || !ga() || !ga().has(id) || ga().dev()) return renderTray();
+      const F = cell(p); if (F.s[sl]) return renderTray();
+      if (D.pull(d, id).some(at => !at.wh && at.sl === "F2")) h.rebuild();   // 다른 층·창고(화면에 없는 층도)에 있으면 회수 — 한 개뿐
+      F.s[sl] = id; F.at[sl] = nowS(); deliver(p, sl, id, tc); save();
+      h.log("🎰", X(`${nm(id)} 놓았어요 · ${p} ${sn(sl)}`, `Placed ${nm(id)} · ${p} ${sn(sl)}`));
+    }
     else if (act === "dc-buy") {
       const id = b.dataset.id, it = D.ITEMS[id], p = ui.p, sl = ui.slot;
       if (!it || !p || !sl || D.KIND[sl] !== it.slot || !D.onSale(id, nowS())) return renderTray();   // 🎃 시즌이 끝난 팩은 못 삼(판을 열어 둔 채 기간이 지나도)
@@ -4090,6 +4183,10 @@ function decorBig(h) {
       const f = h.model().floors.find(x => keyOf(x) === p), lk = f && liked(f.animal, id);
       h.log("📦", X(`${nm(id)} 샀어요 · ${p} ${sn(sl)} −${it.p}${lk ? ` · ${h.aName(f.animal)}${josa(h.aName(f.animal), "이", "가")} 좋아해요 ♥` : ""}`, `Bought ${nm(id)} for ${p} ${sn(sl)} −${it.p}${lk ? ` · ${h.aName(f.animal)} loves it ♥` : ""}`));
       if (sl === "F2") h.rebuild();
+    }
+    else if (act === "dc-sell" && d.fl[ui.p] && gaPk(d.fl[ui.p].s[ui.slot])) {   // 🎰 빼기 → 보관함(되팔기 없음)
+      const F = d.fl[ui.p], id = F.s[ui.slot]; delete F.s[ui.slot]; delete F.at[ui.slot]; save();
+      h.log("🎰", X(`${nm(id)} 보관함으로`, `${nm(id)} back to storage`));
     }
     else if (act === "dc-sell") {
       const F = d.fl[ui.p], id = F && F.s[ui.slot]; if (!id || !ownIt(id)) return renderTray();   // ❔ 모르는 소품은 되팔지 않음(지우면 새 버전에서 잃음)
@@ -4104,6 +4201,7 @@ function decorBig(h) {
   }
   return {
     read, build, frame, restX, pose, earn, tap, noPlant, sig, set,
+    gdex: () => { set(true); ui.gdex = true; renderTray(); h.layout(); },   // 🎰 뽑기 판의 [📖 도감]
     restSay: f => { const F = d.fl[keyOf(f)], sl = D.likeSlot(F, f.animal), id = sl && F.s[sl]; return !id ? "" : id === "rug" ? X("러그 위가 최고 ♥", "Best spot: the rug ♥") : X(`${nm(id)} 옆이 최고 ♥`, `Love this ${nm(id).toLowerCase()} ♥`); },
     on: () => ui.on, tray: renderTray, float: amt => { float = { amt, t0: h.clockT() }; },   // 🍩 간식·🍖 회식도 자금 옆 −숫자
     trayH: () => ui.on ? tray.offsetHeight + 8 : 0,
@@ -4228,7 +4326,7 @@ const TINY = (() => {
   const MUG = ["#fff8e8", "#ffc8d8", "#cfe6ff", "#fff1a8"];
   const CUP_X = [421, 487, 437, 453];   // 잔 왼쪽 x(책상 cx 420 기준): 직원 오른쪽 · 모니터 아래(받침 472~484 비킴) · 머그(508~) 앞까지
   const CUP_SEC = 1200, CUP_MAX = 4, KEEP = 14, VER = 1, P_MAX = 60, S_MAX = 100, S_AWAY = 2 * 86400;
-  const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 370;   // 서 있는 자리(가운데 x): 화분 누를 자리(~350)와 커피머신(392~)·현관문(438~) 사이, 창 누를 자리(~B−30)보다 아래
+  const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 414;   // 서 있는 자리(가운데 x): 🎰 뽑기 기계(346~388) 오른쪽 · 현관문(438~) 앞, 창 누를 자리(~B−30)보다 아래
   const COAT = { ham: "#e85050", peng: "#3a6ad8", bvr: "#5f8a3a", otr: "#c8783a", oct: "#8a5ac8", bot: "#5a6078", cat: "#d9668a", fox: "#2a8a8a", panda: "#3fa35a", owl: "#7a4a8a", hog: "#e8a23c" };
   const PILE_X = 537, FLAG_X = 497, COAT_X = 344, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(의자 왼쪽) · 콘센트(커피머신 ~316과 책상 330 사이)
   const FLAGS = [[1000, "1K", "#ffd23f"], [500, "500", "#5aa8ff"], [100, "100", "#6adf8a"]];
@@ -4589,6 +4687,284 @@ function habitBig(h) {
     sty(E.lab, "display", lab ? "block" : "none"); if (lab) { txt(E.lab, lab); sty(E.lab, "left", "-30px"); }
   }
   return { pre, actor, off };
+}
+
+/* ================= 🎰 캡슐 뽑기 (GACHA: 카탈로그·뽑기·저장 공용 · 큰 화면 gachaBig · 미니 보기는 착용만 읽음, jhkwim/waitscape#86 · #53 다음 단계) =================
+   1층 화분과 커피머신 자리 사이에 캡슐 뽑기 기계. 누르면 작은 판 → [돌리기 💰150] → 동전 · 손잡이 드르륵(90°씩 4번) · 캡슐이 굴러 나와 톡 열림 → 결과 카드.
+   움직임 줄이기·회의 모드(정적)면 연출 없이 결과 카드만. 보기용(기능·보상 없음), 결제는 간식·회식과 같은 길(h.spend → sv.funds).
+   - 값 150(간식 2~3개 · 하루 벌이 ≈ 950의 1/6) · 하루 횟수 제한 없음 · 같은 게 또 나오면 40%(💰60) 돌려받음(입사 지원서는 중복 없음)
+   - 등급 흔함 70 · 드묾 25 · 전설 5(%) → 그 등급 안에서 고르게. 비어 있는 등급은 흔함 → 드묾 → 전설 순으로 대신
+   - 나오는 것 16종: 직원 액세서리 8(머리 7 · 얼굴 1, GA_ACC) · 책상 소품 6(DECOR "gacha" 팩) · 입사 지원서 2(🦉·🦔, 드묾 — 뽑으면 hire.unlock → 새 세션부터 출근,
+     이미 풀린 동물의 지원서는 풀에서 빠짐). 전설(👑 왕관 · 🏆 트로피)이면 금빛 반짝 + 자리에 있는 직원들이 3초 박수
+   - 액세서리는 "디자인"을 얻는 것 — 한 번 뽑으면 여러 직원에게 씌울 수 있음. 책상 소품은 한 개(한 층 책상에만, 옮기기는 꾸미기 판의 ↔)
+   - 직원 꾸미기: 🎨 꾸미기 판에서 층을 고르면 "👒 액세서리" 줄 → 머리·얼굴 하나씩. 「같은 직원」 = 프로젝트 + 프로바이더(staffKey) —
+     sid는 세션마다 바뀌고 동물도 sid 해시라 매번 다를 수 있어서, 층 꾸밈(프로젝트)과 같은 기준에 프로바이더(Claude·Codex 등 서로 다른 일꾼)를 더함.
+     같은 프로젝트·프로바이더로 다시 출근하면(새 세션 · 다른 동물이어도) 그대로 씀. 큰 화면 배우(아기·📋 일보 연출 포함)·사이드 직원 카드·미니 보기가 반영
+   - 🎨 꾸미기 판 머리의 [📖 뽑기 도감 n/16]: 얻은 것은 그림·등급·개수, 못 얻은 칸은 실루엣("???")
+   - 저장 ctx.store "gacha" = { v: 1, own: { id: { n: 뽑은 수, t: 처음 뽑은 시각(초) } }, wear: { staffKey: { h: 머리 id, f: 얼굴 id, t } }, n: 뽑은 횟수, spent, back: 돌려받은 합, last: { id, t, dup } }
+     모르는 id(새 버전에서 뽑은 것)는 저장에 그대로 두되 그리지 않음 · wear는 200개까지(오래된 것부터) · 모르는 새 버전(v > 1)이면 읽기만(뽑기 막음). 큰 화면만 쓰고 미니 보기는 읽기만
+   - 개발용 ?gacha=free(돈 안 듦) · legend · rare(그 등급 강제) · <아이템 id>(그것만) · all(이 창에서 모두 가진 것으로) — 쉼표로 여럿, 개발용이면 저장하지 않음 */
+const GACHA = (() => {
+  const VER = 1, PRICE = 150, BACK = .4, WEAR_MAX = 200;
+  const TIER = { c: { n: ["흔함", "Common"], col: "#6adf8a", cap: "#6adf8a" }, r: { n: ["드묾", "Rare"], col: "#5aa8ff", cap: "#5aa8ff" }, l: { n: ["전설", "Legendary"], col: "#ffd23f", cap: "#ffd23f" } };
+  const RATES = { c: 70, r: 25, l: 5 };
+  const ACC_N = { cone: ["고깔모자", "Party hat"], ribbon: ["리본", "Ribbon"], beanie: ["털모자", "Knit hat"], pin: ["꽃 머리핀", "Flower pin"], phones: ["헤드폰", "Headphones"], straw: ["밀짚모자", "Straw hat"], crown: ["왕관", "Crown"], sun: ["선글라스", "Sunglasses"] };
+  const ITEMS = [
+    ...[["cone", "c"], ["ribbon", "c"], ["beanie", "c"], ["pin", "c"], ["phones", "r"], ["straw", "r"], ["sun", "r"], ["crown", "l"]].map(([id, t]) => ({ id, k: "acc", t, s: GA_ACC[id].s, n: ACC_N[id] })),
+    ...[["ga_duck", "c"], ["ga_slinky", "c"], ["ga_fan", "c"], ["ga_globe", "r"], ["ga_lava", "r"], ["ga_trophy", "l"]].map(([id, t]) => ({ id, k: "desk", t, n: DECOR.ITEMS[id].n })),
+    { id: "app_owl", k: "app", t: "r", an: "owl", n: ["입사 지원서 · 부엉이", "Job application · Owl"], sn: ["부엉이 지원서", "Owl's app"] },
+    { id: "app_hog", k: "app", t: "r", an: "hog", n: ["입사 지원서 · 고슴도치", "Job application · Hedgehog"], sn: ["고슴도치 지원서", "Hedgehog's app"] },
+  ];
+  const BY = Object.create(null); ITEMS.forEach(it => { BY[it.id] = it; });
+  const back = () => Math.floor(PRICE * BACK);
+  const staffKey = (project, pk) => (pk || "other") + "|" + (project || "");
+  const num = v => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
+  const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  const blank = () => ({ v: VER, own: Object.create(null), wear: Object.create(null), n: 0, spent: 0, back: 0, last: null });
+  function load(raw) {
+    let j = null; try { j = JSON.parse(raw || "null"); } catch {}
+    const d = blank(); if (!j || typeof j !== "object" || typeof j.v !== "number") return d;
+    Object.keys(obj(j.own)).forEach(id => { const e = obj(j.own[id]); if (num(e.n) >= 1) d.own[id] = { n: Math.floor(e.n), t: num(e.t) }; });   // 모르는 id도 그대로 둠(새 버전에서 뽑은 것)
+    Object.keys(obj(j.wear)).forEach(k => { const e = obj(j.wear[k]), w = {}; ["h", "f"].forEach(s => { if (typeof e[s] === "string" && e[s].length < 40) w[s] = e[s]; }); if (w.h || w.f) d.wear[k] = Object.assign(w, { t: num(e.t) }); });
+    d.n = num(j.n); d.spent = num(j.spent); d.back = num(j.back);
+    const L = obj(j.last); if (typeof L.id === "string") d.last = { id: L.id, t: num(L.t), dup: !!L.dup };
+    d.ro = j.v > VER;
+    return d;
+  }
+  const dump = d => JSON.stringify({ v: VER, own: d.own, wear: d.wear, n: d.n, spent: d.spent, back: d.back, last: d.last });
+  const has = (d, id) => !!(d.own[id] && d.own[id].n >= 1);
+  /* 이번에 나올 수 있는 것: 지원서는 그 동물이 아직 잠겨 있고 아직 안 뽑았을 때만 */
+  const poolOf = (d, locked) => ITEMS.filter(it => it.k !== "app" || (locked(it.an) && !has(d, it.id)));
+  /* rng() ∈ [0, 1) 두 번: 등급 · 그 등급 안에서 하나. force = { tier, id }(개발용) */
+  function roll(d, rng, locked, force) {
+    const pool = poolOf(d, locked);
+    let it = force && force.id ? pool.find(x => x.id === force.id) || BY[force.id] : null;
+    if (!it) {
+      const r = rng() * 100, want = force && force.tier || (r < RATES.l ? "l" : r < RATES.l + RATES.r ? "r" : "c");
+      let ps = pool.filter(x => x.t === want);
+      for (const t of ["c", "r", "l"]) if (!ps.length) ps = pool.filter(x => x.t === t);
+      it = ps[Math.min(ps.length - 1, Math.floor(rng() * ps.length))];
+    }
+    const dup = it.k !== "app" && has(d, it.id);
+    return { it, dup, back: dup ? back() : 0 };
+  }
+  /* 결과를 저장 객체에 반영(돈은 본체가) */
+  function apply(d, res, now) {
+    const e = d.own[res.it.id]; d.own[res.it.id] = { n: (e ? e.n : 0) + 1, t: e && e.t ? e.t : now };
+    d.n += 1; d.spent += PRICE; d.back += res.back; d.last = { id: res.it.id, t: now, dup: res.dup };
+  }
+  /* 착용: 가진(그리고 이 버전이 아는) 액세서리만, 슬롯이 맞을 때만 */
+  function wearOf(d, key) {
+    const w = d.wear[key]; if (!w) return null;
+    const ok = (id, s) => id && BY[id] && BY[id].k === "acc" && BY[id].s === s && has(d, id) ? id : undefined;
+    const o = { ac: ok(w.h, "h"), af: ok(w.f, "f") };
+    return o.ac || o.af ? o : null;
+  }
+  function setWear(d, key, s, id, now) {
+    const w = Object.assign({}, d.wear[key] || {}); if (id) w[s] = id; else delete w[s];
+    if (w.h || w.f) d.wear[key] = Object.assign(w, { t: now }); else delete d.wear[key];
+    const ks = Object.keys(d.wear); if (ks.length > WEAR_MAX) ks.sort((a, b) => d.wear[a].t - d.wear[b].t).slice(0, ks.length - WEAR_MAX).forEach(k => delete d.wear[k]);
+  }
+  const count = d => ({ have: ITEMS.filter(it => has(d, it.id)).length, all: ITEMS.length });
+  /* 한 번 뽑기(결제·저장 전): 지원서면 먼저 unlock — 못 풀면(👔 hire 저장이 새 버전 등) 지원서를 빼고 다시. unlock이 없으면(개발용) 풀지 않음 */
+  function draw(d, rng, locked, force, unlock) {
+    let res = roll(d, rng, locked, force);
+    if (res.it.k === "app" && unlock && !unlock(res.it.an)) res = roll(d, rng, () => false, force && force.id ? null : force);
+    return res;
+  }
+  /* 돌릴 수 있나: "" | ro(새 버전 저장) | poor */
+  const why = (d, funds, free) => d.ro ? "ro" : !free && funds < PRICE ? "poor" : "";
+  return { VER, PRICE, BACK, RATES, TIER, ITEMS, BY, back, staffKey, load, dump, has, poolOf, roll, draw, why, apply, wearOf, setWear, count };
+})();
+
+/* ---------- 🎰 큰 화면: 1층 뽑기 기계 · 연출 · 결과 카드 · 착용 · 도감 HTML. h = 스튜디오 본체 연결 ---------- */
+function gachaBig(h) {
+  const { ctx, doc, mkEl, sty, txt, html, X } = h, GA = GACHA, en = () => ctx.lang === "en", K = "#4a3560";
+  const dev = (() => { const o = { on: new Set() }; try { (new URLSearchParams(location.search).get("gacha") || "").split(",").filter(Boolean).forEach(x => o.on.add(x)); } catch {} o.any = o.on.size > 0; return o; })();
+  let d = GA.load(ctx.store.get("gacha", ""));
+  if (dev.on.has("all")) GA.ITEMS.forEach(it => { if (!GA.has(d, it.id)) d.own[it.id] = { n: 1, t: Date.now() / 1000 }; });
+  const save = () => { if (!d.ro && !dev.any) try { ctx.store.set("gacha", GA.dump(d)); } catch {} };
+  const ART = {
+    mach: { r: ["....KKKKKK....", "..KKGGGGGGKK..", ".KGrGGbGGWWGK.", ".KGGyGGrGGWGK.", "KGbGGrGGyGGbGK", "KGGyGbGrGGyGGK", "KrGbGyGrGbGrGK", "KKKKKKKKKKKKKK", "KRRRRRRRRRRRRK", "KRWYWWYWWYWWRK", "KRRRRRRRRRRRRK", "KRRRRRRRRKYKRK", "KRRRRRRRRKKKRK", "KRRRRRRRRRRRRK", "KRRRRRRRKKKKRK", "KRRRRRRRKDDDKK", "KRRRRRRRKDDDDK", "KKKKKKKKKKKKKK", ".KK........KK."],
+      p: { K, G: "#d8f1ff", W: "#ffffff", r: "#ff6b8a", b: "#5aa8ff", y: "#ffd23f", R: "#e85050", Y: "#ffd23f", D: "#2e2040" } },
+    knob: { r: [".KKK.", "KSSSK", "KDDDK", "KSSSK", ".KKK."], p: { K, S: "#e8ecf4", D: "#8a8fa0" } },
+    coin: { r: [".KK.", "KYYK", "KYWK", ".KK."], p: { K, Y: "#ffd23f", W: "#fff6c0" } },
+    capT: { r: [".KKKK.", "KCCCCK", "KCWCCK"], p: { K } },
+    capB: { r: ["KWWWWK", "KWWWWK", ".KKKK."], p: { K, W: "#fffaf0" } },
+    paper: { r: ["KKKKKKK..", "KWWWWWKK.", "KWLLLWWWK", "KWWWWWWWK", "KWLLLLLWK", "KWWWWWWWK", "KWLLLLWWK", "KWWWWWWWK", "KWWWWRRWK", "KWWWWRRWK", "KKKKKKKKK"], p: { K, W: "#fffdf5", L: "#b8c4d4", R: "#e85050" } },
+  };
+  ART.mach2 = { r: ART.mach.r.map((r, y) => y >= 2 && y <= 6 ? r.slice(0, 1) + r.slice(2, 13) + r.slice(1, 2) + r.slice(13) : r), p: ART.mach.p };   // 손잡이를 돌리면 캡슐이 들썩(한 칸씩 밀림)
+  const MX = 346, SC = 3;   // 기계 왼쪽(1층 x): 화분 👆(294~342)과 커피머신 자리(392~) 사이 · 창 아래
+  const SIL = "#3d3358";
+  const pixArt = (art, sc, sil) => sil ? WB.pix({ r: art.r, p: Object.fromEntries(Object.keys(art.p).map(k => [k, SIL])) }, sc, SIL) : WB.pix(art, sc);
+  const img = (s, css) => `<img alt="" draggable="false" src="${s.url}" style="width:${s.w}px;height:${s.h}px;image-rendering:pixelated;${css || ""}">`;
+  const nm = it => it.n[en() ? 1 : 0];
+  const PREV = ["ham", "fox", "panda", "cat", "otr", "peng", "bvr", "owl"];
+  /* 아이템 그림(카드·도감): 액세서리 = 동물이 쓴 모습 · 소품 = DECOR 그림 · 지원서 = 종이 + 그 동물 */
+  function artHTML(it, sc, sil, an) {
+    if (it.k === "acc") { const a = an || PREV[GA.ITEMS.indexOf(it) % PREV.length]; return img(sprite(doc, BYID[a], { view: "front", legs: "s", eyes: "o", trim: 1, sil: sil ? 1 : 0, [it.s === "h" ? "ac" : "af"]: it.id }, sc)); }
+    if (it.k === "desk") { const di = DECOR.ITEMS[it.id], art = DECOR.ART[di.a]; return img(pixArt(art, sc, sil)); }
+    return `<span class="ga-app">${img(pixArt(ART.paper, sc, sil))}${img(sprite(doc, BYID[it.an], { view: "front", legs: "s", eyes: "o", trim: 1, sil: sil ? 1 : 0 }, Math.max(1, sc - 1)), "margin-left:-6px")}</span>`;
+  }
+  const tierB = t => `<b class="ga-tier t-${t}">${t === "l" ? "✨ " : ""}${esc(GA.TIER[t].n[en() ? 1 : 0])}</b>`;
+  let G = null, ui = { pop: "", res: null }, spin = null, clap = { a: -9, b: -9 }, lastTap = -9;   // pop: "" | menu | res · spin: { t0, res, fast }
+  const locked = id => !!(h.hire && h.hire.lockedReal(id));
+  function build(o) {
+    G = null; const fl = o.FL[o.n]; if (!fl) return;
+    const B = fl.B, ms = WB.pix(ART.mach, SC);
+    G = { F: fl.F, B, top: B - ms.h };
+    G.m = mkEl("div", "b ga-m", fl.F, { left: MX + "px", top: G.top + "px", width: ms.w + "px", height: ms.h + "px" });
+    /* 누를 자리는 따로(👆 창 누를 자리 z 60보다 위) — 기계 그림은 z 6이라 지나가는 직원이 앞에 보임 */
+    G.hit = mkEl("div", "b ga-hit", fl.F, { left: (MX + 6) + "px", top: G.top + "px", width: (ms.w - 6) + "px", height: ms.h + "px" });   // 왼쪽 6px은 비움: 큰 화분 👆(~350)과 안 겹치게 · 위는 창 👆(~B−57)과 맞닿음
+    G.hit.title = X(`🎰 캡슐 뽑기 · 💰${GA.PRICE}`, `🎰 Capsule machine · 💰${GA.PRICE}`); G.hit.setAttribute("role", "button"); G.hit.setAttribute("aria-label", G.hit.title); G.hit.tabIndex = 0;
+    G.body = mkEl("img", "b", G.m, { left: "0", top: "0", width: ms.w + "px", height: ms.h + "px" }); G.body.alt = ""; G.body.draggable = false; G.body.src = ms.url;
+    const ks = WB.pix(ART.knob, SC); G.knob = mkEl("img", "b", G.m, { left: 2 * SC + "px", top: 12 * SC + "px", width: ks.w + "px", height: ks.h + "px" }); G.knob.alt = ""; G.knob.src = ks.url;
+    G.spk = mkEl("i", "b ga-spk", G.m, { display: "none" }, "✦");   // 살 수 있는데 아직 한 번도 안 돌렸으면 반짝
+    G.fx = mkEl("div", "b ga-fx", fl.F, { left: "0", top: "0" });
+  }
+  /* 상태 → 착용 맵(sid → { ac, af }) */
+  let wmap = new Map();
+  function read(floors) { wmap = new Map(); (floors || []).forEach(f => { const w = GA.wearOf(d, GA.staffKey(f.s && f.s.project, f.pk)); if (w) wmap.set(f.sid, w); }); }
+  const reload = () => { if (!dev.any) d = GA.load(ctx.store.get("gacha", "")); read(h.model().floors); };   // 개발용 쿼리면 메모리 그대로(저장 안 하므로)
+  /* 연출 시간표(초): 동전 0~.35 · 손잡이 .35~1.35(90°씩 4번) · 캡슐 굴러 나옴 1.35~2.0 · 흔들 2.0~2.5 · 톡 2.5 · 카드 3.0 */
+  const T_KNOB = .35, T_OUT = 1.35, T_WOB = 2, T_POP = 2.5, T_CARD = 3, T_END = 3.8;
+  function frame(T, tc, anim) {
+    if (!G) return;
+    const hid = h.hidden(), off = hid || h.dr();
+    sty(G.m, "display", off ? "none" : "block"); sty(G.hit, "display", off ? "none" : "block");
+    const can = h.funds() >= GA.PRICE || dev.on.has("free");
+    sty(G.spk, "display", !off && !spin && d.n === 0 && can && (!anim || Math.floor(tc * 2) % 2) ? "block" : "none");
+    let fx = "";
+    const u = spin ? tc - spin.t0 : 99;
+    if (spin && (!anim || spin.fast)) { const r = spin.res; spin = null; showRes(r); }
+    if (spin && !off) {
+      const res = spin.res, kStep = u >= T_KNOB && u < T_OUT ? Math.min(3, Math.floor((u - T_KNOB) / .25)) + 1 : u >= T_OUT ? 4 : 0;
+      sty(G.knob, "transform", `rotate(${kStep * 90}deg)`);
+      const sh = u >= T_KNOB && u < T_OUT ? (Math.floor(u * 16) % 2 ? 1 : -1) : 0, s2 = u >= T_KNOB && u < T_OUT && Math.floor(u / .12) % 2;
+      sty(G.m, "transform", sh ? `translateX(${sh}px)` : ""); const bu = (s2 ? WB.pix(ART.mach2, SC) : WB.pix(ART.mach, SC)).url; if (G.body._u !== bu) { G.body._u = bu; G.body.src = bu; }
+      if (u < T_KNOB) { const c = WB.pix(ART.coin, SC), k = ease(u / T_KNOB); fx += `<img class="b" alt="" src="${c.url}" style="left:${MX + 10 * SC - 1}px;top:${Math.round(G.top + 11 * SC - 30 + k * 28)}px;width:${c.w}px;height:${c.h}px;z-index:12;opacity:${(1 - Math.max(0, k - .85) * 6).toFixed(2)}">`; }
+      const capC = GA.TIER[res.it.t].cap, cT = WB.pix(ART.capT, SC, capC), cB = WB.pix(ART.capB, SC);
+      if (u >= T_OUT && u < T_CARD + .6) {   // 캡슐: 배출구 → 왼쪽 바닥으로 굴러 콩콩 → 흔들 → 톡
+        const k = clamp((u - T_OUT) / (T_WOB - T_OUT), 0, 1), x0 = MX + 9 * SC, x1 = MX + 14 * SC + 8, y0 = G.top + 15 * SC, y1 = G.B - cT.h - cB.h;   // 오른쪽(커피머신 자리 앞)으로 — 왼쪽은 화분
+        const x = Math.round(lerp(x0, x1, ease(k))), y = Math.round(lerp(y0, y1, Math.min(1, k * 2.2)) - Math.abs(Math.sin(k * Math.PI * 2)) * 6 * (1 - k));
+        const wob = u >= T_WOB && u < T_POP ? (Math.floor(u * 12) % 2 ? 2 : -2) : 0, rot = k < 1 ? -Math.floor(k * 8) * 90 : 0;
+        if (u < T_POP) fx += `<div class="b" style="left:${x + wob}px;top:${y}px;width:${cT.w}px;height:${cT.h + cB.h}px;z-index:12;transform:rotate(${rot}deg)"><img class="b" alt="" src="${cT.url}" style="left:0;top:0;width:${cT.w}px;height:${cT.h}px"><img class="b" alt="" src="${cB.url}" style="left:0;top:${cT.h}px;width:${cB.w}px;height:${cB.h}px"></div>`;
+        else {   // 톡: 반쪽이 위·아래로 · 반짝이 고리(전설은 금빛 · 빛살) · 아이템이 솟음
+          const v = u - T_POP, a = clamp(v / .4, 0, 1), L = res.it.t === "l";
+          fx += `<img class="b" alt="" src="${cT.url}" style="left:${x - Math.round(a * 10)}px;top:${y - Math.round(a * 14)}px;width:${cT.w}px;height:${cT.h}px;z-index:12;opacity:${(1 - a).toFixed(2)};transform:rotate(${-Math.round(a * 4) * 90}deg)">`;
+          fx += `<img class="b" alt="" src="${cB.url}" style="left:${x + Math.round(a * 8)}px;top:${y + cT.h}px;width:${cB.w}px;height:${cB.h}px;z-index:12;opacity:${(1 - a).toFixed(2)}">`;
+          const n = L ? 14 : 8, R0 = (L ? 8 : 5) + a * (L ? 34 : 18);
+          for (let i = 0; i < n; i++) { const an = i / n * Math.PI * 2 + (L ? v : 0); fx += `<i class="b" style="left:${Math.round(x + cT.w / 2 + Math.cos(an) * R0)}px;top:${Math.round(y + cT.h + Math.sin(an) * R0 * .7)}px;width:${L && i % 2 ? 6 : 3}px;height:${L && i % 2 ? 6 : 3}px;background:${L ? (i % 2 ? "#ffd23f" : "#fff6c0") : capC};z-index:13;opacity:${(1 - a * .8).toFixed(2)}"></i>`; }
+          if (L) fx += `<i class="b ga-rays" style="left:${x + cT.w / 2 - 40}px;top:${y + cT.h - 40}px;opacity:${(1 - clamp((v - .6) / .6, 0, 1)).toFixed(2)}"></i>`;
+          const ih = artHTML(res.it, 2, false); fx += `<div class="b ga-pop-it" style="left:${x + cT.w / 2}px;top:${y - Math.round(ease(a) * 22)}px">${ih}</div>`;
+        }
+      }
+      if (u >= T_CARD && !ui.res) showRes(res);
+      if (u >= T_END) { spin = null; sty(G.knob, "transform", ""); sty(G.m, "transform", ""); if (ui.pop) render(); }   // [한 번 더] 다시 켬
+    }
+    html(G.fx, fx);
+    if (ui.pop) place(tc);
+  }
+  /* ---------- 판(기계 위 · 앱 좌표) ---------- */
+  const pop = mkEl("div", "ga-pop", h.app); pop.hidden = true;
+  let placeT = -9;
+  function place(tc) {
+    if (!G || G.m.style.display === "none") { pop.hidden = true; return; }   // 📋 일보·🍖 회식·🙈 눈치로 기계가 숨으면 판도 잠깐 숨김(돌아오면 다시)
+    pop.hidden = false;
+    if (tc != null && tc - placeT < .25) return; if (tc != null) placeT = tc;   // 자리 재기는 0.25초에 한 번
+    const mr = G.m.getBoundingClientRect(), ar = h.app.getBoundingClientRect(), w = pop.offsetWidth || 270, hh = pop.offsetHeight || 200;
+    const left = clamp(Math.round(mr.left - ar.left + mr.width / 2 - w / 2), 8, Math.max(8, ar.width - w - 8)), top = Math.max(8, Math.round(mr.top - ar.top - hh - 10));
+    sty(pop, "left", left + "px"); sty(pop, "top", top + "px");
+  }
+  function render() {
+    pop.hidden = !ui.pop; if (!ui.pop) return;
+    const funds = h.funds(), free = dev.on.has("free"), poor = !free && funds < GA.PRICE, c = GA.count(d), busy = !!spin;
+    const spinBtn = (lab) => `<button type="button" class="dc-btn ga-go${poor || busy || d.ro ? " dis" : ""}" data-act="ga-spin"${poor || busy || d.ro ? ' aria-disabled="true"' : ""}>🎰 ${lab} <b>💰${GA.PRICE}</b></button>`;
+    const why = d.ro ? X("새 버전 저장이라 이 버전에선 못 돌려요", "Saved by a newer version · can't spin here") : poor ? X(`💰 ${GA.PRICE - funds} 모자라요 · 완료하면 +25, 큰 일 +75`, `💰 ${GA.PRICE - funds} short · +25 per done, +75 for a big one`) : "";
+    let b;
+    if (ui.pop === "res" && ui.res) {
+      const r = ui.res, it = r.it, L = it.t === "l";
+      const msg = it.k === "app" ? X(`${EMO[it.an]} ${h.aName(it.an)}${h.josa(h.aName(it.an), "이", "가")} 입사했어요! 다음 새 세션부터 출근해요`, `${EMO[it.an]} ${h.aName(it.an)} joined! Shows up from the next new session`)
+        : it.k === "acc" ? X("🎨 꾸미기 판에서 층을 고르면 직원에게 씌워 줄 수 있어요", "Pick a floor in 🎨 Decorate to put it on someone")
+        : X("🎨 꾸미기 판 → 책상 칸에 놓아요", "Place it on a desk spot in 🎨 Decorate");
+      b = `<div class="ga-res${L ? " leg" : ""}">${L ? `<i class="ga-sp a">✦</i><i class="ga-sp b">✦</i><i class="ga-sp c">✦</i>` : ""}<div class="ga-art">${artHTML(it, 3, false, it.k === "acc" ? (h.model().floors[0] || {}).animal : null)}</div>
+        <div class="ga-tx">${tierB(it.t)}<b class="ga-nm">${esc(nm(it))}</b>${r.dup ? `<span class="ga-dup">${X(`이미 있어요 · 💰${r.back} 돌려받음`, `Already have it · 💰${r.back} back`)}</span>` : `<span class="ga-new">NEW!</span>`}<span class="ga-msg">${esc(msg)}</span></div></div>
+        <div class="ga-acts">${spinBtn(X("한 번 더", "Again"))}${it.k !== "app" ? `<button type="button" class="dc-btn" data-act="ga-decor">🎨 ${X("꾸미기", "Decorate")}</button>` : ""}<button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
+    } else {
+      b = `<div class="ga-menu"><div class="ga-art">${img(WB.pix(ART.mach, 2))}</div><div class="ga-tx"><span>${X(`한 번 💰${GA.PRICE} · 횟수 제한 없음`, `💰${GA.PRICE} a spin · no daily limit`)}</span>
+        <span class="ga-odds">${["c", "r", "l"].map(t => `<span class="ga-o">${tierB(t)} ${GA.RATES[t]}%</span>`).join("")}</span>
+        <span>${X("직원 액세서리 · 책상 소품 · 📄 입사 지원서", "Accessories · desk toys · 📄 job applications")}</span>
+        <span>${X(`같은 게 나오면 💰${GA.back()} 돌려받아요`, `Duplicates refund 💰${GA.back()}`)}</span></div></div>
+        <div class="ga-acts">${spinBtn(X("돌리기", "Spin"))}<button type="button" class="dc-btn" data-act="ga-dex">📖 ${X("도감", "Collection")} ${c.have}/${c.all}</button><button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
+    }
+    html(pop, `<div class="ga-hd">🎰 ${X("캡슐 뽑기", "Capsule machine")}<span class="ga-fund">💰 ${funds.toLocaleString("en-US")}</span></div>${b}`);
+    place();
+  }
+  function showRes(r) { ui.res = r; ui.pop = "res"; render(); h.kick(); }
+  function open() { if (h.hidden() || h.dr() || !G) return; ui.pop = spin ? "res" : "menu"; if (!spin) ui.res = null; render(); }
+  function close() { ui.pop = ""; render(); }
+  /* 돌리기: 결과를 바로 저장(창을 닫아도 안 잃게)하고 연출은 그 뒤 */
+  function doSpin() {
+    const tc = h.clockT(), free = dev.on.has("free");
+    if (spin || tc - lastTap < .5 || GA.why(d, h.funds(), free)) return render();
+    lastTap = tc; reload();
+    if (GA.why(d, h.funds(), free)) return render();   // 다시 읽어 보니 그새 새 버전 창이 v2로 씀 → 돈만 빠지지 않게
+    const force = dev.on.has("legend") ? { tier: "l" } : dev.on.has("rare") ? { tier: "r" } : (id => id ? { id } : null)([...dev.on].find(x => GA.BY[x]));
+    /* 지원서: 결제·저장 전에 먼저 잠금을 풂 — 못 풀면 지원서를 빼고 다시 뽑음("입사했어요!" 거짓 표시 없음) · 개발용이면 풀지 않음 */
+    const res = GA.draw(d, Math.random, locked, force, dev.any || !h.hire ? null : an => h.hire.unlock(an));
+    const now = Date.now() / 1000;
+    GA.apply(d, res, now); save();
+    if (!dev.any) { h.spend(GA.PRICE - res.back); h.float(-(GA.PRICE - res.back)); h.saveNow(); }   // 개발용 쿼리(?gacha=)면 자금도 건드리지 않음
+    const it = res.it;
+    h.log("🎰", X(`뽑기: ${nm(it)} (${GA.TIER[it.t].n[0]})${res.dup ? ` · 중복 +${res.back}` : ""}`, `Gacha: ${nm(it)} (${GA.TIER[it.t].n[1]})${res.dup ? ` · dup +${res.back}` : ""}`));
+    ui.res = null; ui.pop = h.anim() ? "" : "res"; if (!h.anim()) ui.res = res;
+    spin = { t0: tc, res, fast: !h.anim() };
+    if (it.t === "l" && h.anim()) clap = { a: tc + T_POP, b: tc + T_POP + 3 };
+    if (h.anim()) { h.snd("coin", 0); h.snd("crank", T_KNOB); h.snd("roll", T_OUT); h.snd("pop", T_POP); if (it.t === "l") h.snd("fanfare", T_POP + .1); else if (it.t === "r") h.snd("chime", T_POP + .1); }
+    read(h.model().floors); render(); h.kick(); h.hud();
+  }
+  function tap(act, b) {
+    if (act === "ga-spin") return doSpin();
+    if (act === "ga-close") return close();
+    if (act === "ga-dex") { close(); return h.openDex(); }
+    if (act === "ga-decor") { close(); return h.openDecor(); }
+    if (act === "ga-wear") {   // 🎨 꾸미기 판 👒 줄: 같은 걸 다시 누르면 벗음
+      const k = b.dataset.k, s = b.dataset.s, id = b.dataset.id || "";
+      if (!k || !["h", "f"].includes(s) || (id && (!GA.BY[id] || !GA.has(d, id) || GA.BY[id].s !== s))) return;
+      reload(); const cur = d.wear[k] && d.wear[k][s];
+      GA.setWear(d, k, s, cur === id ? "" : id, Date.now() / 1000); save(); read(h.model().floors); h.tray(); h.kick();
+    }
+  }
+  /* 기계 누르기(캡처 단계 — 👆 창·화분 반응으로 넘기지 않음) · Enter/Space */
+  ctx.listen(doc, "click", e => { if (!G || e.target !== G.hit || G.hit.style.display === "none") return; e.stopPropagation(); e.preventDefault(); open(); }, true);
+  ctx.listen(doc, "keydown", e => {
+    const t = e.target, typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ""));
+    if (e.repeat && pop.contains(t)) { e.preventDefault(); return; }   // [한 번 더]에서 Enter를 꾹 눌러도 연달아 돌지 않게
+    if (G && t === G.hit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } else if (ui.pop && e.key === "Escape" && !typing) close(); });
+  /* 🎨 꾸미기 판 👒 줄(층을 고르면, 간식 줄 아래) */
+  function row(fs) {
+    const seen = new Set(), owned = GA.ITEMS.filter(it => it.k === "acc" && GA.has(d, it.id));
+    const rows = fs.filter(f => { const k = GA.staffKey(f.s.project, f.pk); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3).map(f => {
+      const k = GA.staffKey(f.s.project, f.pk), w = d.wear[k] || {};
+      const chip = (s, it) => { const on = it ? w[s] === it.id : !w[s] || !GA.has(d, w[s]); return `<button type="button" class="dc-btn ga-w${on ? " on" : ""}" data-act="ga-wear" data-k="${esc(k)}" data-s="${s}" data-id="${it ? it.id : ""}" data-dcap="${esc(it ? X(`${nm(it)} 씌우기 · 같은 프로젝트·${f.pname}로 다시 출근해도 그대로`, `Wear ${nm(it)} · stays when ${f.pname} comes back to this project`) : X("벗기기", "Take off"))}">${it ? `<span class="ga-wi">${artHTML(it, 1, false, f.animal)}</span>${esc(nm(it))}` : X("없음", "None")}</button>`; };
+      const hs = owned.filter(it => it.s === "h"), fsx = owned.filter(it => it.s === "f");
+      return `<div class="tr-row"><span class="tr-h">👒 ${X("액세서리", "Accessory")} · ${EMO[f.animal]} ${esc(h.aName(f.animal))}·${esc(f.pname)}</span>${owned.length ? chip("h", null) + hs.map(it => chip("h", it)).join("") + (fsx.length ? `<span class="ga-sep">·</span>` + chip("f", null) + fsx.map(it => chip("f", it)).join("") : "") : `<em class="ga-none">${X("🎰 1층 뽑기 기계에서 모아요", "Collect them from the 🎰 machine on 1F")}</em>`}</div>`;
+    });
+    return rows.length ? `<div class="tr-rows">${rows.join("")}</div>` : "";
+  }
+  /* 📖 뽑기 도감(꾸미기 판 본문) */
+  function dex() {
+    const c = GA.count(d), grp = [["acc", X("👒 액세서리", "👒 Accessories")], ["desk", X("🗃️ 책상 소품", "🗃️ Desk toys")], ["app", X("📄 입사 지원서", "📄 Job applications")]];
+    return `<div class="ga-dex"><div class="ga-dh">📖 ${X("뽑기 도감", "Gacha collection")} <b>${c.have}/${c.all}</b> · ${X(`뽑은 횟수 ${d.n} · 돌려받은 💰${d.back}`, `${d.n} spins · 💰${d.back} refunded`)}</div>` + grp.map(([k, t]) => `<div class="ga-dg"><span class="ga-dt">${t}</span>${GA.ITEMS.filter(it => it.k === k).map(it => { const o = GA.has(d, it.id), n = o ? d.own[it.id].n : 0;
+      return `<span class="ga-cell t-${it.t}${o ? "" : " un"}" data-dcap="${esc(o ? `${nm(it)} · ${GA.TIER[it.t].n[en() ? 1 : 0]}${n > 1 ? " · ×" + n : ""}` : X(`??? · ${GA.TIER[it.t].n[0]} · 아직 못 뽑았어요`, `??? · ${GA.TIER[it.t].n[1]} · not found yet`))}">${artHTML(it, 2, !o)}<em>${o ? esc((it.sn || it.n)[en() ? 1 : 0]) : "???"}</em>${n > 1 ? `<u>×${n}</u>` : ""}</span>`; }).join("")}</div>`).join("") + `</div>`;
+  }
+  /* 🎉 전설: 자리에 있는 직원들 박수(만세 ↔ 내림, 3초) — 정적이면 없음 */
+  function actor(i, fl, f, a, T, tc, anim) {
+    if (!anim || tc < clap.a || tc > clap.b || h.hidden()) return;
+    if (a.loc !== "home" || a.moving || a.par !== fl.F) return;
+    const o = JSON.parse(a.pose || "{}"); h.setP(a, Object.assign(o, { arms: Math.floor(tc / .14) % 2 ? "u" : "", mouth: "o", eyes: "o" }));
+  }
+  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, close };
 }
 
 /* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig만 — 미니 보기는 읽지 않음. 본체에는 연결 줄만, jhkwim/waitscape#79) =================
@@ -5108,6 +5484,7 @@ C.registerMode({
     function setP(a, p) {
       const o = Object.assign({ prov: a.opt.prov, shiny: a.opt.shiny, baby: a.opt.baby, boss: a.opt.boss }, p, TINY.fri && !a.opt.boss ? { aloha: 1 } : null);   // 🌺 금요일 오후 셔츠
       if (HABIT.night && a.ch.id === "owl" && o.eyes !== "c") o.eyes = "w";   // 🦉 밤엔 눈 크게(#85)
+      const gw = !a.opt.boss && gaB.wearSid(a.sid || a.psid); if (gw) { if (gw.ac) o.ac = gw.ac; if (gw.af) o.af = gw.af; }   // 🎰 착용 액세서리(#86, 아기는 부모 것)
       const k = JSON.stringify(o);
       if (a.pose !== k) { a.pose = k; const s = sprite(doc, a.ch, o, a.scale); a.img.src = s.url; a.img.style.width = s.w + "px"; a.img.style.height = s.h + "px"; a.w = s.w; a.h = s.h; a.sp = s; }
     }
@@ -5117,11 +5494,15 @@ C.registerMode({
         sty(a.el, "left", (x - a.w / 2) + "px"); sty(a.el, "top", (feet - a.w / 2 - a.h / 2) + "px");
         sty(a.img, "transformOrigin", "50% 50%"); sty(a.img, "transform", `rotate(-90deg) scale(${o.sc || 1})`);
       } else {
-        sty(a.el, "left", (x - a.w / 2) + "px"); sty(a.el, "top", (feet - a.h + (o.dy || 0)) + "px");
+        const dy = a.sp && a.sp.pre && parent.classList.contains("fl") ? Math.max(o.dy || 0, -(feet - a.h)) : o.dy || 0;   // 🎰 모자 쓴 직원이 콩콩 뛰어도 층 위로 안 넘치게(.fl overflow에 모자가 잘리지 않게)
+        sty(a.el, "left", (x - a.w / 2) + "px"); sty(a.el, "top", (feet - a.h + dy) + "px");
         sty(a.img, "transformOrigin", "50% 100%");
         sty(a.img, "transform", (o.flip ? "scaleX(-1) " : "") + (o.rot ? `rotate(${o.flip ? -o.rot : o.rot}deg)` : ""));
       }
       sty(a.bub, "bottom", ((o.lying ? a.w : a.h) + (a.tag.style.display === "none" ? 8 : 24)) + "px");
+      /* 🎰 모자로 키가 커져 이름표가 층 위로 넘치면(층 6개 · 서 있을 때) 그만큼 내려 모자 끝에 겹침 — .fl overflow에 잘리지 않게 */
+      const over = o.lying ? 0 : Math.min(0, feet - a.h + Math.max(o.dy || 0, -(feet - a.h)) - 22);
+      sty(a.tag, "marginBottom", over < 0 && a.sp && a.sp.pre ? (2 + Math.max(over, -a.sp.pre * a.scale)) + "px" : "");
     }
     function bubble(a, h, on) { sty(a.bub, "display", on ? "block" : "none"); if (on) html(a.bub, h); }
     const tagOn = (a, on) => sty(a.tag, "display", on && !(nSess >= 6 && !a.opt.boss) ? "" : "none");
@@ -5256,7 +5637,7 @@ C.registerMode({
     [["🕊️", 40, 0], ["🕊️", 70, -20], ["🕊️", 25, -35]].forEach(([e, t, d], i) => mkEl("div", "bird", view, { top: t + "px", animationDelay: d + "s", animationDuration: 55 + i * 12 + "s" }, e));
     [[8, 60, 70], [34, 150, 56], [18, 250, 80], [12, 420, 64], [46, 330, 48]].forEach(([t, l, w], i) => mkEl("div", "cloud", view, { top: t * 3 + "px", left: l * 2 + "px", width: w + "px", animationDelay: -i * 30 + "s", animationDuration: 90 + i * 35 + "s" }));
     view.insertBefore(sc, null);
-    const pwB = powerBig({ doc, win, mkEl, sty, txt, html, X, view, hud, cfg: () => cfg });   // 전력·날씨
+    const pwB = powerBig({ doc, win, mkEl, sty, txt, html, X, view, hud, cfg: () => cfg, wear: sid => gaB.wearSid(sid) });   // 전력·날씨
     const pkB = pokeBig({ ctx, doc, win, mkEl, sty, html, X, view, main: $(".main"), cfg, car, actors, setP, canTerm, clockT, model: () => model, bossAct: () => bossAct, owned: id => owned(id), noPlant: f => dcB.noPlant(f),   // 👆 클릭 반응 (🎨 바닥 2에 소품이 있으면 화분 자리를 비킴)
       vendEl: i => pwB.vendEl(i), vOff: () => pwB.vOff(), scale: () => scaleK, anim: () => animOn(), askb: () => askb, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(),
       resetIn: () => { const l = C.limits(ctx.state, ctx.now()).five; return l && l.reset ? Math.max(0, l.reset - ctx.now()) : null; } });
@@ -5265,7 +5646,11 @@ C.registerMode({
       provName: id => C.provider(ctx.state, { provider: id }).name, anim: () => animOn(), kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), dinner: c => trB.cardBtn(c) });   // 🍖 카드 아래 회식 버튼
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
       lv: () => lvOf(), funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
-      money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs) });   // 🍩 층을 고르면 간식 줄
+      money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs), ga: () => gaB });   // 🍩 층을 고르면 간식 줄
+    const gaB = gachaBig({ ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
+      funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
+      kick: () => { if (!animOn()) staticDraw(); }, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode), dr: () => drB.active() || trB.active(), setP,
+      snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true) });
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
@@ -5416,6 +5801,7 @@ C.registerMode({
       dcB.build({ FL, n });   // 🎨 칸마다 소품 · 꾸미기 칸 표시 · 다른 층 어둡게
       tnB.build({ FL, n, carEl });   // ☕ 빈 잔 · 📅 달력 · 🔦 1층 고양이
       trB.build({ bld, FL, n });   // 🍩 책상 위 간식 · 🍖 옥상 겹 · 📷 1층 회식 사진
+      gaB.build({ FL, n }); gaB.read(model.floors);   // 🎰 1층 뽑기 기계
       layout();
     }
 
@@ -5701,6 +6087,7 @@ C.registerMode({
         if (!DRon && !dnm) tnB.actor(i, fl, f, a, T, tc, anim);   // 🤸 질문 대기 발 동동·주저앉기 · 문어 다리 타자 · 월요일 하품
         if (!DRon && !dnm) hbB.actor(i, fl, f, a, T, tc, anim); else hbB.off(a, f);   // 🐾 새 직원 버릇(#85): 여우 꼬리 · 판다 대나무 · 부엉이 밤눈/꾸벅 · 고슴도치 쭈뼛/굴러가기
         if (!DRon && !dnm) trB.actor(i, fl, f, a, T, tc, anim);   // 🍩 간식 받은 만세 · 한 입 · 회식에서 돌아옴
+        if (!DRon && !dnm) gaB.actor(i, fl, f, a, T, tc, anim);   // 🎰 전설이 나오면 박수
         if (!DRon && !dnm) pkB.actor(i, fl, f, a, T, tc, anim);   // 👆 누르면 몸짓·둘레 효과
       }
       if (visitor) { const va = actors.get(visitor); if (va && va.goal === "home" && va.loc === "home" && !va.moving) assignVisitor(); }
@@ -5795,6 +6182,7 @@ C.registerMode({
       dcB.frame(T, tc, anim);   // 🎨 소품·택배·하트·물 주기 · 꾸미기 칸 · 자금 옆 숫자
       tnB.frame(T, tc, anim);   // ☕ 빈 잔 · 📅 연속 출근 · 🔦 순찰
       trB.frame(T, tc, anim);   // 🍩 책상 위 간식 · 🍖 옥상 회식 · 📷 회식 사진
+      gaB.frame(T, tc, anim);   // 🎰 뽑기 연출 · 판 자리
     }
 
     /* 한 층의 동물 놓기 — 반환 { babies } */
@@ -6041,7 +6429,7 @@ C.registerMode({
       const dn = m => WB.isDone(m, tc);
       const show = mem.slice().sort((p, q) => dn(p) - dn(q) || p.j - q.j).slice(0, 3).sort((p, q) => p.j - q.j);   // 일하는 아기 먼저 자리에
       const nB = show.length;
-      while (a.babies.length < nB) a.babies.push(mkActor(BYID[f.animal], { prov: f.pk, baby: 1, scale: SB, label: "#" + (a.babies.length + 1), color: "#ff8a3d" }));
+      while (a.babies.length < nB) a.babies.push(Object.assign(mkActor(BYID[f.animal], { prov: f.pk, baby: 1, scale: SB, label: "#" + (a.babies.length + 1), color: "#ff8a3d" }), { psid: f.sid }));   // psid: 🎰 부모 액세서리
       const live = show.filter(m => !dn(m)), sp = live.length ? live[Math.floor(T / 3) % live.length] : null, talk = anim && (T % 3) < 2.6;
       const yw = Tm && anim ? WB.yawn(Tm, tc) : null;
       let top = B - 60, stallN = 0;
@@ -6271,6 +6659,7 @@ C.registerMode({
       tnB.read(floors);   // 📅 오늘 일한 프로젝트 기록(새벽 4시 경계)
       trB.read();   // 🍩 날이 바뀌면 간식 비움
       dcB.read(floors, tc, firstSync);   // 🎨 층(프로젝트)이 보임 → 창고 복원·시듦 · 7일 안 온 층은 창고로
+      gaB.read(floors);   // 🎰 직원(프로젝트 + 프로바이더) → 착용 액세서리
       const sig = floors.map(f => f.sid + f.layout + (f.aib ? "w" : "")).join(",") + "|" + nSess + "|" + Object.keys(sv.shop).sort().join(",") + "|" + ctx.lang + "|" + dcB.sig();
       if (sig !== buildSig) { buildSig = sig; build(); }
       if (moreEl) { moreEl.hidden = !model.more; txt(moreEl, X(`+${model.more}명 더`, `+${model.more} more`)); }
@@ -6355,7 +6744,7 @@ C.registerMode({
       const st = ctx.state, now = ctx.now(); if (!st) return;
       const fl = model.floors;
       let cards = fl.map(f => {
-        const a = actors.get(f.sid), sp = sprite(doc, BYID[f.animal], { view: "front", legs: "s", eyes: "o", prov: f.pk, shiny: f.shiny, trim: 1 }, 2), L = lvEmp(sv.dones[f.sid] || 0), col = PROV_COLOR[f.pk];
+        const a = actors.get(f.sid), sp = sprite(doc, BYID[f.animal], Object.assign({ view: "front", legs: "s", eyes: "o", prov: f.pk, shiny: f.shiny, trim: 1 }, gaB.wearSid(f.sid)), 2), L = lvEmp(sv.dones[f.sid] || 0), col = PROV_COLOR[f.pk];
         return `<div class="card"><div class="th"><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px"></div><div class="inf"><div class="r1"><span class="nm">${f.shiny ? "✨ " : ""}${esc(aName(f.animal))} <span style="color:${col}">· ${esc(f.pname)}</span></span><span class="role" style="background:${col}">${esc(roleOf(f.s))}</span><span style="margin-left:auto">Lv.${L.lv}</span></div><div class="xp"><i style="width:${L.pct}%"></i></div><div class="st">${esc(statusText(f, a))}</div></div></div>`;
       }).join("");
       if (!fl.length) cards = `<div class="none">${X("출근한 직원이 없어요. AI 코딩 세션을 켜면 동물 직원이 출근해요.", "Nobody is here yet. Start an AI coding session to hire your first animal.")}</div>`;
@@ -6418,6 +6807,7 @@ C.registerMode({
       if (dcB.on() && (act === "poke" || act === "jump" || act === "term")) return;   // 🎨 꾸미기 중엔 👆 반응·세션 이동을 쉼
       if (act === "mini") openMini();
       else if (act === "decor") dcB.tap("dc-toggle", b);
+      else if (act.startsWith("ga-")) gaB.tap(act, b);   // 🎰 뽑기 판 · 👒 착용
       else if (act.startsWith("dc-")) dcB.tap(act, b);   // 🎨 층 탭·칸·소품 카드·옮기기·되팔기
       else if (act === "sound") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); if (cfg.sound) ctx.audio(); }
       else if (act === "quiet") ctx.settings.setQuiet && ctx.settings.setQuiet(!ctx.settings.quiet);
