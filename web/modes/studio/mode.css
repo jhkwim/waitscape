@@ -590,8 +590,8 @@ body[data-mode="studio"] .stu .dn-photo { width: 50px; height: 40px; z-index: 4;
 body[data-mode="studio"] .stu .dn-photo img { position: absolute; image-rendering: pixelated; }
 body[data-mode="studio"] .stu .dn-photo .dn-pl { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: #f6a43c; border-top: 1px solid #4a3560; z-index: 1; }
 /* 정지 장면 카드(움직임 줄이기) */
-body[data-mode="studio"] .stu .dn-ov { position: absolute; inset: 0; z-index: 180; display: grid; place-items: center; background: rgba(18, 12, 30, .72); }
-body[data-mode="studio"] .stu .dn-box { width: 380px; max-width: calc(100% - 24px); background: #fff8e8; border: 4px solid #2e2040; box-shadow: 0 6px 0 #2e2040; padding: 10px; color: #2e2040; font-weight: 800; font-size: 13px; }
+body[data-mode="studio"] .stu .dn-ov { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 180; display: grid; place-items: center; background: rgba(18, 12, 30, .72); }
+body[data-mode="studio"] .stu .dn-box { outline: none; width: 380px; max-width: calc(100% - 24px); background: #fff8e8; border: 4px solid #2e2040; box-shadow: 0 6px 0 #2e2040; padding: 10px; color: #2e2040; font-weight: 800; font-size: 13px; }
 body[data-mode="studio"] .stu .dn-hd { font-size: 15px; font-weight: 900; margin-bottom: 8px; }
 body[data-mode="studio"] .stu .dn-sc { position: relative; height: 150px; overflow: hidden; border: 3px solid #2e2040; background: linear-gradient(#5a4a8a 0, #ff9a7a 75%, #ffc89a 100%); }
 body[data-mode="studio"] .stu .dn-sc img { position: absolute; image-rendering: pixelated; z-index: 2; }

@@ -3389,7 +3389,7 @@ function dayrepBig(h) {
   function dnBtn() {   // 🍖 오늘 카드면 회식 버튼(TREAT 블록) — 카드를 그릴 때·1초마다(자금이 바뀌면)
     const dn = card && h.dinner ? h.dinner(card) : null, dr = box.querySelector(".dr-dn"), db = dr.firstChild;
     dr.hidden = !(dn && dn.show);
-    if (dn && dn.show) { txt(db, dn.text); db.title = dn.title; db.disabled = !!dn.dis; db.classList.toggle("dis", !!dn.dis); }
+    if (dn && dn.show) { txt(db, dn.text); db.title = dn.title; if (dn.dis) db.setAttribute("aria-disabled", "true"); else db.removeAttribute("aria-disabled"); db.classList.toggle("dis", !!dn.dis); }   // 트레이처럼 aria-disabled(포커스·설명은 그대로)
   }
   function fitBox() {
     const W0 = view.clientWidth, H0 = view.clientHeight; if (!W0 || !H0) return 1;
@@ -4390,7 +4390,7 @@ function tinyBig(h) {
      산 뒤 8초 · 10분 · 30분에 한 입씩(커피는 한 모금) → 세 번째에 빈 접시(빈 잔). 두 번째 간식은 첫 간식을 다 먹은 뒤부터. 한 입 몸짓은 책상에 앉아 있을 때만
      (질문·멈춤·회의·쉬러 간 동안엔 몸짓 없이 줄기만) · 움직임 줄이기면 몸짓 없이 그림만 바뀜. 회의 배치(책상 없음)·🙈 눈치 모드 동안은 숨김(저장은 그대로).
      👆 누를 자리는 새로 만들지 않음 — 간식은 직원 자리(👆 직원) 안쪽 책상 위라 누르면 평소처럼 직원 반응.
-   - 🍖 회식: 하루 한 번 1,200. 📋 퇴근 일보 카드(오늘 카드 — 어제 카드 아님) 아래 [🍖 다 같이 회식 가기] → 카드를 닫고 연출 26초 안팎:
+   - 🍖 회식: 하루 한 번 1,200, 17시 ~ 새벽 4시에만(개발용 쿼리는 제한 없음 · 공짜). 사장님도 함께 옥상에(그릴 오른쪽) — 사장실이 바쁘면(질문) 1층에 남거나 바로 돌아옴. 저장이 새 버전(v > 1)이면 간식·회식 결제 막음. 📋 퇴근 일보 카드(오늘 카드 — 어제 카드 아님) 아래 [🍖 다 같이 회식 가기] → 카드를 닫고 연출 26초 안팎:
      사장님 "오늘 회식은 옥상 바베큐!" → 오늘 일한 직원(화면에 있는 직원 — 책상·회의 중이 아니고 질문·멈춤이 아닌 — 먼저, 모자라면 일보의 workers에서, 최대 6)이
      자기 층에서 "회식이다!" 하고 엘리베이터 쪽으로 사라짐 → 옥상 계단실에서 나와 그릴 둘레로(연기·불꽃·지글지글·전구 줄) → 수다 → "건배! 🍻" → "잘 먹었습니다!" → 계단실로.
      연출 동안 건물 위에 옥상 자리(ROOF_H)를 더 둠 — 하늘에 자리가 없으면 건물이 잠깐 작아짐. 움직임 줄이기(또는 연출 중 움직임이 꺼지면)면 정지 장면 카드.
@@ -4452,7 +4452,7 @@ const TREAT = (() => {
       const ok = a.filter(e => e && typeof e === "object" && KIND[e.k] && Number.isFinite(e.t) && e.t > 0).slice(0, MAX).map(e => ({ k: e.k, t: e.t }));
       if (ok.length) s[sid] = ok; });
     const dn = j.dn;
-    if (dn && typeof dn === "object" && isDay(dn.d) && Number.isFinite(dn.t)) out.dn = { d: dn.d, t: dn.t, w: (Array.isArray(dn.w) ? dn.w : []).filter(w => w && typeof w === "object" && BYID[w.a]).slice(0, W_MAX).map(w => ({ a: w.a, p: provKey(String(w.p || "")), sh: w.sh ? 1 : 0 })) };
+    if (dn && typeof dn === "object" && isDay(dn.d) && Number.isFinite(dn.t)) out.dn = { d: dn.d, t: dn.t, w: (Array.isArray(dn.w) ? dn.w : []).filter(w => w && typeof w === "object" && typeof w.a === "string" && Object.prototype.hasOwnProperty.call(BYID, w.a)).slice(0, W_MAX).map(w => ({ a: w.a, p: provKey(String(w.p || "")), sh: w.sh ? 1 : 0 })) };
     return out;
   }
   const dump = s => JSON.stringify(Object.assign({ v: VER, d: s.d, s: s.s }, s.dn ? { dn: s.dn } : null));
@@ -4469,7 +4469,8 @@ function treatBig(h) {
   let s = R.load(ctx.store.get("treat", ""));
   const save = () => { if (!s.ro && !dev.any) try { ctx.store.set("treat", R.dump(s)); } catch {} };
   const nowS = () => ctx.now(), today = () => TINY.dayKey(nowS());
-  const ROOF_H = 104, RY = ROOF_H + 25, HUT = 690, DOOR = 664, SLOT = [362, 478, 302, 538, 242, 598], GX = 420;   // 옥상 겹 좌표(겹 위 = 건물 −ROOF_H) · RY = 옥상 바닥 · 계단실 문 · 층에서 사라질 자리(엘리베이터 앞) · 그릴 둘레 자리 · 그릴 가운데
+  const ROOF_H = 104, RY = ROOF_H + 25, HUT = 690, DOOR = 664, SLOT = [362, 478, 302, 538, 242, 598], GX = 420;
+  const BOSS_X = 482, SLOT_B = [362, 540, 304, 598, 246], B_UP = 2.6;   // 👔 사장님이 함께면: 사장님은 그릴 오른쪽 옆 · 직원 5자리(58px 간격) · 1층에서 한마디 하는 시간   // 옥상 겹 좌표(겹 위 = 건물 −ROOF_H) · RY = 옥상 바닥 · 계단실 문 · 층에서 사라질 자리(엘리베이터 앞) · 그릴 둘레 자리 · 그릴 가운데
   const TX = [338, 350];   // 책상 위 간식 왼쪽 x: 직원 왼손 앞(🎨 책상 칸 가운데 320 오른쪽 · 타자 치는 손 361~413 왼쪽 — 둘째는 첫째 뒤로 살짝 겹쳐 올림 · ☕ 빈 잔 421~·모니터·👆 머그는 오른쪽)
   let G = null, S = null, cardEl = null, lock = new Map(), react = new Map(), back = new Map(), pend = dev.dinner === "now";
   const nm = id => R.KIND[id].n[en() ? 1 : 0];
@@ -4508,17 +4509,19 @@ function treatBig(h) {
     G.grill = pi(R.ROOF.grillA, 3, GX, 6);
     G.smoke = [0, 1, 2, 3, 4].map(() => mkEl("div", "b dn-smoke", L, { display: "none" }));
     G.sz = mkEl("div", "b dn-sz", L, { display: "none" });
+    if (S) { sty(L, "display", "block"); S.mem.forEach(m => { if (m.extra && m.a) m.a.par = null; }); }   // 회식 중 다시 지음(언어·동물 설정·층 구성): 새 옥상 겹에 이어서 그림 — 직원 액터는 cur()가 다시 묶음
   }
 
   /* ---------- 🍩 사기 (🎨 꾸미기 판의 간식 줄) ---------- */
   const floorOf = sid => h.model().floors.find(f => f.sid === sid);
-  function row(fs) {   // fs = 고른 층(프로젝트)의 층들 → 판 HTML
-    const funds = h.funds();
+  function row(fs) {   // fs = 고른 층(프로젝트)의 층들 → 판 HTML (판은 1초마다 다시 그림 → 자금·새벽 4시가 바로 반영)
+    roll(); const funds = h.funds(), ro = !!s.ro;
     return `<div class="tr-rows">` + fs.slice(0, 3).map(f => {
       const L = listOf(f.sid), n = L.length, full = n >= R.MAX, an = f.animal, nmA = h.aName(an);
       const btns = R.KINDS.map(k => {
-        const poor = funds < k.p, fav = R.FAV[an] === k.id, dis = full || poor;
-        const cap = full ? X(`${nmA}${josa(nmA, "은", "는")} 오늘 간식을 다 받았어요 (하루 ${R.MAX}개) · 새벽 4시에 다시`, `${nmA} had today's ${R.MAX} treats · resets at 4am`)
+        const poor = funds < k.p, fav = R.FAV[an] === k.id, dis = ro || full || poor;
+        const cap = ro ? X("새 버전에서 저장한 기록이라 여기선 못 사요 · 앱을 다시 올리면 돼요", "Saved by a newer version, so you can't buy here · update the app")
+          : full ? X(`${nmA}${josa(nmA, "은", "는")} 오늘 간식을 다 받았어요 (하루 ${R.MAX}개) · 새벽 4시에 다시`, `${nmA} had today's ${R.MAX} treats · resets at 4am`)
           : poor ? X(`💰 ${k.p - funds} 모자라요`, `💰 ${k.p - funds} short`)
           : X(`${nmA}에게 ${nm(k.id)} 💰${k.p} · 오늘 하루 책상에 놓여요 (보기용)${fav ? ` · ${EMO[an]} 제일 좋아해요 ♥` : ""}`, `${nm(k.id)} for ${nmA} 💰${k.p} · stays on the desk today (looks only)${fav ? ` · ${EMO[an]}'s favorite ♥` : ""}`);
         return `<button type="button" class="dc-btn tr-buy${dis ? " dis" : ""}" data-act="tr-buy" data-sid="${esc(f.sid)}" data-id="${k.id}" data-dcap="${esc(cap)}"${dis ? ` aria-disabled="true"` : ""}>${k.e} ${esc(nm(k.id))} <b>💰${k.p}</b>${fav ? `<i>♥</i>` : ""}</button>`;
@@ -4528,7 +4531,7 @@ function treatBig(h) {
   }
   function buy(sid, id) {
     const k = R.KIND[id], f = floorOf(sid), tc = h.clockT();
-    if (!k || !f) return false;
+    if (s.ro || !k || !f) return false;   // 새 버전 저장(읽기 전용): 기록을 못 남기니 결제도 안 함(하루 상한이 무너지지 않게)
     if (lock.has(sid) && tc - lock.get(sid) < .6) return false;   // 빠른 연타(더블 클릭) = 한 번
     roll();
     const L = dev.treat ? [] : listOf(sid);
@@ -4555,7 +4558,6 @@ function treatBig(h) {
         if (!p || (j === 1 && P.length < 2)) { sty(e, "display", "none"); return; }
         const a = WB.pix(R.art(p.id, p.st), 2), x = P.length > 1 ? TX[1 - j] : TX[0] + 2;
         e.src = a.url; sty(e, "display", "block"); sty(e, "left", x + "px"); sty(e, "top", (r.B - 26 - a.h + (P.length > 1 && j === 0 ? -3 : 0)) + "px"); sty(e, "width", a.w + "px"); sty(e, "height", a.h + "px"); sty(e, "zIndex", String(j ? 11 : 10)); });
-      r.el.title = P.map(p => (p.st >= 3 ? X("빈 접시", "Empty plate") + ` (${nm(p.id)})` : `${R.KIND[p.id].e} ${nm(p.id)}`)).join(" · ");
     });
   }
 
@@ -4563,39 +4565,49 @@ function treatBig(h) {
   const seatedHome = (fl, f, a) => f.layout !== "meet" && a.loc === "home" && !a.moving && !a.lift && a.par === fl.F && (a.x == null || Math.abs(a.x - DESK_X) < 2) && f.kind !== "ask" && f.kind !== "stall";
   function actor(i, fl, f, a, T, tc, anim) {
     const bk = back.get(a);   // 회식에서 돌아옴: .6초 스르륵
-    if (bk != null) { const u = tc - bk; if (u >= .6 || !anim) back.delete(a); else sty(a.el, "opacity", (u / .6).toFixed(2)); }
-    const E = a.trx || (a.trx = mkEl("div", "tr-nom", a.el, { display: "none" })); let nom = false;
-    if (!seatedHome(fl, f, a) || !fl.desk) { sty(E, "display", "none"); return; }
-    let o = null; try { o = JSON.parse(a.pose); } catch {} if (!o || !o.seated) { sty(E, "display", "none"); return; }
+    if (bk != null) { const u = tc - bk; if (u >= .6 || !anim) { back.delete(a); sty(a.el, "opacity", ""); } else sty(a.el, "opacity", (u / .6).toFixed(2)); }
+    const E = a.trx || (a.trx = mkEl("div", "tr-nom", a.el, { display: "none" })), off = () => sty(E, "display", "none");
+    /* 할 일이 있을 때만 무거운 판정(자세 JSON 읽기): 받은 순간(3.4초) · 한 입 몸짓 구간(1.6초) */
+    let Rc = react.get(f.sid), P = null, b = null, u = 99;
+    const ru = Rc ? tc - Rc.t0 : 99;
+    if (Rc && ru >= 3.4) { react.delete(f.sid); Rc = null; }
+    if (!Rc) {
+      if (!anim) return off();
+      const L = listOf(f.sid, i); if (!L.length) return off();
+      P = R.plan(L, nowS(), bitesB()); b = P.map(p => p.bite).filter(x => x != null).sort((x, y) => y - x)[0]; u = b != null ? nowS() - b : 99;
+      if (u >= 1.6) return off();
+    }
+    if (!seatedHome(fl, f, a) || !fl.desk) return off();
+    let o = null; try { o = JSON.parse(a.pose); } catch {} if (!o || !o.seated) return off();
     const hideHands = () => fl.desk.hands.forEach(e => sty(e, "display", "none"));
-    const Rc = react.get(f.sid), ru = Rc ? tc - Rc.t0 : 99;
-    if (Rc && ru < 3.4) {   // 🎁 받은 순간: 만세 + 한마디(좋아하는 간식이면 ♥ · 두 번째면 감동)
+    if (Rc) {   // 🎁 받은 순간: 만세 + 한마디(좋아하는 간식이면 ♥ · 두 번째면 감동)
       const fav = R.FAV[f.animal] === Rc.id, n = nm(Rc.id);
-      const say = Rc.n > 1 ? X("또요?! 감동이에요 🥹", "Another one?! 🥹") : fav ? X(`${n}${josa(n, "이다", "다")}! 제일 좋아해요 ♥`, `${n}! My favorite ♥`) : f.animal === "bot" && Rc.id === "coffee" ? X("카페인 충전! ⚡", "Caffeine charge! ⚡") : X("고마워요! 잘 먹을게요 😋", "Thank you! Looks yummy 😋");
+      const say = Rc.n > 1 ? X("또요?! 감동이에요 🥹", "Another one?! 🥹") : f.animal === "bot" && Rc.id === "coffee" ? X("카페인 충전! ⚡ ♥", "Caffeine charge! ⚡ ♥") : fav ? X(`${n}${josa(n, "이다", "다")}! 제일 좋아해요 ♥`, `${n}! My favorite ♥`) : X("고마워요! 잘 먹을게요 😋", "Thank you! Looks yummy 😋");
       h.setP(a, { view: "front", seated: 1, arms: "u", mouth: "o", eyes: "o" }); h.put(a, fl.F, DESK_X, fl.B - 6, { dy: anim && ru < 1.4 ? -Math.round(Math.abs(Math.sin(ru * 7)) * (fav ? 5 : 3)) * 2 : 0 });
-      h.tagOn(a, false); h.bubble(a, esc(say), true); hideHands(); sty(E, "display", "none"); return;
+      h.tagOn(a, false); h.bubble(a, esc(say), true); hideHands(); return off();
     }
-    if (Rc) react.delete(f.sid);
-    if (!anim) { sty(E, "display", "none"); return; }
     /* 🍩 한 입: 마지막 한 입 시각에서 1.6초(.5초 입 벌림 → 오물오물 + "냠") · 평소 자세일 때만 */
-    const P = R.plan(listOf(f.sid, i), nowS(), bitesB()), b = P.map(p => p.bite).filter(x => x != null).sort((x, y) => y - x)[0], u = b != null ? nowS() - b : 99;
-    if (u < 1.6 && !o.arms && o.mouth !== "o") {
-      const sip = P.some(p => p.bite === b && R.KIND[p.id].sip);
-      h.setP(a, Object.assign(o, u < .5 ? { arms: "r", mouth: "o", eyes: "o" } : { arms: "", mouth: Math.floor(u * 6) % 2 ? "o" : "", eyes: "c" })); hideHands();
-      if (u >= .5) { nom = true; txt(E, sip ? X("후룩", "sip") : X("냠", "nom")); sty(E, "top", (Math.floor(u * 3) % 2 ? 4 : 8) + "px"); }
-    }
-    sty(E, "display", nom ? "block" : "none");
+    if (o.arms || o.mouth === "o") return off();
+    const sip = P.some(p => p.bite === b && R.KIND[p.id].sip);
+    h.setP(a, Object.assign(o, u < .5 ? { arms: "r", mouth: "o", eyes: "o" } : { arms: "", mouth: Math.floor(u * 6) % 2 ? "o" : "", eyes: "c" })); hideHands();
+    if (u < .5) return off();
+    txt(E, sip ? X("후룩", "sip") : X("냠", "nom")); sty(E, "top", (Math.floor(u * 3) % 2 ? 4 : 8) + "px"); sty(E, "display", "block");
   }
 
   /* ---------- 🍖 회식 ---------- */
   const busy = () => !!h.nx();   // 🙈 눈치 모드 중엔 못 감(📋 일보 연출은 카드를 닫으며 끝남)
   /* 갈 직원: 화면의 직원(제자리 · 책상 배치 · 질문·멈춤 아님) 먼저, 모자라면 오늘 일보의 workers(화면에 없는 직원은 옥상 계단실로만 옴) */
-  function members(d) {
+  /* 사장실이 바쁨: 질문 중이거나 질문하러 가는 직원 · 감사 인사 · 돌아가는 엘리베이터 — 이때 사장님은 옥상에 안 감(사장실 질문 흐름은 사장님 자리를 전제로 함) */
+  const askBusy = () => h.model().floors.some(f => f.kind === "ask") || [...h.actors.values()].some(a => a.goal === "boss" || a.loc === "boss" || (a.loc === "car" && a.goal === "home"));
+  /* 저녁: 17시 ~ 다음 날 새벽 4시(하루 경계와 같음) · 개발용 쿼리는 시간 제한 없음 */
+  const evening = () => { if (dev.any) return true; const hh = new Date(nowS() * 1000).getHours(); return hh >= 17 || hh < 4; };
+  const cap = () => askBusy() ? R.W_MAX : R.W_MAX - 1;   // 사장님이 올라가면 옥상 자리 하나를 사장님이 씀
+  function members(d, lim = cap()) {
     const M = h.model(), out = [];
-    M.floors.forEach((f, i) => { const a = h.actors.get(f.sid); if (!a || out.length >= R.W_MAX) return;
+    M.floors.forEach((f, i) => { const a = h.actors.get(f.sid); if (!a || out.length >= lim) return;
       if (f.layout === "meet" || f.kind === "ask" || f.kind === "stall" || a.loc !== "home" || a.lift || a.goal !== "home") return;
       out.push({ sid: f.sid, fi: i, a, animal: f.animal, pk: f.pk, shiny: f.shiny }); });
-    ((d && d.workers) || []).forEach(w => { if (out.length >= R.W_MAX || !w || typeof w.sid !== "string" || out.some(m => m.sid === w.sid) || M.floors.some(f => f.sid === w.sid)) return;
+    ((d && d.workers) || []).forEach(w => { if (out.length >= lim || !w || typeof w.sid !== "string" || out.some(m => m.sid === w.sid) || M.floors.some(f => f.sid === w.sid)) return;
       const an = h.animalOf(w.sid); out.push({ sid: w.sid, fi: -1, a: null, animal: an.id, pk: provKey(w.provider), shiny: an.shiny }); });
     return out;
   }
@@ -4604,7 +4616,9 @@ function treatBig(h) {
   function cardBtn(c) {
     if (!c || !c.d || c.kind === "morning" || c.d.today === false) return { show: false };
     const n = members(c.d).length, need = R.DINNER - h.funds();
-    const st = doneToday() ? ["done", X("🍖 오늘 회식 완료 ✓ · 내일 1층에 사진이 걸려요", "🍖 Team dinner done ✓ · photo on 1F tomorrow")]
+    const st = s.ro ? ["ro", X("🍖 회식 · 새 버전에서 저장한 기록이라 여기선 못 가요", "🍖 Team dinner · saved by a newer version, not available here")]
+      : doneToday() ? ["done", X("🍖 오늘 회식 완료 ✓ · 내일 1층에 사진이 걸려요", "🍖 Team dinner done ✓ · photo on 1F tomorrow")]
+      : !evening() ? ["early", X("🍖 회식은 17시부터", "🍖 Team dinner opens at 5 pm")]
       : !n ? ["none", X("🍖 회식 갈 직원이 없어요", "🍖 No one to take to dinner")]
       : need > 0 ? ["poor", X(`🍖 회식 · 💰${need.toLocaleString("en-US")} 모자라요`, `🍖 Team dinner · 💰${need.toLocaleString("en-US")} short`)]
       : busy() ? ["busy", X("🍖 회식은 잠시 뒤에", "🍖 Team dinner in a moment")]
@@ -4612,12 +4626,13 @@ function treatBig(h) {
     return { show: true, dis: st[0] !== "ok", text: st[1], title: X("오늘 일한 직원들이 옥상에서 바베큐 (보기용 · 하루 한 번)", "Today's crew grills on the rooftop (looks only · once a day)") };
   }
   function go(d) {
-    if (S || cardEl || busy() || doneToday() || h.funds() < R.DINNER) return false;
+    if (s.ro || S || cardEl || busy() || doneToday() || !evening() || h.funds() < R.DINNER) return false;   // s.ro: 새 버전 저장이면 기록(dn)을 못 남기니 결제도 안 함
+    if (!members(d).length) return false;   // 갈 직원이 없으면 카드를 닫지 않음
     h.drClose();   // 카드를 닫으며 📋 일보 연출도 끝(직원이 제자리로) → 그다음에 갈 직원을 셈
     const mem = members(d); if (!mem.length || h.drActive()) return false;
     s.dn = { d: today(), t: nowS(), w: mem.map(m => ({ a: m.animal, p: m.pk, sh: m.shiny ? 1 : 0 })) }; save();   // 결제보다 먼저 표시(두 번 못 감)
-    h.spend(R.DINNER); h.float(-R.DINNER); h.saveNow();
-    h.log("🍖", X(`회식! 옥상 바베큐 (${mem.length}명) −${R.DINNER.toLocaleString("en-US")}`, `Team dinner! Rooftop BBQ (${mem.length}) −${R.DINNER.toLocaleString("en-US")}`));
+    if (!dev.any) { h.spend(R.DINNER); h.float(-R.DINNER); h.saveNow(); }   // 개발용 쿼리면 공짜(간식과 같음)
+    h.log("🍖", X(`회식! 옥상 바베큐 (${mem.length}명) −${R.DINNER.toLocaleString("en-US")}`, `Team dinner! Rooftop BBQ (${mem.length}) −${R.DINNER.toLocaleString("en-US")}`) + (dev.any ? " (dev)" : ""));
     start(mem); return true;
   }
   function start(mem) {
@@ -4626,19 +4641,34 @@ function treatBig(h) {
     on.forEach((m, k) => { m.L = .9 + k * .45; m.A = m.L + 2.6; });
     let t = on.length ? Math.max(...on.map(m => m.A)) : 1.2;
     ex.forEach(m => { t += .5; m.A = t; m.a = h.mkActor(BYID[m.animal], { prov: m.pk, shiny: m.shiny, label: "", color: PROV[m.pk].tag }); m.extra = true; });
-    const all = on.concat(ex); all.forEach((m, j) => { m.sx = SLOT[j]; });
-    const tG = Math.max(...all.map(m => m.A)) + 1.6, tCh = tG + 6.5, tBk = tCh + 9;
+    const all = on.concat(ex), boss = !askBusy() && all.length < R.W_MAX;   // 👔 사장님도 올라감(사장실이 바쁘거나 직원이 6명이면 1층에 남음)
+    all.forEach((m, j) => { m.sx = (boss ? SLOT_B : SLOT)[j]; });
+    const bA = Math.max(B_UP + 3.6, on.length ? on[0].A + .4 : 0);   // 사장님 옥상 도착(1층에서 한마디 → 엘리베이터)
+    const tG = Math.max(boss ? bA : 0, ...all.map(m => m.A)) + 1.6, tCh = tG + 6.5, tBk = tCh + 9;
     all.forEach((m, j) => { m.Bk = tBk + j * .35; });
-    S = { t0: h.clockT(), mem: all, tG, tCh, tBk, tE: tBk + (all.length - 1) * .35 + 1.8, sids: new Set(on.map(m => m.sid)) };
+    const bBk = tBk + all.length * .35;
+    /* 건배 말풍선: 이웃 말풍선과 110px 넘게 떨어진 자리만(사장님 먼저) — 다 같이 만세 */
+    const taken = boss ? [BOSS_X] : []; all.forEach(m => { m.ch = taken.every(x => Math.abs(x - m.sx) >= 110); if (m.ch) taken.push(m.sx); });
+    S = { t0: h.clockT(), mem: all, tG, tCh, tBk, tE: (boss ? bBk : tBk + (all.length - 1) * .35) + 1.8, sids: new Set(on.map(m => m.sid)), boss: boss ? { A: bA, Bk: bBk, quit: false } : null };
     G.roof && sty(G.roof, "display", "block");
     h.layout(); h.kick();
   }
-  function stop() {   // 장면을 원래대로(직원은 자기 자리로 · 옥상 겹 숨김)
+  function stop() {   // 장면을 원래대로(직원은 자기 자리로 · 사장님은 책상으로 · 옥상 겹 숨김) — 🙈 눈치 모드·📋 일보 연출이 오면 정지 장면 카드도 닫음
+    closeCard();
     if (!S) return;
+    bossHome();
     const tc = h.clockT();
-    S.mem.forEach(m => { if (!m.a) return; if (m.extra) h.dropActor(m.a); else { sty(m.a.el, "display", ""); sty(m.a.el, "opacity", "0"); h.bubble(m.a, "", false); back.set(m.a, tc); } });
+    S.mem.forEach(m => { const a = cur(m); if (!a) return; if (m.extra) h.dropActor(a); else { sty(a.el, "display", ""); sty(a.el, "opacity", "0"); h.bubble(a, "", false); back.set(a, tc); } });
+    const live = new Set(h.actors.values()); for (const k of back.keys()) if (!live.has(k)) back.delete(k);   // 사라진 액터의 스르륵 기록은 남기지 않음
     S = null; if (G && G.roof) sty(G.roof, "display", "none");
     h.layout(); h.kick();
+  }
+  /* 멤버의 지금 액터: 회식 중 다시 지으면(언어·동물 설정·층 구성) 액터가 새로 생김 → 새 액터로 다시 묶고 옛 요소·스르륵 기록은 걷음. 층에서 사라진 직원은 null(옥상에서 빠짐) */
+  function cur(m) {
+    if (m.extra) return m.a;
+    const a = h.actors.get(m.sid) || null;
+    if (a !== m.a) { if (m.a) { back.delete(m.a); if (m.a.el.parentNode) m.a.el.parentNode.removeChild(m.a.el); m.a.par = null; } m.a = a; }
+    return a;
   }
   const active = () => !!S;
   const member = sid => !!S && S.sids.has(sid);
@@ -4646,7 +4676,7 @@ function treatBig(h) {
   const blink = T => (T % 3.7) < .14;
   /* 회식 간 직원의 층(자리 비움) — 본체 placeActor 대신 */
   function staff(i, fl, f, a, T, tc, ph) {
-    const m = S.mem.find(q => q.a === a); if (!m) return;
+    const m = S.mem.find(q => !q.extra && q.sid === f.sid); if (!m || cur(m) !== a) return;
     if (fl.desk) fl.desk.hands.forEach(e => sty(e, "display", "none"));
     fl.zs.forEach(z => sty(z, "display", "none")); [fl.sweat, fl.gb, fl.tint].forEach(e => e && sty(e, "display", "none"));
     const u = tc - S.t0;
@@ -4662,16 +4692,45 @@ function treatBig(h) {
   }
   const chip = em => { txt(em, "🍖 " + X("회식", "Dinner")); sty(em, "background", "#c8783a"); };
   /* 사장님: 처음 3.5초 "오늘 회식은 옥상 바베큐!" (본체가 다른 말풍선이 없을 때만 부름) */
-  const bossSay = tc => S && tc - S.t0 < 3.5 ? X("오늘 회식은 옥상 바베큐! 🍖", "Rooftop BBQ tonight! 🍖") : "";
+  const bossSay = tc => S && tc - S.t0 < (S.boss && !S.boss.quit ? B_UP : 3.5) ? X("오늘 회식은 옥상 바베큐! 🍖", "Rooftop BBQ tonight! 🍖") : "";
+  /* 👔 사장님이 자리를 비운 동안(1층에서 걸어 나감 → 옥상 → 내려옴): 본체의 사장님 그리기·👆 반응·일보 종이 대신. 사장실이 바빠지면(질문) 바로 책상으로 */
+  function bossAway(tc) {
+    const B = S && S.boss; if (!B || B.quit) return false;
+    if (askBusy()) { B.quit = true; bossHome(); return false; }
+    return tc - S.t0 >= B_UP;
+  }
+  function bossHome() { const b = h.bossAct(); if (!b) return; sty(b.el, "display", ""); sty(b.el, "opacity", ""); sty(b.el, "zIndex", ""); h.bubble(b, "", false); }
+  function boss(b, bf, T, tc, ph, n) {
+    const u = tc - S.t0, B = S.boss, k = u - B_UP;
+    b.bub.classList.remove("updb"); sty(b.el, "pointerEvents", "none"); h.tagOn(b, false);
+    if (k < 2.2) {   // 1층: 일어나 엘리베이터 쪽으로(끝에서 사라짐)
+      const q = clamp(k / 2.2, 0, 1), x = lerp(bf.chx, DOOR, ease(q)), g = h.parentFor(n, x, bf.B - 2);
+      sty(b.el, "display", ""); h.setP(b, { view: "front", legs: ph.wk ? "a" : "b", eyes: "o" }); h.put(b, g.p, g.x, g.feet, { dy: ph.wk ? -4 : 0, rot: ph.wk ? 3 : -3 });
+      sty(b.el, "zIndex", String(g.z || 20)); sty(b.el, "opacity", q > .8 ? clamp((1 - q) / .2, 0, 1).toFixed(2) : ""); h.bubble(b, "", false); return;
+    }
+    const r = u - B.A;
+    if (r < 0 || u >= B.Bk + 1.4) { sty(b.el, "display", "none"); return; }
+    let x, o = { view: "front", legs: "s", eyes: blink(T + 7) ? "c" : "o" }, dy = 0, say = "", op = "", flip = false;
+    if (u >= B.Bk) { const q = (u - B.Bk) / 1.2; x = lerp(BOSS_X, HUT, ease(q)); o.legs = ph.wk ? "a" : "b"; dy = ph.wk ? -4 : 0; op = q > .75 ? clamp((1 - q) / .25, 0, 1).toFixed(2) : ""; }
+    else if (r < 1.4) { x = lerp(HUT, BOSS_X, ease(r / 1.4)); o.legs = ph.wk ? "a" : "b"; dy = ph.wk ? -4 : 0; flip = true; op = r < .25 ? (r / .25).toFixed(2) : ""; }
+    else {
+      x = BOSS_X; dy = Math.floor(T * 2 + 3) % 2 ? -1 : 0;
+      if (u >= S.tG && u < S.tCh) o.arms = Math.floor(T * 2 + 1) % 3 ? "" : "l";   // 그릴 쪽으로 가끔 손짓
+      if (u >= S.tCh && u < S.tCh + 2.4) { o = { view: "front", legs: "s", arms: "u", mouth: "o", eyes: "o" }; dy = dyHop(u - S.tCh + .3, 8); say = X("건배! 🍻", "Cheers! 🍻"); }
+      else if (u >= S.tCh + 2.4 && u < S.tCh + 4) { say = X("다들 수고했어요! 👏", "Great work, all! 👏"); o.mouth = "o"; o.arms = Math.floor(T * 8) % 2 ? "u" : ""; }
+      else if (u >= S.tBk - 1.6) { o.mouth = "o"; o.arms = "u"; }   // "잘 먹었습니다!"(직원 대표)에 만세
+    }
+    sty(b.el, "display", ""); h.setP(b, o); h.put(b, G.roof, Math.round(x), RY, { dy, flip }); sty(b.el, "zIndex", "5"); sty(b.el, "opacity", op); h.bubble(b, esc(say), !!say);
+  }
   /* 옥상 한 프레임 */
   const LINES = [[0, 0, ["지글지글~ 🔥", "Sizzle~ 🔥"]], [1.6, 1, ["냄새 최고! 😋", "Smells great! 😋"]], [3.2, 2, ["다 익었어요?", "Is it done?"]], [4.6, 0, ["다 익었다! 🍖", "It's ready! 🍖"]]];
-  const LINES2 = [[2.6, 1, ["냠냠 😋", "Nom nom 😋"]], [4.2, 3, ["오늘 수고 많았어요!", "Great work today!"]], [5.8, 2, ["내일도 화이팅! 💪", "Let's go again tomorrow! 💪"]]];
+  const LINES2 = [[4.1, 1, ["냠냠 😋", "Nom nom 😋"]], [5.3, 3, ["오늘 수고 많았어요!", "Great work today!"]], [6.0, 2, ["내일도 화이팅! 💪", "Let's go again tomorrow! 💪"]]];
   function roof(T, tc) {
     const u = tc - S.t0, L = G.roof, ph = { wk: Math.floor(T * 4) % 2 };
     let doorOpen = false;
     S.mem.forEach((m, j) => {
-      const a = m.a, k = u - m.A;
-      if (k < 0) return;
+      const a = cur(m), k = u - m.A;
+      if (!a || k < 0) return;
       if (u >= m.Bk + 1.4) { sty(a.el, "display", "none"); return; }
       if (k < .5 || (u >= m.Bk + .9 && u < m.Bk + 1.6)) doorOpen = true;
       sty(a.el, "display", ""); sty(a.el, "zIndex", "5"); h.tagOn(a, false);
@@ -4684,9 +4743,9 @@ function treatBig(h) {
         x = m.sx; dy = Math.floor(T * 2 + j) % 2 ? -1 : 0;
         const g = u >= S.tG && u < S.tCh;
         if (g && j === 0) o.arms = Math.floor(T * 2.5) % 2 ? "r" : "";   // 그릴 담당: 뒤집기
-        const ln = (g ? LINES.map(l => [S.tG + l[0], l[1], l[2]]) : u >= S.tCh ? LINES2.map(l => [S.tCh + l[0], l[1], l[2]]) : []).find(l => l[1] === j && u >= l[0] && u < l[0] + 1.5);
+        const ln = (g ? LINES.map(l => [S.tG + l[0], l[1], l[2]]) : u >= S.tCh ? LINES2.map(l => [S.tCh + l[0], l[1], l[2]]) : []).find(l => l[1] === j && u >= l[0] && u < l[0] + 1.3);   // 1.3초씩 — "잘 먹었습니다!"(건배 +7.4초) 전에 끝남
         if (ln) { say = ln[2][en() ? 1 : 0]; o.mouth = "o"; }
-        if (u >= S.tCh && u < S.tCh + 2.4) { o = { view: "front", legs: "s", arms: "u", mouth: "o", eyes: "o" }; dy = dyHop(u - S.tCh + j * .1, 8); say = j % 4 < 2 ? X("건배! 🍻", "Cheers! 🍻") : ""; }   // 말풍선은 그릴 양옆(0·1)과 바깥 끝(4·5)만(이웃끼리 겹치지 않게) — 다 같이 만세
+        if (u >= S.tCh && u < S.tCh + 2.4) { o = { view: "front", legs: "s", arms: "u", mouth: "o", eyes: "o" }; dy = dyHop(u - S.tCh + j * .1, 8); say = m.ch ? X("건배! 🍻", "Cheers! 🍻") : ""; }   // 말풍선은 이웃과 떨어진 자리만(start의 m.ch) — 다 같이 만세
         else if (u >= S.tCh + 2.4 && !say && (Math.floor(u * 1.3) + j) % 4 === 0) { o.arms = "r"; o.mouth = Math.floor(u * 6) % 2 ? "o" : ""; }   // 오물오물
         if (u >= S.tBk - 1.6) { say = j ? "" : X("잘 먹었습니다! 🙏", "Thanks for dinner! 🙏"); o.mouth = "o"; o.arms = j ? "u" : ""; }   // 맨 앞(그릴 담당)이 대표로 · 다른 직원은 만세
       }
@@ -4699,7 +4758,7 @@ function treatBig(h) {
     G.smoke.forEach((e, k) => { if (!hot) return sty(e, "display", "none"); const v = ((T * .45 + k / 5) % 1), sz = Math.round(6 + v * 10);
       sty(e, "display", "block"); sty(e, "width", sz + "px"); sty(e, "height", sz + "px"); sty(e, "left", Math.round(GX - 8 + Math.sin(v * 5 + k) * 10 + v * 16) + "px"); sty(e, "top", Math.round(RY - 34 - v * 54) + "px"); sty(e, "opacity", (.75 * (1 - v)).toFixed(2)); });
     const szOn = hot && Math.floor(T * 1.5) % 3 !== 2; sty(G.sz, "display", szOn ? "block" : "none");
-    if (szOn) { txt(G.sz, X("지글지글", "sizzle")); sty(G.sz, "left", (GX + 20 + (Math.floor(T * 6) % 2 ? 2 : 0)) + "px"); sty(G.sz, "top", (RY - 44) + "px"); }
+    if (szOn) { txt(G.sz, X("지글지글", "sizzle")); sty(G.sz, "left", (GX - 24 + (Math.floor(T * 6) % 2 ? 2 : 0)) + "px"); sty(G.sz, "top", (RY - 46) + "px"); }   // 지글지글: 그릴 바로 위(양옆 직원·사장님 얼굴을 비킴)
     G.bulbs.forEach((b, k) => b.classList.toggle("off", Math.floor(T * 1.6 + k) % 3 === 0));
   }
 
@@ -4709,14 +4768,26 @@ function treatBig(h) {
     const ws = mem.slice(0, R.W_MAX), gp = WB.pix(R.ROOF.grillA, 3), cp = WB.pix(R.ROOF.cooler, 2);
     const ppl = ws.map((m, j) => { const sp = sprite(doc, BYID[m.animal], { view: "front", legs: "s", arms: "u", mouth: "o", eyes: "o", prov: m.pk, shiny: m.shiny, trim: 1 }, 2), x = [128, 232, 86, 274, 44, 316][j];
       return `<img alt="" src="${sp.url}" style="left:${x - Math.round(sp.w / 2)}px;bottom:24px;width:${sp.w}px;height:${sp.h}px">`; }).join("");
-    cardEl = mkEl("div", "dn-ov", h.view);
-    cardEl.innerHTML = `<div class="dn-box" role="dialog" aria-label="${esc(X("옥상 회식", "Rooftop team dinner"))}"><div class="dn-hd">🍖 ${esc(X("오늘의 회식 · 옥상 바베큐", "Team dinner · rooftop BBQ"))}</div>
+    cardEl = mkEl("div", "dn-ov", h.view); cardEl.prev = doc.activeElement;
+    cardEl.setAttribute("role", "dialog"); cardEl.setAttribute("aria-modal", "true"); cardEl.setAttribute("aria-label", X("옥상 회식", "Rooftop team dinner"));
+    cardEl.innerHTML = `<div class="dn-box" tabindex="-1"><div class="dn-hd">🍖 ${esc(X("오늘의 회식 · 옥상 바베큐", "Team dinner · rooftop BBQ"))}</div>
       <div class="dn-sc"><i class="dn-lt"></i><img alt="" src="${cp.url}" style="left:8px;bottom:24px;width:${cp.w}px;height:${cp.h}px"><img alt="" src="${gp.url}" style="left:${180 - gp.w / 2}px;bottom:24px;width:${gp.w}px;height:${gp.h}px">${ppl}<span class="dn-say">${esc(X("건배! 🍻", "Cheers! 🍻"))}</span><i class="dn-flr"></i></div>
       <div class="dn-ft">${esc(X(`${ws.map(m => EMO[m.animal]).join("")} ${ws.length}명 · 내일 1층에 회식 사진이 걸려요`, `${ws.map(m => EMO[m.animal]).join("")} ${ws.length} · the photo goes up on 1F tomorrow`))}</div>
       <div class="dr-btns"><button type="button" data-act="dn-close" class="x">✓ ${esc(X("닫기", "Close"))}</button></div></div>`;
-    const b = cardEl.querySelector("button"); if (b) b.focus({ preventScroll: true });
+    fitCard(); cardEl.firstChild.focus({ preventScroll: true });   // 포커스는 카드로(닫기 버튼은 Tab 한 번)
   }
-  function closeCard() { if (cardEl) { cardEl.remove(); cardEl = null; h.kick(); } }
+  function fitCard() {   // 보이는 영역에 딱 맞춤(스크롤한 큰 화면·좁은 창 — 📋 일보 카드 fitBox와 같은 방식)
+    if (!cardEl) return; const v = h.view;
+    sty(cardEl, "left", v.scrollLeft + "px"); sty(cardEl, "top", v.scrollTop + "px"); sty(cardEl, "width", v.clientWidth + "px"); sty(cardEl, "height", v.clientHeight + "px");
+  }
+  function closeCard() {
+    if (!cardEl) return;
+    const prev = cardEl.prev, root = h.view.closest(".stu") || doc; cardEl.remove(); cardEl = null;
+    const vis = e => !!e && e.isConnected && !e.hidden && e.offsetParent !== null;   // 회식 버튼은 일보 카드와 함께 닫혔으니 HUD [📋 일보] → [🎨 꾸미기] 차례로
+    const to = [prev, root.querySelector('[data-act="dr-card"]'), root.querySelector('[data-act="decor"]')].find(vis);
+    if (to && to.focus) to.focus({ preventScroll: true });
+    h.kick();
+  }
   ctx.listen(doc, "keydown", e => { if (e.key === "Escape" && cardEl) { e.preventDefault(); closeCard(); } });
 
   /* ---------- 📷 1층 어제 회식 사진 ---------- */
@@ -4737,20 +4808,22 @@ function treatBig(h) {
   function frame(T, tc, anim) {
     if (!G) return;
     const hid = h.nx();
-    if (S && (hid || h.drActive())) stop();   // 🙈 눈치 모드·📋 일보 연출이 오면 바로 끝
+    if ((S || cardEl) && (hid || h.drActive())) stop();   // 🙈 눈치 모드·📋 일보 연출이 오면 바로 끝(정지 장면 카드도 닫음)
     if (S && h.still()) { const mem = S.mem; stop(); showCard(mem); }   // 연출 중 움직임 줄이기·🔇가 켜지면 정지 장면 카드(창을 숨긴 동안은 시간만 흐름)
     if (S) { const u = tc - S.t0; if (u >= S.tE) stop(); else if (anim) roof(T, tc); }
     if (pend && G.fl.length && tc > 1.5 && !hid) { pend = false; const mem = members(null); if (mem.length) start(mem); }   // 개발용 ?dinner=now
     if (s.d !== today()) roll();
+    fitCard();
     desks(tc, anim, hid);
     photo(hid);
   }
   function tap(act, b) {
     if (act === "tr-buy") { if (b.getAttribute("aria-disabled") !== "true" || dev.treat) buy(b.dataset.sid, b.dataset.id); h.tray(); }
-    else if (act === "dn-go") { const c = h.drCard(); if (c) go(c.d); }
+    else if (act === "dn-go") { const c = h.drCard(); if (c && b.getAttribute("aria-disabled") !== "true") go(c.d); }
     else if (act === "dn-close") closeCard();
   }
-  return { build, read, frame, actor, staff, chip, bossSay, active, member, stop, row, tap, cardBtn, roofH: () => (S ? ROOF_H : 0), blockPoke: pk => !!S && [...S.sids].some(sid => String(pk || "").startsWith(sid + ".")) };
+  return { build, read, frame, actor, staff, chip, bossSay, bossAway, boss, active, member, stop, row, tap, cardBtn, roofH: () => (S ? ROOF_H : 0),
+    blockPoke: pk => !!S && (String(pk || "") === "boss.a" && bossAway(h.clockT()) || [...S.sids].some(sid => String(pk || "").startsWith(sid + "."))) };
 }
 
 C.registerMode({
@@ -4985,7 +5058,7 @@ C.registerMode({
       lv: () => lvOf(), funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs) });   // 🍩 층을 고르면 간식 줄
     const tnB = tinyBig({ ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
-    const trB = treatBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
+    const trB = treatBig({ bossAct: () => bossAct, ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
       funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
       anim: () => animOn(), still: () => !!(rm.matches || ctx.settings.quiet), kick: () => { if (!animOn()) staticDraw(); }, layout: () => layout() });
@@ -5446,7 +5519,9 @@ C.registerMode({
       if (cheer && tc - bossFree < .4) { cheer.held = cheer.held || tc; cheer.t0 = tc; if (tc - cheer.held > 60) cheer = null; }
       if (cheer && tc - cheer.t0 >= CHEER_SEC) cheer = null;
       const ch = !bossBusy && tc - bossFree >= .4 ? cheer : null;
+      const bAway = !DRon && trB.bossAway(tc);   // 👔 사장님이 회식하러 옥상에(사장실이 바빠지면 바로 돌아옴)
       if (DRon) drB.boss(boss, bf, T, tc, ph);
+      else if (bAway) trB.boss(boss, bf, T, tc, ph, n);
       else if (nb) {
         setP(boss, Object.assign({ view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }, nb.p)); put(boss, bf.F, bf.chx, BASE[n] - 6, { dy: nb.dy }); tagOn(boss, false);
         boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); sty(boss.el, "pointerEvents", ""); bubble(boss, esc(nb.say), true);
@@ -5475,8 +5550,8 @@ C.registerMode({
         else if (dn) bubble(boss, `<button type="button" class="upd" data-act="dr-open">${dn.kind === "morning" ? "☀️ " + X("좋은 아침! 어제 일보 왔어요", "Good morning! Yesterday's report") : dn.kind === "time" ? "⏰ " + X("퇴근 시간! 일보 나왔어요", "Time's up! Report's ready") : "📋 " + X("일보 나왔어요!", "Today's report is ready!")}</button>`, true);
         else bubble(boss, pq && pq.say || "", !!(pq && pq.say));
       }
-      if (!DRon) pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc));   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
-      drB.paper(boss, bf, T, anim);   // 📋 알림 중이면 종이를 흔듦
+      if (!DRon && !bAway) pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc));   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
+      if (!bAway) drB.paper(boss, bf, T, anim);   // 📋 알림 중이면 종이를 흔듦
       /* 질문 말풍선 (층 위로 넘칠 수 있게 건물 위에 직접) */
       const askL = asker && !DRon ? Math.round(asker.x + 6 - asker.w / 2 - 14 - 290) : null;   // 질문 말풍선 왼쪽 끝(폭 290)
       if (asker && !DRon) {
