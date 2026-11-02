@@ -52,5 +52,6 @@
 | 2026-10-30 | #72 | e366372 | auto (security: Argon) + Claude 전문가 | - | 0/0/0/0 · Claude 0/2/7/0 | 100% | 100% | 100% | 0% | - | - | Argon 0건 → Claude가 확인 끝이 설치 phase를 지워 이중 설치 가능(🟡, 기존 경합)·패닉 시 checking 고정(🟡)·문구 (Argon medium·Claude) |
 | 2026-10-30 | #73 | f470f87 | auto (Flash 기본+렌즈 5) + visual quick + Claude 전문가 | - | 0/0/0/0 · visual 0 · Claude 0/1/6/0 | 100% | 100% | 100% | 0% | - | - | Gemini 코드·화면 모두 0건 → Claude가 980 질문 중 1층 줄이 말풍선 밑으로 가 승인 대기 칩이 가려짐(🟡, 실측)·글꼴 로드·리플로·aria 등 (Flash medium 렌즈·visual·Claude) |
 | 2026-11-02 | #80 | 첫 커밋 | auto (Flash 기본+렌즈 5) + visual + Claude 전문가 | - | Gemini 0/6/1/0 · Claude 0/2/5/0 | 100% | 100% | 86% | 0% | F1 부분 사실(placeActor가 대개 복원) | - | Gemini가 Claude가 놓친 실제 버그 4건(로봇 커피 대사 dead code·rm 카드가 눈치 모드에 남음·dev 쿼리 회식 실결제·BYID 프로토타입) + 공통 2건, Claude는 rebuild 시 옥상 소실(재현)·v>1 결제 (Flash 렌즈·Claude) |
+| 2026-11-02 | #84 | 77f5a8a | auto (Flash 기본+렌즈 5) + Claude 전문가 | - | Gemini 0/2/1/0 · Claude 0/1/3/0 | 100% | 100% | 100% | 0% | - | - | Gemini는 Windows 콘솔 인코딩(재현), Claude는 요약만 있는 [Unreleased]에서 PR 제목 채우기 꺼짐·검토용 주석 `--->` 깨짐·요약 주석 누출(모두 재현), 문서 1건 공통 (Flash 렌즈·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
