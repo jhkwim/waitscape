@@ -185,6 +185,7 @@ body[data-mode="studio"] .stu .dex .set h4 { font-size: 14px; font-weight: 900; 
 body[data-mode="studio"] .stu .dex .chips { display: flex; gap: 5px; flex-wrap: wrap; }
 body[data-mode="studio"] .stu .chip { border: 3px solid var(--deep); background: #6adf8a; color: var(--ink); font-size: 13px; font-weight: 900; padding: 1px 6px; line-height: 16px; box-shadow: 0 2px 0 var(--deep); display: flex; gap: 4px; align-items: center; }
 body[data-mode="studio"] .stu .chip.off { background: #ddd5e4; color: #6d5d7d; }
+body[data-mode="studio"] .stu .chip.lock { background: #c9c1d2; color: #6d5d7d; border-style: dashed; box-shadow: none; cursor: not-allowed; }   /* 🔒 잠긴 동물(#85) */
 body[data-mode="studio"] .stu .chip.fx2 { background: #ffd23f; }
 body[data-mode="studio"] .stu .chip.fx2.on { background: #ff8a3d; color: #fff; }
 body[data-mode="studio"] .stu .dex .roster { font-size: 13px; font-weight: 700; line-height: 20px; color: #4a3a5a; }
@@ -531,6 +532,7 @@ body[data-mode="studio"] .stu .tn-cab { z-index: 7; pointer-events: none; }
 /* 🤸 직원 몸짓(#38): 💦 · 하품 딱지(배우 요소 안) · 🐙 다리 끝(손 상자에 빨판) */
 body[data-mode="studio"] .stu .tn-sw { position: absolute; z-index: 31; font-size: 14px; line-height: 1; pointer-events: none; }
 body[data-mode="studio"] .stu .tn-yawn { position: absolute; top: 4px; z-index: 31; font-size: 12px; font-weight: 900; font-style: italic; color: #6a5a88; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; white-space: nowrap; pointer-events: none; }
+body[data-mode="studio"] .stu .hb-bam { position: absolute; z-index: 9; pointer-events: none; image-rendering: pixelated; }   /* 🐼 대나무(#85, 배우 요소 안) */
 body[data-mode="studio"] .stu .tn-tent { border-radius: 0 0 8px 8px; background-image: radial-gradient(circle at 50% 72%, #f3e2ff 0 2px, transparent 2.5px) !important; }
 /* 🏢 건물 묶음(#38): 점검 스티커 · 우산 꽂이 · 비둘기 · 청소부 */
 body[data-mode="studio"] .stu .tn-fix { left: 6px; top: 40px; width: 76px; z-index: 7; padding: 6px 0; background: #fffaf0 padding-box; border: 2px solid #2e2040; box-shadow: inset 0 5px 0 #ffd23f, inset 0 -5px 0 #ffd23f; text-align: center; font-size: 12px; line-height: 14px; font-weight: 900; color: #2e2040; white-space: nowrap; transform: rotate(-5deg); pointer-events: none; }
