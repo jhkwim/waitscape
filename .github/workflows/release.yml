@@ -355,7 +355,7 @@ jobs:
             echo "<!-- 검토용(게시 전에 지운다, docs/RELEASE.md §3)"
             echo "  macOS 서명: $mac_sign (notarized여야 정상) · Windows: 미서명 · 앱 안 업데이트(latest.json): $([ -f latest.json ] && echo 포함 || echo 없음 — 서명 없는 빌드)"
             echo "  앱 안내(latest.json notes):"
-            sed 's/^/    /; s/--/- -/g' ../summary.md
+            sed 's/^/    /; s/>/›/g' ../summary.md   # 주석이 중간에 닫히지 않게
             echo "  제목 아래 절들은 CHANGELOG(개발자용 「~했다」체)다. release_check.sh 노트 초안을 다듬어 바꾼다."
             echo "-->"
             echo "## Waitscape ${TAG#v}"

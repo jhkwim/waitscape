@@ -174,11 +174,18 @@ def changelog_release(root: pathlib.Path, new: str, date: str, dry: bool) -> boo
         t = (t + "\n" if i < 0 else t[: i + 1]) + "## [Unreleased]\n\n" + ("" if i < 0 else t[i + 1 :])
         m = UNRELEASED.search(t)
     body = m.group(1).strip()
+    # `### 요약`(앱 안내)만 있으면 바뀐 점이 빈 것과 같다 — 요약은 앞에 두고 PR 제목으로 채운다
+    if not SUMMARY.sub("", body).strip():
+        summary, body = body, ""
+    else:
+        summary = ""
     if not body:
         notes = git_notes(root)
         more = len(notes) - MAX_AUTO_NOTES
         body = "\n".join(f"- {n}" for n in notes[:MAX_AUTO_NOTES]) + (f"\n- … 외 {more}개" if more > 0 else "")
         body = body.strip() or "- 자잘한 수정"
+    if summary:  # 요약 절은 다음 헤딩까지라 자동 목록 앞에 헤딩을 둔다
+        body = f"{summary}\n\n### 바뀜\n{body}"
     new_t = t[: m.start()] + f"## [Unreleased]\n\n## [{new}] - {date}\n\n{body}\n\n" + t[m.end() :].lstrip("\n")
     new_t = new_t.rstrip("\n") + "\n"
     if not dry:
@@ -186,7 +193,7 @@ def changelog_release(root: pathlib.Path, new: str, date: str, dry: bool) -> boo
     return new_t != t
 
 
-SUMMARY = re.compile(r"^### 요약[^\n]*\n(.*?)(?=^#{2,3} |\Z)", re.M | re.S)
+SUMMARY = re.compile(r"^### 요약[ \t]*\n(.*?)(?=^#{2,3} |\Z)", re.M | re.S)
 MORE = "자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요."
 
 
@@ -207,8 +214,9 @@ def summary_for(root: pathlib.Path, ver: str) -> str:
     """앱 안 업데이트 안내(latest.json notes). 안내 칸은 링크를 못 누르는 단순 글자라 짧은 요약 + 릴리스 페이지 안내만.
     요약이 없으면 안내 한 줄만 — 개발자용 CHANGELOG 문단을 앱에 보이지 않는다."""
     m = SUMMARY.search(section_for(root, ver))
-    lines = [ln.strip().removeprefix("- ").strip() for ln in (m.group(1) if m else "").splitlines()]
-    lines = [ln for ln in lines if ln and not ln.startswith("<!--")]
+    text = re.sub(r"<!--.*?-->", "", m.group(1) if m else "", flags=re.S)
+    lines = [re.sub(r"^[-*+]\s+", "", ln.strip()) for ln in text.splitlines()]
+    lines = [ln for ln in lines if ln and not ln.startswith("#")]
     return "\n".join(lines + ([""] if lines else []) + [MORE])
 
 

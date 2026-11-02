@@ -50,7 +50,8 @@ python3 scripts/version.py check [--tag v0.1.0]      # 모두 같은지 (CI pyth
 python3 scripts/version.py bump minor --dry-run      # 바뀔 파일만 보여 줌
 python3 scripts/version.py bump 0.2.0                # 실제로 (보통은 Release Prep이 대신 함)
 python3 scripts/version.py sync                      # 따라가는 파일이 어긋났을 때 Cargo.toml 버전에 맞춤
-python3 scripts/version.py notes 0.2.0               # CHANGELOG의 그 절 (릴리스 노트·latest.json notes)
+python3 scripts/version.py notes 0.2.0               # CHANGELOG의 그 절에서 `### 요약`을 뺀 것 (릴리스 페이지 초안)
+python3 scripts/version.py summary 0.2.0             # 그 절의 `### 요약` + 릴리스 페이지 안내 (latest.json notes = 앱 안 업데이트 안내)
 ```
 
 ## 3. 릴리스하는 법
@@ -212,7 +213,7 @@ GitHub 시크릿은 **넣을 수만 있고 다시 꺼내 볼 수 없다.** 로�
 ```json
 {
   "version": "0.2.0",
-  "notes": "CHANGELOG의 [0.2.0] 절",
+  "notes": "CHANGELOG [0.2.0] 절의 ### 요약 + 릴리스 페이지 안내 (version.py summary)",
   "pub_date": "2026-10-23T03:04:05Z",
   "platforms": {
     "darwin-aarch64":    { "url": ".../v0.2.0/Waitscape-macos-universal.app.tar.gz", "signature": "<.sig 내용>" },

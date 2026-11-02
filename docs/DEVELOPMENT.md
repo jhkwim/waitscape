@@ -245,7 +245,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     licenses/           크레이트 밖 제3자 원문(Microsoft WebView2 SDK LICENSE·NOTICE — Windows exe에 정적 링크되는 로더)
     check_platform_advisories.py  배포 대상에서 쓰이지 않아 닫은 보안 경고(.github/platform-advisories.json)가 배포 대상(release.yml 앱 빌드 잡의 러너·번들, tauri.conf.json bundle.targets)에 들어오면 실패 (selftest_platform_advisories.py)
     check_commit_emails.py  커밋 작성자·커미터 이메일이 차단 도메인이면 실패 (환경변수 BLOCKED_EMAIL_DOMAINS, CI에선 저장소 시크릿)
-    version.py          앱 버전 한 곳 관리: show / check [--tag] / bump X.Y.Z|major|minor|patch [--dry-run] / sync [--dry-run] / notes (CHANGELOG 절)
+    version.py          앱 버전 한 곳 관리: show / check [--tag] / bump X.Y.Z|major|minor|patch [--dry-run] / sync [--dry-run] / notes (CHANGELOG 절, 요약 뺌) / summary (앱 안내 요약)
     make_latest_json.py 업데이터 매니페스트 latest.json 생성 (서명 .sig가 있을 때만, release.yml)
     test_release_scripts.py  위 두 스크립트 회귀 테스트 (가짜 저장소, CI)
   .github/

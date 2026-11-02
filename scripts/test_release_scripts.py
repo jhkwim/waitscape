@@ -112,6 +112,15 @@ def test_version() -> None:
         assert run(d, "notes", "0.2.1").stdout == "### 수정\n- 손으로 적음\n"
         assert "멋진 PR 제목 (#7)" in run(d, "notes", "0.2.0").stdout, "다른 버전 절은 그대로"
         cl = (d / "CHANGELOG.md").read_text()
+        # 요약 안의 여러 줄 주석·* 글머리표·하위 헤딩은 앱 안내에 새지 않는다
+        (d / "CHANGELOG.md").write_text(cl.replace("### 요약\n", "### 요약\n<!-- 여러\n줄 -->\n* 별표 줄\n#### 깊은\n", 1))
+        assert run(d, "summary", "0.2.1").stdout.startswith("별표 줄\n🍩"), run(d, "summary", "0.2.1").stdout
+        (d / "CHANGELOG.md").write_text(cl)
+        # [Unreleased]에 요약만 있으면 바뀐 점은 PR 제목으로 채우고 요약은 앞에 남긴다
+        (d / "CHANGELOG.md").write_text(cl.replace("## [Unreleased]\n", "## [Unreleased]\n\n### 요약\n- 🎁 새 기능\n", 1))
+        run(d, "bump", "0.2.2", "--date", "2026-01-04")
+        assert "멋진 PR 제목 (#7)" in run(d, "notes", "0.2.2").stdout
+        assert run(d, "summary", "0.2.2").stdout == "🎁 새 기능\n\n자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.\n"
         assert run(d, "bump", "major").stdout.strip() == "1.0.0"
         # sync: 따라가는 파일이 어긋나면 check 실패 → sync --dry-run은 쓰지 않음 → sync 뒤 OK, Cargo.toml(원본)은 그대로
         conf_p = d / "app/src-tauri/tauri.conf.json"
