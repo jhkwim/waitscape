@@ -339,46 +339,39 @@ jobs:
           sha256sum -c SHA256SUMS.txt
           mac_sign=$(cat macos-signing.flag 2>/dev/null || echo none)
           rm -f -- *.flag
-          # 바뀐 점: CHANGELOG.md의 그 버전 절 (scripts/version.py bump가 만든 것). 없으면 비워 둔다
+          # 바뀐 점: CHANGELOG.md의 그 버전 절에서 `### 요약`을 뺀 것 (scripts/version.py bump가 만든 것). 없으면 비워 둔다
           python3 ../src/scripts/version.py --root ../src notes "$TAG" > ../changes.md
+          # 앱 안 업데이트 안내: 그 절의 `### 요약` + 릴리스 페이지 안내만 (안내 칸은 링크 없는 단순 글자 — 길면 읽기 어렵다)
+          python3 ../src/scripts/version.py --root ../src summary "$TAG" > ../summary.md
           # 앱 안 업데이트 매니페스트: 서명(.sig)이 있을 때만. 종료 코드 3 = 서명 없는 빌드라 건너뜀
           rc=0
           python3 ../src/scripts/make_latest_json.py --dir . --tag "$TAG" --repo "$RELEASES_REPO" \
-            --notes-file ../changes.md --out latest.json || rc=$?
+            --notes-file ../summary.md --out latest.json || rc=$?
           if [ "$rc" = 3 ]; then echo "latest.json: 업데이터 서명 없음 -> 건너뜀"; elif [ "$rc" != 0 ]; then exit "$rc"; fi
+          shopt -s nullglob
+          dmg=(*.dmg); exe=(*-setup.exe)
           {
-            # 서명 안내: 맥은 이번 빌드의 Apple 서명·공증 여부에 따라, 윈도우는 아직 항상 미서명
-            case "$mac_sign" in
-              notarized)
-                echo "> macOS 설치 파일은 **Developer ID로 서명·공증됐다.** Windows 설치 파일은 서명되지 않아 처음 열 때 SmartScreen 경고가 나온다."
-                echo ">"
-                echo "> The macOS build is **signed and notarized**. The Windows build is unsigned (SmartScreen may warn)." ;;
-              signed)
-                echo "> macOS 설치 파일은 **서명됐지만 공증되지 않았다**(Gatekeeper 경고가 나올 수 있다). Windows 설치 파일은 서명되지 않아 SmartScreen 경고가 나온다."
-                echo ">"
-                echo "> The macOS build is **signed but not notarized**; the Windows build is unsigned." ;;
-              *)
-                echo "> 이 설치 파일은 **서명·공증되지 않았다.** 처음 열 때 macOS Gatekeeper / Windows SmartScreen 경고가 나온다."
-                echo ">"
-                echo "> This build is **unsigned and not notarized**." ;;
-            esac
-            cat <<'NOTES'
-          > 여는 방법과 SHA-256 확인법은 [설치 안내](https://github.com/jhkwim/waitscape/blob/main/docs/INSTALL.md) / See the install guide for how to open it and verify checksums.
-
-          파일: macOS universal(.dmg, .app.zip) · Windows x64(NSIS .exe, .msi) · SHA256SUMS.txt
-          NOTES
-            if [ -f latest.json ]; then
-              echo
-              echo "앱 안 업데이트: latest.json·.app.tar.gz·.sig 포함. **게시(Publish)하면** 그때부터 설치된 앱이 이 버전을 찾는다(초안은 보이지 않음)."
-            fi
+            # 릴리스 페이지는 일반 사용자가 읽는다. 검토할 사실은 보이지 않는 주석으로만 (게시 전에 지운다)
+            echo "<!-- 검토용(게시 전에 지운다, docs/RELEASE.md §3)"
+            echo "  macOS 서명: $mac_sign (notarized여야 정상) · Windows: 미서명 · 앱 안 업데이트(latest.json): $([ -f latest.json ] && echo 포함 || echo 없음 — 서명 없는 빌드)"
+            echo "  앱 안내(latest.json notes):"
+            sed 's/^/    /; s/--/- -/g' ../summary.md
+            echo "  제목 아래 절들은 CHANGELOG(개발자용 「~했다」체)다. release_check.sh 노트 초안을 다듬어 바꾼다."
+            echo "-->"
+            echo "## Waitscape ${TAG#v}"
             if [ -s ../changes.md ]; then
-              echo
-              echo "## 바뀐 점"
               echo
               cat ../changes.md
             fi
+            echo
+            echo "### 받기"
+            echo "| | 파일 |"
+            echo "|---|---|"
+            if [ ${#dmg[@]} -gt 0 ]; then echo "| macOS | \`${dmg[0]}\` |"; fi
+            if [ ${#exe[@]} -gt 0 ]; then echo "| Windows | \`${exe[0]}\` |"; fi
+            echo
+            echo "이미 쓰고 있다면 앱의 🎁 업데이트 알림을 누르면 돼요. 처음 설치하는 방법은 [설치 안내](https://github.com/jhkwim/waitscape/blob/main/docs/INSTALL.md)를 봐 주세요."
           } > notes.md
-          shopt -s nullglob
           files=(*.dmg *.zip *.exe *.msi *.tar.gz *.sig SHA256SUMS.txt)
           if [ -f latest.json ]; then files+=(latest.json); fi
           printf '올릴 파일: %s\n' "${files[@]}"

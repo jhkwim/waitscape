@@ -95,6 +95,8 @@ def test_version() -> None:
         assert "## [Unreleased]\n\n## [0.2.0] - 2026-01-02\n" in cl
         assert "- 멋진 PR 제목 (#7)" in cl and "- feat: 첫 기능" in cl, cl
         assert "멋진 PR 제목 (#7)" in run(d, "notes", "v0.2.0").stdout
+        # 요약이 없으면 앱 안내는 릴리스 페이지 안내 한 줄만 (개발자용 CHANGELOG 문단을 앱에 보이지 않음)
+        assert run(d, "summary", "v0.2.0").stdout == "자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.\n"
         # 거꾸로·형식 오류·같은 버전 거부
         run(d, "bump", "0.1.9", ok=False)
         run(d, "bump", "0.2.0", ok=False)
@@ -104,6 +106,12 @@ def test_version() -> None:
         run(d, "bump", "patch", "--date", "2026-01-03")
         cl = (d / "CHANGELOG.md").read_text()
         assert "## [0.2.1] - 2026-01-03\n\n### 수정\n- 손으로 적음\n" in cl and cl.count("## [Unreleased]") == 1
+        # `### 요약`은 앱 안내(summary)로만 가고 릴리스 페이지 초안(notes)에서는 빠진다
+        (d / "CHANGELOG.md").write_text(cl.replace("### 수정\n", "### 요약\n- 🍩 간식을 사 줄 수 있어요\n<!-- 메모 -->\n- 🍖 옥상 회식!\n\n### 수정\n", 1))
+        assert run(d, "summary", "0.2.1").stdout == "🍩 간식을 사 줄 수 있어요\n🍖 옥상 회식!\n\n자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.\n"
+        assert run(d, "notes", "0.2.1").stdout == "### 수정\n- 손으로 적음\n"
+        assert "멋진 PR 제목 (#7)" in run(d, "notes", "0.2.0").stdout, "다른 버전 절은 그대로"
+        cl = (d / "CHANGELOG.md").read_text()
         assert run(d, "bump", "major").stdout.strip() == "1.0.0"
         # sync: 따라가는 파일이 어긋나면 check 실패 → sync --dry-run은 쓰지 않음 → sync 뒤 OK, Cargo.toml(원본)은 그대로
         conf_p = d / "app/src-tauri/tauri.conf.json"

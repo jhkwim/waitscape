@@ -13,7 +13,8 @@ brand.json에는 버전이 없다(User-Agent의 <VERSION>은 실행 시 CARGO_PK
   python3 scripts/version.py check [--tag v0.2.0]          # 모든 곳이 같은지 (태그를 주면 태그와도)
   python3 scripts/version.py bump 0.2.0|major|minor|patch [--dry-run] [--date YYYY-MM-DD]
   python3 scripts/version.py sync [--dry-run]               # tauri.conf.json·Cargo.lock을 Cargo.toml(원본) 버전에 맞춤
-  python3 scripts/version.py notes 0.2.0                   # CHANGELOG의 그 버전 절 (릴리스 노트·latest.json)
+  python3 scripts/version.py notes 0.2.0                   # CHANGELOG의 그 버전 절, `### 요약` 뺌 (릴리스 페이지 초안)
+  python3 scripts/version.py summary 0.2.0                 # 그 절의 `### 요약` + 릴리스 페이지 안내 (앱 안 업데이트 안내 = latest.json notes)
 공통: --root <저장소 폴더> (기본: 이 스크립트의 상위 폴더). 표준 라이브러리만 쓴다(Actions Linux 러너에서 바로 실행).
 """
 
@@ -185,12 +186,30 @@ def changelog_release(root: pathlib.Path, new: str, date: str, dry: bool) -> boo
     return new_t != t
 
 
-def notes_for(root: pathlib.Path, ver: str) -> str:
+SUMMARY = re.compile(r"^### 요약[^\n]*\n(.*?)(?=^#{2,3} |\Z)", re.M | re.S)
+MORE = "자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요."
+
+
+def section_for(root: pathlib.Path, ver: str) -> str:
     p = root / "CHANGELOG.md"
     if not p.exists():
         return ""
     m = re.search(r"^## \[" + re.escape(ver) + r"\][^\n]*\n(.*?)(?=^## \[|\Z)", p.read_text(encoding="utf-8"), re.M | re.S)
     return m.group(1).strip() if m else ""
+
+
+def notes_for(root: pathlib.Path, ver: str) -> str:
+    """그 버전 절에서 `### 요약`(앱 안내용)을 뺀 나머지 — 릴리스 페이지 초안."""
+    return SUMMARY.sub("", section_for(root, ver)).strip()
+
+
+def summary_for(root: pathlib.Path, ver: str) -> str:
+    """앱 안 업데이트 안내(latest.json notes). 안내 칸은 링크를 못 누르는 단순 글자라 짧은 요약 + 릴리스 페이지 안내만.
+    요약이 없으면 안내 한 줄만 — 개발자용 CHANGELOG 문단을 앱에 보이지 않는다."""
+    m = SUMMARY.search(section_for(root, ver))
+    lines = [ln.strip().removeprefix("- ").strip() for ln in (m.group(1) if m else "").splitlines()]
+    lines = [ln for ln in lines if ln and not ln.startswith("<!--")]
+    return "\n".join(lines + ([""] if lines else []) + [MORE])
 
 
 # ---------- 명령 ----------
@@ -231,6 +250,8 @@ def main() -> int:
     s_.add_argument("--dry-run", action="store_true")
     n = sub.add_parser("notes")
     n.add_argument("version")
+    sm = sub.add_parser("summary")
+    sm.add_argument("version")
     a = ap.parse_args()
     root = pathlib.Path(a.root)
 
@@ -245,8 +266,8 @@ def main() -> int:
             print(f"  맞춤{' (dry-run: 쓰지 않음)' if a.dry_run else ''}: {f}", file=sys.stderr)
         print(cv)
         return 0
-    if a.cmd == "notes":
-        s = notes_for(root, a.version.removeprefix("v"))
+    if a.cmd in ("notes", "summary"):
+        s = (notes_for if a.cmd == "notes" else summary_for)(root, a.version.removeprefix("v"))
         if s:
             print(s)
         return 0
