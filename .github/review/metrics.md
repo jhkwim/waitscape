@@ -53,5 +53,6 @@
 | 2026-10-30 | #73 | f470f87 | auto (Flash 기본+렌즈 5) + visual quick + Claude 전문가 | - | 0/0/0/0 · visual 0 · Claude 0/1/6/0 | 100% | 100% | 100% | 0% | - | - | Gemini 코드·화면 모두 0건 → Claude가 980 질문 중 1층 줄이 말풍선 밑으로 가 승인 대기 칩이 가려짐(🟡, 실측)·글꼴 로드·리플로·aria 등 (Flash medium 렌즈·visual·Claude) |
 | 2026-11-02 | #80 | 첫 커밋 | auto (Flash 기본+렌즈 5) + visual + Claude 전문가 | - | Gemini 0/6/1/0 · Claude 0/2/5/0 | 100% | 100% | 86% | 0% | F1 부분 사실(placeActor가 대개 복원) | - | Gemini가 Claude가 놓친 실제 버그 4건(로봇 커피 대사 dead code·rm 카드가 눈치 모드에 남음·dev 쿼리 회식 실결제·BYID 프로토타입) + 공통 2건, Claude는 rebuild 시 옥상 소실(재현)·v>1 결제 (Flash 렌즈·Claude) |
 | 2026-11-02 | #84 | 77f5a8a | auto (Flash 기본+렌즈 5) + Claude 전문가 | - | Gemini 0/2/1/0 · Claude 0/1/3/0 | 100% | 100% | 100% | 0% | - | - | Gemini는 Windows 콘솔 인코딩(재현), Claude는 요약만 있는 [Unreleased]에서 PR 제목 채우기 꺼짐·검토용 주석 `--->` 깨짐·요약 주석 누출(모두 재현), 문서 1건 공통 (Flash 렌즈·Claude) |
+| 2026-11-02 | #87 | d09f751 | auto (Flash 기본+렌즈 5) + visual(추가 장면 4) + Claude 전문가 | - | Gemini 0/2/0/0 · visual 0 · Claude 1/0/6/0 | 50% | 100% | 100% | 0% | F1 오탐(ease는 196행 모듈 상단에 있음) | - | Claude가 설정 풀 저장 순서 무시로 껐다 켠 사용자 기존 직원 전부 바뀜(🔴, 비교 실행 300/300)·dev unlock 저장·버릇이 기존 연출 덮음, Gemini는 눈치 모드 해제 때 완료 연출 재생(Claude 놓침) (Flash 렌즈·visual·Claude) |
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
