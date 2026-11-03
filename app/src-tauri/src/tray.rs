@@ -25,7 +25,7 @@ fn t(lang: &str, k: &str) -> &'static str {
         }
         "modes" => {
             if en {
-                "Mode"
+                "Modes"
             } else {
                 "모드"
             }
