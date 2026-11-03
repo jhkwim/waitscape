@@ -4964,7 +4964,7 @@ function gachaBig(h) {
     if (a.loc !== "home" || a.moving || a.par !== fl.F) return;
     const o = JSON.parse(a.pose || "{}"); h.setP(a, Object.assign(o, { arms: Math.floor(tc / .14) % 2 ? "u" : "", mouth: "o", eyes: "o" }));
   }
-  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, close };
+  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, busy: () => !!spin || !!ui.pop, spinning: () => !!spin, close };
 }
 
 /* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig만 — 미니 보기는 읽지 않음. 본체에는 연결 줄만, jhkwim/waitscape#79) =================
@@ -5406,8 +5406,340 @@ function treatBig(h) {
     else if (act === "dn-go") { const c = h.drCard(); if (c && b.getAttribute("aria-disabled") !== "true") go(c.d); }
     else if (act === "dn-close") closeCard();
   }
-  return { build, read, frame, actor, staff, chip, bossSay, bossAway, boss, active, member, stop, row, tap, cardBtn, roofH: () => (S ? ROOF_H : 0),
+  return { build, read, frame, actor, staff, chip, bossSay, bossAway, boss, active, member, stop, row, tap, cardBtn, cardOn: () => !!cardEl, roofH: () => (S ? ROOF_H : 0),
     blockPoke: pk => !!S && (String(pk || "") === "boss.a" && bossAway(h.clockT()) || [...S.sids].some(sid => String(pk || "").startsWith(sid + "."))) };
+}
+
+/* ================= 🎲 랜덤 이벤트 (EVT: 일정·보상·저장·그림 공용 · 큰 화면 eventBig만 — 미니 보기(mountLobby)는 없음. 본체에는 연결 줄만, jhkwim/waitscape#100) =================
+   스튜디오에 가끔 예고 없이 찾아오는 손님·소동. 누르면 작은 보상(💰) + 스튜디오 로그 한 줄. 25~50분마다 하나(무작위), 안 누르면 약 60초(🌠 8초) 뒤 떠남.
+   - 🍕 피자 배달부(+20): 1층 현관문으로 들어와(종 딸랑) 사장님 책상 앞(x 220~284 · 직원과 같은 4배)까지 걸어와 "배달이요~!" → 누르면 사장님이 상자를 받아 책상 가장자리에 들고(김 모락)
+     일하는 층 직원 하나가 머리 왼쪽에 👍(자리에 보이는 일하는 직원이 있으면) · 배달부는 "맛있게 드세요!" 하고 현관으로 돌아감
+   - 📦 택배 상자(+10~40, 5 단위): 1층 현관문 앞 매트 위(x 441~489, 4배)에 「?」 상자(가끔 들썩 · ✦ 반짝) → 누르면 톡 열리며 동전이 튀어나옴(보상이 없으면 "텅~")
+   - 🐈 길 잃은 아기 고양이(+15): 책상 층 하나(회의 배치는 직원 👆·보드 자리라 제외) 바닥 왼쪽(x 106~324 — 직원 자리 👆 343~ 왼쪽)을 어슬렁 → 누르면 ❤️ "냐앙~" 폴짝 하고 그 자리에서 사라짐
+   - 🖨️ 고장 난 프린터(+20): 책상 층 하나 창 아래 바닥(x 262~304 — 🎨 바닥 1(125~195)·AI 보드(~253)와 직원 자리 👆 343~ 사이. 🛒 커피머신(286~322)을 샀으면 200~242,
+     그 층이 ✍️ AI 보드 층이면 그 층엔 안 놓음)에 프린터. 종이 걸림·연기·빨간 불·❗ 깜빡
+     → 누르면 🔧 뚝딱 → 초록 불, 종이가 술술(세 장)
+   - 🎈 풍선(+10): 건물 밖 하늘(건물 왼쪽·오른쪽 빈 하늘 중 하나, 둘 다 좁으면 건물 앞)로 땅에서 천천히 떠오름(60초 동안 화면 위까지) · 줄 끝에 동전 → 누르면 펑! 동전이 땅으로 떨어짐
+   - 🌠 별똥별(+30, 드묾 — 다른 것의 1/3 확률 · 밤만: 22~6시(경비 고양이·부엉이와 같은 시계) 또는 하늘이 어두울 때): 건물 위 하늘을 8초 동안 가로지름 → 누르면 「소원!」 반짝
+   - 누를 자리는 그림을 따라 다니는 투명 칸(z 62 — 👆 누를 자리 60·🎰 61보다 위)이라 아래 👆 반응·층 이동으로 넘어가지 않음(캡처 단계에서 받음) · Enter/Space도 됨
+   - 바로 걷음(나와 있어도, 보상 없음) · 새로 나오지도 않음: 🙈 눈치 모드(가림막 전환 포함) · 📋 일보 연출·일보 카드 · 🍖 회식·회식 정지 장면 카드 · 🎰 뽑기 돌리는 중 · ⚡ 정전 · 창이 숨겨짐.
+     새로 나오지만 않음(나와 있는 건 그대로): 🎰 뽑기 판만 열려 있을 때 · (1층 둘은) 질문 말풍선이 떠 있을 때 — 막히면 1분 뒤 다시 봄.
+     1층 둘은 누르기 전에 질문 말풍선이 뜨면 비켜 줌(개발용 ?evt=는 보여 주기 위해 그대로). 아기 고양이·프린터는 책상 층만 — 나와 있는 층이 회의 배치가 되면 걷음
+   - 움직임 줄이기·회의 모드(정적 그리기): 걷기·날기 없이 그 자리에 나타났다 사라짐(누르기는 됨) · 효과음 없음
+   - 보상: 하루(새벽 4시 경계 — TINY.dayKey, 퇴근 일보·달력과 같음) 최대 5번. 그 뒤엔 와도 보상 없이 반응만(로그에 "오늘 보상은 다 받았어요").
+     결제는 간식·뽑기와 같은 길(h.spend(−n) → sv.funds · 자금 옆 +n)
+   - 저장 ctx.store "evt" = { v: 1, n: { 종류: 만난(누른) 횟수 }, day: "YYYY-MM-DD"(보상 센 날), got: 그날 보상 수 }. 누를 때 다시 읽고 씀(다른 창과 안 겹치게).
+     모르는 종류 키는 그대로 둠(새 버전에서 만난 것) · 잘못된 값은 버림 · 모르는 새 버전(v > 1)이면 읽기만(반응만, 보상·저장 없음). 다음 이벤트 시각은 저장하지 않음(창을 열 때마다 새로)
+   - 🎲 n/6(만난 종류 수): 사이드 📖 직원 도감 카드·도감 창 제목 옆
+   - 개발용 쿼리 ?evt=pizza|box|cat|printer|balloon|star — 1.5초 뒤 바로 나오고 끝나면 4초 뒤 또(별똥별은 밤이 아니어도 · 1층 둘은 질문 말풍선이 떠도). 저장·보상·자금 모두 안 건드림(#88 교훈) */
+const EVT = (() => {
+  const K = "#2e2040";
+  const VER = 1, CAP = 5, GAP = [25 * 60, 50 * 60], STAY = 60, STAY_STAR = 8, RETRY = 60;
+  const KINDS = ["pizza", "box", "cat", "printer", "balloon", "star"];
+  const ICON = { pizza: "🍕", box: "📦", cat: "🐈", printer: "🖨️", balloon: "🎈", star: "🌠" };
+  const NAME = { pizza: ["피자 배달부", "Pizza delivery"], box: ["택배 상자", "Mystery box"], cat: ["길 잃은 아기 고양이", "Lost kitten"], printer: ["고장 난 프린터", "Jammed printer"], balloon: ["풍선", "Balloon"], star: ["별똥별", "Shooting star"] };
+  const PAY = { pizza: [20, 20], box: [10, 40], cat: [15, 15], printer: [20, 20], balloon: [10, 10], star: [30, 30] };
+  const WT = { pizza: 3, box: 3, cat: 3, printer: 3, balloon: 3, star: 1 };   // 고를 때 무게: 🌠는 드묾
+  const ART = {
+    /* 🍕 배달부 강아지(빨간 모자·셔츠) — 앞모습, 상자는 따로(손 높이 10~12줄) */
+    dog: { r: ["....KKKKKKKK....", "...KRRRRRRRRK...", "...KRRRWWRRRK...", "..KKKKKKKKKKKK..", "..KDKFFFFFFKDK..", ".KDDKFFFFFFKDDK.", ".KDDKFKFFKFKDDK.", ".KDDKFFLLFFKDDK.",
+      "..KKKFLKKLFKKK..", "....KKLLLLKK....", "...KRRKKKKRRK...", "..KFKRRRRRRKFK..", "..KFKRRRRRRKFK..", "...KKPPPPPPKK...", "....KPPKKPPK....", "....KKK..KKK...."],
+      p: { K, R: "#e85050", W: "#fff", D: "#a8703a", F: "#f0c890", L: "#fff4e0", P: "#34457f" } },
+    pbox: { r: ["KKKKKKKKKKKKKK", "KWWWWWRRWWWWWK", "KWWWWRYYRWWWWK", "KwwwwwRRwwwwwK", "KKKKKKKKKKKKKK"], p: { K, W: "#fffaf0", w: "#e6d8bc", R: "#e85050", Y: "#ffd23f" } },   // 피자 상자(크림색 · 빨간 동그라미 상표)
+    /* 📦 「?」 상자 · 열린 상자(뚜껑 날개가 양옆으로) */
+    box: { r: [".KKKKKKKKKK.", "KTTTTSSTTTTK", "KKKKKSSKKKKK", "KBBBBSSBBBBK", "KBBWWWWWWBBK", "KBBWWRRWWBBK", "KBBWRWWRWBBK", "KBBWWWRWWBBK", "KBBWWWWWWBBK", "KBBWWWRWWBBK", "KBBWWWWWWBBK", "KbbbbbbbbbbK", "KKKKKKKKKKKK"],
+      p: { K, T: "#f8dca8", S: "#c9a46a", B: "#ecbd7c", b: "#c98d5a", W: "#fffaf0", R: "#e85050" } },
+    boxO: { r: ["K..........K", "KK........KK", "KTK......KTK", "KKKKKKKKKKKK", "KddddddddddK", "KBBWWWWWWBBK", "KBBWWRRWWBBK", "KBBWRWWRWBBK", "KBBWWWRWWBBK", "KBBWWWWWWBBK", "KBBWWWRWWBBK", "KbbbbbbbbbbK", "KKKKKKKKKKKK"],
+      p: { K, T: "#f8dca8", B: "#ecbd7c", b: "#c98d5a", d: "#6e4528", W: "#fffaf0", R: "#e85050" } },   // 뚜껑 날개가 양옆으로 · 안은 어둡게
+    coin: { r: [".KK.", "KYYK", "KYWK", ".KK."], p: { K, Y: "#ffd23f", W: "#fff6c0" } },
+    /* 🐈 아기 고양이(치즈 줄무늬, 오른쪽 보기) · 걷기 2프레임 */
+    cat: { r: ["..........K...K.", "K........KOK.KOK", "KOK......KOOOOOK", ".KOK.....KOEOOEK", "..KOK....KOoPoOK", "...KOKKKKKKoooK.", "...KOOdOOdOOoK..", "...KOOOOOOOOoK..", "...KWK...KWKWK..", "...KK....KKKK..."],
+      p: { K, O: "#ffb35a", o: "#ffe2b8", d: "#e8873a", E: "#2e2040", P: "#ff8ab0", W: "#fff8ee" } },
+    /* 🖨️ 프린터(C = 불빛 잉크) · 걸린 종이 */
+    prn: { r: ["...KKKKKKKK...", "...KWWWWWWK...", ".KKKKKKKKKKKK.", "KGGGGGGGGGGGGK", "KGLLLLLLGGCGGK", "KGGGGGGGGGGGGK", "KDDDDDDDDDDDDK", "KDKKKKKKKKKKDK", "KGGGGGGGGGGGGK", "KGGGGGGGGGGGGK", "KKKKKKKKKKKKKK", ".KK........KK."],
+      p: { K, W: "#fffdf5", G: "#e8ecf4", L: "#7ad0ff", D: "#b8bfd0" } },
+    jam: { r: [".KK.KK.", "KWWKWWK", "KWLWWLK", ".KWWWK."], p: { K, W: "#fffdf5", L: "#b8c4d4" } },
+    sheet: { r: ["KKKKKKKKKK", "KWLLWLLLWK", "KKKKKKKKKK"], p: { K, W: "#fffdf5", L: "#b8c4d4" } },
+    /* 🎈 풍선(C = 풍선 색) · 줄 끝에 동전 */
+    bal: { r: ["..KKKKK..", ".KCCCCCK.", "KCWCCCCCK", "KCWCCCCCK", "KCCCCCCCK", "KCCCCCCCK", ".KCCCCCK.", "..KCCCK..", "...KKK...", "....S....", "...S.....", "...S.....", "....S....", "....S....", "...KKK...", "..KYYYK..", "..KYwYK..", "...KKK..."],
+      p: { K, W: "#ffffff", S: "#6d5d7d", Y: "#ffd23f", w: "#fff6c0" } },
+    star: { r: ["..Y..", ".YWY.", "YWWWY", ".YWY.", "..Y.."], p: { Y: "#ffe27a", W: "#fffbe8" } },
+  };
+  ART.dogB = { r: ART.dog.r.slice(0, 14).concat(["...KPPK..KPPK...", "...KKK....KKK..."]), p: ART.dog.p };
+  ART.catB = { r: ART.cat.r.slice(0, 8).concat(["..KWK...KWK.KWK.", "..KK....KK..KK.."]), p: ART.cat.p };
+  const BAL = ["#ff6b8a", "#5aa8ff", "#ffd23f", "#6adf8a", "#b48aff"];
+  const gap = rng => GAP[0] + Math.floor(rng() * (GAP[1] - GAP[0] + 1));   // 다음 이벤트까지(초) 25~50분
+  const stay = k => k === "star" ? STAY_STAR : STAY;
+  const pay = (k, rng) => { const p = PAY[k]; return p[0] === p[1] ? p[0] : p[0] + 5 * Math.min((p[1] - p[0]) / 5, Math.floor(rng() * ((p[1] - p[0]) / 5 + 1))); };
+  /* 지금 나올 수 있는 것(ok) 중 무게대로 하나 · 없으면 "" */
+  function pick(rng, ok) {
+    const ks = KINDS.filter(k => ok(k)); if (!ks.length) return "";
+    let r = rng() * ks.reduce((a, k) => a + WT[k], 0);
+    for (const k of ks) { r -= WT[k]; if (r < 0) return k; }
+    return ks[ks.length - 1];
+  }
+  const num = v => Number.isInteger(v) && v >= 0 ? v : 0;
+  function load(raw) {
+    let j = null; try { j = JSON.parse(raw || "null"); } catch {}
+    const n = Object.create(null);   // 프로토타입 없는 맵(모르는 종류 키여도 안전)
+    if (!j || typeof j !== "object" || typeof j.v !== "number") return { v: VER, n, day: "", got: 0 };
+    if (j.n && typeof j.n === "object" && !Array.isArray(j.n)) Object.keys(j.n).forEach(k => { if (k.length < 24 && num(j.n[k]) >= 1) n[k] = j.n[k]; });   // 모르는 종류도 그대로(새 버전에서 만난 것)
+    const day = typeof j.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(j.day) ? j.day : "";
+    return { v: VER, n, day, got: day ? Math.min(num(j.got), CAP) : 0, ro: j.v > VER };
+  }
+  const dump = s => JSON.stringify({ v: VER, n: s.n, day: s.day, got: s.got });
+  const gotOn = (s, day) => s.day === day ? s.got : 0;   // 그날 받은 보상 수(날이 바뀌면 0)
+  /* 눌렀을 때: 만난 횟수 +1 · 그날 5번까지 보상 → { amt, save, capped }. 개발용·새 버전 저장이면 아무것도 안 바꿈(반응만) */
+  function claim(s, k, now, rng, dev) {
+    if (dev || s.ro || !KINDS.includes(k)) return { amt: 0, save: false, capped: false };
+    const day = TINY.dayKey(now); if (s.day !== day) { s.day = day; s.got = 0; }
+    s.n[k] = (s.n[k] || 0) + 1;
+    if (s.got >= CAP) return { amt: 0, save: true, capped: true };
+    s.got += 1; return { amt: pay(k, rng), save: true, capped: false };
+  }
+  const count = s => KINDS.filter(k => (s.n[k] || 0) >= 1).length;
+  const devOf = q => { try { const v = (new URLSearchParams(q || "").get("evt") || "").trim(); return KINDS.includes(v) ? v : ""; } catch { return ""; } };
+  return { VER, CAP, GAP, STAY, STAY_STAR, RETRY, KINDS, ICON, NAME, PAY, WT, ART, BAL, gap, stay, pay, pick, load, dump, gotOn, claim, count, devOf };
+})();
+
+/* ---------- 🎲 큰 화면: 이벤트 하나씩 그리기 · 누르기 · 보상. h = 스튜디오 본체 연결 ---------- */
+function eventBig(h) {
+  const { ctx, doc, mkEl, sty, txt, html, X, view } = h, V = EVT, A = V.ART;
+  const dev = V.devOf(location.search);   // 개발용 ?evt=종류(저장·보상 없음)
+  let s = V.load(ctx.store.get("evt", "")), G = null, E = null;
+  let next = ctx.now() + V.gap(Math.random), devT = h.clockT() + 1.5;   // 다음 이벤트 시각(초, 메모리만) · 개발용은 1.5초 뒤
+  const save = () => { if (!s.ro && !dev) try { ctx.store.set("evt", V.dump(s)); } catch {} };
+  const nm = k => V.NAME[k][ctx.lang === "en" ? 1 : 0];
+  const img = (par, css) => { const e = mkEl("img", "b ev-sp", par, Object.assign({ display: "none" }, css || {})); e.alt = ""; e.draggable = false; return e; };
+  const put = (e, p, x, y, css) => { if (e._u !== p.url) { e._u = p.url; e.src = p.url; } sty(e, "display", "block"); sty(e, "width", p.w + "px"); sty(e, "height", p.h + "px"); sty(e, "left", Math.round(x) + "px"); sty(e, "top", Math.round(y) + "px"); if (css) Object.keys(css).forEach(k => sty(e, k, css[k])); };
+  const ssc = () => Math.max(2, Math.round(3 * (h.scale() || 1)));   // 하늘(건물 밖, 배율 없음)의 도트 크기: 건물 3배 × 배율을 정수로
+  const night = () => HABIT.isNight(ctx.now()) || (h.night() || 0) > .5;
+  /* 하늘 자리(view 크기 · 건물 .sc 위치): 나올 때와 창 크기가 바뀔 때만 잼(매 프레임 레이아웃을 읽지 않게) */
+  let geo = null;
+  function measure() { const S = view.querySelector(".sc"); geo = { vw: view.clientWidth, vh: view.clientHeight, l: S ? S.offsetLeft : 0, w: S ? S.offsetWidth : 0, top: S ? S.offsetTop : 120 }; }
+  function resize() { if (E && (E.k === "balloon" || E.k === "star")) { measure(); E.bx = null; } }   // 풍선은 새 크기에서 빈 하늘을 다시 고름
+  /* 🖨️ 프린터 자리(층 x 왼쪽): 창 아래 262~304 — 🛒 커피머신(책상 층 286~322)을 샀으면 🎨 바닥 1(~195)과 커피머신 사이 200~242. 그 자리가 ✍️ AI 보드(~253) 밑이면 이 층엔 안 놓음(null) */
+  const prnX = fl => !h.coffee() ? 262 : fl.aib ? null : 200;
+  const prnOk = fl => fl.desk && prnX(fl) != null;
+  function build(o) {
+    const f1 = o.FL[o.n];
+    G = { F1: f1 ? { F: f1.F, B: f1.B } : null, fl: o.FL.filter((fl, i) => i !== o.n && fl.f).map(fl => ({ F: fl.F, B: fl.B, sid: fl.f.sid, desk: !!fl.desk, aib: !!fl.aib })) };
+  }
+  function read() { if (!dev) s = V.load(ctx.store.get("evt", "")); }   // 다른 창이 쓴 만난 횟수(🎲 n/6)
+  /* 지금 나올 수 있나(종류별) */
+  const ok = k => k === "star" ? night() : k === "printer" ? G.fl.some(prnOk) : k === "cat" ? G.fl.some(f => f.desk) : k === "pizza" || k === "box" ? !!G.F1 && !h.askOn() : true;
+  const stopNow = () => h.hidden() || h.stop() || h.out() || doc.hidden;   // 나와 있어도 바로 걷음: 눈치(가림막 전환 포함)·일보 연출·일보 카드·회식·회식 카드·뽑기 돌리는 중·정전·창 숨김
+  const blocked = () => stopNow() || h.busy();   // 새로 나오지 않음: 위 + 🎰 뽑기 판이 떠 있을 때
+  function spawn(k, t) {
+    const pool = G.fl.filter(k === "printer" ? prnOk : f => f.desk), fl = k === "cat" || k === "printer" ? pool[Math.floor(Math.random() * pool.length)] : null;   // 아기 고양이·프린터는 책상 층만(회의 배치는 직원 👆·보드가 그 자리)
+    if ((k === "cat" || k === "printer") && !fl) return;
+    E = { k, t0: t, sid: fl ? fl.sid : "", hit: null, amt: 0, show: 0, capped: false, ph: Math.random() * 6, col: V.BAL[Math.floor(Math.random() * V.BAL.length)], dom: null, th: null, bx: null, x0: fl && k === "printer" ? prnX(fl) : null };
+    if (k === "balloon" || k === "star") measure();
+    if (k === "pizza") { h.ring(); if (h.anim()) h.snd("bell", 0); }   // 🔔 현관 종 딸랑(종 흔들림은 정적이어도 그대로 — 그림만)
+  }
+  function end() { unmk(E); E = null; if (dev) devT = h.clockT() + 4; }
+  /* 그림 요소: 이벤트가 쓰는 자리(층 · 하늘)에 만들고 끝나면 지움. 층을 다시 지으면(층 요소가 새로 생김) 다음 프레임에 다시 만듦 */
+  function mk(par, sky) {
+    const d = { par, els: [] }, add = e => (d.els.push(e), e);
+    d.sp = add(img(par)); d.sp2 = add(img(par));   // 주인공 · 들고 있는 것(피자 상자 · 걸린 종이 · 별똥별 꼬리 대신 머리)
+    d.fx = add(mkEl("div", "b ev-fx" + (sky ? " sky" : ""), par, { left: "0", top: "0" }));   // 연기·종이·동전·조각(매 프레임 HTML)
+    d.bub = add(mkEl("div", (sky ? "b ev-wish" : "bub ev-bub"), par, { display: "none" }));
+    d.plus = add(mkEl("div", "b ev-plus" + (sky ? " sky" : ""), par, { display: "none" }));
+    d.hit = add(mkEl("div", "b ev-hit" + (sky ? " sky" : ""), par, { display: "none" }));
+    d.hit.setAttribute("role", "button"); d.hit.tabIndex = 0;
+    return d;
+  }
+  function unmk(e) { if (e && e.dom) { e.dom.els.forEach(x => x.remove()); e.dom = null; } }
+  const hitAt = (d, on, x, y, w, hh) => { sty(d.hit, "display", on ? "block" : "none"); if (on) { sty(d.hit, "left", Math.round(x) + "px"); sty(d.hit, "top", Math.round(y) + "px"); sty(d.hit, "width", Math.round(w) + "px"); sty(d.hit, "height", Math.round(hh) + "px"); } };
+  const bub = (d, on, text, x, y) => { sty(d.bub, "display", on ? "block" : "none"); if (on) { txt(d.bub, text); sty(d.bub, "left", Math.round(x) + "px"); sty(d.bub, "top", Math.round(y) + "px"); } };
+  /* 💰 +n: 누른 자리에서 1.6초 떠오름(정지면 제자리) */
+  const plus = (d, x, y, v, anim) => { const on = E.amt > 0 && v >= 0 && v < 1.6; sty(d.plus, "display", on ? "block" : "none"); if (on) { txt(d.plus, "💰 +" + E.amt); sty(d.plus, "left", Math.round(x) + "px"); sty(d.plus, "top", Math.round(y - (anim ? v * 14 : 0)) + "px"); sty(d.plus, "opacity", anim && v > 1.2 ? ((1.6 - v) / .4).toFixed(2) : ""); } };
+  const coinH = (x, y, sc, op) => { const c = WB.pix(A.coin, sc); return `<img class="b ev-sp" alt="" src="${c.url}" style="left:${Math.round(x)}px;top:${Math.round(y)}px;width:${c.w}px;height:${c.h}px;display:block${op != null ? ";opacity:" + op.toFixed(2) : ""}">`; };
+  const fade = (k) => k == null ? "" : clamp(k, 0, 1).toFixed(2);
+  /* ---------- 종류별 그리기: (E, d, u 나온 뒤 초, v 누른 뒤 초(−1 = 아직), lv 안 눌러서 떠나는 중 초(−1 = 아직), anim, t) → false면 끝 ---------- */
+  const DRAW = {
+    pizza(E, d, u, v, lv, anim, t) {
+      const B = G.F1.B, W0 = DOOR_CX, W1 = 252, WALK = 4.5, SC = 4;   // 현관문 가운데 → 사장님 책상 앞(x 220~284 · 모니터 아래, 머그 166~196 오른쪽) · 직원과 같은 4배
+      let x = W1, walk = false, gone = false, op = 1;
+      if (v >= 0) { if (!anim) gone = v > 2.5; else { const k = clamp((v - 1.2) / WALK, 0, 1); x = lerp(W1, W0, k); walk = k > 0 && k < 1; gone = k >= 1; op = k > .85 ? (1 - k) / .15 : 1; } }   // 받은 뒤: 인사 → 현관으로
+      else if (lv >= 0) { if (!anim) gone = true; else { const k = clamp(lv / WALK, 0, 1); x = lerp(W1, W0, k); walk = k < 1; gone = k >= 1; op = k > .85 ? (1 - k) / .15 : 1; } }   // 안 받으면 그냥 돌아감
+      else if (anim) { const k = clamp(u / WALK, 0, 1); x = lerp(W0, W1, k); walk = k < 1; op = clamp(u / .4, 0, 1); }   // 문에서 스르륵 → 걸어옴
+      const held = v >= 0 && v < 5.5;   // 사장님이 든 상자(5.5초)
+      if (gone && !held) return false;
+      const wf = walk && Math.floor(t * 6) % 2, p = WB.pix(wf ? A.dogB : A.dog, SC), L = x - p.w / 2, top = B - p.h - (wf ? 2 : 0);
+      if (gone) { sty(d.sp, "display", "none"); bub(d, false); } else put(d.sp, p, L, top, { opacity: fade(op), zIndex: "12" });
+      const bx = WB.pix(A.pbox, 3);   // 상자는 3배(두 손 사이에 쏙)
+      let fx = "";
+      if (v < 0 && !gone) put(d.sp2, bx, x - bx.w / 2, top + 10 * SC + 2, { opacity: fade(op), zIndex: "13" });   // 두 손으로 든 상자(손 줄 10~12)
+      else if (held) {   // 사장님이 받아 듦: 사장님 턱 아래 · 책상 가장자리에 걸쳐 들썩(얼굴은 안 가림) — 사장님이 안 보이면 책상 위 모니터 옆
+        const bb = h.boss(), vis = bb && bb.par === G.F1.F && bb.el.style.display !== "none";
+        const hx = vis ? parseFloat(bb.el.style.left) + bb.w / 2 - bx.w / 2 + 6 : 222, hy = B - 26 - bx.h + (vis ? 9 : 0) - (anim && vis ? Math.round(Math.abs(Math.sin(v * 3)) * 3) : 0);
+        put(d.sp2, bx, hx, hy, { opacity: fade(anim && v > 5 ? (5.5 - v) / .5 : 1), zIndex: "14" });
+        for (let i = 0; i < 2; i++) { const q = anim ? ((v * .9 + i * .5) % 1) : .4 + i * .3; fx += `<i class="b ev-steam" style="left:${Math.round(hx + 14 + i * 12 + Math.sin(q * 6 + i) * 2)}px;top:${Math.round(hy - 6 - q * 16)}px;opacity:${(.8 * (1 - q)).toFixed(2)}"></i>`; }   // 김 모락
+        plus(d, hx + bx.w / 2, hy - 24, v, anim);
+      } else sty(d.sp2, "display", "none");
+      /* 👍 일하는 직원 하나(받은 뒤 .4~3.4초) */
+      const th = E.th && v >= (anim ? .4 : 0) && v < 3.4 ? h.actors.get(E.th) : null;
+      if (th && th.par && th.loc === "home" && th.el.style.display !== "none") {
+        if (!d.thumb) d.thumb = mkEl("div", "b ev-thumb", null, null, "👍"), d.els.push(d.thumb);
+        if (d.thumb.parentNode !== th.par) th.par.appendChild(d.thumb);
+        sty(d.thumb, "display", "block"); sty(d.thumb, "left", Math.round(parseFloat(th.el.style.left) - 16) + "px"); sty(d.thumb, "top", Math.round(parseFloat(th.el.style.top) + 8 - (anim ? Math.round(Math.abs(Math.sin(v * 5)) * 4) : 0)) + "px");   // 머리 왼쪽(머리 위는 이름표·코드 조각 자리)
+      } else if (d.thumb) sty(d.thumb, "display", "none");
+      html(d.fx, fx);
+      /* 말풍선: 도착하면 "배달이요~!"(3초, 그 뒤 15초마다 2초) · 받으면 "맛있게 드세요!" · 그냥 가면 "다음에 또 올게요~" */
+      const arr = anim ? u - WALK : u, say = v >= 0 ? (v < 1.8 && !gone ? X("맛있게 드세요! 🍕", "Enjoy! 🍕") : "") : lv >= 0 ? (lv < 1.6 && !gone ? X("다음에 또 올게요~", "Next time~") : "") : arr >= 0 && (arr < 3 || arr % 15 < 2) ? X("🍕 배달이요~!", "🍕 Pizza delivery!") : "";
+      bub(d, !!say, say, x, top - 30);
+      hitAt(d, v < 0 && lv < 0 && !gone, L, top, p.w, p.h);
+      return true;
+    },
+    box(E, d, u, v, lv, anim, t) {
+      const B = G.F1.B, p = WB.pix(v >= 0 ? A.boxO : A.box, 4), L = DOOR_CX - p.w / 2, top = B - p.h + 1;   // 현관 매트 위 · 4배(나무 문 앞에서도 눈에 띄게)
+      if (lv >= 0 && (!anim || lv > .6)) return false;
+      if (v >= 0 && v > (anim ? 1.9 : 2.4)) return false;
+      const wob = anim && v < 0 && lv < 0 && (u % 3.2) < .45 ? (Math.floor(u * 14) % 2 ? 5 : -5) : 0, pop = anim && u < .35 ? Math.round((1 - u / .35) * 10) : 0;   // 가끔 들썩 · 나타날 때 톡 떨어짐
+      put(d.sp, p, L, top - pop, { transform: wob ? `rotate(${wob}deg)` : "", transformOrigin: "50% 100%", opacity: fade(lv >= 0 ? 1 - lv / .6 : v > 1.4 && anim ? (1.9 - v) / .5 : 1), zIndex: "7" });
+      let fx = "";
+      if (v >= 0) {
+        const n = E.show ? clamp(Math.round(E.show / 10), 1, 4) : 0;
+        for (let i = 0; i < n; i++) { const q = anim ? clamp((v - i * .08) / .8, 0, 1) : .7, dx = (i - (n - 1) / 2) * 14 * (anim ? ease(q) + .2 : 1); if (anim && q <= 0) continue;
+          fx += coinH(DOOR_CX - 6 + dx, top + 2 - 42 * Math.sin(q * Math.PI * .7) - (i % 2) * 6, 3, anim && q > .85 ? (1 - q) / .15 : null); }   // 동전이 뿅뿅 솟음
+        if (!n) bub(d, v < 1.6, X("텅~ 💨", "Empty~ 💨"), DOOR_CX, top - 30); else bub(d, false);
+        for (let i = 0; i < 5; i++) { const an = -Math.PI * (.15 + i * .175), r0 = anim ? 8 + clamp(v / .35, 0, 1) * 18 : 20; if (anim && v > .5) break;
+          fx += `<i class="b ev-bit" style="left:${Math.round(DOOR_CX + Math.cos(an) * r0)}px;top:${Math.round(top + 6 + Math.sin(an) * r0)}px"></i>`; }   // 톡! 반짝이
+        plus(d, DOOR_CX, top - 54, v, anim);
+      } else { bub(d, false); if (lv < 0 && (!anim || Math.floor(u * 1.5) % 2 === 0)) fx += `<i class="b ev-twk" style="left:${L + p.w - 4}px;top:${top - 12 - pop}px">✦</i>`; }   // 반짝(눌러 보라는 표시)
+      html(d.fx, fx);
+      hitAt(d, v < 0 && lv < 0, L, top - pop, p.w, p.h);
+      return true;
+    },
+    cat(E, d, u, v, lv, anim, t) {
+      const F = G.fl.find(f => f.sid === E.sid); if (!F || !F.desk) return false;   // 그 층이 회의 배치가 되면 걷음(보상 없음)
+      if (lv >= 0 && (!anim || lv > 1)) return false;
+      if (v >= 0 && v > (anim ? 1.5 : 2.2)) return false;
+      if (E.cx == null || v < 0) { const s0 = (u + E.ph) * .3; E.cx = anim ? 215 + 85 * Math.sin(s0) : 200; E.dir = anim ? Math.cos(s0) >= 0 : true; }   // 바닥 왼쪽을 어슬렁(누르면 그 자리에 멈춤)
+      const walk = anim && v < 0, wf = walk && Math.floor(t * 5) % 2, p = WB.pix(wf ? A.catB : A.cat, 3), L = E.cx - p.w / 2;
+      const hop = anim && v >= 0 && v < .5 ? Math.round(Math.sin(v / .5 * Math.PI) * 10) : 0, op = lv >= 0 ? 1 - lv : anim && v > .7 ? 1 - (v - .7) / .8 : anim && u < .5 ? u / .5 : 1;
+      const top = F.B - p.h + 1 - hop;
+      put(d.sp, p, L, top, { transform: E.dir ? "" : "scaleX(-1)", opacity: fade(op), zIndex: "12" });
+      let fx = "";
+      if (v >= 0) { const q = anim ? clamp(v / 1.2, 0, 1) : .5; fx += `<i class="b ev-heart" style="left:${Math.round(E.cx + (E.dir ? 4 : -24))}px;top:${Math.round(top - 16 - q * 26)}px;opacity:${(1 - q * q).toFixed(2)};transform:scale(${(anim ? .6 + Math.min(1, v / .25) * .4 : 1).toFixed(2)})">❤️</i>`; }   // 머리 위로 퐁
+      html(d.fx, fx);
+      bub(d, v >= 0 && v < 1.3, X("냐앙~", "Mew~"), E.cx + (E.dir ? -30 : 30), top - 58);   // 하트 반대쪽 위
+      plus(d, E.cx, top - 60, v, anim);
+      hitAt(d, v < 0 && lv < 0, L - 4, top - 6, p.w + 8, p.h + 8);   // 작아서 조금 넉넉하게
+      return true;
+    },
+    printer(E, d, u, v, lv, anim, t) {
+      const F = G.fl.find(f => f.sid === E.sid); if (!F || !F.desk) return false;   // 그 층이 회의 배치가 되면 걷음(보상 없음)
+      if (lv >= 0 && (!anim || lv > .8)) return false;
+      if (v >= 0 && v > (anim ? 3.6 : 2.6)) return false;
+      const fixed = v >= (anim ? .9 : 0), led = fixed ? "#6adf8a" : anim && Math.floor(t * 3) % 2 ? "#ff5a5a" : "#a83a3a";
+      const p = WB.pix(A.prn, 3, led), X0 = E.x0, top = F.B - p.h + 1;   // 창 아래 바닥(나올 때 정한 자리 — prnX)
+      const sh = anim && (v >= 0 && v < .9 ? (Math.floor(v * 10) % 2 ? 2 : -2) : !fixed && (u % 2.4) < .35 ? (Math.floor(u * 16) % 2 ? 1 : -1) : 0);   // 덜컹(고칠 땐 뚝딱뚝딱)
+      const op = lv >= 0 ? 1 - lv / .8 : anim && v > 3 ? (3.6 - v) / .6 : anim && u < .4 ? u / .4 : 1;
+      put(d.sp, p, X0 + (sh || 0), top, { opacity: fade(op), zIndex: "7" });
+      const jp = WB.pix(A.jam, 3);
+      if (!fixed) put(d.sp2, jp, X0 - 12 + (sh || 0), top + 7 * 3 - 5, { opacity: fade(op), zIndex: "8" }); else sty(d.sp2, "display", "none");   // 걸린 종이(배출구 왼쪽으로 구겨져 삐죽)
+      let fx = "";
+      if (!fixed) for (let i = 0; i < 3; i++) { const q = anim ? (u * .7 + i / 3) % 1 : .2 + i * .25; fx += `<i class="b ev-smoke" style="left:${Math.round(X0 + 28 + Math.sin(q * 5 + i) * 4)}px;top:${Math.round(top - 6 - q * 26)}px;width:${Math.round(6 + q * 8)}px;height:${Math.round(6 + q * 8)}px;opacity:${(.75 * (1 - q) * op).toFixed(2)}"></i>`; }   // 연기 모락
+      if (!fixed && (!anim || Math.floor(t * 2) % 2)) fx += `<i class="b ev-warn" style="left:${X0 - 4}px;top:${top - 18}px">❗</i>`;   // 고장 표시 깜빡
+      if (v >= 0 && v < (anim ? 1.1 : 1.6)) fx += `<i class="b ev-wrench" style="left:${X0 + 30}px;top:${top - 20}px;transform:rotate(${anim ? (Math.floor(v * 8) % 2 ? 30 : -20) : 15}deg)">🔧</i>`;
+      if (fixed) { const sp = WB.pix(A.sheet, 2); for (let i = 0; i < 3; i++) { const q = anim ? clamp((v - .9 - i * .45) / .7, 0, 1) : [.9, .5, .15][i]; if (q <= 0) continue;   // 종이가 술술(배출구 → 왼쪽 바닥)
+        fx += `<img class="b ev-sp" alt="" src="${sp.url}" style="display:block;left:${Math.round(X0 + 4 - q * 40)}px;top:${Math.round(top + 7 * 3 - 2 + q * q * (F.B - top - 22))}px;width:${sp.w}px;height:${sp.h}px;z-index:8;transform:rotate(${Math.round(-q * 8)}deg);opacity:${fade(op)}">`; } }
+      html(d.fx, fx);
+      bub(d, fixed && v < 2.8 && v > (anim ? 1.1 : 0), X("술술~ 🎶", "Back in business 🎶"), X0 + p.w / 2, top - 32);
+      plus(d, X0 + p.w / 2, top - 52, v - (anim ? .9 : 0), anim);
+      hitAt(d, v < 0 && lv < 0, X0 - 12, top - 8, p.w + 12, p.h + 8);
+      return true;
+    },
+    balloon(E, d, u, v, lv, anim, t) {
+      const sc = Math.max(3, Math.round(4 * (h.scale() || 1))), p = WB.pix(A.bal, sc, E.col); if (!geo) measure(); const vw = geo.vw, gy = geo.vh - 36;   // 땅(잔디 36px) 위
+      if (E.bx == null) {   // 건물 왼쪽·오른쪽 빈 하늘 중 하나(둘 다 좁으면 건물 앞 왼쪽)
+        const l = geo.l, r = vw - geo.l - geo.w, need = p.w + 24, sides = [];
+        if (l >= need) sides.push(l / 2); if (r >= need) sides.push(vw - r / 2); E.bx = (sides.length ? sides[Math.floor(Math.random() * sides.length)] : Math.max(30, l + 30)) - p.w / 2; }
+      const k = anim ? (v >= 0 ? E.k0 : u / V.STAY) : .45;
+      if (v < 0) E.k0 = k;
+      const x = E.bx + (anim ? Math.sin(u * .8 + E.ph) * 6 : 0), y = gy - p.h - k * gy;
+      if (v < 0 && (anim ? y < -p.h : lv >= 0)) return false;   // 화면 위로 사라짐(정지면 60초 뒤 그냥 사라짐)
+      if (v >= 0 && v > (anim ? 1.9 : 2.2)) return false;
+      if (v < 0) put(d.sp, p, x, y, { zIndex: "3", opacity: fade(anim && u < .6 ? u / .6 : 1) }); else sty(d.sp, "display", "none");
+      let fx = "";
+      if (v >= 0) {   // 펑! 조각 · 동전이 땅으로(통 튐)
+        const bx = E.px != null ? E.px : (E.px = x), by = E.py != null ? E.py : (E.py = y), cs = sc + 1, cy0 = by + 14 * sc, gyc = gy - 4 * cs;
+        if (!anim || v < .45) for (let i = 0; i < 6; i++) { const an = i / 6 * Math.PI * 2 + .3, r0 = anim ? 6 + v / .45 * 26 : 18; fx += `<i class="b ev-bit sky" style="left:${Math.round(bx + 4.5 * sc + Math.cos(an) * r0)}px;top:${Math.round(by + 3.5 * sc + Math.sin(an) * r0)}px;background:${E.col}"></i>`; }
+        if (!anim || v < .7) fx += `<b class="b ev-pop" style="left:${Math.round(bx + 4.5 * sc)}px;top:${Math.round(by - 6)}px">${X("펑!", "Pop!")}</b>`;
+        let cy; if (!anim) cy = gyc; else { const tf = Math.sqrt(2 * Math.max(1, gyc - cy0) / 1400); cy = v < tf ? cy0 + 700 * v * v : gyc - Math.round(Math.abs(Math.sin(Math.min((v - tf) / .35, 1) * Math.PI)) * 8 * (v - tf < .35 ? 1 : 0)); }
+        fx += coinH(bx + 2.5 * sc, Math.min(cy, gyc), cs, anim && v > 1.5 ? (1.9 - v) / .4 : null);
+        if (E.amt > 0 && v < 1.8) fx += `<b class="b ev-plus sky" style="left:${Math.round(bx + 4.5 * sc)}px;top:${Math.round(gyc - 26 - (anim ? Math.max(0, v - .6) * 12 : 0))}px">💰 +${E.amt}</b>`;
+      }
+      html(d.fx, fx);
+      hitAt(d, v < 0 && lv < 0, x - 4, y - 4, p.w + 8, 9 * sc + 8);   // 풍선(줄 위)만
+      return true;
+    },
+    star(E, d, u, v, lv, anim, t) {
+      if (lv >= 0) return false;
+      if (v >= 0 && v > (anim ? 2.2 : 2.6)) return false;
+      const sc = ssc(), p = WB.pix(A.star, sc); if (!geo) measure(); const vw = geo.vw, y1 = clamp(geo.top - 30, 50, 170);
+      const x0 = vw * .9, x1 = vw * .1, y0 = 24, k = anim ? (v >= 0 ? E.k0 : clamp(u / V.STAY_STAR, 0, 1)) : .55;
+      if (v < 0) E.k0 = k;
+      const x = lerp(x0, x1, k), y = lerp(y0, y1, k), an = Math.atan2(y0 - y1, x0 - x1) * 180 / Math.PI;   // 꼬리는 지나온 쪽(오른쪽 위)으로
+      const op = anim && u < .4 ? u / .4 : 1;
+      put(d.sp, p, x - p.w / 2, y - p.h / 2, { zIndex: "3", opacity: fade(op) });
+      const tl = v >= 0 ? (anim ? Math.max(0, 1 - v / .3) : 0) * 90 : 90;
+      let fx = tl > 0 ? `<i class="b ev-trail" style="left:${Math.round(x)}px;top:${Math.round(y - 1)}px;width:${Math.round(tl)}px;transform:rotate(${an.toFixed(1)}deg);opacity:${op.toFixed(2)}"></i>` : "";
+      if (v >= 0) {   // 소원! 반짝(별 둘레로 반짝이가 퍼짐)
+        const q = anim ? clamp(v / .8, 0, 1) : .6;
+        for (let i = 0; i < 8; i++) { const a2 = i / 8 * Math.PI * 2, r0 = 6 + q * 26; fx += `<i class="b ev-glint" style="left:${Math.round(x + Math.cos(a2) * r0 - 2)}px;top:${Math.round(y + Math.sin(a2) * r0 - 2)}px;opacity:${(1 - q * .7).toFixed(2)}"></i>`; }
+        if (E.amt > 0 && v < 1.8) fx += `<b class="b ev-plus sky" style="left:${Math.round(x)}px;top:${Math.round(y < 64 ? y + 56 : y + 22 + (anim ? v * 6 : 0))}px">💰 +${E.amt}</b>`;
+      }
+      html(d.fx, fx);
+      sty(d.bub, "display", v >= 0 ? "block" : "none"); if (v >= 0) { txt(d.bub, X("✨ 소원! ✨", "✨ Wish! ✨")); sty(d.bub, "left", Math.round(x) + "px"); sty(d.bub, "top", Math.round(y < 64 ? y + 26 : y - 40 - (anim ? Math.min(v, .3) * 20 : 0)) + "px"); sty(d.bub, "opacity", anim && v > 1.8 ? ((2.2 - v) / .4).toFixed(2) : ""); }   // 위가 좁으면 별 아래에
+      hitAt(d, v < 0, x - 24, y - 24, 48, 48);   // 빠르고 작아서 넉넉하게
+      return true;
+    },
+  };
+  /* 누르기: 만난 횟수·보상(하루 5번)·로그 · 소리 */
+  function claim() {
+    if (!E || E.hit != null) return;
+    const t = h.clockT(); E.hit = t;
+    if (!dev) s = V.load(ctx.store.get("evt", ""));   // 다른 창이 쓴 것 먼저
+    const r = V.claim(s, E.k, ctx.now(), Math.random, !!dev);
+    if (r.save) save();
+    E.amt = r.amt; E.capped = r.capped; E.show = r.amt || (dev || s.ro ? V.pay(E.k, Math.random) : 0);   // show: 그림용(개발용이면 동전만 보여 줌)
+    if (r.amt) { h.spend(-r.amt); h.float(r.amt); h.saveNow(); }
+    const LOG = { pizza: X("피자 배달 왔어요 · 사장님이 받았어요", "Pizza arrived · the boss signed for it"), box: X("「?」 택배 상자를 열었어요", "Opened a mystery box"), cat: X("길 잃은 아기 고양이를 쓰다듬었어요 ❤️", "Petted a lost kitten ❤️"),
+      printer: X("고장 난 프린터를 고쳤어요 🔧", "Fixed the jammed printer 🔧"), balloon: X("풍선을 터뜨렸더니 동전이 떨어졌어요", "Popped a balloon · a coin fell out"), star: X("별똥별에 소원을 빌었어요 ✨", "Made a wish on a shooting star ✨") };
+    h.log(V.ICON[E.k], LOG[E.k] + (r.amt ? ` · +${r.amt}` : dev ? X(" (개발용 · 저장 안 함)", " (dev · not saved)") : r.capped ? X(" · 오늘 보상은 다 받았어요", " · no more rewards today") : ""));
+    if (E.k === "pizza") {   // 👍 해 줄 일하는 직원(자기 층 자리에 보이는) 하나
+      const fs = h.model().floors.filter(f => ["work", "agents"].includes(f.kind) && (a => a && a.loc === "home" && !a.moving && a.el.style.display !== "none")(h.actors.get(f.sid)));
+      E.th = fs.length ? fs[Math.floor(Math.random() * fs.length)].sid : null; }
+    if (h.anim()) ({ pizza: () => h.snd("coin", .1), box: () => { h.snd("pop", 0); h.snd("coin", .15); }, cat: () => h.snd("meow", 0), printer: () => { h.snd("hammer", 0); h.snd("hammer", .45); h.snd("whoosh", .95); },
+      balloon: () => { h.snd("pop", 0); h.snd("coin", .5); }, star: () => h.snd("chime", 0) })[E.k]();
+    h.kick(); h.hud();
+  }
+  ctx.listen(doc, "click", e => { if (!E || !E.dom || !E.dom.hit.contains(e.target) || E.dom.hit.style.display === "none") return; e.stopPropagation(); e.preventDefault(); claim(); }, true);   // 캡처 단계 — 👆·층 이동으로 넘기지 않음
+  ctx.listen(doc, "keydown", e => { if (E && E.dom && e.target === E.dom.hit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); claim(); } });
+  function frame(T, tc, anim) {
+    if (!G) return;
+    const t = h.clockT(), now = ctx.now(), bl = blocked();   // 정지 그리기는 tc가 0이라 시계를 직접 봄
+    if (E && stopNow()) end();   // 눈치·일보·회식·뽑기 돌리기·정전·창 숨김이 오면 바로 걷음(보상 없음). 🎰 판만 열린 건 그대로 둠
+    if (E && !dev && E.hit == null && (E.k === "pizza" || E.k === "box") && h.askOn()) end();   // 1층 손님: 질문 말풍선이 그 자리를 덮으면 비켜 줌(누르기 전만 · 개발용 ?evt=는 보여 주기 위해 그대로)
+    if (!E) {
+      if (dev) { if (!bl && t >= devT) spawn(dev, t); }
+      else if (now >= next) {
+        if (bl || doc.hidden) next = now + V.RETRY;   // 지금은 안 됨 → 1분 뒤 다시
+        else { const k = V.pick(Math.random, ok); if (k) { spawn(k, t); next = now + V.gap(Math.random); } else next = now + V.RETRY; }
+      }
+    }
+    if (!E) return;
+    const sky = E.k === "balloon" || E.k === "star", par = sky ? view : E.k === "pizza" || E.k === "box" ? G.F1 && G.F1.F : (G.fl.find(f => f.sid === E.sid) || {}).F;
+    if (!par) return end();   // 그 층이 사라짐(직원 퇴근 등)
+    if (!E.dom || E.dom.par !== par) { unmk(E); E.dom = mk(par, sky); }
+    if (E.dom.lang !== ctx.lang) { E.dom.lang = ctx.lang; E.dom.hit.title = V.ICON[E.k] + " " + nm(E.k) + X(" · 눌러 보세요", " · click me"); E.dom.hit.setAttribute("aria-label", E.dom.hit.title); }   // 언어가 바뀌면 다시
+    const u = t - E.t0, v = E.hit == null ? -1 : t - E.hit, life = V.stay(E.k), lv = E.hit == null && u > life ? u - life : -1;   // lv: 안 눌러서 떠나는 중(초)
+    if (DRAW[E.k](E, E.dom, u, v, lv, anim, t) === false) end();
+  }
+  return { build, read, frame, resize, count: () => V.count(s), dev: () => dev };
 }
 
 C.registerMode({
@@ -5658,6 +5990,10 @@ C.registerMode({
       funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
       anim: () => animOn(), still: () => !!(rm.matches || ctx.settings.quiet), kick: () => { if (!animOn()) staticDraw(); }, layout: () => layout() });
+    const evB = eventBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, model: () => model, scale: () => scaleK, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 🎲 랜덤 이벤트(#100)
+      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
+      spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
+      snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); } });
     const pwWins = [];
 
     let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, confs = [], askb, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
@@ -5802,6 +6138,7 @@ C.registerMode({
       tnB.build({ FL, n, carEl });   // ☕ 빈 잔 · 📅 달력 · 🔦 1층 고양이
       trB.build({ bld, FL, n });   // 🍩 책상 위 간식 · 🍖 옥상 겹 · 📷 1층 회식 사진
       gaB.build({ FL, n }); gaB.read(model.floors);   // 🎰 1층 뽑기 기계
+      evB.build({ FL, n });   // 🎲 랜덤 이벤트 자리(1층 · 직원 층)
       layout();
     }
 
@@ -5819,7 +6156,7 @@ C.registerMode({
       scaleK = k;
       sty(sc, "width", Math.round(ws * k) + "px"); sty(sc, "height", Math.round(hs * k) + "px");
       sty(bld, "transform", `scale(${k})`); sty(bld, "top", rh ? Math.round(rh * k) + "px" : ""); bld.style.setProperty("--inv", String(Math.min(2, Math.max(1, 1 / k))));
-      pwB.resize();
+      pwB.resize(); evB.resize();   // 🎲 하늘 이벤트 자리 다시 재기
     }
 
     /* ---------- 소리: 키보드 타자 (Web Audio 합성, 작은 볼륨) ---------- */
@@ -6183,6 +6520,7 @@ C.registerMode({
       tnB.frame(T, tc, anim);   // ☕ 빈 잔 · 📅 연속 출근 · 🔦 순찰
       trB.frame(T, tc, anim);   // 🍩 책상 위 간식 · 🍖 옥상 회식 · 📷 회식 사진
       gaB.frame(T, tc, anim);   // 🎰 뽑기 연출 · 판 자리
+      evB.frame(T, tc, anim);   // 🎲 랜덤 이벤트(25~50분마다 하나)
     }
 
     /* 한 층의 동물 놓기 — 반환 { babies } */
@@ -6660,6 +6998,7 @@ C.registerMode({
       trB.read();   // 🍩 날이 바뀌면 간식 비움
       dcB.read(floors, tc, firstSync);   // 🎨 층(프로젝트)이 보임 → 창고 복원·시듦 · 7일 안 온 층은 창고로
       gaB.read(floors);   // 🎰 직원(프로젝트 + 프로바이더) → 착용 액세서리
+      evB.read();   // 🎲 만난 종류(다른 창이 쓴 것)
       const sig = floors.map(f => f.sid + f.layout + (f.aib ? "w" : "")).join(",") + "|" + nSess + "|" + Object.keys(sv.shop).sort().join(",") + "|" + ctx.lang + "|" + dcB.sig();
       if (sig !== buildSig) { buildSig = sig; build(); }
       if (moreEl) { moreEl.hidden = !model.more; txt(moreEl, X(`+${model.more}명 더`, `+${model.more} more`)); }
@@ -6755,7 +7094,7 @@ C.registerMode({
       const dc = dexCounts();
       setSec("dex", "dexcard", "").onclick = openDex;
       const dcard = side.querySelector("[data-sec=dex]"); dcard.setAttribute("role", "button"); dcard.tabIndex = 0;
-      html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/${SP.length} · ✨${dc.sh}</small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
+      html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류", "🎲 Random events · kinds met"))}" style="white-space:nowrap">🎲${evB.count()}/${EVT.KINDS.length}</span></small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
       const lv = lvOf();
       setSec("shop", "", `<h3><span>🛒 ${X("상점 · 꾸미기", "Shop · decorate")}</span><span>💰 ${sv.funds.toLocaleString("en-US")}</span></h3><div class="shop">${SHOP.map(it => {
         const own = owned(it.id), locked = lv < it.lv, afford = sv.funds >= it.p, nm = it.n[ctx.lang === "en" ? 1 : 0];
@@ -6783,7 +7122,7 @@ C.registerMode({
       const lockT = X("🔒 아직 잠겨 있어요 · 곧 「입사 지원서」로 만날 수 있어요", "🔒 Locked for now · a job application will bring them in soon");
       const lk = id => hire.lockedReal(id);   // ?tiny=unlock과 무관하게 실제 잠금
       const w = $(".dex .win");
-      w.innerHTML = `<h2>📖 ${X("직원 도감", "Staff dex")} <span class="cnt">${dc.sp}/${SP.length} · ✨${dc.sh}</span><span class="mas"><img alt="" src="${bs.url}" style="width:${bs.w}px;height:${bs.h}px"><span>👑 ${X(`사장님 햄찌 = 마스코트 (도감 ${SP.length}종과 별개)`, `Boss hamster = mascot (not in the ${SP.length})`)}</span></span><button class="x" type="button" data-act="dexclose">✕ ${X("닫기", "Close")}</button></h2>
+      w.innerHTML = `<h2>📖 ${X("직원 도감", "Staff dex")} <span class="cnt">${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류(피자·택배·아기 고양이·프린터·풍선·별똥별)", "🎲 Random events · kinds met (pizza, box, kitten, printer, balloon, shooting star)"))}">🎲${evB.count()}/${EVT.KINDS.length}</span></span><span class="mas"><img alt="" src="${bs.url}" style="width:${bs.w}px;height:${bs.h}px"><span>👑 ${X(`사장님 햄찌 = 마스코트 (도감 ${SP.length}종과 별개)`, `Boss hamster = mascot (not in the ${SP.length})`)}</span></span><button class="x" type="button" data-act="dexclose">✕ ${X("닫기", "Close")}</button></h2>
       <div class="sub">${X("출근한 적 있는 동물만 등록돼요. 어떤 동물이 올지는 세션 ID로 정해지고(해시), ✨반짝이는 작업량과 무관한 순수한 운이에요 (확률 1/64).", "Only animals that showed up are listed. The animal comes from the session ID hash; ✨ shiny is pure luck (1/64), unrelated to workload.")}</div>
       <div class="grid">${SP.map(id => { const d = sv.dex[id] || {}; return `<div class="col"><div class="nm"><span>${d.n || d.s ? EMO[id] + " " + esc(aName(id)) : lk(id) ? "🔒 ???" : "❔ ???"}</span><span>${d.n && d.s ? "✓✨" : d.s ? "✨" : d.n ? "✓" : ""}</span></div>${dexCell(id, false)}${dexCell(id, true)}</div>`; }).join("")}</div>
       ${pkB.dexHtml()}

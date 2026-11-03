@@ -112,6 +112,7 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 - **📋 Daily report**: when everything has been quiet for about 45 minutes in the afternoon, the boss waves a sheet: "The report is in!" It announces today's finished work, hours and MVP, then makes a shareable card (PNG).
 - **🎨 Decorate floors**: spend the funds you earn from finished work on props for each project's floor. Each animal has favorites. No real payments.
 - **🎰 Capsule machine**: drop funds into the machine on 1F, turn the handle, and a capsule rolls out and pops open: staff accessories (hats, sunglasses…), desk toys, or a "job application" that unlocks a locked animal. Everything goes into a collection on the decorate panel, and duplicates refund part of the cost.
+- **🎲 Random events**: every now and then someone drops by unannounced: a 🍕 pizza courier, a 📦 mystery box, a 🐈 lost kitten, a 🖨️ jammed printer, a 🎈 balloon, or (rarely, at night) a 🌠 shooting star. Click them for a small bonus in funds (up to 5 a day).
 - **Subagent meetings**: subagents show up as baby animals in the meeting room, writing tasks on the whiteboard and checking them off.
 - **🔕 Meeting mode**: no sound, no flashing. It also follows your OS "reduce motion" setting.
 - **In-app updates**: you get a notice when a new version is out. It downloads only when you click, and verifies the signature before installing.
