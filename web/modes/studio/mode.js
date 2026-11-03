@@ -5936,10 +5936,10 @@ const SPOT = (() => {
   const GROUPS = [
     { id: "rest", e: "😴", n: ["쉬는 시간", "Break time"] }, { id: "wx", e: "🌦️", n: ["날씨", "Weather"] }, { id: "power", e: "⚡", n: ["전력", "Power"] },
     { id: "desk", e: "🗂️", n: ["책상", "Desk"] }, { id: "staff", e: "🤸", n: ["직원", "Staff"] }, { id: "bldg", e: "🏢", n: ["건물", "Building"] }];
-  const L = (g, id, e, n, c, h) => ({ g, id, e, n, c, h });
+  const L = (g, id, e, n, c, h, mo) => ({ g, id, e, n, c, h, mo: !!mo });   // mo: 움직임이라 움직임 줄이기·회의 모드에선 안 나옴(그땐 분모에서 뺌)
   const LIST = [
     L("rest", "doze", "😪", ["꾸벅꾸벅", "Nodding off"], ["5분 넘게 쉬면 꾸벅꾸벅 졸아요", "Idle 5+ min: nodding off"], ["커피를 다 마셨는데 할 일이 없으면…", "Coffee's gone and there's nothing to do…"]),
-    L("rest", "bonk", "💥", ["쿵!", "Bonk!"], ["졸다가 고개가 툭 떨어져요", "The head drops while dozing"], ["조는 직원을 가만히 지켜보면…", "Watch a dozing staffer for a while…"]),
+    L("rest", "bonk", "💥", ["쿵!", "Bonk!"], ["졸다가 고개가 툭 떨어져요", "The head drops while dozing"], ["조는 직원을 가만히 지켜보면…", "Watch a dozing staffer for a while…"], 1),
     L("rest", "deep", "🫧", ["엎드려 쿨쿨", "Fast asleep"], ["15분 넘게 쉬면 책상에 엎드려 코 풍선", "Idle 15+ min: head on the desk, snot bubble"], ["아주 오래 쉬게 두면…", "Leave them idle for a long time…"]),
     L("rest", "startle", "❗", ["화들짝", "Whoa!"], ["졸던 직원에게 일이 다시 오면 깡충", "A dozing staffer gets work again"], ["조는 직원에게 일을 맡겨 보세요", "Give a dozing staffer some work"]),
     ...NAP.MENUS.map(m => L("rest", "lunch-" + m.id, { bento: "🍱", ramen: "🍜", onigiri: "🍙", sandwich: "🥪" }[m.id] || "🍽️", [m.n[0], m.n[1][0].toUpperCase() + m.n[1].slice(1)], ["낮 12시, 쉬는 직원의 점심 메뉴", "Lunch at noon for idle staff"], ["점심시간, 오늘 메뉴는?", "Lunchtime — what's on the menu?"])),
@@ -5958,8 +5958,8 @@ const SPOT = (() => {
     L("desk", "flag1k", "🏁", ["도구 1K 깃발", "1K-tool flag"], ["도구를 1000번 넘게 쓰면 1K 깃발", "1000+ tool calls: the 1K flag"], ["그보다 훨씬 더…", "Way, way more…"]),
     L("desk", "charge", "🔌", ["로봇 충전", "Robot charging"], ["로봇이 4시간 넘게 일하면 케이블을 꽂아요", "A robot working 4+ hours plugs in"], ["로봇 직원의 배터리가 다 닳으면", "When a robot's battery runs out"]),
     L("staff", "stomp", "🦶", ["발 동동", "Foot tapping"], ["질문하고 1분 넘게 기다리면 발을 동동", "Waiting 1+ min on a question"], ["질문에 답을 조금 늦게 하면…", "Answer a question a bit late…"]),
-    L("staff", "slump", "💦", ["주저앉기", "Slumped"], ["질문하고 3분 넘게 기다리면 주저앉아요", "Waiting 3+ min: slumps down"], ["질문에 답을 아주 늦게 하면…", "Answer a question very late…"]),
-    L("staff", "yawn", "🥱", ["월요일 하품", "Monday yawn"], ["월요일 출근 뒤 10분 동안 하암~", "Yawns for 10 min after clocking in on Monday"], ["한 주의 시작, 아침에…", "Start of the week, in the morning…"]),
+    L("staff", "slump", "💦", ["주저앉기", "Slumped"], ["질문하러 엘리베이터·사장님 앞에 와서 3분 넘게 기다리면 주저앉아요(자기 층 순서 대기는 발 동동만)", "Waiting 3+ min at the elevator or the boss: slumps down (queuing on its own floor only taps)"], ["질문에 답을 아주 늦게 하면…", "Answer a question very late…"]),
+    L("staff", "yawn", "🥱", ["월요일 하품", "Monday yawn"], ["월요일 출근 뒤 10분 동안 하암~", "Yawns for 10 min after clocking in on Monday"], ["한 주의 시작, 아침에…", "Start of the week, in the morning…"], 1),
     L("staff", "aloha", "🌺", ["금요일 셔츠", "Friday shirt"], ["금요일 17시부터 하와이안 셔츠에 꽃", "Hawaiian shirts from Friday 5 pm"], ["불금 저녁에…", "On a Friday evening…"]),
     L("bldg", "pigeon", "🐦", ["창틀 비둘기", "Window pigeon"], ["낮에 가끔 창틀에 비둘기가 앉아요", "A pigeon sometimes sits on a sill by day"], ["낮에 창밖을 잘 보면…", "Watch the windows during the day…"]),
     L("bldg", "cat", "🔦", ["경비 고양이", "Night guard cat"], ["밤 10시~새벽 6시, 1층을 순찰해요", "Patrols 1F from 10 pm to 6 am"], ["늦은 밤 1층에…", "Late at night on 1F…"]),
@@ -5986,21 +5986,22 @@ function spotBig(h) {
   const { ctx, doc, mkEl, sty, html, X } = h, V = SPOT, dev = V.devOf(location.search);
   const got = new Set();   // 이미 본 id(프레임마다 부르는 h.spot을 Set 확인 한 번으로 끝내려고)
   let s = V.load(ctx.store.get("spot", "")), q = [], toast = null, el = null;   // q: 한꺼번에 여럿 보면 차례로(처음 켠 날 등)
-  const sync = () => { s = V.load(ctx.store.get("spot", "")); for (const k of Object.keys(s.s)) got.add(k); };
+  const sync = () => { s = V.load(ctx.store.get("spot", "")); got.clear(); for (const k of Object.keys(s.s)) got.add(k); };   // 저장이 지워지거나 바뀌면 그대로 따름
   sync();
   const L = p => p[ctx.lang === "en" ? 1 : 0];
   const ymd = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  let lastSync = 0;
   function see(id) {
-    if (got.has(id) || dev.ro || !V.BY[id] || doc.hidden || h.hidden()) return;
-    sync(); if (got.has(id)) return;   // 다른 창이 먼저 봄
-    if (s.ro) return;
-    s.s[id] = Date.now(); got.add(id);
+    if (got.has(id) || dev.ro || s.ro || !V.BY[id] || doc.hidden || h.hidden()) return;
+    const t = Date.now(); if (t - lastSync < 1000) return;   // 다른 창 확인은 1초에 한 번(층마다·프레임마다 불려도 저장을 매번 읽지 않게) — 처음 본 장면은 1초 안에 도장
+    lastSync = t; sync(); if (got.has(id) || s.ro) return;   // 다른 창이 먼저 봄 · 그새 새 버전이 씀
+    s.s[id] = t; got.add(id);
     try { ctx.store.set("spot", V.dump(s)); } catch {}
-    h.spend(-V.PAY); h.float(V.PAY);
+    h.spend(-V.PAY); h.saveNow(); h.float(V.PAY);   // 도장과 자금을 같이 저장(이벤트 보상과 같은 길)
     const it = V.BY[id], n = V.count(s);
     h.log("📔", X(`새 목격: ${it.e} ${it.n[0]} · +${V.PAY} (${n}/${V.LIST.length})`, `New sighting: ${it.e} ${it.n[1]} · +${V.PAY} (${n}/${V.LIST.length})`));
     q.push({ id, n });
-    h.hud();
+    h.hud(); h.redex();
   }
   function frame(T, tc, anim) {
     if (!el) { el = mkEl("div", "pk-toast sp-toast", h.main); sty(el, "display", "none"); }
@@ -6014,13 +6015,17 @@ function spotBig(h) {
   }
   const has = id => dev.all || got.has(id);
   const n = () => dev.all ? V.LIST.length : V.count(s);
+  const total = () => V.LIST.filter(x => !x.mo || h.anim() || has(x.id)).length;   // 움직임 줄이기면 아직 못 본 움직임 장면은 분모에서 뺌
   /* 📖 도감 창 칸: 무리별로 · 본 것 = 이름·조건·날짜, 못 본 것 = ❔ + 힌트 */
   function dexHtml() {
     sync();
-    return `<div class="pk-dex sp-dex"><h4>📔 ${X("목격 일지", "Sightings")} <span class="cnt">${n()}/${V.LIST.length}</span><small>${X("큰 화면에서 처음 본 순간 도장 · 💰+" + V.PAY + " · 못 본 건 힌트만", "Stamped the first time you see it on the big screen · 💰+" + V.PAY + " · hints for the rest")}</small></h4>${V.GROUPS.map(g => `<div class="sp-g"><b class="sp-gh">${g.e} ${esc(L(g.n))}</b><div class="eg">${V.LIST.filter(x => x.g === g.id).map(x => { const t = dev.all ? Date.now() : s.s[x.id];
-      return `<div class="${has(x.id) ? "f" : ""}"><b>${has(x.id) ? x.e + " " + esc(L(x.n)) : "❔ ???"}</b>${has(x.id) ? esc(L(x.c)) + `<em>${ymd(t)}</em>` : X("힌트: ", "Hint: ") + esc(L(x.h))}</div>`; }).join("")}</div></div>`).join("")}</div>`;
+    const still = !h.anim();
+    return `<div class="pk-dex sp-dex"><h4>📔 ${X("목격 일지", "Sightings")} <span class="cnt">${n()}/${total()}</span><small>${X("큰 화면에서 처음 본 순간 도장 · 💰+" + V.PAY + " · 못 본 건 힌트만", "Stamped the first time you see it on the big screen · 💰+" + V.PAY + " · hints for the rest")}</small></h4>${V.GROUPS.map(g => `<div class="sp-g"><h5 class="sp-gh">${g.e} ${esc(L(g.n))}</h5><div class="eg">${V.LIST.filter(x => x.g === g.id).map(x => { const t = dev.all ? Date.now() : s.s[x.id], f = has(x.id), na = !f && x.mo && still;
+      const hint = na ? X("움직임 줄이기·회의 모드를 끄면 볼 수 있어요", "Turn off reduced motion / quiet mode to see this") : X("힌트: ", "Hint: ") + L(x.h);
+      const al = f ? X(`봄 · ${L(x.n)} · ${L(x.c)} · ${ymd(t)}`, `Seen · ${L(x.n)} · ${L(x.c)} · ${ymd(t)}`) : X("못 봄 · ", "Not seen · ") + hint;
+      return `<div class="${f ? "f" : na ? "na" : ""}" role="group" aria-label="${esc(al)}"><b aria-hidden="true">${f ? x.e + " " + esc(L(x.n)) : "❔ ???"}</b><span aria-hidden="true">${f ? esc(L(x.c)) + `<em>${ymd(t)}</em>` : esc(hint)}</span></div>`; }).join("")}</div></div>`).join("")}</div>`;
   }
-  return { see, frame, dexHtml, n, total: V.LIST.length, reload: sync };
+  return { see, frame, dexHtml, n, total, reload: sync };
 }
 
 C.registerMode({
@@ -6278,7 +6283,8 @@ C.registerMode({
       spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); } });
     const spB = spotBig({ ctx, doc, mkEl, sty, html, X, main: $(".main"), clockT, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 📔 목격 일지(#112)
-      spend: v => { sv.funds -= v; saveSoon(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud() });
+      spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), anim: () => animOn(),
+      redex: () => { if (dexEl && dexEl.classList.contains("on")) renderDex(); } });
     const pwWins = [];
 
     let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, confs = [], askb, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
@@ -7379,7 +7385,7 @@ C.registerMode({
       const dc = dexCounts();
       setSec("dex", "dexcard", "").onclick = openDex;
       const dcard = side.querySelector("[data-sec=dex]"); dcard.setAttribute("role", "button"); dcard.tabIndex = 0;
-      html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류", "🎲 Random events · kinds met"))}" style="white-space:nowrap">🎲${evB.count()}/${EVT.KINDS.length}</span> · <span title="${esc(X("📔 목격 일지 · 처음 본 장면", "📔 Sightings · scenes seen"))}" style="white-space:nowrap">📔${spB.n()}/${spB.total}</span></small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
+      html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류", "🎲 Random events · kinds met"))}" style="white-space:nowrap">🎲${evB.count()}/${EVT.KINDS.length}</span> · <span title="${esc(X("📔 목격 일지 · 처음 본 장면", "📔 Sightings · scenes seen"))}" style="white-space:nowrap">📔${spB.n()}/${spB.total()}</span></small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
       const lv = lvOf();
       setSec("shop", "", `<h3><span>🛒 ${X("상점 · 꾸미기", "Shop · decorate")}</span><span>💰 ${sv.funds.toLocaleString("en-US")}</span></h3><div class="shop">${SHOP.map(it => {
         const own = owned(it.id), locked = lv < it.lv, afford = sv.funds >= it.p, nm = it.n[ctx.lang === "en" ? 1 : 0];
@@ -7407,7 +7413,7 @@ C.registerMode({
       const lockT = X("🔒 아직 잠겨 있어요 · 곧 「입사 지원서」로 만날 수 있어요", "🔒 Locked for now · a job application will bring them in soon");
       const lk = id => hire.lockedReal(id);   // ?tiny=unlock과 무관하게 실제 잠금
       const w = $(".dex .win");
-      w.innerHTML = `<h2>📖 ${X("직원 도감", "Staff dex")} <span class="cnt">${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류(피자·택배·아기 고양이·프린터·풍선·별똥별)", "🎲 Random events · kinds met (pizza, box, kitten, printer, balloon, shooting star)"))}">🎲${evB.count()}/${EVT.KINDS.length}</span> · <span title="${esc(X("📔 목격 일지 · 큰 화면에서 처음 본 장면", "📔 Sightings · scenes first seen on the big screen"))}">📔${spB.n()}/${spB.total}</span></span><span class="mas"><img alt="" src="${bs.url}" style="width:${bs.w}px;height:${bs.h}px"><span>👑 ${X(`사장님 햄찌 = 마스코트 (도감 ${SP.length}종과 별개)`, `Boss hamster = mascot (not in the ${SP.length})`)}</span></span><button class="x" type="button" data-act="dexclose">✕ ${X("닫기", "Close")}</button></h2>
+      w.innerHTML = `<h2>📖 ${X("직원 도감", "Staff dex")} <span class="cnt">${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류(피자·택배·아기 고양이·프린터·풍선·별똥별)", "🎲 Random events · kinds met (pizza, box, kitten, printer, balloon, shooting star)"))}">🎲${evB.count()}/${EVT.KINDS.length}</span> · <span title="${esc(X("📔 목격 일지 · 큰 화면에서 처음 본 장면", "📔 Sightings · scenes first seen on the big screen"))}">📔${spB.n()}/${spB.total()}</span></span><span class="mas"><img alt="" src="${bs.url}" style="width:${bs.w}px;height:${bs.h}px"><span>👑 ${X(`사장님 햄찌 = 마스코트 (도감 ${SP.length}종과 별개)`, `Boss hamster = mascot (not in the ${SP.length})`)}</span></span><button class="x" type="button" data-act="dexclose">✕ ${X("닫기", "Close")}</button></h2>
       <div class="sub">${X("출근한 적 있는 동물만 등록돼요. 어떤 동물이 올지는 세션 ID로 정해지고(해시), ✨반짝이는 작업량과 무관한 순수한 운이에요 (확률 1/64).", "Only animals that showed up are listed. The animal comes from the session ID hash; ✨ shiny is pure luck (1/64), unrelated to workload.")}</div>
       <div class="grid">${SP.map(id => { const d = sv.dex[id] || {}; return `<div class="col"><div class="nm"><span>${d.n || d.s ? EMO[id] + " " + esc(aName(id)) : lk(id) ? "🔒 ???" : "❔ ???"}</span><span>${d.n && d.s ? "✓✨" : d.s ? "✨" : d.n ? "✓" : ""}</span></div>${dexCell(id, false)}${dexCell(id, true)}</div>`; }).join("")}</div>
       ${pkB.dexHtml()}

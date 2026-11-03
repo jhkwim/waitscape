@@ -699,3 +699,4 @@ body[data-mode="studio"] .stu .ev-twk { z-index: 13; font-size: 14px; line-heigh
 body[data-mode="studio"] .stu .sp-toast { bottom: 78px; background: #cfefff; }
 body[data-mode="studio"] .stu .sp-dex .sp-g { margin-top: 6px; }
 body[data-mode="studio"] .stu .sp-dex .sp-gh { display: block; font-size: 12px; margin: 4px 0 3px; }
+body[data-mode="studio"] .stu .dex .sp-dex .eg div.na { opacity: .6; border-style: dashed; }   /* 움직임 줄이기라 지금은 못 보는 장면 */
