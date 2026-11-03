@@ -49,3 +49,7 @@ zip = { version = "=9.0.5", default-features = false, features = ["deflate"] }
 sha2 = "0.11"
 # MCP 연결: Codex config.toml을 주석·순서를 보존하며 고친다 (이미 tauri 의존성 트리에 있는 버전)
 toml_edit = { version = "0.25", default-features = false, features = ["parse", "display"] }
+
+# 누를 수 있는 업데이트 알림(backend::os_notify_click, #92). 알림 플러그인이 이미 쓰는 같은 버전 — 의존성 트리는 그대로
+[target.'cfg(any(target_os = "macos", windows))'.dependencies]
+notify-rust = { version = "=4.18.2", default-features = false }

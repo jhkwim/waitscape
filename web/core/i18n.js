@@ -146,6 +146,8 @@ Object.assign(S.ko, {
   "g.about.desc": "문제가 생기면 이 폴더의 waitscape.log를 보내 주세요. 창 열기·오류 같은 진단만 적고, 토큰·프롬프트 내용은 남기지 않아요(홈 경로는 ~로 줄임).",
   // 앱 업데이트 (updater.rs)
   "upd.banner": "새 버전 v{v} 나왔어요!", "upd.see": "업데이트…", "upd.later": "나중에",
+  "upd.now": "지금 업데이트", "upd.more": "자세히", "upd.later.day": "하루 동안 숨기기", "upd.mini": "새 버전 v{v} — 누르면 업데이트 창",
+  "upd.just": "v{v}로 올랐어요!", "upd.just.more": "자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요.", "upd.just.ok": "좋아요",
   "upd.title": "🎁 새 버전 나왔어요!", "upd.from": "지금 v{cur} → 새 버전 v{v}", "upd.notes": "바뀐 점",
   "upd.go": "지금 업데이트하고 다시 시작", "upd.down": "내려받는 중… {pct}%", "upd.down0": "내려받는 중…", "upd.inst": "설치하는 중… 곧 다시 시작해요",
   "upd.safe": "내려받은 파일은 서명을 확인한 뒤에만 설치해요. 설정·모드·메모는 그대로예요.",
@@ -198,6 +200,8 @@ Object.assign(S.en, {
   "g.about.desc": "If something goes wrong, please send waitscape.log from this folder. It records diagnostics only (window opening, errors) — never tokens or prompt text (your home path is shortened to ~).",
   "upd.banner": "Version {v} is out!", "upd.see": "Update…", "upd.later": "Later",
   "upd.title": "🎁 A new version is out!", "upd.from": "Now v{cur} → new v{v}", "upd.notes": "What's new",
+  "upd.now": "Update now", "upd.more": "Details", "upd.later.day": "Hide for a day", "upd.mini": "New version {v} — click to update",
+  "upd.just": "Updated to v{v}!", "upd.just.more": "See the GitHub release page for details.", "upd.just.ok": "Nice",
   "upd.go": "Update now and restart", "upd.down": "Downloading… {pct}%", "upd.down0": "Downloading…", "upd.inst": "Installing… restarting soon",
   "upd.safe": "The download is installed only after its signature is verified. Settings, modes and memos are kept.",
   "g.upd": "Updates", "g.upd.cur": "Current version v{v}", "g.upd.check": "Check for new versions (at start + once a day)",

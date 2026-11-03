@@ -4929,6 +4929,7 @@ version = "0.6.0"
 dependencies = [
  "chrono",
  "notify",
+ "notify-rust",
  "serde",
  "serde_json",
  "sha2 0.11.1",

@@ -4,7 +4,8 @@
 //!   이 시각들은 메모리에만 있다(앱을 다시 켜면 15초 뒤 새로 확인).
 //! - 이미 확인하는 중에 [지금 확인]을 누르면 새로 확인하지 않고 그 확인이 끝나기를 기다려 같은 결과를 돌려준다(#67).
 //!   설정 `updateCheck`가 꺼져 있으면 자동 확인은 하지 않는다(설정 화면의 [지금 확인]은 된다).
-//! - 새 버전이면: OS 알림 1회("새 버전 나왔어요!") + 트레이 "업데이트 있음" + 모든 창에 `update` 이벤트(배너·스튜디오 사장님 말풍선).
+//! - 새 버전이면: OS 알림 1회("새 버전 나왔어요!", 누르면 큰 화면 + 업데이트 창 — 맥·윈도우, #92) + 트레이 "업데이트 있음"·메뉴바 🎁
+//!   + 모든 창에 `update` 이벤트(배너·스튜디오 사장님 말풍선·미니 보기 🎁).
 //! - 설치: 사용자가 눌렀을 때만(`update_install`). 내려받기 → minisign 서명 검증(플러그인) → 설치 → 다시 시작. 몰래 설치하지 않는다.
 //! - 받는 곳은 코드 저장소 `jhkwim/waitscape`의 GitHub Releases(0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`, #22). 실패(오프라인, latest.json 404 등)는 로그만 남기고 화면에는 오류를 띄우지 않는다.
 //!   공개 키가 자리표시자(`<REPLACE_WITH_SECRET_MANAGER>`)인 빌드는 아예 확인하지 않는다.
@@ -424,10 +425,18 @@ mod imp {
                     format!("{name} v{v} — 트레이 메뉴의 '업데이트 있음'이나 창에서 업데이트할 수 있어요."),
                 )
             };
-            crate::backend::os_notify(app, &title, &body, quiet || plain);
+            // 누르면 트레이 "🎁 업데이트 있음"과 같게: 큰 화면 + 업데이트 창 (#92)
+            let app3 = app.clone();
+            crate::backend::os_notify_click(app, &title, &body, quiet || plain, move || crate::tray::on_menu(&app3, "update"));
         }
         let app2 = app.clone();
         app.run_on_main_thread(move || crate::tray::refresh(&app2)).ok();
+        // 메뉴바 제목·툴팁의 🎁도 바로 (다음 상태 변화를 기다리지 않고)
+        if let Some(be) = app.try_state::<std::sync::Arc<crate::backend::Backend>>() {
+            if let Some(v) = be.last.lock().unwrap().clone() {
+                crate::tray::update_summary(app, &v);
+            }
+        }
         app.emit("update", status(app)).ok();
         out
     }
