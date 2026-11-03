@@ -4964,7 +4964,7 @@ function gachaBig(h) {
     if (a.loc !== "home" || a.moving || a.par !== fl.F) return;
     const o = JSON.parse(a.pose || "{}"); h.setP(a, Object.assign(o, { arms: Math.floor(tc / .14) % 2 ? "u" : "", mouth: "o", eyes: "o" }));
   }
-  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, busy: () => !!spin || !!ui.pop, close };
+  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, busy: () => !!spin || !!ui.pop, spinning: () => !!spin, close };
 }
 
 /* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig만 — 미니 보기는 읽지 않음. 본체에는 연결 줄만, jhkwim/waitscape#79) =================
@@ -5406,7 +5406,7 @@ function treatBig(h) {
     else if (act === "dn-go") { const c = h.drCard(); if (c && b.getAttribute("aria-disabled") !== "true") go(c.d); }
     else if (act === "dn-close") closeCard();
   }
-  return { build, read, frame, actor, staff, chip, bossSay, bossAway, boss, active, member, stop, row, tap, cardBtn, roofH: () => (S ? ROOF_H : 0),
+  return { build, read, frame, actor, staff, chip, bossSay, bossAway, boss, active, member, stop, row, tap, cardBtn, cardOn: () => !!cardEl, roofH: () => (S ? ROOF_H : 0),
     blockPoke: pk => !!S && (String(pk || "") === "boss.a" && bossAway(h.clockT()) || [...S.sids].some(sid => String(pk || "").startsWith(sid + "."))) };
 }
 
@@ -5414,22 +5414,24 @@ function treatBig(h) {
    스튜디오에 가끔 예고 없이 찾아오는 손님·소동. 누르면 작은 보상(💰) + 스튜디오 로그 한 줄. 25~50분마다 하나(무작위), 안 누르면 약 60초(🌠 8초) 뒤 떠남.
    - 🍕 피자 배달부(+20): 1층 현관문으로 들어와(종 딸랑) 사장님 책상 앞(x 220~284 · 직원과 같은 4배)까지 걸어와 "배달이요~!" → 누르면 사장님이 상자를 받아 책상 가장자리에 들고(김 모락)
      일하는 층 직원 하나가 머리 왼쪽에 👍(자리에 보이는 일하는 직원이 있으면) · 배달부는 "맛있게 드세요!" 하고 현관으로 돌아감
-   - 📦 택배 상자(+10~40, 5 단위): 1층 현관문 앞 매트 위(x 447~483)에 「?」 상자(가끔 들썩) → 누르면 톡 열리며 동전이 튀어나옴(보상이 없으면 "텅~")
-   - 🐈 길 잃은 아기 고양이(+15): 직원 층 하나 바닥 왼쪽(x 106~324 — 직원 자리 👆 343~ 왼쪽)을 어슬렁 → 누르면 ❤️ "냐앙~" 폴짝 하고 그 자리에서 사라짐
-   - 🖨️ 고장 난 프린터(+20): 책상 층 하나 창 아래 바닥(x 262~304 — 🎨 바닥 1(125~195)·AI 보드(~253)와 직원 자리 👆 343~ 사이)에 프린터. 종이 걸림·연기·빨간 불 깜빡
+   - 📦 택배 상자(+10~40, 5 단위): 1층 현관문 앞 매트 위(x 441~489, 4배)에 「?」 상자(가끔 들썩 · ✦ 반짝) → 누르면 톡 열리며 동전이 튀어나옴(보상이 없으면 "텅~")
+   - 🐈 길 잃은 아기 고양이(+15): 책상 층 하나(회의 배치는 직원 👆·보드 자리라 제외) 바닥 왼쪽(x 106~324 — 직원 자리 👆 343~ 왼쪽)을 어슬렁 → 누르면 ❤️ "냐앙~" 폴짝 하고 그 자리에서 사라짐
+   - 🖨️ 고장 난 프린터(+20): 책상 층 하나 창 아래 바닥(x 262~304 — 🎨 바닥 1(125~195)·AI 보드(~253)와 직원 자리 👆 343~ 사이. 🛒 커피머신(286~322)을 샀으면 200~242,
+     그 층이 ✍️ AI 보드 층이면 그 층엔 안 놓음)에 프린터. 종이 걸림·연기·빨간 불·❗ 깜빡
      → 누르면 🔧 뚝딱 → 초록 불, 종이가 술술(세 장)
    - 🎈 풍선(+10): 건물 밖 하늘(건물 왼쪽·오른쪽 빈 하늘 중 하나, 둘 다 좁으면 건물 앞)로 땅에서 천천히 떠오름(60초 동안 화면 위까지) · 줄 끝에 동전 → 누르면 펑! 동전이 땅으로 떨어짐
    - 🌠 별똥별(+30, 드묾 — 다른 것의 1/3 확률 · 밤만: 22~6시(경비 고양이·부엉이와 같은 시계) 또는 하늘이 어두울 때): 건물 위 하늘을 8초 동안 가로지름 → 누르면 「소원!」 반짝
    - 누를 자리는 그림을 따라 다니는 투명 칸(z 62 — 👆 누를 자리 60·🎰 61보다 위)이라 아래 👆 반응·층 이동으로 넘어가지 않음(캡처 단계에서 받음) · Enter/Space도 됨
-   - 나오지 않을 때(그때는 1분 뒤 다시 봄): 🙈 눈치 모드 · 📋 일보 연출 · 🎰 뽑기 연출·판 · 🍖 회식 · ⚡ 정전 · 창이 숨겨짐 · (1층 둘은) 질문 말풍선이 떠 있을 때.
-     이미 나와 있다가 눈치·일보·회식·정전이 오면 바로 걷음(보상 없음) · 1층 둘은 누르기 전에 질문 말풍선이 뜨면 비켜 줌. 아기 고양이는 직원 층이 있을 때만 · 프린터는 책상 층이 있을 때만
+   - 바로 걷음(나와 있어도, 보상 없음) · 새로 나오지도 않음: 🙈 눈치 모드(가림막 전환 포함) · 📋 일보 연출·일보 카드 · 🍖 회식·회식 정지 장면 카드 · 🎰 뽑기 돌리는 중 · ⚡ 정전 · 창이 숨겨짐.
+     새로 나오지만 않음(나와 있는 건 그대로): 🎰 뽑기 판만 열려 있을 때 · (1층 둘은) 질문 말풍선이 떠 있을 때 — 막히면 1분 뒤 다시 봄.
+     1층 둘은 누르기 전에 질문 말풍선이 뜨면 비켜 줌(개발용 ?evt=는 보여 주기 위해 그대로). 아기 고양이·프린터는 책상 층만 — 나와 있는 층이 회의 배치가 되면 걷음
    - 움직임 줄이기·회의 모드(정적 그리기): 걷기·날기 없이 그 자리에 나타났다 사라짐(누르기는 됨) · 효과음 없음
    - 보상: 하루(새벽 4시 경계 — TINY.dayKey, 퇴근 일보·달력과 같음) 최대 5번. 그 뒤엔 와도 보상 없이 반응만(로그에 "오늘 보상은 다 받았어요").
      결제는 간식·뽑기와 같은 길(h.spend(−n) → sv.funds · 자금 옆 +n)
    - 저장 ctx.store "evt" = { v: 1, n: { 종류: 만난(누른) 횟수 }, day: "YYYY-MM-DD"(보상 센 날), got: 그날 보상 수 }. 누를 때 다시 읽고 씀(다른 창과 안 겹치게).
      모르는 종류 키는 그대로 둠(새 버전에서 만난 것) · 잘못된 값은 버림 · 모르는 새 버전(v > 1)이면 읽기만(반응만, 보상·저장 없음). 다음 이벤트 시각은 저장하지 않음(창을 열 때마다 새로)
    - 🎲 n/6(만난 종류 수): 사이드 📖 직원 도감 카드·도감 창 제목 옆
-   - 개발용 쿼리 ?evt=pizza|box|cat|printer|balloon|star — 1.5초 뒤 바로 나오고 끝나면 4초 뒤 또(별똥별은 밤이 아니어도). 저장·보상·자금 모두 안 건드림(#88 교훈) */
+   - 개발용 쿼리 ?evt=pizza|box|cat|printer|balloon|star — 1.5초 뒤 바로 나오고 끝나면 4초 뒤 또(별똥별은 밤이 아니어도 · 1층 둘은 질문 말풍선이 떠도). 저장·보상·자금 모두 안 건드림(#88 교훈) */
 const EVT = (() => {
   const K = "#2e2040";
   const VER = 1, CAP = 5, GAP = [25 * 60, 50 * 60], STAY = 60, STAY_STAR = 8, RETRY = 60;
@@ -5512,19 +5514,27 @@ function eventBig(h) {
   const put = (e, p, x, y, css) => { if (e._u !== p.url) { e._u = p.url; e.src = p.url; } sty(e, "display", "block"); sty(e, "width", p.w + "px"); sty(e, "height", p.h + "px"); sty(e, "left", Math.round(x) + "px"); sty(e, "top", Math.round(y) + "px"); if (css) Object.keys(css).forEach(k => sty(e, k, css[k])); };
   const ssc = () => Math.max(2, Math.round(3 * (h.scale() || 1)));   // 하늘(건물 밖, 배율 없음)의 도트 크기: 건물 3배 × 배율을 정수로
   const night = () => HABIT.isNight(ctx.now()) || (h.night() || 0) > .5;
-  const scEl = () => view.querySelector(".sc");
+  /* 하늘 자리(view 크기 · 건물 .sc 위치): 나올 때와 창 크기가 바뀔 때만 잼(매 프레임 레이아웃을 읽지 않게) */
+  let geo = null;
+  function measure() { const S = view.querySelector(".sc"); geo = { vw: view.clientWidth, vh: view.clientHeight, l: S ? S.offsetLeft : 0, w: S ? S.offsetWidth : 0, top: S ? S.offsetTop : 120 }; }
+  function resize() { if (E && (E.k === "balloon" || E.k === "star")) { measure(); E.bx = null; } }   // 풍선은 새 크기에서 빈 하늘을 다시 고름
+  /* 🖨️ 프린터 자리(층 x 왼쪽): 창 아래 262~304 — 🛒 커피머신(책상 층 286~322)을 샀으면 🎨 바닥 1(~195)과 커피머신 사이 200~242. 그 자리가 ✍️ AI 보드(~253) 밑이면 이 층엔 안 놓음(null) */
+  const prnX = fl => !h.coffee() ? 262 : fl.aib ? null : 200;
+  const prnOk = fl => fl.desk && prnX(fl) != null;
   function build(o) {
     const f1 = o.FL[o.n];
-    G = { F1: f1 ? { F: f1.F, B: f1.B } : null, fl: o.FL.filter((fl, i) => i !== o.n && fl.f).map(fl => ({ F: fl.F, B: fl.B, sid: fl.f.sid, desk: !!fl.desk })) };
+    G = { F1: f1 ? { F: f1.F, B: f1.B } : null, fl: o.FL.filter((fl, i) => i !== o.n && fl.f).map(fl => ({ F: fl.F, B: fl.B, sid: fl.f.sid, desk: !!fl.desk, aib: !!fl.aib })) };
   }
   function read() { if (!dev) s = V.load(ctx.store.get("evt", "")); }   // 다른 창이 쓴 만난 횟수(🎲 n/6)
   /* 지금 나올 수 있나(종류별) */
-  const ok = k => k === "star" ? night() : k === "printer" ? G.fl.some(f => f.desk) : k === "cat" ? G.fl.length > 0 : k === "pizza" || k === "box" ? !!G.F1 && !h.askOn() : true;
-  const blocked = () => h.hidden() || h.busy() || h.out();
+  const ok = k => k === "star" ? night() : k === "printer" ? G.fl.some(prnOk) : k === "cat" ? G.fl.some(f => f.desk) : k === "pizza" || k === "box" ? !!G.F1 && !h.askOn() : true;
+  const stopNow = () => h.hidden() || h.stop() || h.out() || doc.hidden;   // 나와 있어도 바로 걷음: 눈치(가림막 전환 포함)·일보 연출·일보 카드·회식·회식 카드·뽑기 돌리는 중·정전·창 숨김
+  const blocked = () => stopNow() || h.busy();   // 새로 나오지 않음: 위 + 🎰 뽑기 판이 떠 있을 때
   function spawn(k, t) {
-    const pool = k === "printer" ? G.fl.filter(f => f.desk) : G.fl, fl = k === "cat" || k === "printer" ? pool[Math.floor(Math.random() * pool.length)] : null;
+    const pool = G.fl.filter(k === "printer" ? prnOk : f => f.desk), fl = k === "cat" || k === "printer" ? pool[Math.floor(Math.random() * pool.length)] : null;   // 아기 고양이·프린터는 책상 층만(회의 배치는 직원 👆·보드가 그 자리)
     if ((k === "cat" || k === "printer") && !fl) return;
-    E = { k, t0: t, sid: fl ? fl.sid : "", hit: null, amt: 0, show: 0, capped: false, ph: Math.random() * 6, col: V.BAL[Math.floor(Math.random() * V.BAL.length)], dom: null, th: null, bx: null };
+    E = { k, t0: t, sid: fl ? fl.sid : "", hit: null, amt: 0, show: 0, capped: false, ph: Math.random() * 6, col: V.BAL[Math.floor(Math.random() * V.BAL.length)], dom: null, th: null, bx: null, x0: fl && k === "printer" ? prnX(fl) : null };
+    if (k === "balloon" || k === "star") measure();
     if (k === "pizza") { h.ring(); if (h.anim()) h.snd("bell", 0); }   // 🔔 현관 종 딸랑(종 흔들림은 정적이어도 그대로 — 그림만)
   }
   function end() { unmk(E); E = null; if (dev) devT = h.clockT() + 4; }
@@ -5583,7 +5593,7 @@ function eventBig(h) {
       return true;
     },
     box(E, d, u, v, lv, anim, t) {
-      const B = G.F1.B, p = WB.pix(v >= 0 ? A.boxO : A.box, 3), L = DOOR_CX - p.w / 2, top = B - p.h + 1;   // 현관 매트 위
+      const B = G.F1.B, p = WB.pix(v >= 0 ? A.boxO : A.box, 4), L = DOOR_CX - p.w / 2, top = B - p.h + 1;   // 현관 매트 위 · 4배(나무 문 앞에서도 눈에 띄게)
       if (lv >= 0 && (!anim || lv > .6)) return false;
       if (v >= 0 && v > (anim ? 1.9 : 2.4)) return false;
       const wob = anim && v < 0 && lv < 0 && (u % 3.2) < .45 ? (Math.floor(u * 14) % 2 ? 5 : -5) : 0, pop = anim && u < .35 ? Math.round((1 - u / .35) * 10) : 0;   // 가끔 들썩 · 나타날 때 톡 떨어짐
@@ -5597,13 +5607,13 @@ function eventBig(h) {
         for (let i = 0; i < 5; i++) { const an = -Math.PI * (.15 + i * .175), r0 = anim ? 8 + clamp(v / .35, 0, 1) * 18 : 20; if (anim && v > .5) break;
           fx += `<i class="b ev-bit" style="left:${Math.round(DOOR_CX + Math.cos(an) * r0)}px;top:${Math.round(top + 6 + Math.sin(an) * r0)}px"></i>`; }   // 톡! 반짝이
         plus(d, DOOR_CX, top - 54, v, anim);
-      } else bub(d, false);
+      } else { bub(d, false); if (lv < 0 && (!anim || Math.floor(u * 1.5) % 2 === 0)) fx += `<i class="b ev-twk" style="left:${L + p.w - 4}px;top:${top - 12 - pop}px">✦</i>`; }   // 반짝(눌러 보라는 표시)
       html(d.fx, fx);
       hitAt(d, v < 0 && lv < 0, L, top - pop, p.w, p.h);
       return true;
     },
     cat(E, d, u, v, lv, anim, t) {
-      const F = G.fl.find(f => f.sid === E.sid); if (!F) return false;
+      const F = G.fl.find(f => f.sid === E.sid); if (!F || !F.desk) return false;   // 그 층이 회의 배치가 되면 걷음(보상 없음)
       if (lv >= 0 && (!anim || lv > 1)) return false;
       if (v >= 0 && v > (anim ? 1.5 : 2.2)) return false;
       if (E.cx == null || v < 0) { const s0 = (u + E.ph) * .3; E.cx = anim ? 215 + 85 * Math.sin(s0) : 200; E.dir = anim ? Math.cos(s0) >= 0 : true; }   // 바닥 왼쪽을 어슬렁(누르면 그 자리에 멈춤)
@@ -5620,11 +5630,11 @@ function eventBig(h) {
       return true;
     },
     printer(E, d, u, v, lv, anim, t) {
-      const F = G.fl.find(f => f.sid === E.sid); if (!F) return false;
+      const F = G.fl.find(f => f.sid === E.sid); if (!F || !F.desk) return false;   // 그 층이 회의 배치가 되면 걷음(보상 없음)
       if (lv >= 0 && (!anim || lv > .8)) return false;
       if (v >= 0 && v > (anim ? 3.6 : 2.6)) return false;
       const fixed = v >= (anim ? .9 : 0), led = fixed ? "#6adf8a" : anim && Math.floor(t * 3) % 2 ? "#ff5a5a" : "#a83a3a";
-      const p = WB.pix(A.prn, 3, led), X0 = 262, top = F.B - p.h + 1;   // 창 아래 바닥(🎨 바닥 1·AI 보드와 직원 자리 사이)
+      const p = WB.pix(A.prn, 3, led), X0 = E.x0, top = F.B - p.h + 1;   // 창 아래 바닥(나올 때 정한 자리 — prnX)
       const sh = anim && (v >= 0 && v < .9 ? (Math.floor(v * 10) % 2 ? 2 : -2) : !fixed && (u % 2.4) < .35 ? (Math.floor(u * 16) % 2 ? 1 : -1) : 0);   // 덜컹(고칠 땐 뚝딱뚝딱)
       const op = lv >= 0 ? 1 - lv / .8 : anim && v > 3 ? (3.6 - v) / .6 : anim && u < .4 ? u / .4 : 1;
       put(d.sp, p, X0 + (sh || 0), top, { opacity: fade(op), zIndex: "7" });
@@ -5643,9 +5653,9 @@ function eventBig(h) {
       return true;
     },
     balloon(E, d, u, v, lv, anim, t) {
-      const sc = Math.max(3, Math.round(4 * (h.scale() || 1))), p = WB.pix(A.bal, sc, E.col), vw = view.clientWidth, gy = view.clientHeight - 36;   // 땅(잔디 36px) 위
+      const sc = Math.max(3, Math.round(4 * (h.scale() || 1))), p = WB.pix(A.bal, sc, E.col); if (!geo) measure(); const vw = geo.vw, gy = geo.vh - 36;   // 땅(잔디 36px) 위
       if (E.bx == null) {   // 건물 왼쪽·오른쪽 빈 하늘 중 하나(둘 다 좁으면 건물 앞 왼쪽)
-        const S = scEl(), l = S ? S.offsetLeft : 0, r = S ? vw - S.offsetLeft - S.offsetWidth : 0, need = p.w + 24, sides = [];
+        const l = geo.l, r = vw - geo.l - geo.w, need = p.w + 24, sides = [];
         if (l >= need) sides.push(l / 2); if (r >= need) sides.push(vw - r / 2); E.bx = (sides.length ? sides[Math.floor(Math.random() * sides.length)] : Math.max(30, l + 30)) - p.w / 2; }
       const k = anim ? (v >= 0 ? E.k0 : u / V.STAY) : .45;
       if (v < 0) E.k0 = k;
@@ -5669,7 +5679,7 @@ function eventBig(h) {
     star(E, d, u, v, lv, anim, t) {
       if (lv >= 0) return false;
       if (v >= 0 && v > (anim ? 2.2 : 2.6)) return false;
-      const sc = ssc(), p = WB.pix(A.star, sc), vw = view.clientWidth, S = scEl(), y1 = clamp((S ? S.offsetTop : 120) - 30, 50, 170);
+      const sc = ssc(), p = WB.pix(A.star, sc); if (!geo) measure(); const vw = geo.vw, y1 = clamp(geo.top - 30, 50, 170);
       const x0 = vw * .9, x1 = vw * .1, y0 = 24, k = anim ? (v >= 0 ? E.k0 : clamp(u / V.STAY_STAR, 0, 1)) : .55;
       if (v < 0) E.k0 = k;
       const x = lerp(x0, x1, k), y = lerp(y0, y1, k), an = Math.atan2(y0 - y1, x0 - x1) * 180 / Math.PI;   // 꼬리는 지나온 쪽(오른쪽 위)으로
@@ -5712,8 +5722,8 @@ function eventBig(h) {
   function frame(T, tc, anim) {
     if (!G) return;
     const t = h.clockT(), now = ctx.now(), bl = blocked();   // 정지 그리기는 tc가 0이라 시계를 직접 봄
-    if (E && bl) end();   // 눈치·일보·회식·정전이 오면 바로 걷음(보상 없음)
-    if (E && E.hit == null && (E.k === "pizza" || E.k === "box") && h.askOn()) end();   // 1층 손님: 질문 말풍선이 그 자리를 덮으면 비켜 줌(누르기 전만)
+    if (E && stopNow()) end();   // 눈치·일보·회식·뽑기 돌리기·정전·창 숨김이 오면 바로 걷음(보상 없음). 🎰 판만 열린 건 그대로 둠
+    if (E && !dev && E.hit == null && (E.k === "pizza" || E.k === "box") && h.askOn()) end();   // 1층 손님: 질문 말풍선이 그 자리를 덮으면 비켜 줌(누르기 전만 · 개발용 ?evt=는 보여 주기 위해 그대로)
     if (!E) {
       if (dev) { if (!bl && t >= devT) spawn(dev, t); }
       else if (now >= next) {
@@ -5724,12 +5734,12 @@ function eventBig(h) {
     if (!E) return;
     const sky = E.k === "balloon" || E.k === "star", par = sky ? view : E.k === "pizza" || E.k === "box" ? G.F1 && G.F1.F : (G.fl.find(f => f.sid === E.sid) || {}).F;
     if (!par) return end();   // 그 층이 사라짐(직원 퇴근 등)
-    if (!E.dom || E.dom.par !== par) { unmk(E); E.dom = mk(par, sky);
-      E.dom.hit.title = V.ICON[E.k] + " " + nm(E.k) + X(" · 눌러 보세요", " · click me"); E.dom.hit.setAttribute("aria-label", E.dom.hit.title); }
+    if (!E.dom || E.dom.par !== par) { unmk(E); E.dom = mk(par, sky); }
+    if (E.dom.lang !== ctx.lang) { E.dom.lang = ctx.lang; E.dom.hit.title = V.ICON[E.k] + " " + nm(E.k) + X(" · 눌러 보세요", " · click me"); E.dom.hit.setAttribute("aria-label", E.dom.hit.title); }   // 언어가 바뀌면 다시
     const u = t - E.t0, v = E.hit == null ? -1 : t - E.hit, life = V.stay(E.k), lv = E.hit == null && u > life ? u - life : -1;   // lv: 안 눌러서 떠나는 중(초)
     if (DRAW[E.k](E, E.dom, u, v, lv, anim, t) === false) end();
   }
-  return { build, read, frame, count: () => V.count(s), dev: () => dev };
+  return { build, read, frame, resize, count: () => V.count(s), dev: () => dev };
 }
 
 C.registerMode({
@@ -5980,8 +5990,8 @@ C.registerMode({
       funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
       anim: () => animOn(), still: () => !!(rm.matches || ctx.settings.quiet), kick: () => { if (!animOn()) staticDraw(); }, layout: () => layout() });
-    const evB = eventBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, model: () => model, scale: () => scaleK, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode),   // 🎲 랜덤 이벤트(#100)
-      busy: () => drB.active() || trB.active() || gaB.busy(), out: () => pwB.out(), night: () => pwB.night(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
+    const evB = eventBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, model: () => model, scale: () => scaleK, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 🎲 랜덤 이벤트(#100)
+      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
       spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); } });
     const pwWins = [];
@@ -6146,7 +6156,7 @@ C.registerMode({
       scaleK = k;
       sty(sc, "width", Math.round(ws * k) + "px"); sty(sc, "height", Math.round(hs * k) + "px");
       sty(bld, "transform", `scale(${k})`); sty(bld, "top", rh ? Math.round(rh * k) + "px" : ""); bld.style.setProperty("--inv", String(Math.min(2, Math.max(1, 1 / k))));
-      pwB.resize();
+      pwB.resize(); evB.resize();   // 🎲 하늘 이벤트 자리 다시 재기
     }
 
     /* ---------- 소리: 키보드 타자 (Web Audio 합성, 작은 볼륨) ---------- */
