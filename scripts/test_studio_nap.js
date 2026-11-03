@@ -57,4 +57,9 @@ assert.ok(!/ctx\.store|fetch\(|XMLHttpRequest|WebSocket/.test(block), "졸음·�
 assert.ok(!/if \(variant === 0\) \{   \/\/ 꾸벅꾸벅/.test(src), "기본 쉬는 자세의 꾸벅 갈래는 napBig으로 옮김");
 const loop = cut("napB.actor(i, fl, f, a, T, tc, anim)", "pkB.actor(i, fl, f, a, T, tc, anim)");
 assert.ok(loop.includes("hbB.actor") && loop.includes("trB.actor"), "napB → hbB → trB 순서");
+const nb = cut("function napBig(h) {", "/* ================= 🎲");
+assert.ok(/s\.status === "done" \? t \+ 300 : t/.test(nb), "완료 → 5분 뒤 쉼이 된 세션은 쉬기 시작을 완료 + 5분으로(core-lib sessionStatus와 같은 300초)");
+assert.ok(/sessionStatus = \(s, now\) => s\.status === "done" && now - s\.since > 300/.test(fs.readFileSync(path.join(__dirname, "..", "web/core/core-lib.js"), "utf8")), "core-lib의 완료 → 쉼 300초가 바뀌면 napBig도 맞출 것");
+assert.ok(nb.includes('fl.sweat.textContent === "☕"'), "☕ 기본 쉬는 자세일 때만 덮어씀(🎨 소품 반응 등은 그대로)");
+assert.ok(src.includes("napB.post(fl, a)") && src.includes("napB.off(a, f)"), "다른 반응 뒤 잠 표시 걷기 · 일보·회식 중에도 상태 따라가기");
 console.log("OK: 졸음·점심");

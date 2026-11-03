@@ -5411,7 +5411,7 @@ function treatBig(h) {
 }
 
 /* ================= 😴 졸음 · 🍱 점심 (NAP: 단계·메뉴·그림 공용 · 큰 화면 napBig만 — 미니 보기(mountLobby)는 그대로. 본체에는 연결 줄만, jhkwim/waitscape#106) =================
-   - 😴 쉬는 중(☕ idle, 책상에 앉아 있을 때)인 직원은 쉰 시간(ctx.now() − session.since)에 따라 졸음이 깊어짐:
+   - 😴 쉬는 중(☕ idle, 책상에 앉아 ☕ 기본 자세일 때)인 직원은 쉰 시간(ctx.now() − 쉬기 시작 — 완료 뒤 5분이 지나 쉼이 된 세션은 그 5분을 뺌)에 따라 졸음이 깊어짐:
      0~5분 커피 한 모금(모두) · 5~15분 꾸벅꾸벅 + Z(8초마다 고개가 툭 떨어져 "쿵" → 번쩍 눈 뜨고 다시 꾸벅) · 15분↑ 책상에 엎드려 쿨쿨(Z 크게 · 코 풍선 🫧).
      (설정 '활성 세션만'의 기본 30분이 지나면 화면에서 빠지므로 그 안에 세 단계가 다 보이게)
    - ❗ 화들짝: 졸던(5분↑ 또는 점심 뒤 식곤증) 직원의 세션이 다시 일을 시작하면(쉼 → 작업·서브·질문·완료) 1.2초 깡충 + "❗ 화들짝!" — 처음 본 상태는 연출 없음
@@ -5419,7 +5419,7 @@ function treatBig(h) {
      먹기 시작한 때(12시 또는 쉬기 시작한 때 중 늦은 쪽)부터 5·10분에 줄고 15분이면 빈 그릇 → 남은 점심시간은 식곤증으로 꾸벅(Z)
      책상에 산 간식(🍩)이 있으면 점심은 건너뜀(간식이 우선) · 🐼 판다는 대나무 버릇이 그대로(덮지 않음)
    - 움직임 줄이기·회의 모드(정적): 흔들림·깡충·"쿵" 없이 단계 자세만 · 정전·리셋·📋 일보·🍖 회식·🙈 눈치 모드 중엔 본체 그대로
-   - 외부 통신·저장 없음(시각과 세션 상태로만). 개발용 쿼리 ?nap=1|2(쉬는 직원 모두 그 단계) · ?nap=lunch(지금이 점심, 먹기 시작 = 쉬기 시작 · 18초 주기로 줄어듦) */
+   - 외부 통신·저장 없음(시각과 세션 상태로만). 개발용 쿼리 ?nap=1|2(쉬는 직원 모두 그 단계) · ?nap=lunch(지금이 점심, 먹기 시작 = 쉬기 시작 · 6·12·18초에 줄어 다 먹고 30초마다 다시) */
 const NAP = (() => {
   const K = "#2e2040";
   const DOZE = 300, DEEP = 900, MEAL = [300, 600, 900], MEAL_DEV = [6, 12, 18];
@@ -5462,68 +5462,82 @@ const NAP = (() => {
 /* ---------- 😴 큰 화면: 쉬는 직원 자세 덮어쓰기 · ❗ 화들짝. 본체 placeActor 뒤(🐾 버릇 앞)에 덮어씀 ---------- */
 function napBig(h) {
   const { ctx, mkEl, sty, txt, X } = h, R = NAP;
-  const E_ = a => a.nap || (a.nap = { food: mkEl("img", "b nap-food", null, { display: "none", zIndex: "10", pointerEvents: "none" }), lab: mkEl("div", "tr-nom nap-lab", a.el, { display: "none" }), k: "", deep: false, wake: -9 });
+  const E_ = a => a.nap || (a.nap = { food: mkEl("img", "b nap-food", null, { display: "none", zIndex: "10", pointerEvents: "none" }), lab: mkEl("div", "tr-nom nap-lab", a.el, { display: "none" }), k: "", deep: false, wake: -9, set: "" });
   const hideLab = E => { sty(E.lab, "display", "none"); sty(E.lab, "fontSize", ""); };
-  function off(a) { if (!a.nap) return; sty(a.nap.food, "display", "none"); hideLab(a.nap); }
+  const zsOff = fl => fl.zs.forEach(z => sty(z, "display", "none"));
+  /* 📋 일보·🍖 회식 등 본체가 그리지 않을 때: 상태는 따라가 둠(끝나고 돌아온 순간 지난 화들짝이 늦게 나오지 않게) */
+  function off(a, f) { const E = a.nap; if (!E) return; if (f) { E.k = f.kind; E.deep = false; } E.set = ""; sty(E.food, "display", "none"); hideLab(E); }
+  /* 쉬기 시작한 시각: 완료 → 5분 뒤 쉼으로 바뀐 세션(core-lib sessionStatus)은 since가 완료 시각이라 그 5분을 더함 */
+  const idleFrom = (s, now) => { const t = s.since || now; return s.status === "done" ? t + 300 : t; };
   function actor(i, fl, f, a, T, tc, anim) {
     const E = E_(a), now = ctx.now();
+    E.set = "";
     if (E.food.parentNode !== fl.F) fl.F.appendChild(E.food);   // 책상 위(층 요소 기준 좌표) — 층이 다시 지어지면 옮겨 붙음
-    /* ❗ 상태가 바뀐 순간: 졸던 직원이 일을 시작하면 화들짝 */
+    /* ❗ 상태가 바뀐 순간: 졸던 직원이 일을 시작하면 화들짝(처음 본 상태는 연출 없음) */
     if (E.k !== f.kind) { if (E.k === "idle" && E.deep && f.kind !== "stall") E.wake = tc; E.k = f.kind; E.deep = false; }
     const desk = a.loc === "home" && !a.moving && !a.lift && a.par === fl.F && f.layout !== "meet" && (a.x == null || Math.abs(a.x - DESK_X) < 2);
-    let pose = null; try { pose = JSON.parse(a.pose || "{}"); } catch {}
-    const seated = desk && pose && pose.seated;
-    const u = tc - E.wake;
+    const seated = desk && a.pose.includes('"seated":1');
     const busy = h.hidden() || h.dark() || (h.aiSt && h.aiSt(fl, f, tc, anim));
+    const u = tc - E.wake;
     if (u < 1.2 && !busy) {
-      sty(E.food, "display", "none");
-      if (seated) { h.setP(a, Object.assign(pose, { eyes: "o", mouth: "o", arms: "u" })); if (fl.desk) fl.desk.hands.forEach(e => sty(e, "display", "none"));
+      sty(E.food, "display", "none"); hideLab(E);
+      if (seated) { h.setP(a, Object.assign(JSON.parse(a.pose), { eyes: "o", mouth: "o", arms: "u" })); if (fl.desk) fl.desk.hands.forEach(e => sty(e, "display", "none"));
         if (anim) sty(a.el, "top", (parseFloat(a.el.style.top) - Math.round(Math.sin(clamp(u / .5, 0, 1) * Math.PI) * 8)) + "px"); }
-      txt(E.lab, X("❗ 화들짝!", "❗ Whoa!")); sty(E.lab, "left", "-58px"); sty(E.lab, "top", "12px"); sty(E.lab, "display", "block");   // 머리 왼쪽 아래(위는 이름표 · 오른쪽은 모니터·코드 조각)
+      if (f.kind !== "ask") { txt(E.lab, X("❗ 화들짝!", "❗ Whoa!")); sty(E.lab, "left", "-58px"); sty(E.lab, "top", "12px"); sty(E.lab, "display", "block"); }   // 머리 왼쪽 아래(위는 이름표 · 오른쪽은 모니터) · 질문이면 말풍선의 ❗가 있으니 깡충만
+      E.set = a.pose;
       return;
     }
     hideLab(E);
-    if (f.kind !== "idle" || !seated || busy || f.animal === "panda" || (a.restX != null && a.x === a.restX)) { sty(E.food, "display", "none"); return; }
-    const since = f.s.since || now, idle = Math.max(0, now - since), st = R.stage(idle);
+    /* 본체가 ☕ 기본 쉬는 자세를 그렸을 때만 덮어씀(🎨 새 소품 반응·🥱 하품·소품 옆 휴식 등은 그대로) */
+    const coffee = fl.sweat.style.display === "block" && fl.sweat.textContent === "☕";
+    const yawn = a.tnx && a.tnx.yw && a.tnx.yw.style.display === "block";
+    if (f.kind !== "idle" || !seated || busy || !coffee || yawn || f.animal === "panda" || (a.restX != null && a.x === a.restX)) { sty(E.food, "display", "none"); return; }
+    const pose = JSON.parse(a.pose);
+    const from = idleFrom(f.s, now), st = R.stage(Math.max(0, now - from));
     const lunch = R.lunch(new Date(now * 1000)) && !(h.snack && h.snack(f.sid, i));
     const sx = DESK_X, B = fl.B;
-    const zs = (on, big) => fl.zs.forEach((z, j) => { if (!on) return sty(z, "display", "none");
+    const zs = big => fl.zs.forEach((z, j) => {
       const p = anim ? (T * (big ? .3 : .4) + j / 3) % 1 : j / 3;
-      sty(z, "display", "block"); sty(z, "left", (sx + 24 + p * 12 + j * 8) + "px"); sty(z, "top", (B - (big ? 96 : 104) - p * 26) + "px"); sty(z, "opacity", String(1 - p)); sty(z, "fontSize", `calc(${(big ? 18 : 14) + p * 10}px * var(--inv))`); });
+      sty(z, "display", "block"); sty(z, "left", (sx + (big ? 40 : 24) + p * 12 + j * 8) + "px"); sty(z, "top", (B - (big ? 92 : 104) - p * 26) + "px"); sty(z, "opacity", String(1 - p)); sty(z, "fontSize", `calc(${(big ? 18 : 14) + p * 10}px * var(--inv))`); });
     const cupOff = () => sty(fl.sweat, "display", "none");
     let full = false;   // 🍱 다 먹음 → 식곤증
     if (lunch) {
-      const t0 = R.mealStart(now, since), es = R.eaten(now, t0), m = R.menu(TINY.dayKey(now), f.sid);
+      const es = R.eaten(now, R.mealStart(now, from)), m = R.menu(TINY.dayKey(now), f.sid);
       const p = WB.pix(R.art(m.id, es), 3);   // 간식(2배)보다 한 단계 크게 — 한 끼니까
       if (E.food._u !== p.url) { E.food._u = p.url; E.food.src = p.url; E.food.alt = ""; E.food.draggable = false; sty(E.food, "width", p.w + "px"); sty(E.food, "height", p.h + "px"); }
       sty(E.food, "left", "330px"); sty(E.food, "top", (B - 26 - p.h) + "px"); sty(E.food, "display", "block");
       if (es < 3) {
         const v = anim ? (tc + fnv(f.sid) % 4) % 4 : 9, bite = v < .5, chew = v >= .5 && v < 1.6;
         h.setP(a, Object.assign(pose, { eyes: chew ? "c" : "o", arms: bite ? "r" : "", mouth: bite || (chew && Math.floor(v * 6) % 2) ? "o" : "" }));
-        zs(false); cupOff();
+        zsOff(fl); cupOff();
         if (chew) { txt(E.lab, X("냠", "nom")); sty(E.lab, "left", "-18px"); sty(E.lab, "top", (Math.floor(v * 3) % 2 ? 4 : 8) + "px"); sty(E.lab, "display", "block"); }
+        E.set = a.pose;
         return;
       }
       full = true;
     } else sty(E.food, "display", "none");
-    if (st === 0 && !full) return;   // 커피 한 모금(본체 그대로)
+    if (st === 0 && !full) { E.deep = false; return; }   // ☕ 커피 한 모금(본체 그대로)
     E.deep = true;
     cupOff();
     if (st === 2 && !full) {   // 💤 엎드려 쿨쿨
       h.setP(a, Object.assign(pose, { eyes: "c", mouth: "", arms: "" }));
-      sty(a.el, "top", (parseFloat(a.el.style.top) + 6) + "px"); zs(true, true);
+      sty(a.el, "top", (parseFloat(a.el.style.top) + 6) + "px"); zs(true);
       const b = anim ? (Math.sin(tc * 1.6 + fnv(f.sid)) + 1) / 2 : .5;
-      txt(E.lab, "🫧"); sty(E.lab, "left", (a.w / 2 + 6) + "px"); sty(E.lab, "top", "22px"); sty(E.lab, "fontSize", Math.round(8 + b * 8) + "px"); sty(E.lab, "display", "block");
+      txt(E.lab, "🫧"); sty(E.lab, "left", (a.w / 2 + 6) + "px"); sty(E.lab, "top", "30px"); sty(E.lab, "fontSize", Math.round(8 + b * 8) + "px"); sty(E.lab, "display", "block");   // 입·코 높이
+      E.set = a.pose;
       return;
     }
     /* 😪 꾸벅꾸벅(8초 주기: 6초 꾸벅 → 고개 툭 "쿵" → 번쩍) */
     const v = anim ? (tc + fnv(f.sid) % 8) % 8 : 0, drop = v >= 6 && v < 6.3, jerk = v >= 6.3 && v < 7;
     h.setP(a, Object.assign(pose, { eyes: jerk ? "o" : "c", mouth: jerk ? "o" : "", arms: "" }));
     sty(a.el, "top", (parseFloat(a.el.style.top) + (drop ? 5 : jerk ? 0 : anim && Math.floor(tc * 1.2) % 2 ? 1 : 0)) + "px");
-    zs(!jerk, false);
+    if (jerk) zsOff(fl); else zs(false);
     if (drop) { txt(E.lab, X("쿵", "bonk")); sty(E.lab, "left", "-22px"); sty(E.lab, "top", "16px"); sty(E.lab, "display", "block"); }
+    E.set = a.pose;
   }
-  return { actor, off };
+  /* 층 덮어쓰기가 다 끝난 뒤: 🍩 간식 반응·🎰 박수·👆 찌르기 등이 자세를 바꿨으면 졸음 Z·🫧·쿵·냠을 걷음(자세만 바뀌고 잠 표시가 남지 않게) */
+  function post(fl, a) { const E = a.nap; if (!E || !E.set || a.pose === E.set) return; zsOff(fl); hideLab(E); E.set = ""; }
+  return { actor, off, post };
 }
 
 /* ================= 🎲 랜덤 이벤트 (EVT: 일정·보상·저장·그림 공용 · 큰 화면 eventBig만 — 미니 보기(mountLobby)는 없음. 본체에는 연결 줄만, jhkwim/waitscape#100) =================
@@ -5954,7 +5968,7 @@ C.registerMode({
     }
     function bubble(a, h, on) { sty(a.bub, "display", on ? "block" : "none"); if (on) html(a.bub, h); }
     const tagOn = (a, on) => sty(a.tag, "display", on && !(nSess >= 6 && !a.opt.boss) ? "" : "none");
-    function dropActor(a) { if (a.el.parentNode) a.el.parentNode.removeChild(a.el); a.par = null; if (a.babies) a.babies.forEach(b => b.el.parentNode && b.el.parentNode.removeChild(b.el)); }
+    function dropActor(a) { if (a.el.parentNode) a.el.parentNode.removeChild(a.el); a.par = null; if (a.nap && a.nap.food.parentNode) a.nap.food.parentNode.removeChild(a.nap.food);   /* 😴 층에 붙인 점심 그림도 뗌 */ if (a.babies) a.babies.forEach(b => b.el.parentNode && b.el.parentNode.removeChild(b.el)); }
     function actorFor(f) {
       let a = actors.get(f.sid);
       const opt = { prov: f.pk, shiny: f.shiny, label: `${aName(f.animal)}·${f.pname}`, color: PROV[f.pk].tag };
@@ -6540,11 +6554,12 @@ C.registerMode({
         }
         if (info && info.babies) placeBabies(i, fl, f, a, T, ph, anim, tc);
         if (!DRon && !dnm) tnB.actor(i, fl, f, a, T, tc, anim);   // 🤸 질문 대기 발 동동·주저앉기 · 문어 다리 타자 · 월요일 하품
-        if (!DRon && !dnm) napB.actor(i, fl, f, a, T, tc, anim); else napB.off(a);   // 😴 졸음 깊어짐 · ❗ 화들짝 · 🍱 점심(#106)
+        if (!DRon && !dnm) napB.actor(i, fl, f, a, T, tc, anim); else napB.off(a, f);   // 😴 졸음 깊어짐 · ❗ 화들짝 · 🍱 점심(#106)
         if (!DRon && !dnm) hbB.actor(i, fl, f, a, T, tc, anim); else hbB.off(a, f);   // 🐾 새 직원 버릇(#85): 여우 꼬리 · 판다 대나무 · 부엉이 밤눈/꾸벅 · 고슴도치 쭈뼛/굴러가기
         if (!DRon && !dnm) trB.actor(i, fl, f, a, T, tc, anim);   // 🍩 간식 받은 만세 · 한 입 · 회식에서 돌아옴
         if (!DRon && !dnm) gaB.actor(i, fl, f, a, T, tc, anim);   // 🎰 전설이 나오면 박수
         if (!DRon && !dnm) pkB.actor(i, fl, f, a, T, tc, anim);   // 👆 누르면 몸짓·둘레 효과
+        if (!DRon && !dnm) napB.post(fl, a);   // 😴 다른 반응이 자세를 바꿨으면 잠 표시 걷음
       }
       if (visitor) { const va = actors.get(visitor); if (va && va.goal === "home" && va.loc === "home" && !va.moving) assignVisitor(); }
       nxCheck(tc);
