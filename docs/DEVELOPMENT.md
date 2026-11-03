@@ -99,7 +99,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
   오후에 마지막 활동 뒤 45분 동안 모든 세션이 조용하면 그날 일보가 "준비됨"(다시 활동하면 풀리고 갱신), 못 본 일보는 다음 날 `prev.unseen`으로. API는 아래 `/daylog`
   화면(🏢 스튜디오): 준비되면 사장님이 종이를 들고 "일보 나왔어요!"(화면을 가로채지 않음) → 누르면 1층 발표 연출 → 공유 카드(PNG 저장·이름 숨김·텍스트 복사).
   HUD 🏃 퇴근(바로 연출) · 📋 일보(지금까지), 고급 옵션 퇴근 시각, 다음 날 "☀️ 어제 일보", 미니 보기 알림 한 줄. 자세한 규칙은 MODES.md 「퇴근 일보」
-- 테스트: `python3 scripts/test_limits_merge.py`, `python3 scripts/test_stale_agents.py`, `python3 scripts/test_daylog.py`, `node scripts/test_core_hide.js`, `node scripts/test_nunchi.js`, `node scripts/test_studio_hire.js`, `node scripts/test_studio_gacha.js`, `node scripts/test_studio_events.js`, `node scripts/test_studio_nap.js`, `node scripts/test_studio_weather.js`, `cargo test --workspace`, `sh scripts/rust_parity.sh`
+- 테스트: `python3 scripts/test_limits_merge.py`, `python3 scripts/test_stale_agents.py`, `python3 scripts/test_daylog.py`, `node scripts/test_core_hide.js`, `node scripts/test_nunchi.js`, `node scripts/test_studio_hire.js`, `node scripts/test_studio_gacha.js`, `node scripts/test_studio_events.js`, `node scripts/test_studio_nap.js`, `node scripts/test_studio_weather.js`, `node scripts/test_studio_spot.js`, `cargo test --workspace`, `sh scripts/rust_parity.sh`
 
 ## 구조
 - `hook.py` — Claude Code hook. 이벤트를 요약해 `~/.claude/waiting-room/events.jsonl`에 추가
@@ -139,7 +139,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
                             발화 말풍선, 실패 소용돌이, 조용히 생각)으로, 구간을 누르면 탐험 지도(다녀간 파일·명령), 돌아보기(마인드맵)
       studio/               🏢 스튜디오(기본): 세션마다 한 층, 도트 동물 직원 11종(세션 ID 해시 · 부엉이·고슴도치는 잠김) + ✨반짝이, 프로바이더 소품, 도구별 코드 조각·타자 소리,
                             서브에이전트 = 아기 동물 회의(회의실 화이트보드: desc 한 줄씩 적고 ✓ → 다 끝나면 지우기, 🤫 문구 숨김 설정), 입력 필요 = 엘리베이터로 1층 사장실 방문(질문 문구·터미널로 이동), 완료(10분 이상이면 큰 완료)·번아웃 연출,
-                            자금(잘 쓰기 재화)·평판·직원 도감·상점(보기용)·🎰 캡슐 뽑기(액세서리·책상 소품·입사 지원서, 도감)·🎲 랜덤 이벤트(피자·택배·아기 고양이·프린터·풍선·별똥별, 하루 보상 5번)·😴 졸음(쉰 시간에 따라 꾸벅·엎드림·❗ 화들짝)·🍱 점심(12시, 메뉴 4)·🎨 층 꾸미기(프로젝트별 소품·동물 취향)·오늘의 성과, 👆 클릭 반응·이스터에그 8개(도감 🥚 n/8). 저장은 ctx.store만
+                            자금(잘 쓰기 재화)·평판·직원 도감·상점(보기용)·🎰 캡슐 뽑기(액세서리·책상 소품·입사 지원서, 도감)·🎲 랜덤 이벤트(피자·택배·아기 고양이·프린터·풍선·별똥별, 하루 보상 5번)·😴 졸음(쉰 시간에 따라 꾸벅·엎드림·❗ 화들짝)·🍱 점심(12시, 메뉴 4)·📔 목격 일지(디테일 29장면 첫 목격 도장, 도감 📔 n/29)·🎨 층 꾸미기(프로젝트별 소품·동물 취향)·오늘의 성과, 👆 클릭 반응·이스터에그 8개(도감 🥚 n/8). 저장은 ctx.store만
                             📋 퇴근 일보(Core.api.daylog): 사장님 종이 알림 → 1층 발표 연출 → 공유 카드(canvas, PNG 저장·이름 숨김·텍스트 복사), 🏃 퇴근·📋 일보 버튼
                             한도 = 건물 전력·날씨: 5시간 한도 사용률이 하루 시계(0~49% 낮 · 50~79% 노을 · 80~99% 절전 · 100% 정전(촛불·손전등) ·
                             리셋 = 닭 울음·해 뜸·아래층부터 불 켜짐), 날씨 = 🌦️ 달력(시간대·계절·날짜, 외부 통신 없음) · 한도 날씨를 켜면 주간 60%↑가 우선. 큰 화면·미니 보기 둘 다
