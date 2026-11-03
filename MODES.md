@@ -111,7 +111,7 @@ C.registerMode({
 | `memo.get / set / ready / copy` | ✅ | ✅ (copy는 클릭 직후에만) | `memo` |
 | `notify(title, body)` | ✅ | ✅ (분당 6회, 제목 앞에 [모드 이름]) | `notify` |
 | `clipboard.write(text)` | ✅ | ✅ (클릭 직후에만) | `clipboard` |
-| `api.openWidget`, `Core.mount`(추가 document), `texts`, 전역 `Core.store` | ✅ | ❌ | — |
+| `api.openWidget`·`showMain`·`openTerminal`, `Core.mount`(추가 document), `texts`, 전역 `Core.store` | ✅ | ❌ | — |
 | `core` = 순수 함수 (§5) | ✅ | ✅ | — |
 
 권한이 없는 항목은 외부 모드에서 **아예 없다**(`ctx.memo === undefined`). `if (ctx.memo)`로 확인하고 UI를 숨긴다.
