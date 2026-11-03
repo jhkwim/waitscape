@@ -512,8 +512,10 @@ const WX = (() => {
     for (let i = 0; i < KINDS.length; i++) { acc += p[i]; if (r < acc) { k = KINDS[i]; break; } }
     return k === "fog" && !am ? "cloudy" : k;
   }
-  let zc = "", zt = -1e9;   // 시간대는 1분마다만 다시 읽음(매 프레임 Intl 객체를 만들지 않게)
-  const now = nowS => { if (Math.abs(nowS - zt) > 60) { zc = zone(); zt = nowS; } return kind(new Date(nowS * 1000), zc); };
+  let zc = "", zt = -1e9, mk = "", mv = "";   // 시간대는 1분마다만 다시 읽고, 날씨는 (시간대·반나절)이 같으면 지난 값(매 프레임 Intl·해시를 돌리지 않게)
+  const now = nowS => { if (Math.abs(nowS - zt) > 60) { zc = zone(); zt = nowS; }
+    const d = new Date(nowS * 1000), k = `${zc}|${d.getFullYear()}-${d.getMonth()}-${d.getDate()}|${d.getHours() < 12}`;
+    if (k !== mk) { mk = k; mv = kind(d, zc); } return mv; };
   return { KINDS, WK, ICON, NAME, P, dev, south, warm, season, kind, now };
 })();
 
