@@ -4129,7 +4129,7 @@ function decorBig(h) {
     const capT = here ? X(`${it.n[0]} · 이 칸에 놓여 있어요 · 옮기기는 무료, 되팔면 💰${Math.floor(it.p / 2)}`, `${it.n[1]} · placed here · moving is free, sell for 💰${Math.floor(it.p / 2)}`)
       : lock ? X(`🔒 스튜디오 Lv.${it.lv}에 열려요 (지금 Lv.${lv})`, `🔒 Unlocks at studio Lv.${it.lv} (now Lv.${lv})`)
       : full ? X("칸이 차 있어요 · 지금 소품을 옮기거나 되팔면 새로 둘 수 있어요", "This spot is taken · move or sell the current item first")
-      : poor ? X(`💰 ${it.p - funds} 모자라요 · 완료하면 +25, 큰 일 +75`, `💰 ${it.p - funds} short · +25 per done, +75 for a big one`)
+      : poor ? X(`💰 ${it.p - funds} 모자라요 · 완료하면 +${EARN.done}, 10분↑ +${EARN.big} · ⚡ 빠른 답장 +${FAST.base}`, `💰 ${it.p - funds} short · +${EARN.done} per done, +${EARN.big} for 10 min+ · ⚡ quick reply +${FAST.base}`)
       : X(`💰${it.p}에 사서 ${sn(ui.slot)} 칸에 둬요 · 택배로 와요${like ? ` · ${EMO[an]} 좋아해요 ♥` : ""}`, `Buy for 💰${it.p} and place on ${sn(ui.slot)} · comes by delivery${like ? ` · ${EMO[an]} loves it ♥` : ""}`);
     return `<button type="button" class="${cls}" data-act="dc-buy" data-id="${id}" data-dcap="${esc(capT)}"${here || lock || full || poor ? ` aria-disabled="true"` : ""}>
       <span class="art" style="width:${ih.w}px;height:${ih.ht}px;transform:translateX(-50%) scale(${k.toFixed(3)})">${ih.h}</span>
@@ -4937,7 +4937,7 @@ function gachaBig(h) {
     pop.hidden = !ui.pop; if (!ui.pop) return;
     const funds = h.funds(), free = dev.on.has("free"), poor = !free && funds < GA.PRICE, c = GA.count(d), busy = !!spin;
     const spinBtn = (lab) => `<button type="button" class="dc-btn ga-go${poor || busy || d.ro ? " dis" : ""}" data-act="ga-spin"${poor || busy || d.ro ? ' aria-disabled="true"' : ""}>🎰 ${lab} <b>💰${GA.PRICE}</b></button>`;
-    const why = d.ro ? X("새 버전 저장이라 이 버전에선 못 돌려요", "Saved by a newer version · can't spin here") : poor ? X(`💰 ${GA.PRICE - funds} 모자라요 · 완료하면 +25, 큰 일 +75`, `💰 ${GA.PRICE - funds} short · +25 per done, +75 for a big one`) : "";
+    const why = d.ro ? X("새 버전 저장이라 이 버전에선 못 돌려요", "Saved by a newer version · can't spin here") : poor ? X(`💰 ${GA.PRICE - funds} 모자라요 · 완료하면 +${EARN.done}, 10분↑ +${EARN.big} · ⚡ 빠른 답장 +${FAST.base}`, `💰 ${GA.PRICE - funds} short · +${EARN.done} per done, +${EARN.big} for 10 min+ · ⚡ quick reply +${FAST.base}`) : "";
     let b;
     if (ui.pop === "res" && ui.res) {
       const r = ui.res, it = r.it, L = it.t === "l";
@@ -6814,7 +6814,7 @@ C.registerMode({
       } else { sty(banner, "display", "none"); sty(plusEl, "display", "none"); confs.forEach(c => sty(c, "display", "none")); }
       /* ⚡ 빠른 답장: 그 직원 머리 위로 2.6초 떠오름(자기 층이든 사장실·엘리베이터든 — 직원 위치를 건물 좌표로) */
       const qa = qfx && actors.get(qfx.sid), qt = qa ? tc - qfx.t0 : 99;
-      if (anim && qa && qa.el && qa.el.isConnected && qa.loc !== "out" && qt >= 0 && qt < 2.6) {
+      if (anim && qa && qa.el && qa.el.isConnected && qa.el.style.display !== "none" && qa.loc !== "out" && qt >= 0 && qt < 2.6 && !drB.active() && !trB.active() && !NX.mode && !NX.hidden && !(ctx.nunchi && ctx.nunchi.on)) {
         const r = qa.el.getBoundingClientRect(), br = quickEl.parentNode.getBoundingClientRect(), k = scaleK || 1;
         sty(quickEl, "display", "block"); txt(quickEl, qfx.txt);
         sty(quickEl, "left", Math.round((r.left + r.width / 2 - br.left) / k) + "px"); sty(quickEl, "top", Math.round((r.top - br.top) / k - 46 - qt * 10) + "px");
@@ -7221,18 +7221,20 @@ C.registerMode({
       const a = actors.get(f.sid);
       if (a) { a.launchStart = tc; a.launchUntil = tc + 4.5; fx = { sid: f.sid, amt, big, base: EARN.done, bonus: amt - (bonus ? 5 : 0) - EARN.done, tok: bonus }; }
       dcB.earn(f, amt, tc);   // 🎨 자금 옆 +n · 시든 화분에 물
-      const short = !big && run > 0 && run < EARN.SHORT_SEC;
+      const short = !isBig(run) && run > 0 && run < EARN.SHORT_SEC;
       pushLog(big ? "🎉" : "✅", X(`${f.label.replace("·", " · ")} · ${cut(s.project, 14)} ${big ? "큰 일 완료!" : "완료"} +${amt}${short ? " (짧은 턴)" : ""}${bonus ? " (토큰 절약 +5)" : ""}`, `${f.label.replace("·", " · ")} · ${cut(s.project, 14)} ${big ? "big one done!" : "done"} +${amt}${short ? " (quick turn)" : ""}${bonus ? " (token saver +5)" : ""}`));
       saveSoon();
     }
 
     /* ⚡ 빠른 답장(#114): 질문(입력 필요)에 1분 안에 답해 다시 일하게 하면 +10 · 이어지면 콤보(+5씩, 최대 +20). 1분 넘으면 콤보 끊김.
-       질문 하나에 한 번만(sv.paid "q:세션" = 질문 시각 — 다른 창이 먼저 셌으면 건너뜀) */
-    function quick(f, nm, now, tc) {
+       질문 하나에 한 번만(sv.paid "q:세션" = 질문 시각 — 새로고침해도 한 번).
+       한계: 권한 승인은 훅이 따로 없어 승인한 도구가 끝나고 다음 도구가 시작될 때 재개로 잡힘 → 오래 도는 도구를 승인하면 빨라도 못 받을 수 있음(덜 주는 쪽).
+       질문 대기 중 백그라운드 에이전트 결과(Resume)로 재개돼도 구별할 수 없음 */
+    function quick(f, nm, tc) {
       const at = askSince.get(f.sid), k = "q:" + f.sid;
       if (!(at > 0) || sv.paid[k] === at) return;
       sv.paid[k] = at; prune(sv.paid, 80);
-      const r = fastReply(Math.max(0, now - at), Number.isInteger(sv.combo) && sv.combo > 0 ? sv.combo : 0);
+      const r = fastReply(Math.max(0, (f.s.since || 0) - at), Number.isInteger(sv.combo) && sv.combo > 0 ? sv.combo : 0);   // 끝 = 다시 working이 된 시각(동기화 지연과 무관)
       sv.combo = r.n;
       if (r.amt) {
         sv.funds += r.amt; sv.earned += r.amt; sv.day.earned += r.amt;
@@ -7275,13 +7277,15 @@ C.registerMode({
       let actLogs = 0;
       for (const f of list) {
         const raw = f.s.status, prev = prevRaw.get(f.sid), nm = f.label.replace("·", " · ");
-        if (raw === "needs_input" && f.s.since > 0) askSince.set(f.sid, f.s.since);   // ⚡ 질문이 뜬 시각(처음 열 때 이미 있던 질문도 — 답하면 그때 셈)
+        /* ⚡ 질문이 뜬 시각: 일하던 중(working)에 바로 질문으로 바뀐 것만 — 끝난 뒤 1분쯤 오는 "입력을 기다려요" 알림(done → needs_input)은 질문이 아님.
+           같은 질문에 알림이 또 와서 since가 다시 적혀도 처음 본 시각을 지킴. MCP 세션은 AI가 상태를 직접 쓰므로 세지 않음(셀프 채점 방지) */
+        if (raw === "needs_input" && !firstSync && prev === "working" && f.s.source !== "mcp" && f.s.since > 0 && !askSince.has(f.sid)) askSince.set(f.sid, f.s.since);
         if (!firstSync) {
           if (prev === undefined) pushLog("🚪", X(`${nm} · ${cut(f.s.project, 14)} 출근`, `${nm} · ${cut(f.s.project, 14)} clocked in`));
           else if (prev !== raw) {
             if (raw === "needs_input") pushLog("❓", X(`${nm} · 입력 필요!`, `${nm} · needs input!`));
             else if (raw === "done") celebrate(f, tc);
-            else if (prev === "needs_input") { pushLog("✅", X(`${nm} · 확인됨, 작업 재개`, `${nm} · resumed`)); if (raw === "working") quick(f, nm, now, tc); }
+            else if (prev === "needs_input") { pushLog("✅", X(`${nm} · 확인됨, 작업 재개`, `${nm} · resumed`)); if (raw === "working") quick(f, nm, tc); }
           }
           if (f.kind === "stall" && !prevStall.get(f.sid)) pushLog("💤", X(`${nm} · 멈춤 의심`, `${nm} · may be stalled`));
           const ac = lastAct(f.s);
@@ -7291,7 +7295,8 @@ C.registerMode({
         prevRaw.set(f.sid, raw); prevStall.set(f.sid, f.kind === "stall");
         const ac = lastAct(f.s); if (ac) lastActTs.set(f.sid, ac.ts);
       }
-      if (prevRaw.size > 120) [...prevRaw.keys()].slice(0, 40).forEach(k => { prevRaw.delete(k); askSince.delete(k); });
+      if (prevRaw.size > 120) [...prevRaw.keys()].slice(0, 40).forEach(k => prevRaw.delete(k));
+      { const seen = new Set(list.map(f => f.sid)); for (const k of askSince.keys()) if (!seen.has(k)) askSince.delete(k); }
       /* 도감: 처음 출근한 날 */
       for (const f of HIRE.devAll || HIRE.devUnlock ? [] : floors) {   // 개발용 ?tiny=<동물>(예: oct — 모두 그 동물)·?tiny=unlock은 도감에 남기지 않음
         const d = sv.dex[f.animal] || (sv.dex[f.animal] = {}), key = f.shiny ? "s" : "n";

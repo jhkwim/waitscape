@@ -18,7 +18,7 @@
     add("1d18e2", "waitscape", "claude", "working", { started: T0 - 1520, since: T0 - 1520, ctx: 87, activity: [{ icon: "✏️", text: "web/modes/studio/mode.js 수정", ts: now - 3 }] });
     add("4ddee2", "api-server", "codex", "working", { started: T0 - 760, since: T0 - 760, ctx: 54, activity: [{ icon: "⚡", text: "cargo test --workspace", ts: now - 2 }] });
     add("1000e2", "docs", "gemini", "done", { started: T0 - 562, since: T0 - 150, run: 412 });
-    if (q.has("answer") && now - T0 >= +q.get("answer")) Object.assign(S.find(x => x.sid === "8bbce2"), { status: "working", since: T0 + +q.get("answer") });   // ?answer=N: N초 뒤 질문에 답함(질문은 T0 − 48초에 떴음 → N ≤ 12면 ⚡ 빠른 답장)
+    if (q.has("answer")) { const x = S.find(x => x.sid === "8bbce2"), qa = T0 + 2, an = qa + +q.get("answer"); Object.assign(x, now < qa ? { status: "working", since: T0 - 30 } : now < an ? { status: "needs_input", since: qa } : { status: "working", since: an }); }   // ?answer=N: 일하다 2초 뒤 질문 → N초 뒤 답함(N ≤ 60이면 ⚡ 빠른 답장)
     if (q.has("ask2")) Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", since: T0 - 30, note: "테스트 먼저 돌려도 될까요?" });   // ?ask2=1: 질문 두 명(뒷사람은 자기 층에서 순서 대기)
     /* ?idle=N: 일하던 두 세션(waitscape·api-server)이 N분째 쉬는 중 · ?wake=S: 페이지를 연 지 S초 뒤 다시 일함(😴 졸음·❗ 화들짝 확인, #106) */
     if (q.has("idle")) S.filter(x => x.sid === "1d18e2" || x.sid === "4ddee2").forEach(x => { const w = q.has("wake") && now - T0 >= +q.get("wake"); Object.assign(x, w ? { status: "working", since: T0 + +q.get("wake") } : q.has("done") ? { status: "done", since: T0 - (+q.get("idle") || 15) * 60 - 300 } : { status: "idle", since: T0 - (+q.get("idle") || 15) * 60 }); });   // &done=1: 완료 뒤 5분이 지나 쉼이 된 세션(since = 완료 시각)
