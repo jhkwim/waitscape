@@ -2,6 +2,7 @@
    쿼리: ?mode=studio(모드) · ?five=70(5시간 한도 %, none=한도 없음, 100=정전) · ?rs=2.6(리셋까지 시간) · ?wk=20(주간 %) · ?lang=en
    ?old=1(세션 시작 70분 앞당김, ?old=N → N분) · ?noask=1(질문 없이 모두 작업) · ?ask2=1(질문 두 명) · ?stall=1(로봇 멈춤 의심)
    ?tools=N(도구 수 N부터 1초에 1씩) · ?turn=1(30초마다 새 턴) · ?daylog=1(퇴근 일보 fixture) · ?role=widget(미니 보기 창)
+   ?idle=N(일하던 두 세션이 N분째 쉼) · ?wake=S(S초 뒤 다시 일함)
    ?upd=1(새 버전 0.7.0 있음 — 배너·미니 보기 🎁 · [지금 업데이트]는 내려받기 42%에서 멈춤) · ?just=1(방금 이 버전으로 올린 뒤 「올랐어요」 카드) */
 (() => {
   const q = new URLSearchParams(location.search);
@@ -18,6 +19,8 @@
     add("4ddee2", "api-server", "codex", "working", { started: T0 - 760, since: T0 - 760, ctx: 54, activity: [{ icon: "⚡", text: "cargo test --workspace", ts: now - 2 }] });
     add("1000e2", "docs", "gemini", "done", { started: T0 - 562, since: T0 - 150, run: 412 });
     if (q.has("ask2")) Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", since: T0 - 30, note: "테스트 먼저 돌려도 될까요?" });   // ?ask2=1: 질문 두 명(뒷사람은 자기 층에서 순서 대기)
+    /* ?idle=N: 일하던 두 세션(waitscape·api-server)이 N분째 쉬는 중 · ?wake=S: 페이지를 연 지 S초 뒤 다시 일함(😴 졸음·❗ 화들짝 확인, #106) */
+    if (q.has("idle")) S.filter(x => x.sid === "1d18e2" || x.sid === "4ddee2").forEach(x => { const w = q.has("wake") && now - T0 >= +q.get("wake"); Object.assign(x, w ? { status: "working", since: T0 + +q.get("wake") } : { status: "idle", since: T0 - (+q.get("idle") || 15) * 60 }); });
     if (q.has("stall")) S.find(x => x.sid === "4ddee2").health = { level: "stall", secs: 420, tool: "Bash" };   // ?stall=1: 로봇(api-server)이 멈춤 의심
     const five = q.get("five");
     const rs = +(q.get("rs") || 2.6) * 3600;
