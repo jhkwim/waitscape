@@ -242,3 +242,7 @@ html.pk-pip body[data-mode="pocket"] .pk-w[data-size="pill"][data-auto="1"] .pk-
   body[data-mode="pocket"] .pk-head { flex-wrap: wrap; }
   body[data-mode="pocket"] .pk-ctl { margin-top: 22px; }
 }
+/* 🎁 새 버전(#92): 도구줄 단추(core의 구석 🎁 대신 — 줄이기·닫기를 가리지 않게) */
+html.wr-widget body[data-mode="pocket"] #core-update-mini { display: none; }
+body[data-mode="pocket"] .pk-upd { font-size: 12px; opacity: 1; }
+html.nx-on body[data-mode="pocket"] .pk-upd { display: none; }

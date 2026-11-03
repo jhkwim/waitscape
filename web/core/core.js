@@ -752,6 +752,7 @@ const update = {
   status: null,   // update_status 결과 { compiled, ready, current, available: { version, notes, date } | null, phase }
   busy: "",       // 이 창에서 누른 설치의 진행 문구("" = 안 함)
   get available() { return (this.status && this.status.available) || null; },
+  get installing() { return !!(this.busy || updPhase()); },
   open: () => WIDGET ? (api.menuAction && api.menuAction("update").catch(() => {})) : openSettings("update"),
   // [지금 업데이트]: 다시 시작한 뒤 「새로 생긴 것」 카드에 쓸 것을 적어 두고 설치(성공하면 앱이 다시 시작돼 돌아오지 않는다)
   install() {
@@ -767,6 +768,8 @@ function setUpdate(st) {
   renderUpdateBanner();
   if ((update.available && update.available.version) !== before) emit("update", update.available);
 }
+// 백엔드가 내려받기·설치 중인가(다른 곳 — 업데이트 창 — 에서 시작한 것도) → 배너·창 단추를 막는다
+const updPhase = () => { const p = update.status && update.status.phase; return p === "downloading" || p === "installing" ? p : ""; };
 function updLater(v) {   // ✕를 누른 지 하루가 안 됐나 (예전 값 = 버전 문자열은 지난 것으로 봄)
   const l = storeJson("update:later", null);
   return !!(l && typeof l === "object" && l.v === v && Date.now() < (+l.until || 0));
@@ -777,11 +780,11 @@ function renderUpdateBanner() {
   if (WIDGET) return renderUpdateMini(a);
   let el = document.getElementById("core-update");
   clearTimeout(updTimer);
-  if (a && !update.busy && updLater(a.version)) {   // 숨긴 하루가 지나면 다시
+  if (a && !update.installing && updLater(a.version)) {   // 숨긴 하루가 지나면 다시
     const l = storeJson("update:later", {});
     updTimer = setTimeout(renderUpdateBanner, Math.min(Math.max(1000, (+l.until || 0) - Date.now() + 1000), 6 * 3600 * 1000));
   }
-  if (!a || (!update.busy && updLater(a.version))) { if (el) el.remove(); return; }
+  if (!a || (!update.installing && updLater(a.version))) { if (el) el.remove(); return; }
   if (!el) {
     el = document.createElement("div");
     el.id = "core-update"; el.className = "core-update"; el.setAttribute("role", "status");
@@ -794,16 +797,16 @@ function renderUpdateBanner() {
     });
     document.body.appendChild(el);
   }
-  const busy = !!update.busy, dis = busy ? " disabled" : "";
+  const msg = update.busy || (updPhase() ? t(updPhase() === "installing" ? "upd.inst" : "upd.down0") : ""), busy = !!msg, dis = busy ? " disabled" : "";
   el.classList.toggle("busy", busy);
-  el.innerHTML = `<span class="msg">🎁 ${L.esc(busy ? update.busy : t("upd.banner", { v: a.version }))}</span>`
+  el.innerHTML = `<span class="msg">🎁 ${L.esc(busy ? msg : t("upd.banner", { v: a.version }))}</span>`
     + `<button type="button" data-act="go"${dis}>${L.esc(t("upd.now"))}</button>`
     + `<button type="button" class="sub" data-act="open"${dis}>${L.esc(t("upd.more"))}</button>`
     + `<button type="button" data-act="later" title="${L.esc(t("upd.later.day"))}" aria-label="${L.esc(t("upd.later.day"))}"${dis}>✕</button>`;
 }
 let offUpdProg = null;
 async function installFromBanner() {
-  if (update.busy) return;
+  if (update.installing) return;
   update.busy = t("upd.down0"); renderUpdateBanner();
   if (!offUpdProg && api.on) offUpdProg = api.on("update-progress", p => {
     if (!p || !update.busy) return;
@@ -834,9 +837,15 @@ function renderUpdateMini(a) {
 function showJustUpdated() {
   const j = storeJson("update:just", null);
   if (!j || typeof j !== "object" || !appInfo.version) return;
-  if (j.to !== appInfo.version) { if (j.from === appInfo.version) return; store.del("update:just"); return; }   // 아직 안 올랐으면 그대로 둔다(설치 실패 등)
+  if (j.from === appInfo.version) return;   // 아직 안 올랐으면 그대로 둔다(설치 실패 등)
+  if (app.nunchi || nx.on) {   // 🙈 눈치 화면 위에 이모지 카드를 띄우지 않는다 — 눈치 모드를 끌 때 보여 줌
+    const off = on("nunchi", e => { if (e && !e.on && !nx.on) { off(); showJustUpdated(); } });
+    return;
+  }
   store.del("update:just");
-  const notes = String(j.notes || "").split("\n").map(s => s.trim()).filter(s => s && !/github/i.test(s)).slice(0, 4);
+  // 요약은 그 버전 것일 때만(설치하면서 더 새 버전을 받았으면 제목만) · ### 제목 줄과 끝의 릴리스 페이지 안내 줄은 뺀다
+  const notes = j.to !== appInfo.version ? [] : String(j.notes || "").split("\n").map(s => s.trim().replace(/^[-*]\s+/, ""))
+    .filter(s => s && !/^#{1,6}\s/.test(s) && !/(GitHub 릴리스 페이지|GitHub release page)/i.test(s)).slice(0, 4);
   const d = document.createElement("dialog");
   d.className = "core-just"; d.setAttribute("aria-labelledby", "core-just-t");
   d.innerHTML = `<form method="dialog"><h2 id="core-just-t">🎉 ${L.esc(t("upd.just", { v: appInfo.version }))}</h2>`
@@ -934,6 +943,7 @@ function tauriBoot(s) {
   if (WIDGET && api.update && appInfo.features.updater) {   // 미니 보기 🎁: 새 버전 여부만 읽는다(설치는 큰 화면에서)
     api.on("update", setUpdate);
     api.update.status().then(setUpdate, () => {});
+    on("settings", renderUpdateBanner);   // 언어가 바뀌면 🎁 풍선 도움말도
   }
   if (WIDGET) return;
   api.on("nunchi-key", nunchiKey);   // 전역 단축키(큰 창이 보일 때 백엔드가 이 창에 맡김)

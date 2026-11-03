@@ -130,6 +130,7 @@ pub fn os_notify(app: &AppHandle, title: &str, body: &str, quiet: bool) {
 /// 누르면 `on_click`을 부르는 OS 알림(macOS·Windows, #92). 알림 하나에 그 알림을 기다리는 스레드 하나가 붙으므로
 /// 드문 알림에만 쓴다(업데이트 알림 = 버전마다 1번). 다른 알림은 `os_notify` — 알림 플러그인의 on_action을 켜면
 /// 모든 알림이 대기 스레드를 갖게 되므로 쓰지 않는다. 그 밖의 OS는 `os_notify`와 같다(눌러도 아무 일 없음)
+#[cfg_attr(not(feature = "updater"), allow(dead_code))] // 지금은 업데이트 알림만 쓴다(업데이터 없는 빌드에선 안 씀)
 pub fn os_notify_click(app: &AppHandle, title: &str, body: &str, quiet: bool, on_click: impl FnOnce() + Send + 'static) {
     #[cfg(any(target_os = "macos", windows))]
     {
@@ -138,6 +139,9 @@ pub fn os_notify_click(app: &AppHandle, title: &str, body: &str, quiet: bool, on
         if !quiet {
             n.sound_name("default");
         }
+        // 윈도우: 토스트가 사라지면(알림 센터로 가면) 응답 대기가 끝나 그 뒤엔 눌러도 안 열린다 → 길게(약 25초) 띄운다
+        #[cfg(windows)]
+        n.timeout(notify_rust::Timeout::Never);
         // 알림 플러그인과 같은 앱 신원: 맥은 번들 ID(개발 빌드는 터미널), 윈도우는 설치된 앱일 때만 AppUserModelID
         #[cfg(target_os = "macos")]
         let _ = notify_rust::set_application(if tauri::is_dev() {
@@ -158,11 +162,14 @@ pub fn os_notify_click(app: &AppHandle, title: &str, body: &str, quiet: bool, on
             .spawn(move || match n.show() {
                 // 맥: 보내고 누르거나 닫을 때까지 기다린다(메인 런루프가 돌아야 함 — 앱 실행 중이면 돈다). 윈도우: 토스트 응답을 기다린다
                 Ok(h) => {
-                    let _ = h.wait_for_response(|r: &notify_rust::NotificationResponse| {
+                    let r = h.wait_for_response(|r: &notify_rust::NotificationResponse| {
                         if matches!(r, notify_rust::NotificationResponse::Default) {
                             on_click();
                         }
                     });
+                    if let Err(e) = r {
+                        wlog!("notify", "알림 응답 대기 실패: {e}");
+                    }
                 }
                 Err(e) => wlog!("notify", "알림 실패: {e}"),
             });

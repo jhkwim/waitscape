@@ -196,6 +196,7 @@ function openUpdate() {
     <div class="mg-actions"><button class="mg-btn" value="later">${esc(t("upd.later"))}</button>
       <button class="mg-btn mg-primary" type="button" data-act="install">${esc(t("upd.go"))}</button></div></form>`;
   const st = c.querySelector(".mg-upd-st"), go = c.querySelector("[data-act=install]"), later = c.querySelector("[value=later]");
+  if (C.update.installing) { go.disabled = true; st.textContent = t("upd.down0"); }   // 배너 등 다른 곳에서 이미 내려받는 중
   const offProg = C.api.on ? C.api.on("update-progress", p => {
     if (!p) return;
     st.textContent = p.phase === "installing" ? t("upd.inst") : p.total ? t("upd.down", { pct: p.pct }) : t("upd.down0");

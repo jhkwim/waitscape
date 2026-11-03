@@ -76,6 +76,7 @@ const WIDGET = `
       <div class="pk-tb">
         <span class="pk-live"></span><span class="pk-tt"></span>
         <span class="pk-tools">
+          <button class="pk-ib pk-upd" data-act="update" hidden>🎁</button>
           <button class="pk-ib" data-act="quiet"></button>
           <button class="pk-ib" data-act="notif" title="알림 켜기">${I.bell}</button>
           <button class="pk-ib" data-act="pill" title="알약으로 줄이기">${I.min}</button>
@@ -357,6 +358,7 @@ C.registerMode({
       else if (act === "size") setSize(b.dataset.size);
       else if (act === "quiet") ctx.settings.setQuiet(!ctx.settings.quiet);
       else if (act === "notif") ctx.notif.request();
+      else if (act === "update") { if (ctx.core.update) ctx.core.update.open(); }   // 큰 화면 + 업데이트 창 (#92)
       else if (act === "close") win.close();
       else if (act === "big") ctx.api.showMain();
       else if (act === "pip") openPip();
@@ -399,6 +401,14 @@ C.registerMode({
     };
     applySettings();
     ctx.on("settings", applySettings);
+    /* 🎁 새 버전(앱): 도구줄에 — 누르면 큰 화면 + 업데이트 창(설치는 거기서). 🙈 눈치 모드면 core CSS가 숨김 (#92) */
+    const applyUpd = () => {
+      const a = ctx.core.update && ctx.core.update.available, b = $('[data-act="update"]');
+      b.hidden = !a;
+      if (a) { b.title = `새 버전 v${a.version} — 누르면 업데이트 창`; b.setAttribute("aria-label", b.title); }
+    };
+    applyUpd();
+    ctx.on("update", applyUpd);
     ctx.on("input", s => { snooze.delete(s.sid); if (picked && picked !== s.sid) picked = null; render(); });
     ctx.on("memo-ready", s => { memoShow.add(s.sid); render(); });
     ctx.on("memo", () => render());
