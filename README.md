@@ -126,7 +126,7 @@ Waitscape는 Claude Code·Codex 같은 AI 코딩 에이전트의 세션을 **도
 | **Codex CLI** | ✅ (실험) | 설정 → AI 연결 → MCP 보고 | — |
 | **Antigravity CLI** | ✅ (실험) | 설정 → AI 연결 → MCP 보고 | — |
 
-터미널 바로 이동은 **cmux**(macOS)와 **Orca**(macOS·Windows)에서 연 세션을 지원해요. Antigravity 세션은 화면에 Gemini로 표시돼요.
+터미널 바로 이동은 **cmux**(macOS)와 **Orca**(macOS·Windows)에서 연 세션을 지원해요. cmux는 설정을 바꾸지 않아도 되고, 처음 한 번 macOS가 「Waitscape가 cmux를 제어」 허용을 물어요. Antigravity 세션은 화면에 Gemini로 표시돼요.
 
 ## 설치
 

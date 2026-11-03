@@ -624,7 +624,8 @@ function modeFromHash() { const h = location.hash.slice(1); return HASH_ALIAS[h]
 /* ---------- 터미널로 이동 (앱): 세션 cwd에서 터미널 열기, 안 되면 경로 복사 ----------
    멀티플렉서(cmux #37 · Orca #40) 세션이면 백엔드가 그 자리로 간다: mux = 이동, mux-app = 대상이 닫혀(Orca: 터미널을 못 찾아) 앱만 앞으로,
    mux-launch = (Orca) 꺼져 있어 앱만 띄움, mux-off = 앱이 꺼져 있어(Orca: 띄우지도 못해) 경로 복사,
-   mux-denied = 켜져 있는데 닿지 않아(cmux: 외부 접근 끔·비밀번호, Orca: 런타임 응답 없음) 경로 복사 + 이유. 모드에는 "opened" | "unsupported"만 돌려준다 */
+   mux-denied = 켜져 있는데 닿지 않아(cmux: 외부 접근 끔·비밀번호, Orca: 런타임 응답 없음) 경로 복사 + 이유,
+   mux-perm = (cmux) 소켓이 막혀 AppleScript로 가려 했는데 macOS 자동화 허용이 없어 경로 복사 + 켜는 곳 안내(#102). 모드에는 "opened" | "unsupported"만 돌려준다 */
 const MUX_LABEL = L.MUX_NAME;   // 백엔드 kind → 표시 이름 (core-lib과 하나)
 async function openTerminal(sid) {
   let r;
@@ -633,7 +634,9 @@ async function openTerminal(sid) {
   if (res === "opened" || res === "mux") return "opened";
   if (res === "mux-app") { toast(t(O ? "term.orcaApp" : "term.muxApp", mx)); return "opened"; }
   if (res === "mux-launch") { toast(t("term.orcaLaunch", mx)); return "opened"; }
-  if (r && r.cwd) { try { await navigator.clipboard.writeText(r.cwd); toast(t(res === "mux-denied" ? (O ? "term.orcaDenied" : "term.muxDenied") : res === "mux-off" ? (O ? "term.orcaOff" : "term.muxOff") : "term.copied", mx)); } catch { toast(r.cwd); } }
+  if (r && r.cwd) { try { await navigator.clipboard.writeText(r.cwd); toast(t(res === "mux-perm" ? "term.muxPerm" : res === "mux-denied" ? (O ? "term.orcaDenied" : "term.muxDenied") : res === "mux-off" ? (O ? "term.orcaOff" : "term.muxOff") : "term.copied", mx)); }
+    // 복사가 안 되면(허용 창을 기다리는 사이 클릭 활성화가 끝나는 등) 경로를 보여 주고, 자동화 허용이 원인이면 그 안내도 함께
+    catch { toast(res === "mux-perm" ? t("term.muxPermPath", { ...mx, path: r.cwd }) : r.cwd); } }
   else toast(t("term.none"));
   return "unsupported";
 }

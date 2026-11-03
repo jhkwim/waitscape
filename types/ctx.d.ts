@@ -342,8 +342,9 @@ export interface CoreApi {
   notify?(title: string, body: string): void;
   /** [P3] tauri 전용 */
   /** 멀티플렉서(cmux·Orca) 세션이면 그 자리로: mux = 이동, mux-app = 대상이 닫혀(Orca: 터미널을 못 찾아) 앱만 앞으로, mux-launch = (Orca) 꺼져 있어 앱만 띄움(@since 1.4),
-   *  mux-off = 앱이 꺼져 있어 cwd 복사, mux-denied = 외부 제어가 막혀(Orca: 응답 없음) cwd 복사(kind = 멀티플렉서) @since 1.3 */
-  openTerminal?(sid: string): Promise<{ result: "opened" | "unsupported" | "mux" | "mux-app" | "mux-launch" | "mux-off" | "mux-denied"; kind?: string | null; cwd: string | null }>;
+   *  mux-off = 앱이 꺼져 있어 cwd 복사, mux-denied = 외부 제어가 막혀(Orca: 응답 없음) cwd 복사,
+   *  mux-perm = (cmux) 소켓이 막혀 AppleScript로 가려 했는데 macOS 자동화 허용이 없음(코어 전용, jhkwim/waitscape#102) cwd 복사(kind = 멀티플렉서) @since 1.3 */
+  openTerminal?(sid: string): Promise<{ result: "opened" | "unsupported" | "mux" | "mux-app" | "mux-launch" | "mux-off" | "mux-denied" | "mux-perm"; kind?: string | null; cwd: string | null }>;
   openWidget?(modeId: string): Promise<void>;
   /** @since 1.5 tauri 메인 창: 앱 로그 폴더(waitscape.log, 진단용) 열기 — 설정 → 일반 → 앱 정보 */
   openLogDir?(): Promise<void>;

@@ -352,7 +352,7 @@ pub fn set_tray_modes(app: AppHandle, w: WebviewWindow, be: B, modes: Vec<Value>
 }
 
 /// 세션 cwd에서 터미널(또는 편집기) 열기. 멀티플렉서 세션(`jump.mux`, Orca·cmux)이면 그 터미널·워크스페이스·패널로.
-/// result: "opened" | "unsupported" | "mux" | "mux-app" | "mux-launch" | "mux-off" | "mux-denied" (+ kind). 프론트는 unsupported·mux-off·mux-denied면 cwd를 복사
+/// result: "opened" | "unsupported" | "mux" | "mux-app" | "mux-launch" | "mux-off" | "mux-denied" | "mux-perm" (+ kind). 프론트는 unsupported·mux-off·mux-denied·mux-perm이면 cwd를 복사
 /// async + spawn_blocking: 멀티플렉서 CLI는 명령마다 최대 3초라 메인(UI) 스레드에서 돌리지 않는다
 #[tauri::command]
 pub async fn open_terminal(w: WebviewWindow, be: B<'_>, sid: String) -> Result<Value, String> {
@@ -375,7 +375,7 @@ pub async fn open_terminal(w: WebviewWindow, be: B<'_>, sid: String) -> Result<V
     let r = tauri::async_runtime::spawn_blocking(move || terminal::open(&cwd2, &pref, mux2.as_ref(), &home))
         .await
         .map_err(|e| e.to_string())?;
-    let copy = matches!(r, "unsupported" | "mux-off" | "mux-denied");
+    let copy = matches!(r, "unsupported" | "mux-off" | "mux-denied" | "mux-perm");
     let kind = mux.as_ref().filter(|_| r.starts_with("mux")).map(|m| m.kind);
     Ok(json!({"result": r, "kind": kind, "cwd": if copy { json!(cwd) } else { Value::Null }}))
 }
