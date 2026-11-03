@@ -43,7 +43,8 @@ cargo tauri build --target universal-apple-darwin   # 배포용 universal (.app�
   숫자·리셋 시간은 늘 보이고, 단계는 밝기·아이콘·문구·게이지 무늬로도 구분(색맹·다크 테마). 회의 모드·움직임 줄이기면 깜빡임·흔들림 없음. 미니 보기는 지금 보이는 방에 같은 규칙이고, 하단 자막은 절전에 들어설 때·정전 동안·리셋 순간만.
 - 스튜디오의 **👆 클릭 반응**: 직원(동물 11종 · 사장님)과 소품(모니터·커피·화분·책장·창문·화이트보드·벽시계·자판기·엘리베이터…)을 누르면 작게 반응한다. 같은 반응은 연속으로 안 나오고, 4번 연타하면 "일하는 중이에요!". 질문 중인 직원을 누르면 터미널로 이동.
 - **cmux로 바로 이동**(앱, #37): cmux에서 연 세션이면 질문 중·일을 마친 직원, 완료 배너·로비의 완료 보고 말풍선을 누를 때 그 cmux 워크스페이스·패널로 간다(버튼·하단 자막이 "cmux로 이동").
-  훅이 `CMUX_WORKSPACE_ID`·`CMUX_SURFACE_ID` **두 값만** 기록한다(토큰·소켓 비밀번호는 읽지 않음). cmux 설정에서 외부 소켓 접근을 막았거나 비밀번호를 걸었으면 경로 복사로 대신하고,
+  훅이 `CMUX_WORKSPACE_ID`·`CMUX_SURFACE_ID` **두 값만** 기록한다(토큰·소켓 비밀번호는 읽지 않음). cmux 소켓이 막혀 있으면(기본값 `cmuxOnly` 포함) cmux AppleScript로 대신 가고(#102,
+  처음 한 번 macOS "Waitscape가 cmux를 제어" 허용 창 — 거절했으면 경로 복사 + 시스템 설정 → 개인정보 보호 및 보안 → 자동화 안내), 그것도 안 되면 경로 복사로 대신하고,
   워크스페이스가 닫혔으면 cmux만 앞으로 띄운다. Codex는 MCP 연결 때 `env_vars`에 두 이름을 더한다(원래 있던 항목은 그대로, 해제 때 더한 것만 뺌). 이미 연결해 둔 Codex는 설정 → AI 연결에 "다시 연결" 안내가 뜬다.
   cmux가 꺼져 있으면 그렇게 알려 준다. Antigravity 세션은 아직 안 됨
 - **Orca로 바로 이동**(앱, #40): Orca 터미널에서 연 세션도 같은 자리를 누르면 그 Orca 터미널로 간다("Orca로 이동"). 훅이 `ORCA_TERMINAL_HANDLE`·`ORCA_WORKTREE_PATH` **두 값만** 기록한다
@@ -189,6 +190,8 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     wr-server/              브라우저용 127.0.0.1 HTTP (server.py와 같은 엔드포인트·Host 검사·정적 규칙, tiny_http). tests/http.rs
   app/src-tauri/            데스크톱 앱 (Tauri 2, 크레이트 waitscape)
     tauri.conf.json           frontendDist=../../web, 앱 CSP, externalBin(wr-hook sidecar), 번들 설정 (이름·식별자는 brand.json과 build.rs가 일치 검사)
+    Entitlements.plist        맥 서명 권한: automation.apple-events(cmux AppleScript 이동, #102) — tauri.conf.json bundle.macOS.entitlements
+    Info.plist                생성 Info.plist에 합쳐짐: NSAppleEventsUsageDescription(자동화 허용 창 문구)
     capabilities/             main.json(메인 창) · widget.json(위젯: 읽기·회의 모드·자기 창만) — 외부 모드 iframe/원격 URL 권한 없음
     build.rs                  brand 검사, 버전 검사(tauri.conf.json = Cargo workspace), sidecar 자리표시, 앱 명령 권한 목록(AppManifest)
     icons/                    앱 아이콘(원본 icons/src/app-icon/: 배경 SVG + 햄찌 도트) · 트레이 아이콘(icons/src/tray*.svg → scripts/make_icons.sh)

@@ -8,6 +8,9 @@
 //!   셸 없이 인자 배열·명령마다 타임아웃. 워크스페이스가 닫혔으면(소켓은 됨, 읽기 전용 `workspace list`로 확인) 앱만 앞으로,
 //!   소켓도 안 되면 앱 실행 여부(`ps -axo comm=`, 읽기 전용)로 나눠 꺼져 있으면 "mux-off", 켜져 있는데 막혔으면(외부 접근 끔·비밀번호) "mux-denied"
 //!   → 프론트가 경로를 복사하고 이유를 알린다. CLI가 없으면 원래 방식.
+//!   소켓이 막혔는데(cmux 기본값 `cmuxOnly` = cmux 안에서 띄운 프로세스만) 앱이 **켜져 있으면** cmux AppleScript 사전으로 대신 간다(#102):
+//!   `/usr/bin/osascript -e <CMUX_SCRIPT> <workspace> [surface]` — id는 스크립트에 넣지 않고 argv로. 꺼져 있으면 `tell`이 cmux를 띄우므로 부르지 않는다.
+//!   처음 한 번 macOS 자동화 허용 창(entitlement `automation.apple-events` + `NSAppleEventsUsageDescription`), 거절(-1743)이면 "mux-perm"(경로 복사 + 안내).
 //! - Orca(#40): 세션 `jump.mux = {kind: "orca", surface: 터미널 핸들, path?: worktree 경로}` → `orca_cmds`/`jump_orca`.
 //!   `orca terminal switch --terminal <핸들> --json` → 실패하면(핸들은 런타임이 발급해 Orca를 다시 켜면 바뀜) 읽기 전용 `orca status --json`으로 나눈다:
 //!   런타임에 닿으면 `orca terminal list --worktree path:<경로> --json`에서 `orca_pick` 규칙으로 하나 골라 switch, 못 고르면 앱만 앞으로("mux-app");
@@ -100,7 +103,38 @@ pub struct MuxCmds {
     /// probe도 실패했을 때 앱이 실행 중인지 확인: (읽기 전용 명령, stdout에 이 줄이 있으면 실행 중).
     /// 꺼져 있으면 "mux-off", 켜져 있는데 안 되면 "mux-denied"(외부 접근이 막힘)
     pub running: Option<(Cmd, String)>,
+    /// 켜져 있는데 소켓이 막혔을 때 대신 쓰는 AppleScript(#102). stdout "ok" = 이동, "app" = 워크스페이스가 없어 앱만 앞으로
+    pub script: Option<Cmd>,
 }
+
+/// cmux AppleScript(`cmux.sdef`: tab = 워크스페이스, terminal = 패널, `id`는 훅이 기록한 `CMUX_WORKSPACE_ID`·`CMUX_SURFACE_ID`와 같은 값).
+/// 인자: argv 1 = 워크스페이스 id, argv 2(선택) = 패널 id. 패널 포커스는 실패해도 넘어간다
+pub const CMUX_SCRIPT: &str = r#"on run argv
+	set w to item 1 of argv
+	tell application id "com.cmuxterm.app"
+		repeat with win in windows
+			repeat with t in tabs of win
+				if id of t is w then
+					select tab t
+					if (count of argv) > 1 then
+						try
+							focus (first terminal of t whose id is (item 2 of argv))
+						end try
+					end if
+					activate window win
+					activate
+					return "ok"
+				end if
+			end repeat
+		end repeat
+		activate
+	end tell
+	return "app"
+end run"#;
+
+/// osascript 경로. 처음 한 번은 macOS 자동화 허용 창이 답을 기다리므로 다른 명령(3초)보다 길게 기다린다
+pub const OSASCRIPT: &str = "/usr/bin/osascript";
+pub const SCRIPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
 fn args(v: &[&str]) -> Vec<String> {
     v.iter().map(|s| s.to_string()).collect()
@@ -127,11 +161,14 @@ pub fn cmux_cmds(cli: &Path, m: &Mux) -> MuxCmds {
         .ancestors()
         .nth(3)
         .map(|c| c.join("MacOS").join("cmux").to_string_lossy().into_owned());
+    let mut sa = args(&["-e", CMUX_SCRIPT, ws]);
+    sa.extend(m.surface.clone());
     MuxCmds {
         go,
         probe: (cli.to_path_buf(), args(&["workspace", "list"])),
         front: (PathBuf::from("/usr/bin/open"), args(&["-a", "cmux"])),
         running: main.map(|m| ((PathBuf::from("/bin/ps"), args(&["-axo", "comm="])), m)),
+        script: Some((PathBuf::from(OSASCRIPT), sa)),
     }
 }
 
@@ -310,7 +347,8 @@ pub fn spawn_app(prog: &Path, args: &[String]) -> Result<String, String> {
 }
 
 /// 이동 실행. `run`은 (프로그램, 인자 배열) 실행기(테스트에서 가짜로 바꿈) →
-/// "mux"(이동) | "mux-app"(대상이 닫혀 앱만 앞으로) | "mux-off"(앱이 꺼져 있음) | "mux-denied"(켜져 있는데 접근 실패). 뒤의 둘은 프론트가 경로 복사
+/// "mux"(이동) | "mux-app"(대상이 닫혀 앱만 앞으로) | "mux-off"(앱이 꺼져 있음) | "mux-denied"(켜져 있는데 접근 실패)
+/// | "mux-perm"(소켓이 막혀 AppleScript로 가려 했는데 macOS 자동화 권한이 없음). 뒤의 셋은 프론트가 경로 복사
 pub fn jump_mux(c: &MuxCmds, run: impl Fn(&Path, &[String]) -> Result<String, String>) -> &'static str {
     let ok = |(p, a): &Cmd| run(p, a).is_ok();
     let mut go = c.go.iter();
@@ -328,7 +366,18 @@ pub fn jump_mux(c: &MuxCmds, run: impl Fn(&Path, &[String]) -> Result<String, St
     match &c.running {
         Some(((p, a), main)) => match run(p, a) {
             Ok(out) if !out.lines().any(|l| l.trim() == main) => "mux-off",
-            _ => "mux-denied",
+            // 켜져 있는데 소켓이 막힘 → AppleScript로 (꺼져 있거나 ps가 실패하면 부르지 않는다: tell이 앱을 띄울 수 있다)
+            Ok(_) => match &c.script {
+                Some((sp, sa)) => match run(sp, sa) {
+                    Ok(out) if out.trim() == "ok" => "mux",
+                    Ok(out) if out.trim() == "app" => "mux-app",
+                    // -1743 = 자동화 허용 안 됨, -1744 = 물어볼 수 없음(허용 창을 띄울 수 없는 상황)
+                    Err(e) if e.contains("-1743") || e.contains("-1744") => "mux-perm",
+                    _ => "mux-denied",
+                },
+                None => "mux-denied",
+            },
+            Err(_) => "mux-denied",
         },
         None => "mux-denied",
     }
@@ -340,7 +389,7 @@ pub fn route<'a>(pref: &str, mux: Option<&'a Mux>, os: &str) -> Option<&'a Mux> 
     mux.filter(|m| (pref == "auto" || pref == m.kind) && (os == "macos" || (os == "windows" && m.kind == "orca")))
 }
 
-/// "opened" | "unsupported" | "mux" | "mux-app" | "mux-launch" | "mux-off" | "mux-denied"
+/// "opened" | "unsupported" | "mux" | "mux-app" | "mux-launch" | "mux-off" | "mux-denied" | "mux-perm"
 #[cfg(feature = "terminal-jump")]
 pub fn open(cwd: &str, pref: &str, mux: Option<&Mux>, home: &Path) -> &'static str {
     use crate::mcp_connect::run_with_timeout;
@@ -355,6 +404,8 @@ pub fn open(cwd: &str, pref: &str, mux: Option<&Mux>, home: &Path) -> &'static s
             let r = run_jump(&c, |p, a| {
                 if app.as_deref() == Some(p) {
                     spawn_app(p, a)
+                } else if p == Path::new(OSASCRIPT) {
+                    run_with_timeout(p, a, None, SCRIPT_TIMEOUT)
                 } else {
                     run_with_timeout(p, a, None, MUX_TIMEOUT)
                 }
@@ -513,10 +564,58 @@ mod tests {
             jump_mux(&c, ps("/sbin/launchd\n/Applications/cmux.app/Contents/MacOS/cmux\n")),
             "mux-denied"
         );
-        // ps까지 실패하면 보수적으로 denied
+        // ps까지 실패하면 보수적으로 denied. AppleScript도 부르지 않는다(tell이 꺼진 앱을 띄울 수 있다)
         let log = RefCell::new(vec![]);
         assert_eq!(jump_mux(&c, fake(&log, &["cmux", "ps"])), "mux-denied");
-        assert!(!log.borrow().iter().any(|l| l.starts_with("open")));
+        assert!(!log.borrow().iter().any(|l| l.starts_with("open") || l.starts_with("osascript")));
+    }
+
+    /// 소켓이 막혔지만(cmux 기본값 cmuxOnly) 앱이 켜져 있으면 AppleScript로 (#102)
+    #[test]
+    fn cmux_applescript_fallback() {
+        let cli = Path::new("/Applications/cmux.app/Contents/Resources/bin/cmux");
+        let c = cmux_cmds(cli, &mux(W, Some("surface:5")));
+        let (sp, sa) = c.script.clone().unwrap();
+        assert_eq!(sp, Path::new("/usr/bin/osascript"));
+        assert_eq!(sa, args(&["-e", CMUX_SCRIPT, W, "surface:5"]), "id는 스크립트가 아니라 argv로");
+        assert!(!CMUX_SCRIPT.contains(W));
+        let (_, sa) = cmux_cmds(cli, &mux(W, None)).script.unwrap();
+        assert_eq!(sa, args(&["-e", CMUX_SCRIPT, W]), "패널이 없으면 인자 하나");
+        const UP: &str = "/sbin/launchd\n/Applications/cmux.app/Contents/MacOS/cmux\n";
+        // 소켓 명령은 모두 실패, ps는 `ps_out`, osascript는 `script`
+        let run = |ps_out: &'static str, script: Result<&'static str, &'static str>| {
+            let log = RefCell::new(Vec::<String>::new());
+            let r = jump_mux(&c, |p: &Path, _: &[String]| {
+                let name = p.file_name().unwrap().to_string_lossy().into_owned();
+                log.borrow_mut().push(name.clone());
+                match name.as_str() {
+                    "ps" => Ok(ps_out.to_string()),
+                    "osascript" => script.map(String::from).map_err(String::from),
+                    "open" => panic!("AppleScript가 앞으로 띄운다"),
+                    _ => Err("종료 코드 1: Access denied".into()),
+                }
+            });
+            (r, log.into_inner())
+        };
+        let (r, log) = run(UP, Ok("ok\n"));
+        assert_eq!(r, "mux");
+        assert_eq!(log, ["cmux", "cmux", "ps", "osascript"]);
+        assert_eq!(run(UP, Ok("app\n")).0, "mux-app", "워크스페이스가 닫힘 → 앱만 앞으로");
+        assert_eq!(
+            run(
+                UP,
+                Err("종료 코드 1: execution error: Not authorized to send Apple events to cmux. (-1743)")
+            )
+            .0,
+            "mux-perm"
+        );
+        assert_eq!(run(UP, Err("종료 코드 1: (-1744)")).0, "mux-perm");
+        assert_eq!(run(UP, Err("시간 초과")).0, "mux-denied");
+        assert_eq!(run(UP, Ok("")).0, "mux-denied", "모르는 출력은 이동으로 치지 않음");
+        // 꺼져 있으면 부르지 않는다
+        let (r, log) = run("/sbin/launchd\n", Ok("ok"));
+        assert_eq!(r, "mux-off");
+        assert!(!log.contains(&"osascript".to_string()));
     }
 
     const H: &str = "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d";

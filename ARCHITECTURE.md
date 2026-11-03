@@ -243,6 +243,12 @@ interface CoreApi {
   (실패해도 계속) → `open -a cmux`. 워크스페이스 선택이 실패하면 읽기 전용 `workspace list`로 소켓을 확인해, 되면 앱만 앞으로(`mux-app`, 워크스페이스가 닫힘),
   안 되면 앱 실행 여부(`/bin/ps -axo comm=`에 `<앱>/Contents/MacOS/cmux`가 있는지, 읽기 전용)로 나눠 꺼져 있으면 `mux-off`, 켜져 있는데 막혔으면 `mux-denied`
   (cmux 설정에서 외부 소켓 접근을 막았거나 비밀번호) → 프론트가 경로를 복사하고 이유를 토스트로. CLI가 없거나 모르는 kind면 원래 방식. feature `terminal-jump`를 끄면 없음.
+  **AppleScript 대체(#102)**: cmux 기본 소켓 모드 `cmuxOnly`는 cmux 안에서 띄운 프로세스만 받아 앱(바깥 프로세스)은 늘 막힌다. 그래서 켜져 있는데 막혔으면 `mux-denied` 전에
+  cmux AppleScript 사전(`cmux.sdef`: tab = 워크스페이스, terminal = 패널, 둘의 `id`가 훅이 기록한 `CMUX_WORKSPACE_ID`·`CMUX_SURFACE_ID`와 같은 값)으로
+  `/usr/bin/osascript -e <CMUX_SCRIPT> <workspace> [surface]`(id는 argv로, 스크립트 문자열에 넣지 않음, 30초 제한 — 첫 자동화 허용 창이 답을 기다림)를 부른다.
+  `ok` → `mux`, `app`(그 워크스페이스가 없어 앱만 앞으로) → `mux-app`, `-1743`·`-1744`(자동화 허용 없음) → `mux-perm`(경로 복사 + 시스템 설정 → 자동화 안내), 그 밖은 `mux-denied`.
+  꺼져 있거나 `ps`가 실패하면 부르지 않는다(`tell application`이 앱을 띄운다). 번들: `Entitlements.plist`(`com.apple.security.automation.apple-events`, hardened runtime에서 필요)
+  · `Info.plist`(`NSAppleEventsUsageDescription`, Tauri가 생성 plist에 합침).
   **Orca** = macOS·Windows(#54). **CLI 찾기**(`orca_find.rs`, 설치 경로와 무관, PATH는 보지 않음) — 위에서부터 처음 검증을 통과한 것:
   1. 실행 중인 Orca 프로세스의 실행 파일 경로. 맥 `/bin/ps -axo comm=`에서 `…/X.app/Contents/MacOS/Orca` → 번들 `X.app` → `X.app/Contents/Resources/bin/orca`.
      윈도우 `…\Orca.exe` → 같은 폴더 `resources\bin\orca.exe`(네이티브 CLI 런처). 윈도우 프로세스 경로는 `tasklist.exe`가 주지 않아

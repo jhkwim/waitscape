@@ -126,7 +126,7 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 | **Codex CLI** | ✅ (experimental) | Settings → AI tools → MCP reports | — |
 | **Antigravity CLI** | ✅ (experimental) | Settings → AI tools → MCP reports | — |
 
-Jump-to-terminal works for sessions opened in **cmux** (macOS) and **Orca** (macOS and Windows). Antigravity sessions show up as Gemini.
+Jump-to-terminal works for sessions opened in **cmux** (macOS) and **Orca** (macOS and Windows). cmux needs no settings change; macOS asks once to let Waitscape control cmux. Antigravity sessions show up as Gemini.
 
 ## Install
 

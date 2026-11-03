@@ -136,7 +136,7 @@ Object.assign(S.ko, {
   "u.keychain": "키체인에서 읽기", "u.keychain.desc": "macOS: 키체인의 ‘Claude Code-credentials’를 이 버튼을 누를 때만 읽어요. 암호 창이 뜰 수 있어요(‘항상 허용’ 권장). 토큰은 메모리에만 둬요.",
   "u.ok": "정상", "u.err": "오류 {e}",
   "term.open": "터미널", "term.copied": "터미널을 열 수 없어 폴더 경로를 복사했어요", "term.none": "이 세션의 폴더를 알 수 없어요",
-  "term.muxApp": "{mux} 워크스페이스가 닫혀 있어 {mux}만 앞으로 띄웠어요", "term.muxDenied": "{mux} 외부 제어가 막혀 있어(소켓 접근 설정·비밀번호) 폴더 경로를 복사했어요", "term.muxOff": "{mux}가 꺼져 있어 폴더 경로를 복사했어요 — {mux}를 켠 뒤 다시 눌러 주세요",
+  "term.muxApp": "{mux} 워크스페이스가 닫혀 있어 {mux}만 앞으로 띄웠어요", "term.muxDenied": "{mux} 외부 제어가 막혀 있어(소켓 접근 설정·비밀번호) 폴더 경로를 복사했어요", "term.muxPerm": "{mux}로 이동하려면 허용이 필요해요 — 시스템 설정 → 개인정보 보호 및 보안 → 자동화에서 Waitscape의 {mux}를 켜 주세요. 폴더 경로는 복사했어요", "term.muxOff": "{mux}가 꺼져 있어 폴더 경로를 복사했어요 — {mux}를 켠 뒤 다시 눌러 주세요",
   "term.orcaApp": "Orca에서 이 세션의 터미널을 찾지 못해 Orca만 앞으로 띄웠어요", "term.orcaLaunch": "Orca가 꺼져 있어 Orca를 열었어요 — 터미널은 Orca에서 골라 주세요",
   "term.orcaOff": "Orca가 꺼져 있고 열지도 못해 폴더 경로를 복사했어요", "term.orcaDenied": "Orca가 응답하지 않아 폴더 경로를 복사했어요 — Orca를 다시 켜 보세요",
   // 미니 보기 열기 실패 (core.js openWidget) · 앱 정보 카드 (manager.js)
@@ -191,7 +191,7 @@ Object.assign(S.en, {
   "u.keychain": "Read from Keychain", "u.keychain.desc": "macOS: reads “Claude Code-credentials” from the Keychain only when you press this. A password prompt may appear (‘Always Allow’ recommended). The token stays in memory.",
   "u.ok": "OK", "u.err": "error {e}",
   "term.open": "Terminal", "term.copied": "Couldn't open a terminal — copied the folder path", "term.none": "This session's folder is unknown",
-  "term.muxApp": "The {mux} workspace is closed — brought {mux} to the front", "term.muxDenied": "{mux} blocks outside control (socket access setting or password) — copied the folder path", "term.muxOff": "{mux} isn't running — copied the folder path. Open {mux} and try again",
+  "term.muxApp": "The {mux} workspace is closed — brought {mux} to the front", "term.muxDenied": "{mux} blocks outside control (socket access setting or password) — copied the folder path", "term.muxPerm": "Jumping to {mux} needs permission — turn on {mux} for Waitscape in System Settings → Privacy & Security → Automation. Copied the folder path", "term.muxOff": "{mux} isn't running — copied the folder path. Open {mux} and try again",
   "term.orcaApp": "Couldn't find this session's terminal in Orca — brought Orca to the front", "term.orcaLaunch": "Orca wasn't running — opened Orca. Pick the terminal there",
   "term.orcaOff": "Orca isn't running and couldn't be opened — copied the folder path", "term.orcaDenied": "Orca isn't responding — copied the folder path. Try restarting Orca",
   "w.lobby": "Mini view", "w.mini": "Mini view", "w.fail": "Couldn't open {what}: {why}",

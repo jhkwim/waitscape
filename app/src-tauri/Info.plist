@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Tauri가 생성한 Info.plist에 합쳐진다. 자동화 허용 창에 이 문구가 뜬다(#102) -->
+	<key>NSAppleEventsUsageDescription</key>
+	<string>세션을 연 cmux 워크스페이스로 바로 이동할 때 써요. (Used to jump to the cmux workspace where a session runs.)</string>
+</dict>
+</plist>
