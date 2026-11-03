@@ -405,10 +405,11 @@ C.registerMode({
     const applyUpd = () => {
       const a = ctx.core.update && ctx.core.update.available, b = $('[data-act="update"]');
       b.hidden = !a;
-      if (a) { b.title = `새 버전 v${a.version} — 누르면 업데이트 창`; b.setAttribute("aria-label", b.title); }
+      if (a) { b.title = ctx.lang === "en" ? `New version ${a.version} — click to update` : `새 버전 v${a.version} — 누르면 업데이트 창`; b.setAttribute("aria-label", b.title); }
     };
     applyUpd();
     ctx.on("update", applyUpd);
+    ctx.on("settings", applyUpd);   // 언어가 바뀌면 도움말도
     ctx.on("input", s => { snooze.delete(s.sid); if (picked && picked !== s.sid) picked = null; render(); });
     ctx.on("memo-ready", s => { memoShow.add(s.sid); render(); });
     ctx.on("memo", () => render());
