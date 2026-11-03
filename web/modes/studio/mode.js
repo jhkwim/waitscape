@@ -481,7 +481,7 @@ function pwLightmap(doc, parent, x, y, w, h, cell, z) {
   } };
 }
 /* 🌦️ 달력 날씨(#107): 외부 통신 없이 컴퓨터 시간대·날짜로 정하는 평소 날씨. 하늘·창·옥상만(실내 그대로). 한도 날씨(cfg.weather)를 켜 두고 주간 한도가 60%↑면 그쪽이 우선.
-   - 반구: 시간대 이름(Intl)이 남반구 지역이면 계절을 뒤집음(오스트레일리아·뉴질랜드·남미 남쪽·남아프리카 등). 모르면 북반구
+   - 반구: 시간대 이름(Intl)이 남반구 지역이면 계절을 뒤집음(오스트레일리아·뉴질랜드·남미·남아프리카 등). 모르면 북반구. 열대·더운 곳(WARM)은 겨울의 눈 몫이 비로
    - 계절별 확률(맑음·구름·비·눈·안개 %): 겨울 45·25·8·17·5 · 봄 50·25·18·0·7 · 여름 45·20·30·0·5 · 가을 50·28·15·0·7. 안개는 오전만(오후엔 구름)
    - 하루를 오전(0~11시)·오후(12~23시) 둘로 나눠 (날짜·반나절)을 씨앗으로 고름 — 같은 반나절 안에선 바뀌지 않고 창을 다시 열어도 같음
    - 그리기는 한도 날씨와 같은 길: 맑음 0 · 구름 70 · 비 85 · 눈 95(옥상에 눈)로 바꿔 pwClock.env의 wk에 넣음. 안개는 하늘 아래쪽 뿌연 막(큰 화면)
@@ -492,23 +492,29 @@ const WX = (() => {
   const ICON = { clear: "☀️", cloudy: "☁️", rain: "🌧️", snow: "❄️", fog: "🌫️" };
   const NAME = { clear: ["맑음", "Clear"], cloudy: ["흐림", "Cloudy"], rain: ["비", "Rain"], snow: ["눈", "Snow"], fog: ["안개", "Fog"] };
   const P = { winter: [45, 25, 8, 17, 5], spring: [50, 25, 18, 0, 7], summer: [45, 20, 30, 0, 5], autumn: [50, 28, 15, 0, 7] };
-  const SOUTH = /^(Australia|Antarctica)\/|^Pacific\/(Auckland|Chatham|Fiji|Tongatapu|Apia|Noumea|Efate|Norfolk)$|^America\/(Argentina\/.*|Buenos_Aires|Santiago|Punta_Arenas|Montevideo|Asuncion|Sao_Paulo|Rio_Branco|Campo_Grande|Cuiaba|La_Paz|Lima)$|^Africa\/(Johannesburg|Maputo|Harare|Lusaka|Windhoek|Gaborone|Maseru|Mbabane|Blantyre|Lubumbashi)$|^Indian\/(Mauritius|Reunion|Antananarivo)$|^Atlantic\/(Stanley|South_Georgia)$/;
+  /* 남반구(ICU가 돌려주는 옛 이름 — America/Cordoba·Mendoza 등 — 도 포함) */
+  const SOUTH = /^(Australia|Antarctica)\/|^Pacific\/(Auckland|Chatham|Fiji|Tongatapu|Apia|Noumea|Efate|Norfolk|Tahiti)$|^America\/(Argentina\/.*|Buenos_Aires|Cordoba|Mendoza|Catamarca|Jujuy|Rosario|Santiago|Punta_Arenas|Coyhaique|Montevideo|Asuncion|Sao_Paulo|Rio_Branco|Campo_Grande|Cuiaba|La_Paz|Lima|Bahia|Recife|Maceio)$|^Africa\/(Johannesburg|Maputo|Harare|Lusaka|Windhoek|Gaborone|Maseru|Mbabane|Blantyre|Lubumbashi|Luanda|Dar_es_Salaam)$|^Indian\/(Mauritius|Reunion|Antananarivo)$|^Atlantic\/(Stanley|South_Georgia)$|^Asia\/Jakarta$/;
+  /* 눈이 (거의) 오지 않는 곳: 겨울 표의 눈 몫은 비로 */
+  const WARM = /^(Africa|Indian)\/(?!Johannesburg$|Maseru$|Mbabane$|Algiers$|Tunis$|Casablanca$)|^Asia\/(Singapore|Bangkok|Jakarta|Kuala_Lumpur|Manila|Ho_Chi_Minh|Saigon|Kolkata|Calcutta|Colombo|Dhaka|Yangon|Rangoon|Phnom_Penh|Vientiane|Makassar|Jayapura|Pontianak|Brunei|Dili|Kuching|Hong_Kong|Macau|Taipei|Dubai|Muscat|Qatar|Bahrain|Riyadh|Karachi|Aden)$|^Pacific\/(Honolulu|Fiji|Tahiti|Guam|Port_Moresby|Noumea|Apia|Tongatapu|Efate|Majuro|Palau|Saipan|Guadalcanal|Tarawa|Pago_Pago|Rarotonga)$|^America\/(Sao_Paulo|Bahia|Recife|Fortaleza|Belem|Maceio|Manaus|Cuiaba|Campo_Grande|Rio_Branco|Porto_Velho|Lima|Guayaquil|Bogota|Caracas|Panama|Havana|Puerto_Rico|Santo_Domingo|Guatemala|Costa_Rica|El_Salvador|Managua|Tegucigalpa|Belize|Jamaica|Cancun|Merida|Miami|Asuncion|Montevideo)$|^Australia\/(Brisbane|Darwin|Perth|Lindeman|Broken_Hill|Adelaide)$/;
   const dev = (() => { let v = ""; try { v = new URLSearchParams(location.search).get("wx") || ""; } catch {} return KINDS.includes(v) ? v : ""; })();
   const zone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; } };
-  const south = tz => SOUTH.test(tz || "");
+  const south = tz => SOUTH.test(tz || ""), warm = tz => WARM.test(tz || "");
+  /* FNV는 끝 글자만 다른 키(…|am · …|pm)끼리 하위 자리가 엇갈림 → 한 번 더 섞음(murmur3 마무리) */
+  const mix = h => { h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; return h >>> 0; };
   /* 월(0~11) → 계절. 남반구면 뒤집음 */
   const season = (m, s) => { const k = ["winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn", "autumn", "winter"][m]; return s ? { winter: "summer", summer: "winter", spring: "autumn", autumn: "spring" }[k] : k; };
   /* (현지 날짜·반나절, 시간대) → 날씨 */
   function kind(d, tz) {
     if (dev) return dev;
     const am = d.getHours() < 12, key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}|${am ? "am" : "pm"}`;
-    const p = P[season(d.getMonth(), south(tz))], r = (fnv("wx|" + key) % 1000) / 10;
+    const p0 = P[season(d.getMonth(), south(tz))], p = warm(tz) ? [p0[0], p0[1], p0[2] + p0[3], 0, p0[4]] : p0, r = (mix(fnv("wx|" + key)) % 1000) / 10;
     let acc = 0, k = "clear";
     for (let i = 0; i < KINDS.length; i++) { acc += p[i]; if (r < acc) { k = KINDS[i]; break; } }
     return k === "fog" && !am ? "cloudy" : k;
   }
-  const now = nowS => kind(new Date(nowS * 1000), zone());
-  return { KINDS, WK, ICON, NAME, P, dev, south, season, kind, now };
+  let zc = "", zt = -1e9;   // 시간대는 1분마다만 다시 읽음(매 프레임 Intl 객체를 만들지 않게)
+  const now = nowS => { if (Math.abs(nowS - zt) > 60) { zc = zone(); zt = nowS; } return kind(new Date(nowS * 1000), zc); };
+  return { KINDS, WK, ICON, NAME, P, dev, south, warm, season, kind, now };
 })();
 
 /* 날씨 입자(주간 한도 80~ 비, 90~ 눈). skip(x, y) = 그리지 않을 칸 */
@@ -685,7 +691,8 @@ function powerBig(h) {
     vOff: () => !!E && E.vOff,   // 👆 POKE: 자판기 누름 → 절전이면 안 나옴
     vendEl: i => G && G.fl[i] ? G.fl[i].vend : null,
     wxIcon: () => E && E.lim ? " " + WX.ICON[E.wxK] : "",   // 주간 한도 칸 옆: 한도 날씨가 하늘을 덮고 있을 때만(달력 날씨는 하늘로만 보여 줌)
-    wk: () => E ? E.wk : 0,   // ☂️ TINY 우산 꽂이: 지금 날씨(비 80~ · 눈 90~ — 달력 날씨도 같은 값)
+    wk: () => E ? E.wk : 0,
+    wet: () => !!E && (E.wk >= 80 || E.fog),   // 🌠 별똥별은 비·눈·안개 땐 안 나옴   // ☂️ TINY 우산 꽂이: 지금 날씨(비 80~ · 눈 90~ — 달력 날씨도 같은 값)
     night: () => E ? E.night : 0,   // 🐦 TINY 비둘기: 밤엔 안 앉음
     /* HUD: 전력 게이지 무늬·색, 머리줄(정전이면 "리셋까지 h:mm"), 단계 배지 */
     hud(Q) {
@@ -5562,7 +5569,7 @@ function eventBig(h) {
   }
   function read() { if (!dev) s = V.load(ctx.store.get("evt", "")); }   // 다른 창이 쓴 만난 횟수(🎲 n/6)
   /* 지금 나올 수 있나(종류별) */
-  const ok = k => k === "star" ? night() : k === "printer" ? G.fl.some(prnOk) : k === "cat" ? G.fl.some(f => f.desk) : k === "pizza" || k === "box" ? !!G.F1 && !h.askOn() : true;
+  const ok = k => k === "star" ? night() && !(h.wet && h.wet()) : k === "printer" ? G.fl.some(prnOk) : k === "cat" ? G.fl.some(f => f.desk) : k === "pizza" || k === "box" ? !!G.F1 && !h.askOn() : true;
   const stopNow = () => h.hidden() || h.stop() || h.out() || doc.hidden;   // 나와 있어도 바로 걷음: 눈치(가림막 전환 포함)·일보 연출·일보 카드·회식·회식 카드·뽑기 돌리는 중·정전·창 숨김
   const blocked = () => stopNow() || h.busy();   // 새로 나오지 않음: 위 + 🎰 뽑기 판이 떠 있을 때
   function spawn(k, t) {
@@ -6026,7 +6033,7 @@ C.registerMode({
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
       anim: () => animOn(), still: () => !!(rm.matches || ctx.settings.quiet), kick: () => { if (!animOn()) staticDraw(); }, layout: () => layout() });
     const evB = eventBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, model: () => model, scale: () => scaleK, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 🎲 랜덤 이벤트(#100)
-      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
+      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), wet: () => pwB.wet(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
       spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); } });
     const pwWins = [];

@@ -10,6 +10,11 @@ const W = load("");
 // 반구: 남반구 시간대만 뒤집음
 ["Australia/Sydney", "Pacific/Auckland", "America/Argentina/Buenos_Aires", "America/Sao_Paulo", "America/Santiago", "Africa/Johannesburg"].forEach(z => assert.ok(W.south(z), z));
 ["Asia/Seoul", "America/New_York", "Europe/London", "Asia/Tokyo", "", "UTC", "America/Los_Angeles"].forEach(z => assert.ok(!W.south(z), z || "(없음)"));
+// ICU가 돌려주는 이름(옛 이름으로 바뀜)으로도 남반구
+["America/Argentina/Cordoba", "America/Argentina/Mendoza", "America/Argentina/Buenos_Aires", "America/Santiago", "Australia/Perth"].forEach(z => { let r = z; try { r = Intl.DateTimeFormat("en", { timeZone: z }).resolvedOptions().timeZone; } catch {} assert.ok(W.south(r), `${z} → ${r}`); });
+// 열대·더운 곳은 눈 없음(겨울 표의 눈 몫은 비로)
+["Asia/Singapore", "Asia/Bangkok", "Pacific/Honolulu", "America/Sao_Paulo", "Asia/Kolkata", "Africa/Lagos"].forEach(z => { assert.ok(W.warm(z), z); for (let d = 1; d <= 28; d++) for (const m of [1, 7]) for (const h of [9, 15]) assert.notStrictEqual(W.kind(new Date(2026, m - 1, d, h), z), "snow", z); });
+["Asia/Seoul", "Europe/Berlin", "America/Chicago"].forEach(z => assert.ok(!W.warm(z), z));
 assert.strictEqual(W.season(0, false), "winter"); assert.strictEqual(W.season(6, false), "summer"); assert.strictEqual(W.season(3, false), "spring"); assert.strictEqual(W.season(9, false), "autumn");
 assert.strictEqual(W.season(0, true), "summer"); assert.strictEqual(W.season(6, true), "winter");
 
@@ -34,6 +39,10 @@ assert.ok(!jul.snow, "북반구 여름엔 눈 없음"); assert.ok(jan.snow > 0, 
 assert.ok((jul.rain || 0) > (jan.rain || 0), "여름 비가 겨울 비보다 많음");
 const tot = Object.values(jan).reduce((a, b) => a + b, 0); assert.ok(jan.clear / tot > .3 && jan.clear / tot < .6, "겨울 맑음 ≈ 45%: " + jan.clear / tot);
 
+// 오전·오후는 서로 독립(같은 날씨인 날 ≈ Σp² — 해시를 한 번 더 섞지 않으면 17%까지 떨어졌음)
+{ let same = 0, n = 0; for (let y = 2020; y < 2030; y++) for (let m = 1; m <= 12; m++) for (let d = 1; d <= 28; d++) { const a = W.kind(new Date(y, m - 1, d, 9), "Asia/Seoul"), b = W.kind(new Date(y, m - 1, d, 15), "Asia/Seoul"); if (a === b || (a === "fog" && b === "cloudy")) same++; n++; }
+  assert.ok(same / n > .25 && same / n < .42, "오전·오후 같은 날 비율 ≈ 30%: " + (same / n).toFixed(3)); }
+
 // 그리기 값: 기존 한도 날씨 길(60 구름 · 80 비 · 90 눈)과 같은 칸에 들어감
 assert.deepStrictEqual(W.KINDS.map(k => W.WK[k]), [0, 70, 85, 95, 0]);
 W.KINDS.forEach(k => assert.ok(W.ICON[k] && W.NAME[k].length === 2, k));
@@ -52,6 +61,9 @@ assert.deepStrictEqual(at(95, true, "fog"), ["snow", 95, true, false]);
 assert.deepStrictEqual(at(40, true, "snow"), ["snow", 95, false, false], "한도 60% 밑이면 달력");
 assert.deepStrictEqual(at(95, false, "fog"), ["fog", 0, false, true], "한도 날씨를 끄면 언제나 달력");
 assert.deepStrictEqual(at(95, false, undefined), ["clear", 0, false, false]);
+
+// 🌠 별똥별은 비·눈·안개 날 안 나옴(eventBig 조건)
+assert.ok(/k === "star" \? night\(\) && !\(h\.wet && h\.wet\(\)\)/.test(src) && /wet: \(\) => !!E && \(E\.wk >= 80 \|\| E\.fog\)/.test(src), "별똥별: 비·눈·안개면 안 나옴");
 
 // 외부 통신 없음
 assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|geolocation/.test(cut("const WX = (() => {", "/* 날씨 입자")), "달력 날씨는 외부 통신·위치 없음");
