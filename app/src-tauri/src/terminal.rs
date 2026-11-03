@@ -115,13 +115,16 @@ pub const CMUX_SCRIPT: &str = r#"on run argv
 		repeat with win in windows
 			repeat with t in tabs of win
 				if id of t is w then
-					select tab t
+					-- 순번 참조(item k of windows)는 focus가 창 순서를 바꾸면 다른 창을 가리키므로 id 참조로 고정하고, 창부터 띄운다
+					set wn to window id (id of win)
+					set tb to tab id (id of t) of wn
+					activate window wn
+					select tab tb
 					if (count of argv) > 1 then
 						try
-							focus (first terminal of t whose id is (item 2 of argv))
+							focus terminal id (item 2 of argv) of tb
 						end try
 					end if
-					activate window win
 					activate
 					return "ok"
 				end if
@@ -132,9 +135,25 @@ pub const CMUX_SCRIPT: &str = r#"on run argv
 	return "app"
 end run"#;
 
+/// cmux AppleScript의 `id`는 UUID뿐 — `workspace:2` 같은 짧은 참조(훅이 받을 수 있는 다른 형식)는 절대 맞지 않으므로 스크립트를 부르지 않는다
+fn uuid_like(s: &str) -> bool {
+    s.len() == 36
+        && s.char_indices().all(|(i, c)| {
+            if [8, 13, 18, 23].contains(&i) {
+                c == '-'
+            } else {
+                c.is_ascii_hexdigit()
+            }
+        })
+}
+
 /// osascript 경로. 처음 한 번은 macOS 자동화 허용 창이 답을 기다리므로 다른 명령(3초)보다 길게 기다린다
 pub const OSASCRIPT: &str = "/usr/bin/osascript";
 pub const SCRIPT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+/// `run_with_timeout`의 시간 초과 오류 문구
+const TIMEOUT: &str = "시간 초과";
+/// osascript가 이미 돌고 있을 때 실행기가 돌려주는 표시
+const BUSY: &str = "busy";
 
 fn args(v: &[&str]) -> Vec<String> {
     v.iter().map(|s| s.to_string()).collect()
@@ -161,14 +180,17 @@ pub fn cmux_cmds(cli: &Path, m: &Mux) -> MuxCmds {
         .ancestors()
         .nth(3)
         .map(|c| c.join("MacOS").join("cmux").to_string_lossy().into_owned());
-    let mut sa = args(&["-e", CMUX_SCRIPT, ws]);
-    sa.extend(m.surface.clone());
+    let script = uuid_like(ws).then(|| {
+        let mut sa = args(&["-e", CMUX_SCRIPT, ws]);
+        sa.extend(m.surface.clone().filter(|s| uuid_like(s)));
+        (PathBuf::from(OSASCRIPT), sa)
+    });
     MuxCmds {
         go,
         probe: (cli.to_path_buf(), args(&["workspace", "list"])),
         front: (PathBuf::from("/usr/bin/open"), args(&["-a", "cmux"])),
         running: main.map(|m| ((PathBuf::from("/bin/ps"), args(&["-axo", "comm="])), m)),
-        script: Some((PathBuf::from(OSASCRIPT), sa)),
+        script,
     }
 }
 
@@ -371,8 +393,11 @@ pub fn jump_mux(c: &MuxCmds, run: impl Fn(&Path, &[String]) -> Result<String, St
                 Some((sp, sa)) => match run(sp, sa) {
                     Ok(out) if out.trim() == "ok" => "mux",
                     Ok(out) if out.trim() == "app" => "mux-app",
-                    // -1743 = 자동화 허용 안 됨, -1744 = 물어볼 수 없음(허용 창을 띄울 수 없는 상황)
-                    Err(e) if e.contains("-1743") || e.contains("-1744") => "mux-perm",
+                    // 같은 이동이 이미 허용 창을 기다리는 중(`open`의 실행기가 겹치지 않게 막음) — 그쪽이 이동시킨다
+                    Ok(out) if out.trim() == BUSY => "mux",
+                    // -1743 = 자동화 허용 안 됨, -1744 = 물어볼 수 없음(허용 창을 띄울 수 없는 상황),
+                    // 시간 초과 = 첫 허용 창에 아직 답하지 않음(창은 남고 답은 기록된다) → 모두 허용 안내
+                    Err(e) if e.contains("-1743") || e.contains("-1744") || e == TIMEOUT => "mux-perm",
                     _ => "mux-denied",
                 },
                 None => "mux-denied",
@@ -405,7 +430,15 @@ pub fn open(cwd: &str, pref: &str, mux: Option<&Mux>, home: &Path) -> &'static s
                 if app.as_deref() == Some(p) {
                     spawn_app(p, a)
                 } else if p == Path::new(OSASCRIPT) {
-                    run_with_timeout(p, a, None, SCRIPT_TIMEOUT)
+                    // 허용 창을 기다리는 30초 동안 다시 눌러도 osascript를 겹쳐 띄우지 않는다
+                    use std::sync::atomic::{AtomicBool, Ordering};
+                    static RUNNING: AtomicBool = AtomicBool::new(false);
+                    if RUNNING.swap(true, Ordering::AcqRel) {
+                        return Ok(BUSY.into());
+                    }
+                    let r = run_with_timeout(p, a, None, SCRIPT_TIMEOUT);
+                    RUNNING.store(false, Ordering::Release);
+                    r
                 } else {
                     run_with_timeout(p, a, None, MUX_TIMEOUT)
                 }
@@ -551,7 +584,7 @@ mod tests {
                 } else if p == Path::new("/usr/bin/open") {
                     panic!("실패하면 앱을 띄우지 않는다")
                 } else {
-                    Err("시간 초과".into())
+                    Err("종료 코드 1".into())
                 }
             }
         };
@@ -559,7 +592,7 @@ mod tests {
             jump_mux(&c, ps("/sbin/launchd\n/Applications/cmux.app/Contents/Resources/bin/cmux\n")),
             "mux-off"
         );
-        // 앱은 떠 있는데 소켓이 안 됨(외부 접근 끔·비밀번호) → mux-denied
+        // 앱은 떠 있는데 소켓도 AppleScript도 안 됨 → mux-denied
         assert_eq!(
             jump_mux(&c, ps("/sbin/launchd\n/Applications/cmux.app/Contents/MacOS/cmux\n")),
             "mux-denied"
@@ -574,13 +607,20 @@ mod tests {
     #[test]
     fn cmux_applescript_fallback() {
         let cli = Path::new("/Applications/cmux.app/Contents/Resources/bin/cmux");
-        let c = cmux_cmds(cli, &mux(W, Some("surface:5")));
+        const S: &str = "A1B2C3D4-0000-4000-8000-00000000BEEF";
+        let c = cmux_cmds(cli, &mux(W, Some(S)));
         let (sp, sa) = c.script.clone().unwrap();
         assert_eq!(sp, Path::new("/usr/bin/osascript"));
-        assert_eq!(sa, args(&["-e", CMUX_SCRIPT, W, "surface:5"]), "id는 스크립트가 아니라 argv로");
+        assert_eq!(sa, args(&["-e", CMUX_SCRIPT, W, S]), "id는 스크립트가 아니라 argv로");
         assert!(!CMUX_SCRIPT.contains(W));
         let (_, sa) = cmux_cmds(cli, &mux(W, None)).script.unwrap();
         assert_eq!(sa, args(&["-e", CMUX_SCRIPT, W]), "패널이 없으면 인자 하나");
+        let (_, sa) = cmux_cmds(cli, &mux(W, Some("surface:5"))).script.unwrap();
+        assert_eq!(sa, args(&["-e", CMUX_SCRIPT, W]), "짧은 참조 패널은 넘기지 않음");
+        // 짧은 참조 워크스페이스는 AppleScript id와 맞을 수 없어 부르지 않는다
+        assert!(cmux_cmds(cli, &mux("workspace:2", None)).script.is_none());
+        assert!(!uuid_like("0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1fz"));
+        assert!(!uuid_like("0f1e2d3c04b5a-6978-8796-a5b4c3d2e1f0"));
         const UP: &str = "/sbin/launchd\n/Applications/cmux.app/Contents/MacOS/cmux\n";
         // 소켓 명령은 모두 실패, ps는 `ps_out`, osascript는 `script`
         let run = |ps_out: &'static str, script: Result<&'static str, &'static str>| {
@@ -610,7 +650,12 @@ mod tests {
             "mux-perm"
         );
         assert_eq!(run(UP, Err("종료 코드 1: (-1744)")).0, "mux-perm");
-        assert_eq!(run(UP, Err("시간 초과")).0, "mux-denied");
+        assert_eq!(run(UP, Err("시간 초과")).0, "mux-perm", "허용 창에 아직 답하지 않음");
+        assert_eq!(run(UP, Ok("busy")).0, "mux", "이미 기다리는 중인 이동이 처리");
+        assert_eq!(
+            run(UP, Err("종료 코드 1: execution error: cmux got an error (-1708)")).0,
+            "mux-denied"
+        );
         assert_eq!(run(UP, Ok("")).0, "mux-denied", "모르는 출력은 이동으로 치지 않음");
         // 꺼져 있으면 부르지 않는다
         let (r, log) = run("/sbin/launchd\n", Ok("ok"));

@@ -634,7 +634,9 @@ async function openTerminal(sid) {
   if (res === "opened" || res === "mux") return "opened";
   if (res === "mux-app") { toast(t(O ? "term.orcaApp" : "term.muxApp", mx)); return "opened"; }
   if (res === "mux-launch") { toast(t("term.orcaLaunch", mx)); return "opened"; }
-  if (r && r.cwd) { try { await navigator.clipboard.writeText(r.cwd); toast(t(res === "mux-perm" ? "term.muxPerm" : res === "mux-denied" ? (O ? "term.orcaDenied" : "term.muxDenied") : res === "mux-off" ? (O ? "term.orcaOff" : "term.muxOff") : "term.copied", mx)); } catch { toast(r.cwd); } }
+  if (r && r.cwd) { try { await navigator.clipboard.writeText(r.cwd); toast(t(res === "mux-perm" ? "term.muxPerm" : res === "mux-denied" ? (O ? "term.orcaDenied" : "term.muxDenied") : res === "mux-off" ? (O ? "term.orcaOff" : "term.muxOff") : "term.copied", mx)); }
+    // 복사가 안 되면(허용 창을 기다리는 사이 클릭 활성화가 끝나는 등) 경로를 보여 주고, 자동화 허용이 원인이면 그 안내도 함께
+    catch { toast(res === "mux-perm" ? t("term.muxPermPath", { ...mx, path: r.cwd }) : r.cwd); } }
   else toast(t("term.none"));
   return "unsupported";
 }
