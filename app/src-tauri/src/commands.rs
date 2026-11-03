@@ -820,11 +820,11 @@ pub fn context_menu(app: AppHandle, w: WebviewWindow, sid: Option<String>, title
     crate::ctxmenu::popup(&app, &w, sid, title)
 }
 
-/// 메뉴와 같은 동작을 웹 버튼에서(위젯의 ⚙ = 큰 화면 + 설정). 허용된 것만
+/// 메뉴와 같은 동작을 웹 버튼에서(위젯의 ⚙ = 큰 화면 + 설정, 위젯의 🎁 = 큰 화면 + 업데이트 창). 허용된 것만
 #[tauri::command(async)]
 pub fn menu_action(app: AppHandle, w: WebviewWindow, id: String) -> Result<(), String> {
     main_or_widget(&w)?;
-    if !matches!(id.as_str(), "settings" | "settings-mini" | "open") {
+    if !matches!(id.as_str(), "settings" | "settings-mini" | "open" | "update") {
         return Err("not allowed".into());
     }
     crate::tray::on_menu(&app, &id);

@@ -34,9 +34,11 @@
 
 ### 4. 업데이트
 - 앱이 **시작할 때 + 하루 1번** 새 버전을 확인합니다(`jhkwim/waitscape` 릴리스의 `latest.json`만 읽어요. 보내는 것: IP·User-Agent. 0.4.0까지는 배포 전용 저장소 `jhkwim/waitscape-releases`를 읽었어요). 확인하지 못했으면(인터넷 끊김 등) 1시간 뒤부터 다시 확인합니다(계속 안 되면 간격을 늘려 최대 하루 1번, 업데이트 확인이 켜져 있을 때).
-- 새 버전이 있으면 OS 알림 **"새 버전 나왔어요!"**, 트레이(메뉴바)에 **🎁 업데이트 있음**, 창 아래 배너(스튜디오 모드에서는 1층 사장님 말풍선)가 나옵니다.
-- 눌러서 **지금 업데이트하고 다시 시작**을 고를 때만 내려받고, 서명(minisign)을 확인한 뒤 설치하고 다시 시작합니다. 몰래 설치하지 않습니다. 설정·사용자 모드·메모는 그대로입니다.
+- 새 버전이 있으면 OS 알림 **"새 버전 나왔어요!"**(누르면 큰 화면에 업데이트 창), 메뉴바 아이콘 옆 **🎁**와 트레이 메뉴 **🎁 업데이트 있음**, 창 아래 배너(스튜디오 모드에서는 1층 사장님 말풍선), 미니 보기 구석의 **🎁**가 나옵니다.
+- 배너의 **[지금 업데이트]** 한 번이면 바로 올라가요(다른 곳에서는 업데이트 창의 **[지금 업데이트하고 다시 시작]**). 배너 ✕는 하루 동안만 숨깁니다. 다시 시작하면 「vX로 올랐어요!」 카드에 바뀐 점 요약이 한 번 나옵니다.
+- 누를 때만 내려받고, 서명(minisign)을 확인한 뒤 설치하고 다시 시작합니다. 몰래 설치하지 않습니다. 설정·사용자 모드·메모는 그대로입니다.
 - 끄기: **설정 → 일반 → 업데이트 → 새 버전 확인** 끄기. [지금 확인]으로 직접 확인할 수도 있습니다.
+- 0.4.0·0.4.1은 옛 배포 저장소를 읽지만, 그곳의 안내도 최신(0.6.0)을 가리켜 앱 안에서 바로 올라옵니다.
 - v0.3.0보다 옛 버전은 앱 안 업데이트가 동작하지 않습니다(서명 키가 없던 빌드). 한 번만 Releases에서 새 설치 파일을 받아 그대로 덮어 설치하세요(1·2번과 같음, 데이터는 유지). 그 다음부터는 앱이 알려 줍니다.
 
 ### 5. 제거
@@ -96,9 +98,11 @@ Waitscape works from Claude Code transcripts alone. To also use hooks, turn them
 
 ### 4. Updates
 - The app checks for a new version **at start and once a day** (it only fetches `latest.json` from the `jhkwim/waitscape` releases; sends your IP and User-Agent. Up to 0.4.0 it read the separate `jhkwim/waitscape-releases` repository). If a check fails (e.g. offline), it tries again starting an hour later (backing off to at most once a day if it keeps failing, while update checks are on).
-- When one is out you get an OS notification **"A new version is out!"**, a **🎁 Update available** tray item, and a banner (in Studio mode, the boss says it in a speech bubble).
-- Nothing is installed until you press **[Update now and restart]**: it downloads, verifies the minisign signature, installs and restarts. Settings, user modes and memos are kept.
+- When one is out you get an OS notification **"A new version is out!"** (click it to open the update window in the full view), a **🎁** next to the menu bar icon and a **🎁 Update available** tray item, a banner (in Studio mode, the boss says it in a speech bubble), and a **🎁** in the corner of the mini view.
+- One click on the banner's **[Update now]** updates right away (elsewhere, **[Update now and restart]** in the update window). The banner's ✕ hides it for a day. After the restart an "Updated to vX!" card shows the summary once.
+- Nothing is installed until you press one of these: it downloads, verifies the minisign signature, installs and restarts. Settings, user modes and memos are kept.
 - To turn checks off: **Settings → General → Updates → Check for new versions**. **Check now** checks on demand.
+- 0.4.0 and 0.4.1 read the old releases repository, which also points to the latest (0.6.0), so they update in-app directly.
 - Versions older than v0.3.0 cannot update in-app (built without the signing key). Download the new installer from Releases once and install over the old one (data is kept); after that the app tells you.
 
 ### 5. Uninstall

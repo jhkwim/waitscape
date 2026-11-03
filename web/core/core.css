@@ -39,6 +39,25 @@ body.quiet *, body.quiet *::before, body.quiet *::after { animation: none !impor
 .core-update button[data-act="later"] { background: transparent; color: #fff; opacity: .75; padding: 4px 8px; }
 .core-update button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 body.quiet .core-update { box-shadow: none; }
+.core-update button.sub { background: transparent; color: #ffd23f; box-shadow: inset 0 0 0 1px #ffd23f; }
+.core-update button:disabled { opacity: .45; cursor: default; }
+.core-update.busy .msg { font-variant-numeric: tabular-nums; }
+/* 미니 보기(위젯) 🎁: 오른쪽 위 구석, 처음 나타날 때 두 번 통통 (#92) */
+.core-update-mini { position: fixed; top: 4px; right: 4px; z-index: 56; width: 22px; height: 22px; padding: 0; border: 2px solid #ffd23f; border-radius: 50%;
+  background: #2e2040; font: 12px/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.35); animation: core-upd-hop .5s ease-out 2; }
+.core-update-mini:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+@keyframes core-upd-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .core-update-mini { animation: none; } }
+body.quiet .core-update-mini { animation: none; }
+/* 업데이트하고 다시 시작한 뒤 한 번: 「vX로 올랐어요」 */
+.core-just { max-width: min(420px, calc(100vw - 32px)); border: 2px solid #ffd23f; border-radius: 14px; padding: 18px 20px; background: #2e2040; color: #fff;
+  font: 14px/1.5 system-ui, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.core-just::backdrop { background: rgba(0,0,0,.35); }
+.core-just h2 { margin: 0 0 10px; font-size: 17px; }
+.core-just ul { margin: 0 0 10px; padding-left: 0; list-style: none; }
+.core-just li { margin: 4px 0; }
+.core-just .mute { margin: 0 0 14px; font-size: 12px; opacity: .7; }
+.core-just button { font: 600 13px/1 system-ui, sans-serif; border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; background: #ffd23f; color: #2e2040; float: right; }
 /* 프로바이더 배지 (Core.providerBadge). :where()로 명시도 0 → 모드가 쉽게 덮어씀 */
 :where(.core-provider) { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 999px; font-size: .78em; line-height: 1.6;
   border: 1px solid rgba(127, 127, 127, .4); white-space: nowrap; vertical-align: middle; }

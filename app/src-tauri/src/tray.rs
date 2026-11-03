@@ -297,7 +297,7 @@ pub fn on_menu(app: &AppHandle, id: &str) {
     }
 }
 
-/// state가 바뀔 때: 메뉴바 요약 텍스트(mac)와 아이콘(입력 필요 점)
+/// state가 바뀔 때·새 버전을 찾았을 때: 메뉴바 요약 텍스트(mac, 새 버전이면 🎁)와 아이콘(입력 필요 점)
 pub fn update_summary(app: &AppHandle, st: &serde_json::Value) {
     let Some(tray) = app.tray_by_id(TRAY_ID) else { return };
     let ss = st.get("sessions").and_then(|s| s.as_array()).cloned().unwrap_or_default();
@@ -312,6 +312,10 @@ pub fn update_summary(app: &AppHandle, st: &serde_json::Value) {
     }
     if calling > 0 {
         parts.push(if plain { format!("{calling}") } else { format!("❗{calling}") });
+    }
+    // 새 버전이 있으면 메뉴바 제목 맨 앞에 🎁 (#92 — 메뉴를 열지 않아도 보이게). 🙈 눈치 모드면 없음
+    if !plain && crate::updater::available(app).is_some() {
+        parts.insert(0, "🎁".to_string());
     }
     let title = parts.join(if plain { " · " } else { " " });
     let app2 = app.clone();

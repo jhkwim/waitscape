@@ -179,7 +179,7 @@ async function checkNow() {
 
 // CHANGELOG 절(마크다운 일부): "### 제목"만 굵게, 나머지는 글자 그대로(이스케이프)
 const notesHtml = md => String(md).split("\n").map(l => /^#{1,6}\s/.test(l) ? `<b>${esc(l.replace(/^#+\s*/, ""))}</b>` : esc(l)).join("\n");
-// 새 버전 대화상자: 트레이 "업데이트 있음"·배너·스튜디오 사장님 말풍선·설정에서 연다. 설치는 [지금 업데이트]를 눌렀을 때만
+// 새 버전 대화상자: 트레이 "업데이트 있음"·업데이트 알림·배너 [자세히]·미니 보기 🎁·스튜디오 사장님 말풍선·설정에서 연다. 설치는 [지금 업데이트]를 눌렀을 때만
 let updDlg = null;
 function openUpdate() {
   const a = C.update.available;
@@ -202,7 +202,7 @@ function openUpdate() {
   }) : () => {};
   go.addEventListener("click", async () => {
     go.disabled = later.disabled = true; st.textContent = t("upd.down0");
-    try { await C.api.update.install(); }   // 성공하면 앱이 다시 시작돼 돌아오지 않는다
+    try { await (C.update.install ? C.update.install() : C.api.update.install()); }   // 성공하면 앱이 다시 시작돼 돌아오지 않는다(core가 「새로 생긴 것」용으로 적어 둠)
     catch (e) { st.textContent = String(e); go.disabled = later.disabled = false; }
   });
   c.addEventListener("keydown", e => e.stopPropagation());

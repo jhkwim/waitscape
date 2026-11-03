@@ -101,6 +101,8 @@ body[data-mode="studio"] .stu .bub .upd:focus-visible { outline: 2px solid #5a6a
 body[data-mode="studio"].quiet .stu .bub .upd { animation: none; }
 @media (prefers-reduced-motion: reduce) { body[data-mode="studio"] .stu .bub .upd { animation: none; } }
 body[data-mode="studio"] #core-update { display: none; }
+/* 미니 보기 🎁(core, #92): 상단 바(한도·상태 칩) 아래 오른쪽 — 엘리베이터 쪽 */
+html.wr-widget body[data-mode="studio"] #core-update-mini { top: 28px; right: 6px; }
 body[data-mode="studio"] .stu .bub.updb { left: 100%; bottom: auto !important; top: 2px; transform: none; margin-left: 8px; }
 body[data-mode="studio"] .stu .bub.updb:after { left: -9px; bottom: auto; top: 8px; margin: 0; border: 6px solid transparent; border-right: 6px solid var(--deep); border-left: 0; }
 body[data-mode="studio"] .stu .bub.ask { padding: 5px 9px 7px; width: 270px; white-space: normal; }

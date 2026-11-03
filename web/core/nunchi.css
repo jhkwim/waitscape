@@ -222,4 +222,4 @@
 /* 눈치 화면 위로 안내 토스트(경로 복사 등)가 보이게, 담백한 모양 */
 html.nx-on .core-toast { z-index: 2147483200; border-radius: 8px; font: 13.5px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
 /* 눈치 화면이 덮는 동안 아래 화면의 전환기·배너는 키보드 포커스에서도 빠짐 */
-html.nx-on .core-switch.floating, html.nx-on .core-update { visibility: hidden; }
+html.nx-on .core-switch.floating, html.nx-on .core-update, html.nx-on .core-update-mini { visibility: hidden; }
