@@ -110,6 +110,7 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 - **Jump to the session**: click a staff member with a question, a done banner or a floor tag to open that cmux pane or Orca terminal. Otherwise it opens a terminal (or editor) in the session folder. Jumping needs the hook turned on.
 - **👆 Click reactions**: staff and props (monitors, coffee, plants, vending machine, elevator…) react when clicked. There are 8 hidden easter eggs.
 - **📋 Daily report**: when everything has been quiet for about 45 minutes in the afternoon, the boss waves a sheet: "The report is in!" It announces today's finished work, hours and MVP, then makes a shareable card (PNG).
+- **⚡ Quick replies**: answer a staff question within a minute and they cheer "👍 Quick!" with bonus funds. Keep answering fast for a 🔗 combo.
 - **🎨 Decorate floors**: spend the funds you earn from finished work on props for each project's floor. Each animal has favorites. No real payments.
 - **🎰 Capsule machine**: drop funds into the machine on 1F, turn the handle, and a capsule rolls out and pops open: staff accessories (hats, sunglasses…), desk toys, or a "job application" that unlocks a locked animal. Everything goes into a collection on the decorate panel, and duplicates refund part of the cost.
 - **📔 Sightings**: the first time you spot a tiny detail, it gets stamped and you earn 💰+5. The 📖 dex shows the 29 scenes you've seen and hints for the rest.
