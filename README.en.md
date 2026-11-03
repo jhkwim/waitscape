@@ -48,7 +48,7 @@ A tiny always-on-top "lobby camera". The big window hides and only this small on
 <tr>
 <td colspan="2" valign="middle">
 <h3>⚡ Limits = building power</h3>
-Your 5-hour usage drives the building's day. From 50% the sun sets and lights come on floor by floor. From 80% it's power-saving: half the lights, vending machine off. At 100% there's a blackout: candles, flashlights, and a "resets in h:mm" sign. On reset the rooster crows and the sun rises. Weekly usage can show up as weather (clouds, rain, snow).
+Your 5-hour usage drives the building's day. From 50% the sun sets and lights come on floor by floor. From 80% it's power-saving: half the lights, vending machine off. At 100% there's a blackout: candles, flashlights, and a "resets in h:mm" sign. On reset the rooster crows and the sun rises. Outside, the weather follows the season and the date: clear, cloudy, rain, snow or fog (worked out from your computer's time zone, no internet needed). Turn on "Limit weather" in settings and your weekly usage takes over above 60% (clouds, rain, snow).
 <p align="center"><img src="docs/assets/power.png" width="860" alt="Day · dusk · blackout"></p>
 </td>
 </tr>

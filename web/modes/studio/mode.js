@@ -397,7 +397,8 @@ const PROV_COLOR = { claude: "#f28a3d", codex: "#3fa35a", gemini: "#5a6ad8", oth
 /* ================= 전력·날씨: 5시간 한도 = 건물 전력(하루 시계) · 주간 한도 = 날씨(선택) =================
    하루 시계: 5시간 한도 사용률 0~49% 낮(여유) · 50~79% 노을 · 80~99% 저녁 절전(조명 반만·깜빡·자판기 꺼짐) · 100% 정전(촛불·손전등·고양이 눈).
    리셋되면 닭 울음 → 해 뜸 → 아래층부터 딸깍 불이 켜짐 → 기지개. 리셋 직전(남은 8초)에도 닭이 먼저 울어요.
-   주간 한도 → 날씨(구름 60~ · 비 80~ · 눈 90~, 옥상에 눈): 기본 꺼짐, 도감 설정(cfg.weather)에서 켬. 건물 밖 하늘과 창에만, 실내는 그대로.
+   날씨: 평소엔 🌦️ 달력 날씨(WX — 시간대·계절·날짜, 외부 통신 없음, #107). 도감 설정 '한도 날씨'(cfg.weather, 기본 꺼짐)를 켜면 주간 한도 60~ 구름 · 80~ 비 · 90~ 눈(옥상에 눈)이 우선.
+   건물 밖 하늘과 창에만, 실내는 그대로.
    데이터는 state.limits(five_hour·seven_day)와 Core.limits()만. 한도 정보가 없으면(다른 프로바이더·조회 안 함) 늘 맑은 낮.
    색만으로 구분하지 않음: 숫자·리셋 시간은 늘 보이고, 단계는 밝기·아이콘·문구·게이지 무늬(세로 칸·가로줄·사선·체크)로도 구분.
    회의 모드·움직임 줄이기(정적)면 깜빡임·흔들림·번쩍임 없음. 라이트맵·날씨 캔버스는 값이 바뀔 때만 다시 그림.
@@ -479,6 +480,45 @@ function pwLightmap(doc, parent, x, y, w, h, cell, z) {
     g.putImageData(img, 0, 0);
   } };
 }
+/* 🌦️ 달력 날씨(#107): 외부 통신 없이 컴퓨터 시간대·날짜로 정하는 평소 날씨. 하늘·창·옥상만(실내 그대로). 한도 날씨(cfg.weather)를 켜 두고 주간 한도가 60%↑면 그쪽이 우선.
+   - 반구: 시간대 이름(Intl)이 남반구 지역이면 계절을 뒤집음(오스트레일리아·뉴질랜드·남미·남아프리카 등). 모르면 북반구. 열대·더운 곳(WARM)은 겨울의 눈 몫이 비로
+   - 계절별 확률(맑음·구름·비·눈·안개 %): 겨울 45·25·8·17·5 · 봄 50·25·18·0·7 · 여름 45·20·30·0·5 · 가을 50·28·15·0·7. 안개는 오전만(오후엔 구름)
+   - 하루를 오전(0~11시)·오후(12~23시) 둘로 나눠 (날짜·반나절)을 씨앗으로 고름 — 같은 반나절 안에선 바뀌지 않고 창을 다시 열어도 같음
+   - 그리기는 한도 날씨와 같은 길: 맑음 0 · 구름 70 · 비 85 · 눈 95(옥상에 눈)로 바꿔 pwClock.env의 wk에 넣음. 안개는 하늘 아래쪽 뿌연 막(큰 화면)
+   - 개발용 쿼리 ?wx=clear|cloudy|rain|snow|fog (그 날씨로 고정) */
+const WX = (() => {
+  const KINDS = ["clear", "cloudy", "rain", "snow", "fog"];
+  const WK = { clear: 0, cloudy: 70, rain: 85, snow: 95, fog: 0 };
+  const ICON = { clear: "☀️", cloudy: "☁️", rain: "🌧️", snow: "❄️", fog: "🌫️" };
+  const NAME = { clear: ["맑음", "Clear"], cloudy: ["흐림", "Cloudy"], rain: ["비", "Rain"], snow: ["눈", "Snow"], fog: ["안개", "Fog"] };
+  const P = { winter: [45, 25, 8, 17, 5], spring: [50, 25, 18, 0, 7], summer: [45, 20, 30, 0, 5], autumn: [50, 28, 15, 0, 7] };
+  /* 남반구(ICU가 돌려주는 옛 이름 — America/Cordoba·Mendoza 등 — 도 포함) */
+  const SOUTH = /^(Australia|Antarctica)\/|^Pacific\/(Auckland|Chatham|Fiji|Tongatapu|Apia|Noumea|Efate|Norfolk|Tahiti)$|^America\/(Argentina\/.*|Buenos_Aires|Cordoba|Mendoza|Catamarca|Jujuy|Rosario|Santiago|Punta_Arenas|Coyhaique|Montevideo|Asuncion|Sao_Paulo|Rio_Branco|Campo_Grande|Cuiaba|La_Paz|Lima|Bahia|Recife|Maceio)$|^Africa\/(Johannesburg|Maputo|Harare|Lusaka|Windhoek|Gaborone|Maseru|Mbabane|Blantyre|Lubumbashi|Luanda|Dar_es_Salaam)$|^Indian\/(Mauritius|Reunion|Antananarivo)$|^Atlantic\/(Stanley|South_Georgia)$|^Asia\/Jakarta$/;
+  /* 눈이 (거의) 오지 않는 곳: 겨울 표의 눈 몫은 비로 */
+  const WARM = /^(Africa|Indian)\/(?!Johannesburg$|Maseru$|Mbabane$|Algiers$|Tunis$|Casablanca$)|^Asia\/(Singapore|Bangkok|Jakarta|Kuala_Lumpur|Manila|Ho_Chi_Minh|Saigon|Kolkata|Calcutta|Colombo|Dhaka|Yangon|Rangoon|Phnom_Penh|Vientiane|Makassar|Jayapura|Pontianak|Brunei|Dili|Kuching|Hong_Kong|Macau|Taipei|Dubai|Muscat|Qatar|Bahrain|Riyadh|Karachi|Aden)$|^Pacific\/(Honolulu|Fiji|Tahiti|Guam|Port_Moresby|Noumea|Apia|Tongatapu|Efate|Majuro|Palau|Saipan|Guadalcanal|Tarawa|Pago_Pago|Rarotonga)$|^America\/(Sao_Paulo|Bahia|Recife|Fortaleza|Belem|Maceio|Manaus|Cuiaba|Campo_Grande|Rio_Branco|Porto_Velho|Lima|Guayaquil|Bogota|Caracas|Panama|Havana|Puerto_Rico|Santo_Domingo|Guatemala|Costa_Rica|El_Salvador|Managua|Tegucigalpa|Belize|Jamaica|Cancun|Merida|Miami|Asuncion|Montevideo)$|^Australia\/(Brisbane|Darwin|Perth|Lindeman|Broken_Hill|Adelaide)$/;
+  const dev = (() => { let v = ""; try { v = new URLSearchParams(location.search).get("wx") || ""; } catch {} return KINDS.includes(v) ? v : ""; })();
+  const zone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; } };
+  const south = tz => SOUTH.test(tz || ""), warm = tz => WARM.test(tz || "");
+  /* FNV는 끝 글자만 다른 키(…|am · …|pm)끼리 하위 자리가 엇갈림 → 한 번 더 섞음(murmur3 마무리) */
+  const mix = h => { h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; return h >>> 0; };
+  /* 월(0~11) → 계절. 남반구면 뒤집음 */
+  const season = (m, s) => { const k = ["winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn", "autumn", "winter"][m]; return s ? { winter: "summer", summer: "winter", spring: "autumn", autumn: "spring" }[k] : k; };
+  /* (현지 날짜·반나절, 시간대) → 날씨 */
+  function kind(d, tz) {
+    if (dev) return dev;
+    const am = d.getHours() < 12, key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}|${am ? "am" : "pm"}`;
+    const p0 = P[season(d.getMonth(), south(tz))], p = warm(tz) ? [p0[0], p0[1], p0[2] + p0[3], 0, p0[4]] : p0, r = (mix(fnv("wx|" + key)) % 1000) / 10;
+    let acc = 0, k = "clear";
+    for (let i = 0; i < KINDS.length; i++) { acc += p[i]; if (r < acc) { k = KINDS[i]; break; } }
+    return k === "fog" && !am ? "cloudy" : k;
+  }
+  let zc = "", zt = -1e9, mk = "", mv = "";   // 시간대는 1분마다만 다시 읽고, 날씨는 (시간대·반나절)이 같으면 지난 값(매 프레임 Intl·해시를 돌리지 않게)
+  const now = nowS => { if (Math.abs(nowS - zt) > 60) { zc = zone(); zt = nowS; }
+    const d = new Date(nowS * 1000), k = `${zc}|${d.getFullYear()}-${d.getMonth()}-${d.getDate()}|${d.getHours() < 12}`;
+    if (k !== mk) { mk = k; mv = kind(d, zc); } return mv; };
+  return { KINDS, WK, ICON, NAME, P, dev, south, warm, season, kind, now };
+})();
+
 /* 날씨 입자(주간 한도 80~ 비, 90~ 눈). skip(x, y) = 그리지 않을 칸 */
 function pwRain(cv, wk, t, still, skip, dens) {
   const g = cv.getContext("2d"); g.clearRect(0, 0, cv.width, cv.height);
@@ -511,7 +551,8 @@ function pwClock() {
     return c.r;
   };
   /* 한 장면의 환경. fb = 아래층부터 0(사장실) 1 2 … · half = 절전 때 꺼지는 자리 */
-  c.env = (tc, T, still, dark, wxOn) => {
+  /* wxOn = 한도 날씨 설정(cfg.weather) · cal = 달력 날씨 종류(WX) — 한도 날씨가 켜져 있고 주간 한도 60%↑면 그쪽, 아니면 달력 */
+  c.env = (tc, T, still, dark, wxOn, cal) => {
     const r0 = c.r, k = tc - c.resetT, rs = !!c.from && k >= 0 && k < PW_RESET_LEN;
     const ph = rs ? "reset" : r0.ph, pct = r0.pct == null ? 0 : r0.pct;
     let sky = r0.has ? pct : 12, D = 0, tint = null;
@@ -521,8 +562,9 @@ function pwClock() {
     if (ph === "reset") { sky = lerp(c.from.sky, sky, ease(k / 3.4)); D = lerp(c.from.D, 0, ease((k - .8) / 3)); tint = ["#ffc080", .35 * (1 - ease((k - 1) / 4))]; }
     if (dark && tint) tint = [pwMix(tint[0], "#ffffff", .35), tint[1]];
     c.sky = sky; c.D = D;
-    const wk = wxOn && r0.wk != null ? r0.wk : 0, o = ph === "out" ? tc - c.outT : 99, r = rs ? k : 99;
-    const E = { ph, pct, has: r0.has, rem: r0.rem, sky, D, tint, wk, gw: clamp((wk - 60) / 25, 0, 1) * .55, o, r, still, T, dark,
+    const lim = wxOn && r0.wk != null && r0.wk >= 60, wxK = lim ? (r0.wk >= 90 ? "snow" : r0.wk >= 80 ? "rain" : "cloudy") : cal || "clear";
+    const wk = lim ? r0.wk : WX.WK[wxK] || 0, o = ph === "out" ? tc - c.outT : 99, r = rs ? k : 99;
+    const E = { ph, pct, has: r0.has, rem: r0.rem, sky, D, tint, wk, wxK, lim, fog: wxK === "fog", gw: clamp((wk - 60) / 25, 0, 1) * .55, o, r, still, T, dark,
       sv: tc - c.saveT, st: tc - c.sunT, fk: tc - c.flkT,
       night: clamp((sky - 82) / 10, 0, 1), cityOn: sky > 70, neon: ph === "day" || ph === "sunset" || (ph === "reset" && r > 2.2),
       vOff: ph === "save" || ph === "out" || (ph === "reset" && r < 2),
@@ -548,7 +590,6 @@ function pwClock() {
 }
 const PW_MPAT = { day: "", sunset: "repeating-linear-gradient(0deg,transparent 0 2px,rgba(46,32,64,.55) 2px 3px),", save: "repeating-linear-gradient(135deg,transparent 0 2px,rgba(46,32,64,.6) 2px 4px),", out: "repeating-conic-gradient(rgba(46,32,64,.55) 0 25%,transparent 0 50%) 0 0/4px 4px,", reset: "" };   // 로비 상단 바(9px) 게이지 무늬
 const pwIcon = ph => PW_PH[ph][0];
-const pwWxIcon = wk => wk == null ? "" : wk >= 90 ? "❄️" : wk >= 80 ? "🌧️" : wk >= 60 ? "☁️" : "☀️";
 const pwGaugeBg = (ph, has) => has ? PW_PAT[ph] + PW_PH[ph][3] : "";
 
 /* ---------- 큰 화면 ---------- */
@@ -570,6 +611,7 @@ function powerBig(h) {
     [[0, 8, 64, 16], [12, 0, 28, 12], [36, 4, 20, 8]].forEach(([x, y, w, hh]) => box(c, Math.round(x * k / 4) * 4, Math.round(y * k / 4) * 4, Math.round(w * k / 4) * 4, Math.round(hh * k / 4) * 4, "currentColor"));
     return c; });
   const wx = mkEl("canvas", "pw-wx", view);
+  const fog = mkEl("div", "pw-fog", view, { display: "none" });   // 🌫️ 달력 날씨 안개: 하늘 아래쪽 뿌연 막(건물 뒤)
   /* HUD 단계 배지 */
   const badge = mkEl("div", "hb pwph", null, null, `<span class="ic"></span><b></b>`); badge.hidden = true;
   hud.insertBefore(badge, hud.querySelector(".askchip"));
@@ -650,8 +692,9 @@ function powerBig(h) {
     out: () => !!E && E.ph === "out",
     vOff: () => !!E && E.vOff,   // 👆 POKE: 자판기 누름 → 절전이면 안 나옴
     vendEl: i => G && G.fl[i] ? G.fl[i].vend : null,
-    wxIcon: () => h.cfg().weather && clk.r.wk != null ? " " + pwWxIcon(clk.r.wk) : "",
-    wk: () => h.cfg().weather && clk.r.wk != null ? clk.r.wk : 0,   // ☂️ TINY 우산 꽂이: 날씨를 켰을 때만 주간 한도 %(비 80~ · 눈 90~)
+    wxIcon: () => E && E.lim ? " " + WX.ICON[E.wxK] : "",   // 주간 한도 칸 옆: 한도 날씨가 하늘을 덮고 있을 때만(달력 날씨는 하늘로만 보여 줌)
+    wk: () => E ? E.wk : 0,
+    wet: () => !!E && (E.wk >= 80 || E.fog),   // 🌠 별똥별은 비·눈·안개 땐 안 나옴   // ☂️ TINY 우산 꽂이: 지금 날씨(비 80~ · 눈 90~ — 달력 날씨도 같은 값)
     night: () => E ? E.night : 0,   // 🐦 TINY 비둘기: 밤엔 안 앉음
     /* HUD: 전력 게이지 무늬·색, 머리줄(정전이면 "리셋까지 h:mm"), 단계 배지 */
     hud(Q) {
@@ -700,9 +743,9 @@ function powerBig(h) {
     /* 한 프레임: 하늘 → 창 → 층별 조명 → 특수 효과 → 라이트맵 → 말풍선 띄우기 → 날씨 */
     frame(T, tc, anim, A) {
       if (!G) return;
-      const dk = dark(), wxOn = !!h.cfg().weather;
-      E = clk.env(tc, T, !anim, dk, wxOn);
-      const [st, sb] = pwSky(E.sky, wxOn ? E.gw : 0, dk);
+      const dk = dark();
+      E = clk.env(tc, T, !anim, dk, !!h.cfg().weather, WX.now(Date.now() / 1000));   // 🌦️ 평소엔 달력 날씨, 한도 날씨를 켰고 주간 60%↑면 그쪽(#107)
+      const [st, sb] = pwSky(E.sky, E.gw, dk);
       sty(stu, "background", `linear-gradient(${st} 0, ${sb} 70%, ${pwMix(sb, "#ffffff", dk ? 0 : .25)} 100%)`);
       /* 해(아침엔 낮게 → 정오 높이 → 노을 때 건물 뒤로) · 달 · 별 */
       const sy = E.sky <= 30 ? lerp(70, 24, ease(E.sky / 30)) : lerp(24, 220, ease((E.sky - 30) / 52));
@@ -712,9 +755,10 @@ function powerBig(h) {
       sty(moon, "display", E.night > 0 ? "block" : "none"); sty(moon, "opacity", String(E.night));
       stars.forEach((s, i) => sty(s, "opacity", String(E.night * (E.still ? .85 : (pwH(i + Math.floor(T * 2)) > .3 ? 1 : .45)))));
       const cc = pwKc(PW_CLOUD, E.sky);
-      const ccv = wxOn && E.wk >= 60 ? pwMix(cc, "#8a8aa0", clamp((E.wk - 55) / 30, 0, 1) * .7) : cc;
+      const ccv = E.wk >= 60 ? pwMix(cc, "#8a8aa0", clamp((E.wk - 55) / 30, 0, 1) * .7) : cc;
       if (stu._pwc !== ccv) { stu._pwc = ccv; stu.style.setProperty("--pw-cloud", ccv); }
-      gclouds.forEach(g => { show(g, wxOn && E.wk >= 60); if (wxOn && E.wk >= 60) sty(g, "color", pwMix(cc, "#8a8aa0", .55)); });
+      gclouds.forEach(g => { show(g, E.wk >= 60); if (E.wk >= 60) sty(g, "color", pwMix(cc, "#8a8aa0", .55)); });
+      show(fog, E.fog); if (E.fog) sty(fog, "opacity", (dk || E.night > .5 ? .55 : .85).toFixed(2));   // 🌫️ 안개(오전만)
       const dim = 1 - E.D * .75 - E.night * .1;
       hills.concat(ground ? [ground] : []).forEach(e => sty(e, "filter", dim < .99 ? `brightness(${dim.toFixed(2)})` : ""));
       birds.forEach(b => sty(b, "display", E.sky > 75 ? "none" : ""));   // 새는 밤엔 자러 감
@@ -724,7 +768,7 @@ function powerBig(h) {
       /* 간판 네온 · 엘리베이터 통로(라이트맵 위에 있어 따로 어둡게) · 옥상 눈 */
       if (G.sign) { sty(G.sign, "filter", E.neon ? "" : "brightness(.55) saturate(.6)"); sty(G.sign, "boxShadow", E.neon && E.sky > 60 ? "0 0 0 3px rgba(255,210,63,.35)" : ""); }
       if (G.shaft) sty(G.shaft, "filter", E.D > .01 ? `brightness(${(1 - E.D * .72).toFixed(2)})` : "");
-      show(G.snow, wxOn && E.wk >= 90);
+      show(G.snow, E.wk >= 90);
       /* 층마다 */
       const L = [];
       const darkHalf = G.fl.filter(r => r.has && !r.boss && E.half(r.fb));
@@ -808,8 +852,8 @@ function powerBig(h) {
       /* 날씨 캔버스(건물 뒤 하늘): 비·눈일 때만 매 프레임, 그 밖엔 한 번 지움 */
       const [vw, vh] = vwS;
       if (wx.width !== vw || wx.height !== vh) { wx.width = vw; wx.height = vh; wxSig = ""; }
-      const wsig = wxOn && E.wk >= 80 ? (E.still ? "s" + E.wk : "a" + T) : "0";
-      if (wsig !== wxSig) { wxSig = wsig; pwRain(wx, wxOn ? E.wk : 0, T, E.still, null, 1.5); }   // 건물이 하늘 대부분을 가려서 조금 촘촘히
+      const wsig = E.wk >= 80 ? (E.still ? "s" + E.wk : "a" + T) : "0";
+      if (wsig !== wxSig) { wxSig = wsig; pwRain(wx, E.wk, T, E.still, null, 1.5); }   // 건물이 하늘 대부분을 가려서 조금 촘촘히
     },
   };
   return api;
@@ -880,7 +924,7 @@ function powerMini(h) {
     dead: () => !!E && E.dead,
     out: () => !!E && E.ph === "out",
     vOff: () => !!E && E.vOff,
-    wxIcon: () => cfg().weather && clk.r.wk != null ? pwWxIcon(clk.r.wk) + " " : "",
+    wxIcon: () => E && E.lim ? WX.ICON[E.wxK] + " " : "",
     /* 상단 바: 게이지 무늬 + 단계 아이콘 */
     hud(Q) {
       const r = clk.r, ph = E ? E.ph : r.ph, gw = Q.gi.parentNode;
@@ -917,9 +961,9 @@ function powerMini(h) {
     },
     /* 한 프레임(보이는 방만) */
     frame(rooms, vis, T, anim, A) {
-      const dk = dark(), wxOn = !!cfg().weather, tc = win.performance.now() / 1000;
-      E = clk.env(tc, T, !anim, dk, wxOn);
-      const [st, sb] = pwSky(E.sky, wxOn ? E.gw : 0, dk);
+      const dk = dark(), tc = win.performance.now() / 1000;
+      E = clk.env(tc, T, !anim, dk, !!cfg().weather, WX.now(Date.now() / 1000));   // 🌦️ 큰 화면과 같은 날씨(#107)
+      const [st, sb] = pwSky(E.sky, E.gw, dk);
       const k = E.sky <= 30 ? 0 : ease((E.sky - 30) / 52), sunU_ = E.sky > 52 ? sunU2 : sunU;
       if (flash) sty(flash, "opacity", E.ph === "out" && E.o < .3 && anim ? ".55" : "0");   // 8fps라 큰 화면보다 조금 길게
       rooms.forEach(R => {
@@ -931,13 +975,13 @@ function powerMini(h) {
           show(P.moon, E.night > 0); sty(P.moon, "opacity", String(E.night));
           if (E.night > 0 && R.stars) R.stars.forEach((s, i) => sty(s, "opacity", String(E.night * (E.still ? .9 : ((Math.floor(T * 2) + i) % 3 === 0 ? .4 : .9)))));
           P.cw.forEach((w, i) => sty(w, "opacity", E.cityOn && pwH(i) > .35 ? "1" : "0"));
-          P.snow.forEach(e => show(e, wxOn && E.wk >= 90));
+          P.snow.forEach(e => show(e, E.wk >= 90));
           show(P.dim, E.D > .01); sty(P.dim, "opacity", (E.D * .6).toFixed(3));
-          const ccv = pwKc(PW_CLOUD, E.sky), cl = wxOn && E.wk >= 60 ? pwMix(ccv, "#8a8aa0", clamp((E.wk - 55) / 30, 0, 1) * .7) : ccv;
+          const ccv = pwKc(PW_CLOUD, E.sky), cl = E.wk >= 60 ? pwMix(ccv, "#8a8aa0", clamp((E.wk - 55) / 30, 0, 1) * .7) : ccv;
           if (P._cl !== cl) { P._cl = cl; R.p.style.setProperty("--cloud", cl !== "#ffffff" ? cl : ""); }
           show(P.tint, !!E.tint && E.tint[1] > .005); if (E.tint) { sty(P.tint, "background", E.tint[0]); sty(P.tint, "opacity", (E.tint[1] * .7).toFixed(3)); }
           show(P.rooster, E.rooster);
-          const rs = wxOn && E.wk >= 80 ? (E.still ? "s" : "a" + T) : "0"; if (P._rs !== rs) { P._rs = rs; pwRain(P.rain, wxOn ? E.wk : 0, T, E.still, null); }
+          const rs = E.wk >= 80 ? (E.still ? "s" : "a" + T) : "0"; if (P._rs !== rs) { P._rs = rs; pwRain(P.rain, E.wk, T, E.still, null); }
           return;
         }
         const fb = P.fb, boss = R.type === "boss", half = E.half(fb) && !boss, L = [];
@@ -946,7 +990,7 @@ function powerMini(h) {
         if (P.sun.src !== sunU_) P.sun.src = sunU_;
         sty(P.sun, "left", Math.round(lerp(30, 6, k) / 3) * 3 + "px"); sty(P.sun, "top", Math.round(lerp(3, 39, k) / 3) * 3 + "px"); sty(P.sun, "opacity", String(clamp(1 - E.gw * 1.4, 0, 1)));
         show(P.moon, E.night > 0); sty(P.moon, "opacity", String(E.night));
-        const rs = wxOn && E.wk >= 80 ? (E.still ? "s" : "a" + T) : "0"; if (P._rs !== rs) { P._rs = rs; pwRain(P.rain, wxOn ? E.wk : 0, T * .35, E.still, null); }
+        const rs = E.wk >= 80 ? (E.still ? "s" : "a" + T) : "0"; if (P._rs !== rs) { P._rs = rs; pwRain(P.rain, E.wk, T * .35, E.still, null); }
         const Lk = E.sky < 40 ? 0 : E.sky < 78 ? ease((E.sky - 40) / 38) : 0, lpOn = E.sky < 78 && E.D < .5;
         show(P.lp, lpOn); if (lpOn) { const hh = Lk > .5 ? 3 : 6; sty(P.lp, "width", Math.round((69 + Lk * 54) / 3) * 3 + "px"); sty(P.lp, "left", Math.round((126 - Lk * 45) / 3) * 3 + "px"); sty(P.lp, "height", hh + "px"); sty(P.lp, "top", (FY - hh) + "px"); sty(P.lp, "background", E.sky < 50 ? "rgba(255,240,180,.55)" : "rgba(255,170,100,.5)"); }
         /* 조명 */
@@ -5657,7 +5701,7 @@ function eventBig(h) {
   }
   function read() { if (!dev) s = V.load(ctx.store.get("evt", "")); }   // 다른 창이 쓴 만난 횟수(🎲 n/6)
   /* 지금 나올 수 있나(종류별) */
-  const ok = k => k === "star" ? night() : k === "printer" ? G.fl.some(prnOk) : k === "cat" ? G.fl.some(f => f.desk) : k === "pizza" || k === "box" ? !!G.F1 && !h.askOn() : true;
+  const ok = k => k === "star" ? night() && !(h.wet && h.wet()) : k === "printer" ? G.fl.some(prnOk) : k === "cat" ? G.fl.some(f => f.desk) : k === "pizza" || k === "box" ? !!G.F1 && !h.askOn() : true;
   const stopNow = () => h.hidden() || h.stop() || h.out() || doc.hidden;   // 나와 있어도 바로 걷음: 눈치(가림막 전환 포함)·일보 연출·일보 카드·회식·회식 카드·뽑기 돌리는 중·정전·창 숨김
   const blocked = () => stopNow() || h.busy();   // 새로 나오지 않음: 위 + 🎰 뽑기 판이 떠 있을 때
   function spawn(k, t) {
@@ -6123,7 +6167,7 @@ C.registerMode({
     const napB = napBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), dark: () => { const p = pwB.phase(); return p === "out" || p === "reset"; },   // 😴 졸음 · 🍱 점심(#106)
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim), snack: (sid, i) => trB.onDesk(sid, i) });
     const evB = eventBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, model: () => model, scale: () => scaleK, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 🎲 랜덤 이벤트(#100)
-      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
+      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), wet: () => pwB.wet(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
       spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); } });
     const pwWins = [];
@@ -7259,7 +7303,7 @@ C.registerMode({
       ${pkB.dexHtml()}
       <div class="set"><div><h4>⚙ ${X("설정 · 동물별 켜기/끄기", "Settings · animals on/off")}</h4><div class="chips">${SP.map(id => lk(id) ? `<button class="chip off lock" type="button" disabled aria-disabled="true" title="${esc(lockT)}">🔒 ${esc(aName(id))}</button>` : `<button class="chip ${on(id) ? "" : "off"}" type="button" data-act="animal" data-id="${id}">${EMO[id]} ${esc(aName(id))} ${on(id) ? "ON" : "OFF"}</button>`).join("")}</div>
         <h4 style="margin-top:8px">${X("모두 ○○로 고정", "Everyone is a …")}</h4><div class="chips"><button class="chip fx2 ${cfg.fixed ? "" : "on"}" type="button" data-act="fixed" data-id="">🎲 ${X("랜덤 (기본)", "Random")}</button>${SP.map(id => lk(id) ? `<button class="chip fx2 lock" type="button" disabled aria-disabled="true" title="${esc(aName(id) + " · " + lockT)}" aria-label="${esc(aName(id) + " · " + lockT)}">🔒</button>` : `<button class="chip fx2 ${cfg.fixed === id ? "on" : ""}" type="button" data-act="fixed" data-id="${id}" title="${esc(aName(id))}">${EMO[id]}</button>`).join("")}</div>
-        <h4 style="margin-top:8px">${X("효과", "Effects")}</h4><div class="chips"><button class="chip ${cfg.sound ? "" : "off"}" type="button" data-act="soundcfg">🔊 ${X("타자 소리", "Typing sound")} ${cfg.sound ? "ON" : "OFF"}</button><button class="chip ${cfg.frags ? "" : "off"}" type="button" data-act="fragcfg">{ } ${X("코드 조각", "Code bits")} ${cfg.frags ? "ON" : "OFF"}</button><button class="chip ${cfg.weather ? "" : "off"}" type="button" data-act="wxcfg" title="${esc(X("주간 한도를 날씨로: 60% 구름 · 80% 비 · 90% 눈(옥상에 쌓임). 건물 밖 하늘과 창에만", "Weekly limit as weather: 60% clouds · 80% rain · 90% snow on the roof. Sky and windows only"))}">🌦️ ${X("날씨(주간 한도)", "Weather (weekly)")} ${cfg.weather ? "ON" : "OFF"}</button></div></div>
+        <h4 style="margin-top:8px">${X("효과", "Effects")}</h4><div class="chips"><button class="chip ${cfg.sound ? "" : "off"}" type="button" data-act="soundcfg">🔊 ${X("타자 소리", "Typing sound")} ${cfg.sound ? "ON" : "OFF"}</button><button class="chip ${cfg.frags ? "" : "off"}" type="button" data-act="fragcfg">{ } ${X("코드 조각", "Code bits")} ${cfg.frags ? "ON" : "OFF"}</button><button class="chip ${cfg.weather ? "" : "off"}" type="button" data-act="wxcfg" title="${esc(X("평소엔 달력 날씨(계절·날짜)예요. 켜면 주간 한도가 60%를 넘을 때 한도가 날씨를 정해요: 60% 구름 · 80% 비 · 90% 눈(옥상에 쌓임). 건물 밖 하늘과 창에만", "Normally the weather follows the calendar (season and date). Turn this on and the weekly limit takes over above 60%: 60% clouds · 80% rain · 90% snow on the roof. Sky and windows only"))}">🌦️ ${X("한도 날씨", "Limit weather")} ${cfg.weather ? "ON" : "OFF"}</button></div></div>
         <div><h4>🤫 ${X("화면 공유용", "For screen sharing")}</h4><div class="chips"><button class="chip ${cfg.hideText ? "" : "off"}" type="button" data-act="hidetext" title="${esc(X("켜면 회의 보드에 \"🤫 비밀 회의\"와 물결 낙서만 (✓는 그대로) · 층 이름표의 프로젝트도 숨김 · 미니 보기·퇴근 일보 카드도 같이", "Meeting boards show \"🤫 Secret meeting\" and squiggles (✓ stays), floor tags hide project names, mini view and daily report card too"))}">🤫 ${X("프로젝트·작업 문구 숨김", "Hide project & task text")} ${cfg.hideText ? "ON" : "OFF"}</button></div>
         ${drB.can ? `<h4 style="margin-top:8px">📋 ${X("퇴근 일보 · 고급: 퇴근 시각", "Daily report · advanced: clock-out time")}</h4><div class="chips">${[null, "17:00", "18:00", "18:30", "19:00", "20:00", "21:00"].map(t => `<button class="chip fx2 ${(cfg.offAt || null) === t ? "on" : ""}" type="button" data-act="offat" data-id="${t || ""}" title="${esc(t ? X(`${t}이 지나면 사장님이 일보를 들고 알려요(누르면 발표)`, `After ${t} the boss holds up the report (click to present)`) : X("기본: 오후에 45분 동안 조용하면 자동으로 알려요", "Default: notifies after 45 quiet minutes in the afternoon"))}">${t ? "⏰ " + t : X("끄기 (기본: 자동)", "Off (default: auto)")}</button>`).join("")}</div>
         <div class="chips" style="margin-top:6px"><button class="chip ${cfg.cardCheer ? "" : "off"}" type="button" data-act="cardcheer" title="${esc(X("AI가 MCP 보고로 남긴 칭찬 한마디(waitscape_status cheer)를 일보 카드·복사 텍스트의 사장님 말풍선에 넣어요. 공유용이라 기본은 꺼짐 · 🤫 숨김이 켜져 있으면 넣지 않아요", "Put the AI's cheer line (from MCP reports) in the boss bubble of the report card and copied text. Off by default since cards get shared; never with 🤫 on"))}">✍️ ${X("카드에 AI 한마디", "AI cheer on card")} ${cfg.cardCheer ? "ON" : "OFF"}</button></div>` : ""}</div></div>
