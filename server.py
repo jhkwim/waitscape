@@ -954,13 +954,21 @@ def build_state():
     last_report = None  # 마지막 MCP 보고 시각 (훅 report 이벤트 + reports.jsonl)
     hooks_active = False  # 훅 이벤트가 있으면 Claude 사이드카 보고(orphans)는 버린다 (Rust Snapshot.hooks_active)
     # 최근 5000줄. 앱(Rust 리더)이 5MB에서 events.1.jsonl로 회전하므로 그 꼬리도 이어서 본다 (#122)
-    lines = []
-    for path in (os.path.join(os.path.dirname(LOG), "events.1.jsonl"), LOG):
+    def _ino(p):
         try:
-            with open(path, encoding="utf-8") as f:
-                lines = (lines + f.readlines())[-5000:]
-        except FileNotFoundError:
-            pass
+            return os.stat(p).st_ino
+        except OSError:
+            return None
+    for _try in range(3):  # 읽는 사이에 회전되면(LOG 파일이 바뀜) 다시 — 옛 events.1만 보고 세션이 깜빡이지 않게
+        lines, ino0 = [], _ino(LOG)
+        for path in (os.path.join(os.path.dirname(LOG), "events.1.jsonl"), LOG):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    lines = (lines + f.readlines())[-5000:]
+            except FileNotFoundError:
+                pass
+        if _ino(LOG) == ino0:
+            break
     for line in lines:
         try:
             e = json.loads(line)

@@ -312,6 +312,14 @@ fn start_watcher(be: &Arc<Backend>, tx: Sender<()>) {
         } else {
             RecursiveMode::NonRecursive
         };
+        // 파일은 부모 폴더를 얕게 본다(#122): 파일 자체를 보면 회전(rename) 뒤 Linux inotify가 옛 파일(events.1)을 따라가
+        // 새 파일 변경을 놓친다. 이벤트는 위 확장자 필터로 거른다
+        if target.is_file() {
+            if let Some(par) = target.parent() {
+                target = par.to_path_buf();
+                mode = RecursiveMode::NonRecursive;
+            }
+        }
         while !target.exists() {
             match target.parent() {
                 Some(par) => {
