@@ -57,6 +57,12 @@
   SDK 우클릭 → 브리지 `ctxmenu`(앱이면 같은 앱 메뉴, 입력란 제외). 키 판정은 반복(`repeat`) 무시·물리 키(`code`) 기준
 - 단축키 `B`의 의미 변경: 업무 모드 ↔ 직전 모드 → 눈치 모드 켜고 끄기(모드는 여전히 이 키를 쓰지 말 것). state 계약 변화 없음
 
+## 1.7 (예정, 질문 판정 jhkwim/waitscape#118)
+- state: `session.ask?: "permission" | "question"` (추가만) — `needs_input`일 때 질문 종류. 없으면 모름(옛 Claude Code·트랜스크립트·MCP)
+- state: 훅 세션도 `confidence: "guess"`가 될 수 있음 — 권한 요청(PermissionRequest)만 오고 아직 알림으로 확인 전. 10초 안에 확인이 없으면 `working`으로 돌아감
+- 의미 보정(버그 수정): 끝난 세션에 오는 Claude의 유휴 알림(`idle_prompt`)은 더 이상 `needs_input`을 만들지 않음. 같은 질문에 알림이 또 와도 `since`는 처음 시각
+- 훅 이벤트(events.jsonl): Notification `ntype`, `PermissionRequest`(icon·text·kind, 사람 없는 세션이면 `una`), AskUserQuestion·ExitPlanMode PreToolUse에 `ask`
+
 ## (코어 전용, cmux AppleScript 이동 jhkwim/waitscape#102)
 - 내부 `CoreApi.openTerminal?()` 결과에 `"mux-perm"` 추가(코어 전용): cmux 소켓이 막혀 AppleScript로 가려 했는데 macOS 자동화 허용이 없음 → cwd 복사. 모드 계약(state·ctx·브리지) 변화 없음
 

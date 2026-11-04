@@ -60,7 +60,7 @@
    }
   ],
   "day": "2026-10-20",
-  "done": 12,
+  "done": 15,
   "end": 1792522800.0,
   "first": 1792504800,
   "last": 1792519195,
@@ -122,10 +122,10 @@
   "unseen": false,
   "v": 1,
   "wait": {
-   "avg": 51.5,
-   "n": 2
+   "avg": 41.0,
+   "n": 3
   },
-  "work": 5980,
+  "work": 6070,
   "workers": [
    {
     "done": 2,
@@ -185,10 +185,31 @@
    },
    {
     "done": 1,
+    "project": "ask-lab",
+    "provider": "claude",
+    "sid": "fx-ask-idle",
+    "work": 50
+   },
+   {
+    "done": 1,
     "project": "cmux-app",
     "provider": "claude",
     "sid": "fx-cmux",
     "work": 50
+   },
+   {
+    "done": 1,
+    "project": "ask-lab",
+    "provider": "claude",
+    "sid": "fx-ask-donequick",
+    "work": 20
+   },
+   {
+    "done": 1,
+    "project": "ask-lab",
+    "provider": "claude",
+    "sid": "fx-ask-donesub",
+    "work": 20
    },
    {
     "done": 1,

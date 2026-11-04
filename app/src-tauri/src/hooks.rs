@@ -233,7 +233,7 @@ mod tests {
         let mut p = HookPaths::new(&root, &settings);
         p.sidecar = Some(side.clone());
         let (l, next, diff) = plan(&p, true).unwrap();
-        assert_eq!(diff.len(), 9);
+        assert_eq!(diff.len(), 10);
         let r = apply(&p, &l, &next, true).unwrap();
         assert!(r.changed && r.backup.as_ref().unwrap().exists());
         assert!(p.bin.is_file());

@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 /// 등록할 이벤트와 matcher (hook.py 시절과 같은 목록)
-pub const EVENTS: [(&str, Option<&str>); 9] = [
+pub const EVENTS: [(&str, Option<&str>); 10] = [
     ("SessionStart", None),
     ("UserPromptSubmit", None),
     ("PreToolUse", None),
@@ -21,6 +21,8 @@ pub const EVENTS: [(&str, Option<&str>); 9] = [
     ("SessionEnd", None),
     ("SubagentStart", None),
     ("SubagentStop", None),
+    // 권한 요청을 바로 알기 위한 관찰 전용(#118) — wr-hook은 결정을 반환하지 않는다(stdout 없음, exit 0)
+    ("PermissionRequest", None),
 ];
 
 /// 우리 훅을 알아보는 경로 꼬리
@@ -118,7 +120,7 @@ pub fn merged(settings: &Value, cmd: &str) -> Value {
 pub struct Status {
     /// 우리 항목이 하나라도 있음
     pub installed: bool,
-    /// 9개 이벤트 모두 이 명령(`cmd`)으로 등록됨
+    /// 등록 이벤트(`EVENTS`) 모두 이 명령(`cmd`)으로 등록됨
     pub complete: bool,
     /// 다른 경로의 wr-hook이 등록돼 있음(옛 설치 위치)
     pub stale: bool,
@@ -355,7 +357,7 @@ mod tests {
         assert_eq!(m["hooks"]["PostToolUse"][0]["matcher"], "TaskCreate|TaskUpdate");
         assert_eq!(m["hooks"]["SessionStart"][0]["hooks"][0]["args"], json!(["event"]));
         let st = status(&m, CMD);
-        assert!(st.installed && st.complete && !st.stale && st.count == 9);
+        assert!(st.installed && st.complete && !st.stale && st.count == 10);
         assert_eq!(merged(&m, CMD), m, "두 번 설치해도 같음");
         assert_eq!(removed(&m), s, "제거하면 원래대로");
         assert_eq!(removed(&s), s);
@@ -376,7 +378,7 @@ mod tests {
         assert_eq!(removed(&s), s);
         assert!(!is_ours(&json!({"command": "/x/wr-hook-like"})));
         let d = diff(&json!({}), &m);
-        assert_eq!(d.len(), 9);
+        assert_eq!(d.len(), 10);
         assert!(d.iter().all(|l| l.starts_with("+ ")));
     }
 
@@ -422,7 +424,7 @@ mod tests {
         let next = merged(&old, CMD);
         assert!(status(&next, CMD).complete);
         let d = diff(&old, &next);
-        assert_eq!(d.len(), 18, "{d:?}");
+        assert_eq!(d.len(), 20, "{d:?}");
         assert!(d.iter().any(|l| l.starts_with("- ") && !l.ends_with("event")));
         assert!(d.iter().any(|l| l.starts_with("+ ") && l.ends_with("event")));
     }

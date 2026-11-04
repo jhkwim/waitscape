@@ -409,10 +409,15 @@ impl Provider for ClaudeProvider {
             }
             let mut h = h;
             self.expire_agents(&mut h, ctx);
+            let guess = h.guess;
             let mut s = Self::finish_hook_session(h, &sl, now);
             if v11 {
                 s.source = Some("hook");
                 s.confidence = Some("sure");
+            }
+            // 권한 요청만 오고 아직 알림으로 확인되지 않은 질문은 추정 (#118, server.py와 같음 — parity에서도 나감)
+            if guess {
+                s.confidence = Some("guess");
             }
             s.mask();
             sessions.push(s);
