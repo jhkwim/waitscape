@@ -133,7 +133,7 @@ const memo = {
 const aiSrc = (s, v) => v && s && s.source === "mcp" ? `✍️ ${L.provider(state, s).name}: ${v}` : v;
 const DEFAULT_TEXTS = {
   done: s => [t("n.done", { p: s.project }), aiSrc(s, s.prompt || "")],
-  input: s => [t("n.input", { p: s.project }), aiSrc(s, s.note || "")],
+  input: s => [t(s.ask === "permission" ? "n.perm" : s.ask === "question" ? "n.ask" : "n.input", { p: s.project }), aiSrc(s, s.note || "")],   // 질문 종류별 (#120)
   stall: x => [t("n.stall", { p: x.project }), t("n.stall.body", { who: x.agent ? x.agent.desc || x.agent.type : t("n.main"), m: Math.max(1, Math.floor(x.health.secs / 60)) })],
   memo: (s, text) => [t("n.memo", { p: s.project }), text.slice(0, 80)],
   title: ({ calling, working }) => calling ? t("title.calling", { n: calling, app: appName() }) : working ? t("title.working", { n: working, app: appName() }) : appName(),
@@ -143,7 +143,7 @@ let lastAlert = null;   // 방금 감지한 세션(제목·본문은 모드 문�
 function nunchiText(kind, title, body) {
   const s = lastAlert, p = (s && s.project) || NUNCHI_TITLE;
   if (kind === "done") { const m = s && s.run > 0 ? Math.max(1, Math.round(s.run / 60)) : 0; return [p, m ? t("nx.n.doneM", { m }) : t("nx.n.done")]; }
-  if (kind === "input") return [p, t("nx.n.ask")];
+  if (kind === "input") return [p, t(s && s.ask === "permission" ? "nx.n.perm" : s && s.ask === "question" ? "nx.n.q" : "nx.n.ask")];
   if (kind === "stall") return [p, t("nx.n.stall", { m: s && s.health ? Math.max(1, Math.floor(s.health.secs / 60)) : 1 })];
   return [p, String(body || "").slice(0, 80)];   // memo: 메모 내용(사용자가 쓴 것)만
 }
@@ -862,6 +862,27 @@ function showJustUpdated() {
   try { d.showModal(); } catch { d.remove(); }
 }
 
+/* 훅을 켜 둔 사용자에게 새 훅 이벤트가 빠져 있으면 한 번: 「다시 켜면 권한 요청을 바로 알아요」 (#120 — 앱 업데이트는 wr-hook 실행 파일만 바꾸고
+   설정 파일은 사용자 동의 없이 고치지 않으므로, 등록 목록이 늘면 설정 탭의 "일부만 등록됨"으로만 보인다). 누르면 설정 → AI 연결(미리보기·백업·동의 그대로) */
+async function hintHooks() {
+  if (store.get("hint:hooks10") || !api.hooks) return;
+  let h; try { h = await api.hooks.status(); } catch { return; }
+  const st = h && h.status;
+  if (!st || !st.installed || st.complete) return;   // 일부만 등록·옛 경로(stale) 모두 — 설정 탭 [다시 켜기]가 둘 다 고침
+  if (app.nunchi || nx.on) { const off = on("nunchi", e => { if (e && !e.on && !nx.on) { off(); hintHooks(); } }); return; }   // 🙈 눈치 화면 위엔 띄우지 않음
+  const host = document.getElementById("core-manager");   // 설정·업데이트 창은 #core-manager shadowRoot 안 (nxSet과 같은 방식)
+  const busy = document.querySelector("dialog[open]") || (host && host.shadowRoot && host.shadowRoot.querySelector("dialog[open]"));   // 다른 창이 떠 있으면 닫힌 뒤에
+  if (busy) { busy.addEventListener("close", () => setTimeout(hintHooks, 400), { once: true }); return; }
+  store.set("hint:hooks10", 1);
+  const d = document.createElement("dialog");
+  d.className = "core-just"; d.setAttribute("aria-labelledby", "core-hint-t"); d.setAttribute("aria-describedby", "core-hint-b");
+  d.innerHTML = `<form method="dialog"><h2 id="core-hint-t"><span aria-hidden="true">🔑</span> ${L.esc(t("hint.hooks.t"))}</h2><p id="core-hint-b">${L.esc(t("hint.hooks.b"))}</p>`
+    + `<p class="mute">${L.esc(t("hint.hooks.m"))}</p><button value="go" autofocus>${L.esc(t("hint.hooks.go"))}</button><button value="later" class="later">${L.esc(t("hint.hooks.later"))}</button></form>`;
+  d.addEventListener("close", () => { const go = d.returnValue === "go"; d.remove(); if (go) openSettings("hooks"); }, { once: true });
+  document.body.appendChild(d);
+  try { d.showModal(); } catch { d.remove(); }
+}
+
 /* ---------- 설정 화면 (manager.js는 처음 열 때 불러옴) ---------- */
 async function openSettings(tab, opts) {   // opts.fromMini: 미니 보기에서 연 설정(닫으면 미니 보기로 돌아감)
   try { await loadCoreScript("core/manager.js"); window.CoreManager.open(tab, opts); } catch (e) { console.warn("[core]", e.message); }
@@ -1041,6 +1062,7 @@ async function boot() {
   if (document.querySelector('meta[name="wr-dev"]')) connectDev();
   // 첫 실행 온보딩. 앱은 훅 단계(onb:hooks)를 기존 사용자에게도 한 번 — 이미 켰으면 manager가 조용히 넘어감
   if (!WIDGET && (!store.get("onboarded") || (TAURI && !store.get("onb:hooks")))) openSettings("onboarding");
+  else if (!WIDGET && TAURI) setTimeout(hintHooks, 1500);   // 훅 재설치 안내 (#120, 한 번)
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

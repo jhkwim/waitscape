@@ -229,7 +229,10 @@ C.registerMode({
 
         const ags = opsAgents(s), run = ags.filter(a => a.status === "running"), back = ags.filter(a => a.status === "done");
         const lastAct = s.activity[s.activity.length - 1];
-        const sub = status === "needs_input" ? esc(s.note || "확인 필요")
+        /* 질문 종류·추정·근거(#120): 권한 승인 / 질문 · (추정) · 훅이 아니면 출처 */
+        const why = [s.ask === "permission" ? "🔑 권한 승인" : s.ask === "question" ? "❓ 질문" : "", s.confidence === "guess" ? "추정" : "",
+          s.source === "transcript" ? "기록 기준" : s.source === "mcp" ? "AI 자기 보고" : ""].filter(Boolean);
+        const sub = status === "needs_input" ? (why.length ? `<span class="tag">${esc(why.join(" · "))}</span>` : "") + esc(s.note || "확인 필요")
           : status === "working" ? (lastAct ? `<span class="tag">${opsTag(lastAct.icon)}</span>${esc(lastAct.text)}` : "생각 중")
           : status === "agents" ? `서브에이전트 ${run.length}개 실행 중` + (run.length ? " · " + esc(run.map(a => a.desc || a.type).join(", ")) : "")
           : s.prompt ? esc(s.prompt) : "대기 중";

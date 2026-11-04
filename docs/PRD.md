@@ -58,12 +58,12 @@ Waitscape의 처음 의도는 **AI 코딩 CLI를 쓰는 데 실제로 도움이 
 ### 3.2 성공 기준 (done when)
 
 - [x] (A1 #118) `done` 또는 `idle` 상태 세션에 `idle_prompt` 알림이 와도 `needs_input`이 되지 않는다. 상태(Rust·`server.py`), 일지 규칙, 스튜디오 빠른 답장이 **같은 판정**을 쓴다(빠른 답장은 코어가 내려 주는 질문 종류·시작 시각을 읽는다).
-- [ ] 세션 상태에 **질문 종류**가 붙는다: `permission`(권한 승인), `question`(AI가 묻는 질문, elicitation·AskUserQuestion·계획 승인). `idle`(턴이 이미 끝남)은 질문이 아니므로 종류 대신 상태를 바꾸지 않는다 — 필드는 A1(#118)에서, 화면(스튜디오 말풍선, 업무 모드 표)과 OS 알림 문구가 종류별로 다르다.
+- [x] (A1 필드 #118 · A2 화면 #120) 세션 상태에 **질문 종류**가 붙는다: `permission`(권한 승인), `question`(AI가 묻는 질문, elicitation·AskUserQuestion·계획 승인). `idle`(턴이 이미 끝남)은 질문이 아니므로 종류 대신 상태를 바꾸지 않는다 — 필드는 A1(#118)에서, 화면(스튜디오 말풍선, 업무 모드 표)과 OS 알림 문구가 종류별로 다르다.
 - [x] (A1) `PermissionRequest` 훅을 관찰 전용으로 받는다. 결정을 반환하지 않고 아무것도 출력하지 않고 0으로 끝난다. PermissionRequest가 기록된 뒤 다음 상태 갱신에서 `permission`(추정, `confidence: guess`)으로 보인다.
 - [x] (A1) **권한 대기가 풀리는 신호** — 구현 전 점검 결과: 승인 순간을 알리는 훅은 없고, PostToolUse를 넓혀도 도구가 끝나야 풀리며 훅 호출만 두 배가 된다. 그래서 공식 문서의 "`permission_prompt`는 약 6초 기다린 뒤 온다"를 쓴다: PermissionRequest는 추정으로 바로 보이고(OS 알림 없음) → 알림이 오면 확실(그때 처음 OS 알림) → **10초 동안 알림이 없으면 바로 승인된 것으로 보고 `working`으로 되돌린다**(`PERM_QUICK`). 남는 한계: 6초 넘게 기다렸다가 승인하면 그 도구가 끝날 때까지 권한 대기로 남는다.
 - [x] (A1) **서브에이전트**(`agent_id`가 있는) PermissionRequest·권한/질문 알림은 메인 세션 질문으로 올린다(질문한 에이전트가 모두 다시 움직이면 풀리고, 질문 직전 상태로 돌아간다 — 메인이 이미 끝났으면 done). 백그라운드 에이전트(`bg`)와 사람 없는 세션(`claude -p` — 훅 env `CLAUDE_CODE_SESSION_ATTENDED=0`, 2.1.318에서 확인)의 권한 요청은 질문으로 보지 않는다.
 - [x] (A1) `notification_type`이 없는 옛 Claude Code에서는 지금 동작을 유지한다(픽스처 `fx-ask-old`). 같은 질문에 알림이 또 와도 `since`는 처음 시각. PermissionRequest를 모르는 옛 버전이 settings.json의 새 항목을 무시하는지 확인해 INSTALL·DEVELOPMENT에 적는다.
-- [ ] 이미 있는 `source`·`confidence` 필드를 화면에서 확인할 수 있다(근거 배지와 경과 시간, A2). 훅의 추정 권한 요청(`confidence = guess` + `ask = permission`)은 OS 알림을 보내지 않는다 — A1에서 먼저(앱 `detect.rs`·웹 `detect()`, 확실해지는 순간 한 번 알림). 트랜스크립트 추정은 확실해질 일이 없어 예전처럼 "확인이 필요할 수도"로 알린다(A1 리뷰 반영).
+- [x] (A2 #120 — 눈치 표·업무 모드 배지) 이미 있는 `source`·`confidence` 필드를 화면에서 확인할 수 있다(근거 배지와 경과 시간, A2). 훅의 추정 권한 요청(`confidence = guess` + `ask = permission`)은 OS 알림을 보내지 않는다 — A1에서 먼저(앱 `detect.rs`·웹 `detect()`, 확실해지는 순간 한 번 알림). 트랜스크립트 추정은 확실해질 일이 없어 예전처럼 "확인이 필요할 수도"로 알린다(A1 리뷰 반영).
 - [ ] `events.jsonl`이 정해진 크기(예: 5MB)를 넘으면 **리더(앱)가** 회전한다. 여러 wr-hook 프로세스가 동시에 회전하면 줄이 사라지고 Windows에서는 rename이 실패할 수 있어서, 쓰는 쪽은 회전하지 않는다(`mcp.rs` 방식). 오프셋은 크기 감소와 파일 식별자로 다시 맞춘다.
 - [x] (A1, `fixtures/make_fixtures.py` `fx-ask-*` 12개) 회귀 픽스처: "Stop 뒤 idle_prompt", "notification_type 없음(옛 버전)", "PreToolUse → PermissionRequest → 승인 → 다음 PreToolUse/Stop", "서브에이전트 PermissionRequest", "elicitation 질문". 훅 경로는 Rust와 `server.py`가 같은 결과를 낸다(parity, golden은 `server.py`가 만든다). "긴 Bash"는 트랜스크립트 전용 엔진(Rust만, 기대값 수기) 픽스처로 둔다.
 - [x] (A1) `hook.py`(참조 구현)도 wr-hook과 같은 필드를 남긴다(`fixtures/mcp/hook_cases.json` 골든 공유).

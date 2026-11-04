@@ -345,6 +345,8 @@ CI(`.github/workflows/ci.yml`)가 PR과 main push마다 위 검사를 돌린다.
 `~/.claude/settings.json`의 `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`(TaskCreate|TaskUpdate), `Notification`, `Stop`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `PermissionRequest`(관찰만 — 결정을 반환하지 않음)에
 `python3 <설치 경로>/hook.py` 등록(`<설치 경로>` = 이 저장소를 받은 폴더의 절대 경로). 제거하려면 해당 항목 삭제
 (등록 전 백업: `~/.claude/settings.json.bak-waiting-room`).
+질문 판정의 알려진 한계(#118·#120): 권한 창에서 Esc로 중단하면 Claude Code가 Stop 훅을 보내지 않는다 — 6초 안이면 10초 뒤 바로 승인으로 보고 `working`, 그 뒤면 다음 프롬프트까지 `needs_input`으로 남는다. 6초 넘게 기다렸다 승인하면 그 도구가 끝날 때까지 권한 대기로 보인다.
+앱 업데이트는 wr-hook 실행 파일만 바꾸고 settings.json은 고치지 않으므로, 등록 이벤트가 늘면(9 → 10, PermissionRequest) 기존 사용자는 설정 탭 "일부만 등록됨" + 한 번 뜨는 안내 창(`hintHooks`, store `hint:hooks10`)으로 다시 켜기를 안내받는다.
 훅 소요 시간(wr-hook 릴리스 빌드, PermissionRequest 입력, 1000회, Apple Silicon): p50 7.9ms · p95 10.3ms · p99 16.9ms — 권한 프롬프트 앞에서도 체감 지연 없음(목표 p95 ≤ 50ms).
 
 ## MCP 보고 (실험, 기본 꺼짐)

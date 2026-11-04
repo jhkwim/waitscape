@@ -3,7 +3,8 @@
    ?old=1(세션 시작 70분 앞당김, ?old=N → N분) · ?noask=1(질문 없이 모두 작업) · ?ask2=1(질문 두 명) · ?stall=1(로봇 멈춤 의심)
    ?tools=N(도구 수 N부터 1초에 1씩) · ?turn=1(30초마다 새 턴) · ?daylog=1(퇴근 일보 fixture) · ?role=widget(미니 보기 창)
    ?idle=N(일하던 두 세션이 N분째 쉼, &done=1이면 완료 뒤 쉼으로 바뀐 세션) · ?wake=S(S초 뒤 다시 일함)
-   ?upd=1(새 버전 0.7.0 있음 — 배너·미니 보기 🎁 · [지금 업데이트]는 내려받기 42%에서 멈춤) · ?just=1(방금 이 버전으로 올린 뒤 「올랐어요」 카드) */
+   ?upd=1(새 버전 0.7.0 있음 — 배너·미니 보기 🎁 · [지금 업데이트]는 내려받기 42%에서 멈춤) · ?just=1(방금 이 버전으로 올린 뒤 「올랐어요」 카드)
+   ?askkind=permission|question(질문 세션의 종류 · permission이면 note = 허락받을 도구 설명) · ?guess=1(그 질문이 추정) · ?hooks=partial(훅 일부만 등록 → 재설치 안내 창, #120) */
 (() => {
   const q = new URLSearchParams(location.search);
   const ROLE = q.get("role") === "widget" ? "widget" : "main";
@@ -19,6 +20,8 @@
     add("4ddee2", "api-server", "codex", "working", { started: T0 - 760, since: T0 - 760, ctx: 54, activity: [{ icon: "⚡", text: "cargo test --workspace", ts: now - 2 }] });
     add("1000e2", "docs", "gemini", "done", { started: T0 - 562, since: T0 - 150, run: 412 });
     if (q.has("answer")) { const x = S.find(x => x.sid === "8bbce2"), qa = T0 + 2, an = qa + +q.get("answer"); Object.assign(x, now < qa ? { status: "working", since: T0 - 30 } : now < an ? { status: "needs_input", since: qa } : { status: "working", since: an }); }   // ?answer=N: 일하다 2초 뒤 질문 → N초 뒤 답함(N ≤ 60이면 ⚡ 빠른 답장)
+    if (q.has("askkind")) { const x = S.find(x => x.sid === "8bbce2"), k = q.get("askkind"); x.ask = k; x.source = "hook"; if (k === "permission") x.note = "DB 마이그레이션 실행"; }   // #120 질문 종류
+    if (q.has("guess")) Object.assign(S.find(x => x.sid === "8bbce2"), { confidence: "guess" });
     if (q.has("ask2")) Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", since: T0 - 30, note: "테스트 먼저 돌려도 될까요?" });   // ?ask2=1: 질문 두 명(뒷사람은 자기 층에서 순서 대기)
     /* ?idle=N: 일하던 두 세션(waitscape·api-server)이 N분째 쉬는 중 · ?wake=S: 페이지를 연 지 S초 뒤 다시 일함(😴 졸음·❗ 화들짝 확인, #106) */
     if (q.has("idle")) S.filter(x => x.sid === "1d18e2" || x.sid === "4ddee2").forEach(x => { const w = q.has("wake") && now - T0 >= +q.get("wake"); Object.assign(x, w ? { status: "working", since: T0 + +q.get("wake") } : q.has("done") ? { status: "done", since: T0 - (+q.get("idle") || 15) * 60 - 300 } : { status: "idle", since: T0 - (+q.get("idle") || 15) * 60 }); });   // &done=1: 완료 뒤 5분이 지나 쉼이 된 세션(since = 완료 시각)
@@ -50,7 +53,7 @@
     app_info: () => ({ version: "0.4.2", features: { updater: UPD, terminalJump: true }, updateReady: UPD }),
     nunchi_status: () => ({ key: settings.nunchiKey, ok: true, err: null }),
     update_status: () => UPD && q.has("upd") ? { compiled: true, ready: true, current: "0.4.2", phase: "", available: { version: "0.7.0", notes: "🎰 가짜 요약 한 줄이에요.\n🦊 두 번째 줄이에요.\n\n자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요." } } : { compiled: UPD, ready: UPD, current: "0.4.2", available: null },
-    update_install: () => { setTimeout(() => fire("update-progress", { phase: "downloading", pct: 42, got: 4, total: 10 }), 0); return new Promise(() => {}); }, notify: () => null, set_tray_modes: () => null, usage_status: () => ({}), hooks_status: () => ({ state: "on" }),
+    update_install: () => { setTimeout(() => fire("update-progress", { phase: "downloading", pct: 42, got: 4, total: 10 }), 0); return new Promise(() => {}); }, notify: () => null, set_tray_modes: () => null, usage_status: () => ({}), hooks_status: () => q.get("hooks") === "partial" ? { status: { installed: true, complete: false, stale: false, legacy: false, count: 9 } } : { status: { installed: true, complete: true, stale: false, legacy: false, count: 10 } },
     open_terminal: () => ({ result: "opened" }), open_widget: () => null, close_widget: () => null, widget_resize: () => null,
     get_daylog: () => { if (!q.has("daylog")) return { error: "off" };   // ?daylog=1: 저장소 fixtures/expected/daylog.today.json 본문을 오늘 날짜로(📋 퇴근 일보 연출 시험)
       const n = Date.now() / 1000, d = new Date((n - 4 * 3600) * 1000), day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, st = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 4).getTime() / 1000;
