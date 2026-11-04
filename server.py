@@ -953,11 +953,14 @@ def build_state():
     day_turns, day_waits, wait0 = [], [], {}
     last_report = None  # 마지막 MCP 보고 시각 (훅 report 이벤트 + reports.jsonl)
     hooks_active = False  # 훅 이벤트가 있으면 Claude 사이드카 보고(orphans)는 버린다 (Rust Snapshot.hooks_active)
-    try:
-        with open(LOG, encoding="utf-8") as f:
-            lines = f.readlines()[-5000:]
-    except FileNotFoundError:
-        lines = []
+    # 최근 5000줄. 앱(Rust 리더)이 5MB에서 events.1.jsonl로 회전하므로 그 꼬리도 이어서 본다 (#122)
+    lines = []
+    for path in (os.path.join(os.path.dirname(LOG), "events.1.jsonl"), LOG):
+        try:
+            with open(path, encoding="utf-8") as f:
+                lines = (lines + f.readlines())[-5000:]
+        except FileNotFoundError:
+            pass
     for line in lines:
         try:
             e = json.loads(line)

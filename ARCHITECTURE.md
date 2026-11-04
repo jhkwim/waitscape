@@ -449,7 +449,7 @@ interface CoreApi {
 | Claude 루트 | `~/.claude` | `%USERPROFILE%\.claude` [추정: Windows Claude Code 기본값] |
 | 트랜스크립트 | `<루트>/projects/<인코딩된 경로>/<sid>.jsonl` | 같음 (폴더 이름 인코딩 규칙은 다를 수 있으나 우리는 glob만 하므로 무관) |
 | 자격증명 | 키체인 "Claude Code-credentials" (파일은 보통 없음 — 이 맥에서 확인) | `<루트>\.credentials.json` [추정] |
-| 이벤트 로그 | `~/.claude/waiting-room/events.jsonl` (현행 유지 — Python 개발 서버와 공유) | `%USERPROFILE%\.claude\waiting-room\events.jsonl` |
+| 이벤트 로그 | `~/.claude/waiting-room/events.jsonl` (현행 유지 — Python 개발 서버와 공유. 앱 리더가 5MB에서 `events.1.jsonl`로 회전 #122, `hooks.rs` `EventLog`) | `%USERPROFILE%\.claude\waiting-room\events.jsonl` |
 | 훅 바이너리 | `~/.claude/waiting-room/bin/wr-hook` | `%USERPROFILE%\.claude\waiting-room\bin\wr-hook.exe` |
 | MCP 보고 기록 | `~/.claude/waiting-room/reports.jsonl` (`wr-hook mcp`가 append, §8.5) | `%USERPROFILE%\.claude\waiting-room\reports.jsonl` |
 | 앱 설정·사용자 모드 | `~/Library/Application Support/<identifier>/` | `%APPDATA%\<identifier>\` |

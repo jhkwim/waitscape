@@ -6,7 +6,7 @@
 
 use crate::clock::Tz;
 use crate::daylog::{FeedTurn, FeedWait};
-use crate::jsonl::{read_lines, size};
+use crate::jsonl::{ident, read_lines};
 use crate::model::{Activity, Agent, AgentTool, Session, Today};
 use crate::py::{get, num, py_str, truthy};
 use crate::report::{board_of, status_of, Fold};
@@ -18,24 +18,56 @@ use std::path::Path;
 
 /// server.py가 보는 최근 줄 수
 pub const LOG_LINES: usize = 5000;
+/// 이만큼 커지면 리더(앱)가 `events.1.jsonl`로 회전한다 (#122). 쓰는 쪽(wr-hook)은 회전하지 않는다 —
+/// 여러 훅 프로세스가 동시에 돌고 Windows는 열린 파일 rename이 실패할 수 있어서(mcp.rs `ROTATE_AT`과 같은 방식)
+pub const LOG_ROTATE_AT: u64 = 5 << 20;
 
-/// events.jsonl 링버퍼. 매번 전체를 다시 파싱하지 않고 새 줄만 읽는다(파일이 줄면 처음부터).
+/// events.jsonl 링버퍼. 매번 전체를 다시 파싱하지 않고 새 줄만 읽는다.
+/// 같은 파일이 줄면(잘림) 처음부터, 다른 파일이 되면(회전) 최근 줄 버퍼는 그대로 두고 새 파일을 처음부터 읽는다.
 #[derive(Debug, Default)]
 pub struct EventLog {
     off: u64,
     lines: VecDeque<Option<Value>>,
     /// 개행 없는 마지막 줄 (파이썬 readlines()는 이것도 한 줄로 본다)
     tail: Option<Option<Value>>,
+    /// 읽고 있는 파일 식별자 (`jsonl::ident`)
+    ident: Option<(u64, u64)>,
+    /// 방금 우리가 회전함 — 다음 훅이 새 파일을 만들기 전까지 파일이 없어도 버퍼를 지키기 위해
+    rotated: bool,
 }
 
 impl EventLog {
     pub fn refresh(&mut self, path: &Path) {
-        let Some(sz) = size(path) else {
-            *self = EventLog::default();
+        self.refresh_at(path, LOG_ROTATE_AT);
+    }
+
+    /// `rotate_at` 바이트를 넘으면 회전 (테스트는 작은 값)
+    pub fn refresh_at(&mut self, path: &Path, rotate_at: u64) {
+        let Ok(meta) = std::fs::metadata(path) else {
+            if self.rotated {
+                self.off = 0;
+                self.tail = None;
+            } else {
+                *self = EventLog::default();
+            }
             return;
         };
-        if sz < self.off {
-            *self = EventLog::default();
+        let (sz, id) = (meta.len(), ident(&meta));
+        if id != self.ident {
+            if self.ident.is_some() || self.rotated {
+                // 다른 파일(회전·교체): 최근 줄은 그대로, 새 파일은 처음부터
+                self.off = 0;
+                self.tail = None;
+            } else if sz < self.off {
+                *self = EventLog::default();
+            }
+            self.ident = id;
+            self.rotated = false;
+        } else if sz < self.off {
+            *self = EventLog {
+                ident: id,
+                ..EventLog::default()
+            };
         }
         let mut off = self.off;
         let lines = &mut self.lines;
@@ -55,6 +87,16 @@ impl EventLog {
                     self.tail = Some(serde_json::from_slice(&buf).ok());
                 }
             }
+        }
+        // 끝까지 다 읽었고(미완성 줄 없음) 충분히 크면 회전. rename이 실패하면(Windows에서 훅이 쓰는 중 등) 다음에 다시
+        if off >= rotate_at
+            && self.tail.is_none()
+            && crate::jsonl::size(path) == Some(off)
+            && std::fs::rename(path, path.with_file_name("events.1.jsonl")).is_ok()
+        {
+            self.off = 0;
+            self.ident = None;
+            self.rotated = true;
         }
     }
 
@@ -613,6 +655,47 @@ mod tests {
         assert!(w("a").is_empty() && w("b").is_empty());
         assert_eq!(w("c"), vec![(10.0, 30.0)]);
         assert_eq!((r.sessions["c"].s.status, r.sessions["c"].s.ask), ("working", None));
+    }
+
+    /// #122: 리더가 회전해도 최근 줄 버퍼(세션)는 그대로, 새 파일은 처음부터. 같은 파일이 잘리면 처음부터
+    #[test]
+    fn log_rotation_keeps_recent() {
+        let dir = std::env::temp_dir().join(format!("wr-rot-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("events.jsonl");
+        let line = |sid: &str, ts: f64| format!("{{\"ts\": {ts}, \"sid\": \"{sid}\", \"event\": \"UserPromptSubmit\"}}\n");
+        let append = |s: String| {
+            use std::io::Write;
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&p)
+                .unwrap()
+                .write_all(s.as_bytes())
+                .unwrap();
+        };
+        let sids = |l: &EventLog| l.recent().map(|v| v["sid"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+        let mut log = EventLog::default();
+        append(line("a", 1.0) + &line("b", 2.0));
+        log.refresh_at(&p, 40);
+        assert!(dir.join("events.1.jsonl").exists() && !p.exists(), "다 읽고 40바이트 넘으면 회전");
+        assert_eq!(sids(&log), ["a", "b"]);
+        log.refresh_at(&p, 40);
+        assert_eq!(sids(&log), ["a", "b"], "새 파일이 생기기 전(파일 없음)에도 버퍼 유지");
+        append(line("c", 3.0));
+        log.refresh_at(&p, 1 << 20);
+        assert_eq!(sids(&log), ["a", "b", "c"], "새 파일은 처음부터");
+        append(line("d", 4.0));
+        log.refresh_at(&p, 1 << 20);
+        assert_eq!(sids(&log), ["a", "b", "c", "d"]);
+        std::fs::write(&p, line("e", 5.0)).unwrap(); // 같은 파일이 잘림
+        log.refresh_at(&p, 1 << 20);
+        assert_eq!(sids(&log), ["e"], "잘리면 처음부터");
+        std::fs::remove_file(&p).unwrap(); // 회전하지 않았는데 없어짐 = 지움
+        log.refresh_at(&p, 1 << 20);
+        assert!(sids(&log).is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

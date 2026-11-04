@@ -125,19 +125,7 @@ pub struct McpProvider {
     waits: Vec<(&'static str, String, FeedWait)>,
 }
 
-/// 파일 식별자: unix (dev, inode), 그 외 생성 시각. 바뀌면 다른 파일(회전·교체)
-fn ident(m: &std::fs::Metadata) -> Option<(u64, u64)> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        Some((m.dev(), m.ino()))
-    }
-    #[cfg(not(unix))]
-    {
-        let d = m.created().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?;
-        Some((d.as_secs(), d.subsec_nanos() as u64))
-    }
-}
+use crate::jsonl::ident;
 
 /// 사이드카 프로세스가 살아 있나. 확인할 수 없으면 true(숨기지 않음)
 #[cfg(unix)]

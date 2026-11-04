@@ -288,6 +288,21 @@ def test_orphans(work):
     check("report" not in ss[0], "지난 턴 보고는 안 붙임")
 
 
+def test_rotated_log(work):
+    """#122: 앱(Rust 리더)이 회전한 events.1.jsonl 꼬리 + events.jsonl을 이어서 본다"""
+    d = os.path.join(work, "rot")
+    os.makedirs(d)
+    log = os.path.join(d, "events.jsonl")
+    now = _time.time()
+    with open(os.path.join(d, "events.1.jsonl"), "w", encoding="utf-8") as f:
+        f.write(json.dumps({"ts": now - 20, "sid": "old", "cwd": "/w/a", "event": "UserPromptSubmit", "text": "회전 전"}) + "\n")
+    with open(log, "w", encoding="utf-8") as f:
+        f.write(json.dumps({"ts": now - 10, "sid": "new", "cwd": "/w/b", "event": "UserPromptSubmit", "text": "회전 뒤"}) + "\n")
+    srv = load_server({"WAITING_ROOM_LOG": log, "WAITING_ROOM_REPORTS": os.path.join(d, "none.jsonl"), "WAITING_ROOM_DAYLOG": "off"})
+    sids = sorted(x["sid"] for x in srv.build_state()["sessions"])
+    check(sids == ["new", "old"], "회전한 로그 이어 읽기 %r" % sids)
+
+
 def main():
     work = tempfile.mkdtemp(prefix="wr-mcp-py-")
     names = ("WAITING_ROOM_REPORTS", "WAITING_ROOM_LOG", "WAITING_ROOM_DAYLOG", "WAITING_ROOM_STATUS", "WAITING_ROOM_PROJECTS",
@@ -303,6 +318,7 @@ def main():
         test_reader(work)
         test_orphans(work)
         test_report_day(work)
+        test_rotated_log(work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
         for k, v in keep.items():
