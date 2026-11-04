@@ -47,33 +47,37 @@ Waitscape의 처음 의도는 **AI 코딩 CLI를 쓰는 데 실제로 도움이 
 질문 알림이 틀리면 사용자는 알림을 끄고, 알림을 끄면 앱의 존재 이유가 사라진다. 지금 확인된 원인은 다음과 같다(2026-11-04 `main` 500bae4 기준).
 
 1. **유휴 알림이 질문을 만든다.** Claude Code는 턴이 끝나고 약 1분 뒤 `idle_prompt` 알림("waiting for your input")을 보낸다. 앱은 모든 Notification을 받으면 `status = needs_input`으로 바꾼다(`crates/wr-core/src/providers/claude/hooks.rs`의 `"Notification"` 분기, `server.py`도 같다). 그래서 끝난 세션이 "질문 중"으로 되살아난다.
-2. **같은 이벤트를 두 곳이 다르게 해석한다.** 같은 파일의 일지 규칙은 "끝난 뒤 오는 알림은 대기가 아님"이라며 `working`일 때만 대기로 센다.
-3. **알림 종류를 버린다.** 훅 입력에는 `notification_type`이 있는데(`permission_prompt`, `idle_prompt`, `elicitation_dialog`, `agent_needs_input` 등) wr-hook은 `message` 80자만 남긴다(`crates/wr-hook/src/main.rs`).
-4. **권한 요청이 늦게 잡힌다.** `permission_prompt` 알림은 권한 프롬프트가 약 6초 기다린 뒤에야 온다. 바로 잡으려면 `PermissionRequest` 훅이 필요하다(공식 문서: code.claude.com/docs/en/hooks).
-5. **훅 없는 모드의 추정이 질문처럼 보인다.** 트랜스크립트만 볼 때 Bash·Edit·mcp__* 도구가 8초 넘게 결과가 없으면 "입력 필요일 수도"로 본다(`tonly.rs` `INPUT_GUESS`). 오래 걸리는 빌드·테스트가 질문처럼 보일 수 있다.
-6. **훅 로그가 계속 커진다.** `~/.claude/waiting-room/events.jsonl`을 쓰는 쪽에 회전이 없다. 읽는 쪽은 최근 5000줄만 본다. MCP 보고 로그만 1MB에서 회전한다.
+2. **같은 이벤트를 세 곳이 다르게 해석한다.** 같은 파일의 일지 규칙은 "끝난 뒤 오는 알림은 대기가 아님"이라며 `working`일 때만 대기로 센다(`hooks.rs`·`server.py` 일지). 스튜디오 ⚡ 빠른 답장(#115)도 `prev === "working"`이라는 자기 규칙으로 질문을 판정한다(`web/modes/studio/mode.js`).
+3. **알림 종류를 버린다.** 훅 입력에는 `notification_type`이 있는데(`permission_prompt`, `idle_prompt`, `elicitation_dialog`, `agent_needs_input` 등) wr-hook과 `hook.py`는 `message` 80자만 남긴다(`crates/wr-hook/src/main.rs`).
+4. **권한 요청이 늦게 잡힌다.** `permission_prompt` 알림은 권한 프롬프트가 약 6초 기다린 뒤에야 온다. 바로 잡으려면 `PermissionRequest` 훅이 필요하다(공식 문서: code.claude.com/docs/en/hooks). 단, `permission_prompt`는 도구 승인만이 아니다(예: 샌드박스 네트워크 요청). "권한 = 도구 승인"으로 가정하지 않는다.
+5. **훅 없는 모드의 추정이 질문처럼 보인다.** 트랜스크립트만 볼 때 권한이 필요할 수 있는 도구(Bash·Edit·MultiEdit·Write·NotebookEdit·WebFetch·WebSearch·mcp__*)가 8초 넘게 결과가 없으면 "입력 필요일 수도"로 본다(`tonly.rs` `INPUT_GUESS`). 상태에는 이미 `source`·`confidence` 필드가 있지만(`model.rs`), 추정 상태도 "확인이 필요할 수도" OS 알림을 보낸다(`detect.rs`). 오래 걸리는 빌드·테스트가 질문처럼 보일 수 있다.
+6. **훅 로그가 계속 커진다.** `~/.claude/waiting-room/events.jsonl`은 wr-hook이 덧붙이기만 하고 아무도 회전하지 않는다. 읽는 쪽은 최근 5000줄만 보고, 파일이 줄면 처음부터 다시 읽는다. MCP 보고 로그(리더가 1MB에서 회전)와 앱 로그(1MB)는 회전이 있다.
 
 > **해결하는 문제:** 앱이 "질문"이라고 말하면 정말 사람이 필요하다는 것을 믿을 수 있어야 한다.
 
 ### 3.2 성공 기준 (done when)
 
-- [ ] `done` 또는 `idle` 상태 세션에 `idle_prompt` 알림이 와도 `needs_input`이 되지 않는다. 상태와 일지 규칙이 같은 판정 함수를 쓴다.
+- [ ] `done` 또는 `idle` 상태 세션에 `idle_prompt` 알림이 와도 `needs_input`이 되지 않는다. 상태(Rust·`server.py`), 일지 규칙, 스튜디오 빠른 답장이 **같은 판정**을 쓴다(빠른 답장은 코어가 내려 주는 질문 종류·시작 시각을 읽는다).
 - [ ] 세션 상태에 **질문 종류**가 붙는다: `permission`(권한 승인), `question`(AI가 묻는 질문, elicitation), `idle`(입력 대기, 턴이 이미 끝남). 화면(스튜디오 말풍선, 업무 모드 표)과 OS 알림 문구가 종류별로 다르다.
-- [ ] `PermissionRequest` 훅을 관찰 전용으로 받는다. 결정을 반환하지 않고 아무것도 출력하지 않고 0으로 끝난다. 권한 대기는 6초 지연 없이 표시된다.
-- [ ] `notification_type`이 없는 옛 Claude Code에서는 지금 동작을 유지한다. 회귀가 없어야 한다.
-- [ ] 각 세션 상태에 **근거**(hook / transcript 추정 / MCP 자기보고)와 경과 시간을 확인할 수 있다. 추정(guess) 상태는 OS 알림을 보내지 않는다.
-- [ ] `events.jsonl`이 정해진 크기(예: 5MB)를 넘으면 회전한다. 읽는 쪽의 오프셋 처리도 함께 맞춘다.
-- [ ] 회귀 픽스처: "Stop 뒤 idle_prompt", "긴 Bash(권한 없음)", "권한 요청 → 승인 → PreToolUse", "elicitation 질문"이 `fixtures/`에 있고 Rust와 `server.py`가 같은 결과를 낸다(parity 테스트).
+- [ ] `PermissionRequest` 훅을 관찰 전용으로 받는다. 결정을 반환하지 않고 아무것도 출력하지 않고 0으로 끝난다. PermissionRequest가 기록된 뒤 **다음 상태 갱신(≤ 2초) 안에** `permission`으로 보인다.
+- [ ] **권한 대기가 풀리는 신호**를 정해 구현한다. 승인 뒤 도구가 실행되는 동안 "권한 대기"로 남지 않아야 한다. 후보: PostToolUse matcher를 전체로 넓히기(이벤트 양 측정 필요), PermissionDenied, 트랜스크립트의 tool_result. 구현 전 점검에서 하나를 고른다.
+- [ ] **서브에이전트**(`agent_id`가 있는) PermissionRequest는 메인 세션의 `permission`으로 올린다. 프롬프트를 띄울 수 없는 비대화형 세션(`-p`·백그라운드)은 큐·알림에서 뺀다.
+- [ ] `notification_type`이 없는 옛 Claude Code에서는 지금 동작을 유지한다(픽스처로 확인). PermissionRequest를 모르는 옛 버전이 settings.json의 새 항목을 무시하는지 확인해 INSTALL·DEVELOPMENT에 적는다.
+- [ ] 이미 있는 `source`·`confidence` 필드를 화면에서 확인할 수 있다(근거 배지와 경과 시간). `confidence = guess` 상태는 OS 알림을 보내지 않는다(지금은 "확인이 필요할 수도"로 보냄).
+- [ ] `events.jsonl`이 정해진 크기(예: 5MB)를 넘으면 **리더(앱)가** 회전한다. 여러 wr-hook 프로세스가 동시에 회전하면 줄이 사라지고 Windows에서는 rename이 실패할 수 있어서, 쓰는 쪽은 회전하지 않는다(`mcp.rs` 방식). 오프셋은 크기 감소와 파일 식별자로 다시 맞춘다.
+- [ ] 회귀 픽스처: "Stop 뒤 idle_prompt", "notification_type 없음(옛 버전)", "PreToolUse → PermissionRequest → 승인 → 다음 PreToolUse/Stop", "서브에이전트 PermissionRequest", "elicitation 질문". 훅 경로는 Rust와 `server.py`가 같은 결과를 낸다(parity, golden은 `server.py`가 만든다). "긴 Bash"는 트랜스크립트 전용 엔진(Rust만, 기대값 수기) 픽스처로 둔다.
+- [ ] `hook.py`(참조 구현)도 wr-hook과 같은 필드를 남긴다.
+- [ ] 훅 소요 시간 p95 ≤ 50ms(맥, 로컬 측정)를 DEVELOPMENT에 적는다.
 
 ### 3.3 포함 / 제외
 
-- **포함**: wr-hook이 `notification_type`과 `PermissionRequest`를 요약해 기록. Rust와 `server.py`의 상태 판정 통일. 질문 종류 필드. 근거 배지. 로그 회전. 픽스처·parity 테스트. 문서(MODES·DEVELOPMENT·ARCHITECTURE의 이벤트 목록, CHANGELOG).
+- **포함**: wr-hook·`hook.py`가 `notification_type`과 `PermissionRequest`를 요약해 기록. Rust·`server.py`·스튜디오 빠른 답장의 질문 판정 통일. 업그레이드 사용자 안내 배너. 질문 종류 필드. 근거 배지. 로그 회전. 픽스처·parity 테스트. 문서(MODES·DEVELOPMENT·ARCHITECTURE의 이벤트 목록, CHANGELOG).
 - **제외**: 권한 승인·거절을 앱이 대신하는 것(PermissionRequest에서 결정 반환 금지). 터미널에 키 입력 보내기. 훅 matcher를 앱이 몰래 넓히는 것. 새 외부 통신.
 
 ### 3.4 위험과 대응
 
-- **훅 설정 변경**: `PermissionRequest`를 더하면 등록 이벤트가 9개에서 10개가 된다. 사용자 설정을 바꾸는 일이므로 기존 설치 화면의 미리보기·백업·동의 흐름을 그대로 탄다. 기존 설치는 "업데이트 필요"로 보이고 사용자가 눌러야 반영된다(`hooks_config::status`의 `complete`).
-- **비대화형 세션**: 프롬프트를 띄울 수 없는 세션에서도 PermissionRequest 훅이 돈다. 결정을 반환하지 않으면 Claude Code 기본 동작(거부)이 그대로 유지된다. 동작을 바꾸지 않는다는 것을 테스트로 확인한다.
+- **훅 설정 변경**: `PermissionRequest`를 더하면 등록 이벤트가 9개에서 10개가 된다. 사용자 설정을 바꾸는 일이므로 기존 설치 화면의 미리보기·백업·동의 흐름을 그대로 탄다. 기존 설치는 설정 탭에서 "일부만 등록됨 — 다시 켜기"로만 보이고, 앱 시작 때 wr-hook 바이너리는 자동 갱신되지만 settings는 그대로라 업그레이드한 사용자는 새 기능이 꺼진 줄 모른다. 그래서 **한 번만 뜨는 안내 배너**("권한 요청을 바로 알려면 훅 다시 켜기")를 범위에 넣는다. 누르면 기존 미리보기·동의 화면으로 간다.
+- **비대화형 세션**: 프롬프트를 띄울 수 없는 세션에서도 PermissionRequest 훅이 돈다. 결정을 반환하지 않으면 Claude Code 기본 동작(거부)이 그대로 유지된다. 동작을 바꾸지 않는다는 것을 테스트로 확인하고, 이런 세션은 "권한 대기"로 표시하지 않는다.
 - **훅 지연**: PermissionRequest는 사람 앞의 프롬프트를 막는 자리다. wr-hook은 지금처럼 파일에 한 줄 쓰고 바로 끝나야 한다. p95 소요 시간을 측정해 DEVELOPMENT에 적는다.
 
 ## 4. B — 관제 인박스
@@ -91,14 +95,22 @@ Waitscape의 처음 의도는 **AI 코딩 CLI를 쓰는 데 실제로 도움이 
 1. `permission` 권한 승인 대기
 2. `question` AI 질문(elicitation)
 3. 멈춤 의심(`health = stall`)
-4. 확인 안 한 완료(`done` + 아직 안 봄). 일이 클수록(실행 시간·도구 수) 앞
+4. 확인 안 한 완료(`done` + 아직 안 봄)
 
-- 같은 종류 안에서는 오래 기다린 순서다.
+- 같은 종류 안에서는 오래 기다린 순서다(완료도 같다. 일의 크기는 봉투 두께로만 보여 준다).
+- "확인 안 한 완료"는 **새로 만드는 세션 상태**다. 지금 있는 seen/unseen은 퇴근 일보용 집계뿐이다.
 - `idle`(턴이 끝나 입력 대기)은 큐에 넣지 않는다. 확인 안 한 완료로 이미 들어 있다.
 - 항목에는 세션 이름(프로젝트), 종류 아이콘, 기다린 시간, 한 줄 맥락이 붙는다. 한 줄 맥락은 권한이면 도구와 명령 앞부분(마스킹), 질문이면 알림 문구, 완료면 마지막 단계다.
 - "봄" 처리: 바로 이동했거나, 그 세션이 다시 `working`이 되었거나, 사용자가 건너뛰었을 때.
 
-### 4.3 표현
+### 4.3 이미 있는 것 (대체·재사용)
+
+- **스튜디오 "다음" 칩**: 질문 먼저, 그다음 완료(🎉/✅)를 보여 주고 누르면 그 층으로 간다(`mode.js`). 인박스는 이 칩을 **코어 큐 함수로 대체·확장**한다. 새 칩을 따로 만들지 않는다.
+- **전역 단축키**: 눈치 모드 단축키 인프라(`nunchi.rs`, 설정 화면의 단축키 항목)를 재사용한다.
+- **터미널 이동**: cmux·Orca 이동(`terminal.rs`, `nx.go`)을 재사용한다.
+- **멈춤 표시**: 스튜디오 "💤 멈춤 의심" 라벨과 멈춤 OS 알림(`detect.rs`)이 있다. 연출을 "눈 뜬 채 톡톡"으로 바꿀 때 💤 라벨과 알림 문구도 같이 바꾼다.
+
+### 4.4 표현
 
 | 화면 | 표현 |
 |---|---|
@@ -107,23 +119,23 @@ Waitscape의 처음 의도는 **AI 코딩 CLI를 쓰는 데 실제로 도움이 
 | 눈치·업무 모드 | 표 맨 위에 "다음에 볼 것" 섹션. 같은 순서 |
 | OS 알림 | 지금처럼 상태가 바뀌는 순간 한 번. 종류별 문구. 같은 세션은 최소 10분 간격 |
 
-### 4.4 상호작용
+### 4.5 상호작용
 
-- **전역 단축키**(기본값은 구현 때 기존 단축키와 충돌을 보고 정한다. 설정에서 바꿀 수 있다): 큐 맨 앞 세션으로 이동한다.
+- **전역 단축키**(기본값은 구현 때 눈치 모드 단축키와 충돌을 보고 정한다. 설정에서 바꿀 수 있다): 큐 맨 앞 세션으로 이동한다.
 - 앱 창 안에서는 **N** = 다음으로 이동, **Shift+N** = 건너뛰기.
 - 이동 방식: cmux·Orca는 지금처럼 그 세션 터미널로 정확히 간다. 그 밖의 터미널은 해당 터미널 앱을 앞으로 띄우고 세션 이름과 폴더를 토스트로 보여 준다. 엉뚱한 창으로 가는 것보다 덜 가는 쪽을 택한다.
 - 큐가 비면 아무것도 하지 않고 "기다리는 세션 없음" 토스트를 띄운다.
 
-### 4.5 성공 기준 (done when)
+### 4.6 성공 기준 (done when)
 
-- [ ] 큐 순서가 §4.2 규칙대로이고 스튜디오·미니 보기·눈치 모드에서 같다. 순서 계산은 한 곳의 순수 함수이고 단위 테스트가 있다.
+- [ ] 큐 순서가 §4.2 규칙대로이고 스튜디오(기존 "다음" 칩 대체)·미니 보기·눈치 모드에서 같다. 순서 계산은 코어의 순수 함수 하나이고 단위 테스트가 있다.
 - [ ] 단축키 한 번으로 큐 맨 앞 세션에 간다(cmux·Orca는 터미널까지, 그 외는 앱 활성화와 안내).
-- [ ] `idle` 알림, 추정 상태는 큐에 들어가지 않는다(A에 의존).
-- [ ] 결재 서류함과 도장, 번호표, 말풍선 색 단계가 스크린샷 리뷰에서 겹침 없이 보인다(라이트·다크, 1280).
+- [ ] `idle` 알림, `confidence = guess` 상태, 비대화형 세션은 큐에 들어가지 않는다(A에 의존).
+- [ ] 결재 서류함과 도장, 번호표, 말풍선 색 단계가 `visual_review.sh` 화면 검수에서 🔴·🟡 0건이다(라이트·다크, 1280).
 - [ ] 동작 줄이기 설정에서는 색 변화와 숫자만 쓰고 움직임은 없다.
 - [ ] 새 외부 통신 0, 사용자 설정 자동 수정 0.
 
-### 4.6 포함 / 제외
+### 4.7 포함 / 제외
 
 - **포함**: 큐 계산(코어), 종류별 표시, 단축키, 스튜디오 번호표·결재 서류함·말풍선 색·멈춤 연출 교체, 미니 칩, 눈치·업무 모드 섹션, 문서(README 사용법, MODES, CHANGELOG).
 - **제외**: 헛돌기 감지·턴 영수증(C), 충돌 경보·한도 페이스(D), Codex·Antigravity의 권한 구분(MCP 자기보고만 있어 불가. 이들은 `question`으로만 들어온다), LLM 요약.
@@ -134,13 +146,13 @@ Waitscape의 처음 의도는 **AI 코딩 CLI를 쓰는 데 실제로 도움이 
 |---|---|---|
 | Claude Code (훅 켬) | 전부 | 전부 |
 | Claude Code (훅 없음, 트랜스크립트만) | 근거 배지·추정은 알리지 않음 | 확신 있는 상태만 큐에 넣음 |
-| Codex·Antigravity (MCP 보고) | 근거 = 자기보고 배지. 30분 넘게 보고가 없는 `working`은 "확인 필요" | `question`·완료만 큐에 넣음 |
+| Codex·Antigravity (MCP 보고) | 근거 = 자기보고 배지. 30분 넘게 보고가 없는 `working`은 이미 `confidence = guess`(`mcp.rs` `GUESS_AFTER`)이므로 그걸 표시만 함 | `question`·완료만 큐에 넣음 |
 
 ## 6. 검증 방법
 
 - **자동**: `cargo test`(픽스처·parity·큐 순서), `node scripts/test_*.js`(스튜디오 순수 함수), 기존 CI.
 - **화면**: `visual_review.sh --matrix quick`에 목업 상황을 더한다. 질문 3건(권한·질문·멈춤)과 확인 안 한 완료 2건.
-- **실사용**: 하루 동안 가짜 질문 알림이 0인지 확인한다. 일지의 "질문으로 바뀐 뒤 사람 입력 없이 끝난 비율"을 로컬에서만 집계한다.
+- **실사용**: 세션 3개 이상을 돌린 하루 동안, OS "질문" 알림 중 사람 입력(UserPromptSubmit) 없이 다시 `working`/`done`이 된 것을 가짜로 센다. 목표는 훅 모드 0건이다. 집계는 로컬 일지에서만 한다.
 
 ## 7. 열린 질문
 
