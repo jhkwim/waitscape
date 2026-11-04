@@ -73,7 +73,7 @@
    "since": 1792519185,
    "started": 1792519170,
    "confidence": "guess",
-   "note": "Edit 승인을 기다리는 중일 수 있어요",
+   "note": "Edit",
    "listed": true,
    "source": "transcript",
    "project": "demo"
@@ -93,7 +93,7 @@
    "since": 1792519000,
    "started": 1792518940,
    "confidence": "guess",
-   "note": "Bash 승인을 기다리는 중일 수 있어요",
+   "note": "Bash",
    "listed": true,
    "source": "transcript",
    "project": "demo"
@@ -103,7 +103,7 @@
    "since": 1792519110,
    "started": 1792519100,
    "confidence": "guess",
-   "note": "Bash 승인을 기다리는 중일 수 있어요",
+   "note": "Bash",
    "listed": true,
    "source": "transcript",
    "project": "demo"
@@ -113,7 +113,7 @@
    "since": 1792519198,
    "started": 1792519180,
    "confidence": "sure",
-   "note": "질문에 답을 기다리는 중",
+   "note": "",
    "listed": true,
    "source": "transcript",
    "project": "demo"
@@ -123,7 +123,7 @@
    "since": 1792519196,
    "started": 1792519140,
    "confidence": "sure",
-   "note": "계획 승인을 기다리는 중",
+   "note": "",
    "listed": true,
    "source": "transcript",
    "project": "demo"

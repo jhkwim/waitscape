@@ -204,7 +204,7 @@ Object.assign(S.en, {
   "upd.title": "🎁 A new version is out!", "upd.from": "Now v{cur} → new v{v}", "upd.notes": "What's new",
   "upd.now": "Update now", "upd.more": "Details", "upd.later.day": "Hide for a day", "upd.mini": "New version {v} — click to update",
   "hint.hooks.t": "Hooks need an update", "hint.hooks.b": "Turn them on again to see permission requests right away instead of after 6 seconds. Quick approvals won't ping you.",
-  "hint.hooks.m": "Waitscape's entries in your Claude Code settings are brought up to date (adds watching permission requests), with a preview and a backup first. You can do this anytime in Settings → AI connection.", "hint.hooks.go": "Turn on again", "hint.hooks.later": "Close",
+  "hint.hooks.m": "Waitscape's entries in your Claude Code settings are brought up to date (adds watching permission requests), with a preview and a backup first. You can do this anytime in Settings → AI tools.", "hint.hooks.go": "Turn on again", "hint.hooks.later": "Close",
   "upd.just": "Updated to v{v}!", "upd.just.more": "See the GitHub release page for details.", "upd.just.ok": "Nice",
   "upd.go": "Update now and restart", "upd.down": "Downloading… {pct}%", "upd.down0": "Downloading…", "upd.inst": "Installing… restarting soon",
   "upd.safe": "The download is installed only after its signature is verified. Settings, modes and memos are kept.",

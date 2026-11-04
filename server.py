@@ -1076,7 +1076,7 @@ def build_state():
                 if s["started"]:
                     wait0.setdefault(e["sid"], e["ts"])
                 s.update(status="needs_input", since=e["ts"], ask="question",
-                         note="계획 승인을 기다리는 중" if e["ask"] == "plan" else "질문에 답을 기다리는 중")
+                         note="")  # 화면·알림이 지금 언어로 기본 문구 (Rust와 같음)
         elif ev == "Stop":
             if s["started"]:
                 s["run"] = e["ts"] - s["started"]

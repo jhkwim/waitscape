@@ -108,7 +108,15 @@ Waitscape works from Claude Code transcripts alone. To also use hooks, turn them
 ### 5. Uninstall
 1. **Settings → AI tools → Turn off hooks** in the app (removes only our entries and keeps the backup). Skip if you never enabled it.
 2. Delete the app: drag Waitscape to the Trash (macOS; turn off auto-start first if enabled), or Settings → Apps → Waitscape → Uninstall (Windows).
-3. Optionally delete the data folders listed in the table above. Claude Code's own `~/.claude/projects/` transcripts are only read, never modified.
+3. Optionally delete the data folders:
+   | | macOS | Windows |
+   |---|---|---|
+   | App settings · user modes | `~/Library/Application Support/io.github.jhkwim.waitscape/` | `%APPDATA%\io.github.jhkwim.waitscape\` |
+   | Diagnostic logs | `~/Library/Logs/io.github.jhkwim.waitscape/` | `%LOCALAPPDATA%\io.github.jhkwim.waitscape\logs\` |
+   | Hook binary · event log | `~/.claude/waiting-room/` | `%USERPROFILE%\.claude\waiting-room\` |
+   | settings.json backup | backup files in `~/.claude/` | backup files in `%USERPROFILE%\.claude\` |
+
+   Claude Code's own `~/.claude/projects/` transcripts are only read, never modified.
 
 ### 6. Troubleshooting: send the logs folder
 If a button does nothing or a window doesn't appear, please attach the app's diagnostic log to your issue.
