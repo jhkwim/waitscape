@@ -48,9 +48,9 @@ Python 참조 서버에는 이 기능이 없으므로 `fixtures/expected/`(동�
 2. 마지막 이벤트가 **중단** → `done`
 3. 대기 중 도구가 있음 (가장 오래된 것 기준, `wait = now - tool_use.ts`)
    - `AskUserQuestion`, `ExitPlanMode` → `needs_input`, `confidence: "sure"`, `since` = tool_use 시각
-     (`note`: 각각 "질문에 답을 기다리는 중", "계획 승인을 기다리는 중")
+     (`note`: 빈 문자열 — 화면·알림이 지금 언어로 기본 문구)
    - 권한이 필요할 수 있는 도구 = `Bash`, `Edit`, `MultiEdit`, `Write`, `NotebookEdit`, `WebFetch`, `WebSearch`, `mcp__*` 이고 `wait >= INPUT_GUESS`
-     → `needs_input`, `confidence: "guess"`, `since` = tool_use 시각, `note` = "<도구> 승인을 기다리는 중일 수 있어요".
+     → `needs_input`, `confidence: "guess"`, `since` = tool_use 시각, `note` = 도구 이름(예: "Bash") — 문장은 화면·알림이 지금 언어로.
      `run_in_background` Bash도 예외 없음(실제로는 실행 직후 결과가 오므로 오래 대기하면 오히려 권한 대기일 가능성이 큼).
      오래 걸리는 명령(테스트 등)과 구별할 수 없으므로 알림은 약하게(Q11), 훅 설치 권유 배너를 띄운다.
    - 그 밖(Read/Grep/Glob/Agent/Task/TodoWrite/Skill 등 또는 8초 미만) → `working`

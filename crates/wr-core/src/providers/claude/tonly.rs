@@ -565,19 +565,16 @@ impl TOnly {
         } else if !c.pend.is_empty() {
             status = "working";
             since = c.work_since;
-            if let Some((name, t)) = c.pend.values().find(|(n, _)| n == "AskUserQuestion" || n == "ExitPlanMode") {
+            if let Some((_, t)) = c.pend.values().find(|(n, _)| n == "AskUserQuestion" || n == "ExitPlanMode") {
                 status = "needs_input";
                 since = *t;
-                note = Some(json!(if name == "AskUserQuestion" {
-                    "질문에 답을 기다리는 중"
-                } else {
-                    "계획 승인을 기다리는 중"
-                }));
+                // 메모는 비운다 — 화면·알림이 지금 언어로 기본 문구(엔진 문자열은 언어를 모름)
+                note = Some(json!(""));
             } else if let Some((name, t)) = c.pend.values().find(|(n, t)| needs_permission(n) && now - t >= INPUT_GUESS) {
                 status = "needs_input";
                 since = *t;
                 confidence = "guess";
-                note = Some(json!(format!("{name} 승인을 기다리는 중일 수 있어요")));
+                note = Some(json!(name)); // 도구 이름만 — 문장은 화면·알림이 지금 언어로
             }
         } else {
             match &c.last {
