@@ -179,7 +179,7 @@ For the browser version (`python3 server.py`), tests and the API, see the [devel
 | `web/` | UI: shared core and mode packages (no build step) |
 | `types/` | Official types for `/state`, `/trace` and the mode API |
 | `fixtures/`, `scripts/` | Test data and checks |
-| `docs/` | [Install](docs/INSTALL.md), [release](docs/RELEASE.md), [development](docs/DEVELOPMENT.md) |
+| `docs/` | [Install](docs/INSTALL.md), [release](docs/RELEASE.md), [development](docs/DEVELOPMENT.md), [roadmap PRD](docs/PRD.md) (Korean) |
 
 File-by-file notes are in the [development guide](docs/DEVELOPMENT.md#구조); the design is in [ARCHITECTURE.md](ARCHITECTURE.md).
 

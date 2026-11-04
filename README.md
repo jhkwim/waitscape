@@ -179,7 +179,7 @@ cargo tauri build    # 설치 파일 만들기
 | `web/` | 화면: 공통 코어와 모드 패키지 (빌드 단계 없음) |
 | `types/` | `/state`·`/trace`·모드 API 공식 타입 |
 | `fixtures/`, `scripts/` | 테스트 데이터와 검사 도구 |
-| `docs/` | [설치](docs/INSTALL.md)·[릴리스](docs/RELEASE.md)·[개발 문서](docs/DEVELOPMENT.md) |
+| `docs/` | [설치](docs/INSTALL.md)·[릴리스](docs/RELEASE.md)·[개발 문서](docs/DEVELOPMENT.md)·[기획(PRD)](docs/PRD.md) |
 
 파일별 설명은 [개발 문서의 「구조」](docs/DEVELOPMENT.md#구조)에, 설계는 [ARCHITECTURE.md](ARCHITECTURE.md)에 있어요.
 

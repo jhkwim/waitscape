@@ -265,6 +265,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
   docs/INSTALL.md     미서명 설치 안내(Gatekeeper·SmartScreen)·체크섬 확인·훅은 선택·업데이트·제거 방법 (한/영)
   docs/RELEASE.md     릴리스 흐름(버튼 → PR → 태그 → 빌드 → 앱 알림), 업데이터 서명 키 만들기·배포 환경(release) 시크릿 등록, 배포 위치(코드 저장소 Releases)와 옛 배포 저장소 정리, 빌드 플레이버·스토어 계획
   docs/DEVELOPMENT.md 이 문서: 실행·빌드·구조·API·테스트·훅 수동 등록·MCP 보고
+  docs/PRD.md         도구 가치 로드맵 기획(신뢰 기반 → 관제 인박스 → 헛돌기·영수증 → 충돌·한도 페이스), 단계별 성공 기준
   docs/assets/        README 소개 이미지·움짤(가짜 데이터로 찍은 화면, 앱 아이콘 사본)
   README.md / README.en.md  사용자용 소개 페이지 (한국어 / 영어)
   CHANGELOG.md        앱 변경 내역 (릴리스 때 scripts/version.py가 [Unreleased]를 새 버전 절로)
