@@ -22,6 +22,8 @@ pub struct Alert {
     pub project: String,
     pub mins: i64,
     pub guess: bool,
+    /// 질문 종류(state `ask`, #120): "permission" | "question" | "" 모름
+    pub ask: &'static str,
 }
 
 impl Alert {
@@ -34,13 +36,20 @@ impl Alert {
             (Kind::Done, false) => "작업이 끝났습니다".into(),
             (Kind::Done, true) if m > 0 => format!("Task finished · {m} min"),
             (Kind::Done, true) => "Task finished".into(),
-            (Kind::Input, false) => if self.guess {
-                "확인이 필요할 수 있습니다"
-            } else {
-                "입력이 필요합니다"
+            (Kind::Input, false) => match (self.guess, self.ask) {
+                (true, _) => "확인이 필요할 수 있습니다",
+                (_, "permission") => "승인이 필요합니다",
+                (_, "question") => "답변이 필요합니다",
+                _ => "입력이 필요합니다",
             }
             .into(),
-            (Kind::Input, true) => if self.guess { "May need input" } else { "Input needed" }.into(),
+            (Kind::Input, true) => match (self.guess, self.ask) {
+                (true, _) => "May need input",
+                (_, "permission") => "Approval needed",
+                (_, "question") => "Answer needed",
+                _ => "Input needed",
+            }
+            .into(),
             (Kind::Stall, false) => format!("응답이 없습니다 · {m}분"),
             (Kind::Stall, true) => format!("No response · {m} min"),
         };
@@ -73,6 +82,10 @@ fn tr(lang: &str, key: &str) -> &'static str {
         ("input", true) => "{p} needs input",
         ("input?", false) => "{p} 확인이 필요할 수도 있어요",
         ("input?", true) => "{p} may need your input",
+        ("perm", false) => "🔑 {p} 권한 승인 필요",
+        ("perm", true) => "🔑 {p} needs your approval",
+        ("ask", false) => "❓ {p}의 질문",
+        ("ask", true) => "❓ {p} has a question",
         ("stall", false) => "{p} 멈춤 의심",
         ("stall", true) => "{p} may be stuck",
         ("stall.body", false) => "{who}: {m}분째 응답 없음",
@@ -121,6 +134,7 @@ impl Detector {
                         project: project.to_string(),
                         mins: m,
                         guess: false,
+                        ask: "",
                     });
                 }
                 now_stalls.insert(key);
@@ -150,17 +164,30 @@ impl Detector {
                             // 1분 미만은 1분으로(0분 표기 없음), 실행 시간을 모르면 0 = 분 생략
                             mins: if run > 0.0 { ((run / 60.0).round() as i64).max(1) } else { 0 },
                             guess: false,
+                            ask: "",
                         });
                     } else if status == "needs_input" {
                         let guess = s(x, "confidence") == "guess";
                         let note = x.get("note").and_then(|v| v.as_str()).unwrap_or("");
+                        let ask = match s(x, "ask") {
+                            "permission" => "permission",
+                            "question" => "question",
+                            _ => "",
+                        };
+                        let key = match (guess, ask) {
+                            (true, _) => "input?",
+                            (_, "permission") => "perm",
+                            (_, "question") => "ask",
+                            _ => "input",
+                        };
                         out.push(Alert {
                             kind: Kind::Input,
-                            title: tr(lang, if guess { "input?" } else { "input" }).replace("{p}", project),
+                            title: tr(lang, key).replace("{p}", project),
                             body: clip(note, 160),
                             project: project.to_string(),
                             mins: 0,
                             guess,
+                            ask,
                         });
                     }
                 }
@@ -209,6 +236,7 @@ mod tests {
                 project: "demo".into(),
                 mins: 0,
                 guess: false,
+                ask: "",
             }]
         );
         // #118: 훅의 추정 권한 요청은 알리지 않고, 확실해지는 순간 한 번 알린다
@@ -225,6 +253,23 @@ mod tests {
         let mut t = st("needs_input", None);
         t["sessions"][0]["confidence"] = json!("guess");
         assert_eq!(d.feed(&t, "ko")[0].title, "demo 확인이 필요할 수도 있어요");
+        // #120: 질문 종류별 문구 (권한 / 질문), 눈치 문구도
+        d.feed(&st("working", None), "ko");
+        let mut p = st("needs_input", None);
+        p["sessions"][0]["ask"] = json!("permission");
+        let a = d.feed(&p, "ko").remove(0);
+        assert_eq!(
+            (a.title.as_str(), a.plain("ko").1.as_str(), a.plain("en").1.as_str()),
+            ("🔑 demo 권한 승인 필요", "승인이 필요합니다", "Approval needed")
+        );
+        d.feed(&st("working", None), "en");
+        let mut q = st("needs_input", None);
+        q["sessions"][0]["ask"] = json!("question");
+        let a = d.feed(&q, "en").remove(0);
+        assert_eq!(
+            (a.title.as_str(), a.plain("ko").1.as_str()),
+            ("❓ demo has a question", "답변이 필요합니다")
+        );
     }
 
     #[test]

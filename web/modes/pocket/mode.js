@@ -42,8 +42,10 @@ function dotKind(status, h) {
   if (h && h.level === "stall") return "stall";
   return { working: "work", agents: "ag", done: "done" }[status] || "idle";
 }
-const askKind = s => /permission/i.test(s.note || "") ? "허가 요청" : "입력 대기";
+/* 질문 종류는 state ask가 먼저(#120). 옛 Claude Code(ask 없음)는 알림 문구로 짐작 */
+const askKind = s => s.ask === "permission" || (!s.ask && /permission/i.test(s.note || "")) ? "허가 요청" : s.ask === "question" ? "질문" : "입력 대기";
 function askTitle(s) {
+  if (s.ask === "permission" && s.note) return `${s.note} — 허가할까요?`;
   const n = s.note || "", m = n.match(/permission to use ([\w.:-]+)/i);
   if (m) return `${m[1]} 실행을 허가할까요?`;
   if (/waiting for your input/i.test(n)) return "다음 지시를 기다려요";

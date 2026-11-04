@@ -381,6 +381,8 @@ const isBig = run => (run || 0) >= BIG_DONE_SEC;
    대신 사장님이 잘한 일에 준다 — ⚡ 빠른 답장(FAST): 질문에 1분 안에 답해 다시 일하게 하면 +10, 이어지면 콤보마다 +5(최대 +20), 1분 넘게 걸리면 콤보 끊김.
    하루 예상(완료 30번 중 10분↑ 3번, 질문 10번 중 빠른 답 6번): 27 × 25 = 675 + 3 × 50 = 150 → 825, 빠른 답 ≈ +80, 페이스 +40, 절약 +10 ⇒ ≈ 955(예전 ≈ 950과 비슷).
    층 꾸미기 가격(80~600)이면 소품 1~2개/일, 한 층 5칸 ≈ 1,200 = 하루 반, 6층 전부 ≈ 2주 */
+/* 질문 종류(#120, state ask): 🔑 권한 승인 / ❓ 질문(없으면 모름 — 옛 Claude Code·트랜스크립트·MCP) */
+const askIco = a => a === "permission" ? "🔑" : "❓";
 const EARN = { done: 25, short: 10, big: 50, huge: 75, SHORT_SEC: 30, HUGE_SEC: 1800 };
 const earnOf = s => { const run = (s && s.run) || 0; return run >= EARN.HUGE_SEC ? EARN.huge : isBig(run) ? EARN.big : run > 0 && run < EARN.SHORT_SEC ? EARN.short : EARN.done; };
 const FAST = { SEC: 60, base: 10, step: 5, max: 20 };
@@ -1145,7 +1147,7 @@ function mountLobby(root, ctx) {
   function infoOf(s, st, kind) {
     const an = animalOf(s.sid), pid = C.provider(st, s), sub = C.can(st, s, "subagents"), rp = repOf(s);
     return { sid: s.sid, kind, animal: an.id, shiny: an.shiny, pk: provKey(pid.id), pname: pid.name, floor: 0,
-      project: s.project || "", note: s.note || "", guess: s.confidence === "guess", run: s.run || 0, since: s.since || 0, s, mux: muxOf(s),
+      project: s.project || "", note: s.note || "", guess: s.confidence === "guess", ask: s.ask, run: s.run || 0, since: s.since || 0, s, mux: muxOf(s),
       step: stepOf(s), title: rp && rp.title || "", cheer: rp && rp.big && rp.cheer || "", aib: aibOn(s, kind, ctx.now()),   // ✍️ MCP 보고
       ag: sub ? (s.agents || []).filter(a => a.status === "running") : [], agAll: sub ? s.agents || [] : [] };
   }
@@ -1629,7 +1631,7 @@ function mountLobby(root, ctx) {
       if (f.kind === "done") typing = false;
       const solved = (shot.k === "ask" || shot.k === "askalt") && shot.ask.sid === f.sid && shot.solved != null;
       if (f.kind === "ask" && !solved) { typing = false; o.arms = "r"; dy = -Math.round(Math.abs(Math.sin(T * 4)) * 2) * U * mot; sp = true;
-        bub = look ? [`❓ ${esc(cut(f.note || X("확인이 필요해요", "Needs your input"), 17))}`, 6, 42] : [`❓ ${esc(cut(f.note || X("확인이 필요해요", "Needs your input"), 17))}${f.guess ? " " + X("(추정)", "(guess)") : ""}<span class="f">⌨️ ${X("터미널에서 답해 주세요", "Please answer in the terminal")}</span>`, 6, 22]; }
+        bub = look ? [`${askIco(f.ask)} ${esc(cut(f.note || X("확인이 필요해요", "Needs your input"), 17))}`, 6, 42] : [`${askIco(f.ask)} ${esc(cut(f.note || X("확인이 필요해요", "Needs your input"), 17))}${f.guess ? " " + X("(추정)", "(guess)") : ""}<span class="f">⌨️ ${f.ask === "permission" ? X("터미널에서 허락해 주세요", "Please approve in the terminal") : X("터미널에서 답해 주세요", "Please answer in the terminal")}</span>`, 6, 22]; }
       if (solved) { typing = false; o.arms = "u"; o.mouth = "o"; dy = -Math.round(hop * 4) * U; sp = true; bub = [X("고마워요! 바로 실행할게요 🚀", "Thanks! On it 🚀"), 24, 30]; }
       if (shot.k === "launch" && shot.ev.big && shot.ev.info.sid === f.sid && el < L_ROOF) { typing = false; o.arms = "u"; o.mouth = "o"; dy = -Math.round(hop * 4) * U; sp = true; bub = [X("🎉 다 했어요!", "🎉 All done!"), 84, 36]; }
       if (D && D.sid === f.sid && dU >= -.2 && dU < 2.4) { typing = false; o.arms = "r"; bub = [X(`🤖 서브 ${D.n}명 출동!`, `🤖 ${D.n} subs, go!`), 6, 36]; }
@@ -6792,10 +6794,11 @@ C.registerMode({
       const askL = asker && !DRon ? Math.round(asker.x + 6 - asker.w / 2 - 14 - 290) : null;   // 질문 말풍선 왼쪽 끝(폭 290)
       if (asker && !DRon) {
         const f = model.floors[floorIdx.get(asker.sid)], s = f && f.s;
-        const q = s && s.note ? s.note : X("확인이 필요해요", "Needs your input");
-        const h = `<span class="hd" style="background:${PROV[f.pk].c}">${f.shiny ? "✨" : ""}${EMO[f.animal]} ${esc(aName(f.animal))} · ${esc(f.pname)} ❓${s && s.confidence === "guess" ? " " + X("(추정)", "(guess)") : ""}</span>` +
+        const perm = s && s.ask === "permission";
+        const q = s && s.note ? (perm ? X(`해도 될까요? — ${s.note}`, `May I? — ${s.note}`) : s.note) : X("확인이 필요해요", "Needs your input");   // 🔑 권한이면 무엇을 허락받는지 (#120)
+        const h = `<span class="hd" style="background:${PROV[f.pk].c}">${f.shiny ? "✨" : ""}${EMO[f.animal]} ${esc(aName(f.animal))} · ${esc(f.pname)} ${askIco(s && s.ask)}${perm ? " " + X("권한", "permission") : ""}${s && s.confidence === "guess" ? " " + X("(추정)", "(guess)") : ""}</span>` +
           `<span class="q">${esc(q)}</span>${canTerm ? `<button class="btn" type="button" data-act="term" data-sid="${esc(asker.sid)}">🖥️ ${muxOf(s) ? X(`${muxOf(s)}로 이동`, `Go to ${muxOf(s)}`) : X("터미널로 이동", "Go to terminal")}</button>` : ""}` +
-          `<span class="hint">${muxOf(s) ? X(`${muxOf(s)}에서 답해 주세요`, `Please answer in ${muxOf(s)}`) : X("터미널에서 답해 주세요", "Please answer in the terminal")}</span>`;
+          `<span class="hint">${perm ? (muxOf(s) ? X(`${muxOf(s)}에서 허락해 주세요`, `Please approve in ${muxOf(s)}`) : X("터미널에서 허락해 주세요", "Please approve in the terminal")) : muxOf(s) ? X(`${muxOf(s)}에서 답해 주세요`, `Please answer in ${muxOf(s)}`) : X("터미널에서 답해 주세요", "Please answer in the terminal")}</span>`;
         html(askb, h); sty(askb, "display", "block"); askb.dataset.sid = asker.sid;   // 👆 POKE: 그 층을 누르면 이 말풍선 강조(터미널 버튼이 없는 브라우저도) sty(askb, "width", "290px");
         sty(askb, "left", askL + "px"); sty(askb, "top", (FT[n] - 34) + "px");
       } else sty(askb, "display", "none");

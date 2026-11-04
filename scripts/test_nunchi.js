@@ -40,6 +40,11 @@ assert.deepStrictEqual(N.progress(s("a", "working", { ctx: null, todos: [], repo
 assert.deepStrictEqual(N.alerts(s("a", "working", { health: { level: "stall" }, ctx: 90 })), [["nx.b.stall", null], ["nx.b.ctx", 90]]);
 assert.deepStrictEqual(N.alerts(s("a", "working", { agents: [{ status: "running", health: { level: "stall" } }], ctx: 84 })), [["nx.b.stall", null]]);
 assert.deepStrictEqual(N.alerts(s("a", "done", { health: { level: "stall" } })), []);
+// #120 질문 종류·추정·근거(훅이면 없음)
+assert.deepStrictEqual(N.alerts(s("a", "needs_input", { ask: "permission", confidence: "guess", source: "hook" })), [["nx.b.perm", null], ["nx.b.guess", null]]);
+assert.deepStrictEqual(N.alerts(s("a", "needs_input", { ask: "question" })), [["nx.b.q", null]]);
+assert.deepStrictEqual(N.alerts(s("a", "needs_input", { confidence: "guess", source: "transcript" })), [["nx.b.guess", null], ["nx.b.tx", null]]);
+assert.deepStrictEqual(N.alerts(s("a", "working", { ask: "permission", source: "mcp" })), [["nx.b.mcp", null]]);
 // 서브에이전트 펼치기: 설명·도구·실행 중인 것만, 경과
 const ag = N.subs(s("a", "working", { agents: [{ desc: "조사", type: "Explore", status: "running", since: NOW - 95 }, { desc: "", tools: 0, status: "done", since: NOW - 9 },
   { desc: "", type: "Plan", tools: 3, status: "done", since: NOW - 400, ended: NOW - 130 }] }), NOW);

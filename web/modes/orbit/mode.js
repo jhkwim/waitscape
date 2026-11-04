@@ -39,7 +39,8 @@ function vis(s, now) {
 function healthText(h) {
   return h.tool ? `${h.tool} ${mins(h.secs)}분째 실행 중` : `${mins(h.secs)}분째 응답 없음`;
 }
-function askText(note) {
+function askText(note, ask) {
+  if (ask === "permission" && note) return `${note} 허가를 기다려요`;   // 질문 종류는 state ask가 먼저(#120), 없으면 알림 문구로 짐작
   const m = /permission to use (\S+)/i.exec(note || "");
   if (m) return `${m[1]} 허가를 기다려요`;
   if (/waiting for your input/i.test(note || "")) return "입력을 기다려요";
@@ -84,7 +85,7 @@ C.registerMode({
   chimeWave: "sine",
   texts: {
     done: s => [`${s.project} 궤도 한 바퀴 완료`, s.prompt || ""],
-    input: s => [`${s.project} 신호 수신`, askText(s.note)],
+    input: s => [`${s.project} 신호 수신`, askText(s.note, s.ask)],
     stall: x => [`${x.project} 궤도 이탈 의심`, `${x.agent ? x.agent.desc || x.agent.type : "메인 세션"}: ${healthText(x.health)}`],
     memo: (s, text) => [`${s.project} 메모 준비됐어요`, text.slice(0, 80)],
     title: ({ calling, working }) => calling ? `(${calling}) 신호 수신 · 궤도` : working ? `${working}개 공전 중 · 궤도` : "궤도 · Claude 대기실",
@@ -471,7 +472,7 @@ C.registerMode({
       const t = s.todos, td = t.filter(x => x.status === "completed").length;
       setHTML(pdyn, `
         <div class="ob-ph"><i style="--c:${COL[p.v]}"></i><b>${esc(s.project)}</b><span>${LABEL[p.v]} · ${dur(now - s.since)}</span>${p === pinned ? `<button class="ob-x" type="button" aria-label="닫기">×</button>` : ""}</div>
-        ${p.v === "ask" ? `<div class="ob-callout">${esc(askText(s.note))}</div>` : ""}
+        ${p.v === "ask" ? `<div class="ob-callout">${esc(askText(s.note, s.ask))}</div>` : ""}
         ${p.v === "stall" ? `<div class="ob-callout stall">${esc(healthText(s.health))} · 터미널을 확인해 보세요</div>` : ""}
         <h4>프롬프트</h4><p class="ob-prompt">${s.prompt ? esc(s.prompt) : "—"}</p>
         ${s.say ? `<h4>마지막 발화</h4><p class="ob-say">${esc(s.say)}</p>` : ""}
@@ -554,7 +555,7 @@ C.registerMode({
         const s = calling[0], la = s.activity[s.activity.length - 1];
         askCard._sid = s.sid;
         setText(askCard.querySelector(".ob-ask-k"), `● 신호 수신 · ${ago(now - s.since)}${calling.length > 1 ? ` · 외 ${calling.length - 1}개` : ""}`);
-        setText(askCard.querySelector(".ob-ask-h"), `${s.project} · ${askText(s.note)}`);
+        setText(askCard.querySelector(".ob-ask-h"), `${s.project} · ${askText(s.note, s.ask)}`);
         const d = askCard.querySelector(".ob-ask-d");
         d.hidden = !la;
         if (la) setText(d, (la.icon === "⚡" ? "$ " : la.icon + " ") + la.text);

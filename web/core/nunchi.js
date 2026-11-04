@@ -49,10 +49,15 @@ function progress(s) {
   const step = r && Number.isInteger(r.step) && Number.isInteger(r.total) && r.step >= 1 && r.step <= r.total ? { n: r.step, of: r.total, title: String(r.title || "") } : null;
   return { ctx: c, todo: td, step };
 }
-// 주의 표시: 멈춤 의심(메인 작업 중 또는 실행 중 서브에이전트) · 컨텍스트 85% 이상 → [i18n 키, 값]
+// 주의 표시: 질문 종류(권한 승인·질문)·추정·근거(훅이 아니면 출처) · 멈춤 의심(메인 작업 중 또는 실행 중 서브에이전트) · 컨텍스트 85% 이상 → [i18n 키, 값]
 const CTX_WARN = 85;
 function alerts(s) {
   const out = [], ag = Array.isArray(s.agents) ? s.agents : [];
+  if (s.status === "needs_input" && s.ask === "permission") out.push(["nx.b.perm", null]);   // #120
+  else if (s.status === "needs_input" && s.ask === "question") out.push(["nx.b.q", null]);
+  if (s.confidence === "guess") out.push(["nx.b.guess", null]);
+  if (s.source === "transcript") out.push(["nx.b.tx", null]);
+  else if (s.source === "mcp") out.push(["nx.b.mcp", null]);
   if ((s.status === "working" && s.health && s.health.level === "stall") || ag.some(a => a.status === "running" && a.health && a.health.level === "stall")) out.push(["nx.b.stall", null]);
   const c = progress(s).ctx;
   if (c != null && c >= CTX_WARN) out.push(["nx.b.ctx", c]);
