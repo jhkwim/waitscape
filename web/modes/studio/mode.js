@@ -7279,9 +7279,9 @@ C.registerMode({
         const raw = f.s.status, prev = prevRaw.get(f.sid), nm = f.label.replace("·", " · ");
         /* ⚡ 질문이 뜬 시각: 일하던 중(working)에 바로 질문으로 바뀐 것만 — 끝난 뒤 1분쯤 오는 "입력을 기다려요" 알림(done → needs_input)은 질문이 아님.
            같은 질문에 알림이 또 와서 since가 다시 적혀도 처음 본 시각을 지킴. MCP 세션은 AI가 상태를 직접 쓰므로 세지 않음(셀프 채점 방지) */
-        /* 추정 질문(confidence guess — 권한 요청만 오고 아직 확인 전, 보통 몇 초 안에 바로 승인됨)은 세지도 기록하지도 않고, 확실해지면 그때 질문 시각(since)부터 (#118) */
-        const guess = raw === "needs_input" && f.s.confidence === "guess", wasGuess = askGuess.has(f.sid);
-        if (guess) askGuess.add(f.sid); else askGuess.delete(f.sid);
+        /* 훅의 추정 권한 요청(confidence guess + ask permission — 아직 확인 전, 보통 몇 초 안에 바로 승인됨)은 세지도 기록하지도 않고, 확실해지면 그때 질문 시각(since)부터 (#118) */
+        const guess = raw === "needs_input" && f.s.confidence === "guess" && f.s.ask === "permission", wasGuess = askGuess.has(f.sid);
+        if (guess) { askGuess.add(f.sid); if (!wasGuess) askSince.delete(f.sid); } else askGuess.delete(f.sid);
         if (raw === "needs_input" && !guess && !firstSync && (prev === "working" || wasGuess) && f.s.source !== "mcp" && f.s.since > 0 && !askSince.has(f.sid)) askSince.set(f.sid, f.s.since);
         if (!firstSync) {
           if (prev === undefined) pushLog("🚪", X(`${nm} · ${cut(f.s.project, 14)} 출근`, `${nm} · ${cut(f.s.project, 14)} clocked in`));

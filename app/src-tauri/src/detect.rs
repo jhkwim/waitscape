@@ -129,10 +129,11 @@ impl Detector {
         self.stalls = now_stalls;
         for x in &sessions {
             let sid = s(x, "sid").to_string();
-            // 추정 질문(confidence guess: 권한 요청만 오고 아직 확인 전·트랜스크립트 추정)은 알리지 않고 따로 기억한다 —
-            // 확실해지는 순간(guess → sure) 처음으로 알린다 (#118, core.js detect()와 같은 규칙)
+            // 훅의 추정 권한 요청(confidence guess + ask permission: PermissionRequest만 오고 아직 확인 전 — 보통 몇 초 안에 바로 승인됨)은
+            // 알리지 않고 따로 기억한다 — 확실해지는 순간(guess → sure) 처음으로 알린다 (#118, core.js detect()와 같은 규칙).
+            // 트랜스크립트 추정(확실해질 일이 없음)은 예전처럼 "확인이 필요할 수도"로 알린다
             let status = match s(x, "status") {
-                "needs_input" if s(x, "confidence") == "guess" => "needs_input?".to_string(),
+                "needs_input" if s(x, "confidence") == "guess" && s(x, "ask") == "permission" => "needs_input?".to_string(),
                 st => st.to_string(),
             };
             if let Some(p) = self.prev.get(&sid) {
@@ -151,7 +152,7 @@ impl Detector {
                             guess: false,
                         });
                     } else if status == "needs_input" {
-                        let guess = false;
+                        let guess = s(x, "confidence") == "guess";
                         let note = x.get("note").and_then(|v| v.as_str()).unwrap_or("");
                         out.push(Alert {
                             kind: Kind::Input,
@@ -210,14 +211,20 @@ mod tests {
                 guess: false,
             }]
         );
-        // #118: 추정 질문은 알리지 않고, 확실해지는 순간 한 번 알린다
+        // #118: 훅의 추정 권한 요청은 알리지 않고, 확실해지는 순간 한 번 알린다
         let mut g = st("needs_input", None);
         g["sessions"][0]["confidence"] = json!("guess");
+        g["sessions"][0]["ask"] = json!("permission");
         assert!(d.feed(&g, "ko").is_empty(), "추정은 알리지 않음");
         assert!(d.feed(&g, "ko").is_empty());
         let a = d.feed(&st("needs_input", None), "ko");
         assert_eq!((a.len(), a[0].title.as_str()), (1, "demo 입력 필요"), "추정 → 확실");
         assert!(d.feed(&g, "ko").is_empty(), "확실 → 추정은 다시 알리지 않음");
+        // 트랜스크립트 추정(ask 없음)은 예전처럼 "확인이 필요할 수도"
+        d.feed(&st("working", None), "ko");
+        let mut t = st("needs_input", None);
+        t["sessions"][0]["confidence"] = json!("guess");
+        assert_eq!(d.feed(&t, "ko")[0].title, "demo 확인이 필요할 수도 있어요");
     }
 
     #[test]

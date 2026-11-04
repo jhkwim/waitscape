@@ -1,5 +1,5 @@
 {
- "done_today": 12,
+ "done_today": 14,
  "limits": {
   "five_hour": {
    "resets_at": 1792530600,
@@ -120,6 +120,112 @@
    ]
   },
   {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 정리",
+     "ts": 1792519105
+    }
+   ],
+   "agents": [
+    {
+     "aid": "ak5",
+     "bg": false,
+     "desc": "정리",
+     "last": 1792519160,
+     "now": null,
+     "recent": [],
+     "since": 1792519106,
+     "status": "running",
+     "tools": 0,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "agent",
+   "kinds": {
+    "agent": 1
+   },
+   "last": 1792519160,
+   "note": "pytest",
+   "project": "ask-lab",
+   "prompt": "끝난 뒤 바로 승인",
+   "prompt_ts": 1792519100,
+   "run": 20,
+   "sid": "fx-ask-donequick",
+   "since": 1792519120,
+   "started": null,
+   "status": "agents",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 정리"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 정리",
+     "ts": 1792519105
+    }
+   ],
+   "agents": [
+    {
+     "aid": "ak4",
+     "bg": false,
+     "desc": "정리",
+     "last": 1792519180,
+     "now": {
+      "icon": "⚡",
+      "kind": "bash",
+      "text": "pytest"
+     },
+     "recent": [
+      {
+       "icon": "⚡",
+       "kind": "bash",
+       "text": "pytest"
+      }
+     ],
+     "since": 1792519106,
+     "status": "running",
+     "tools": 1,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "agent",
+   "kinds": {
+    "agent": 1
+   },
+   "last": 1792519180,
+   "note": "pytest",
+   "project": "ask-lab",
+   "prompt": "끝난 뒤 서브에이전트 권한",
+   "prompt_ts": 1792519100,
+   "run": 20,
+   "sid": "fx-ask-donesub",
+   "since": 1792519120,
+   "started": null,
+   "status": "agents",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 정리"
+    ]
+   ]
+  },
+  {
    "activity": [],
    "agents": [],
    "ask": "question",
@@ -157,6 +263,28 @@
    "since": 1792519050,
    "started": null,
    "status": "done",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ask": "permission",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519170,
+   "note": "Claude needs your permission to use Bash",
+   "project": "ask-lab",
+   "prompt": "긴 도구 뒤 새 권한",
+   "prompt_ts": 1792519120,
+   "run": 0,
+   "sid": "fx-ask-late",
+   "since": 1792519170,
+   "started": 1792519120,
+   "status": "needs_input",
    "todos": [],
    "tools": 0,
    "trail": []
@@ -405,6 +533,87 @@
    "todos": [],
    "tools": 1,
    "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 조사"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 조사",
+     "ts": 1792519104
+    },
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 조사",
+     "ts": 1792519104
+    }
+   ],
+   "agents": [
+    {
+     "aid": "ak6",
+     "bg": false,
+     "desc": "조사",
+     "last": 1792519170,
+     "now": {
+      "icon": "⚡",
+      "kind": "bash",
+      "text": "pytest"
+     },
+     "recent": [
+      {
+       "icon": "⚡",
+       "kind": "bash",
+       "text": "pytest"
+      }
+     ],
+     "since": 1792519105,
+     "status": "running",
+     "tools": 1,
+     "type": "Explore"
+    },
+    {
+     "aid": "ak7",
+     "bg": false,
+     "desc": "조사",
+     "last": 1792519160,
+     "now": null,
+     "recent": [],
+     "since": 1792519105,
+     "status": "running",
+     "tools": 0,
+     "type": "Explore"
+    }
+   ],
+   "ask": "permission",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "agent",
+   "kinds": {
+    "agent": 2
+   },
+   "last": 1792519170,
+   "note": "pytest",
+   "project": "ask-lab",
+   "prompt": "서브에이전트 둘이 질문",
+   "prompt_ts": 1792519100,
+   "run": 0,
+   "sid": "fx-ask-two",
+   "since": 1792519150,
+   "started": 1792519100,
+   "status": "needs_input",
+   "todos": [],
+   "tools": 2,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 조사"
+    ],
     [
      "agent",
      "🤖",
@@ -1728,10 +1937,10 @@
    "trail": []
   }
  ],
- "today_agents": 13,
+ "today_agents": 17,
  "today_kinds": {
-  "agent": 10,
-  "bash": 8,
+  "agent": 14,
+  "bash": 10,
   "edit": 3,
   "other": 1,
   "read": 9,
@@ -1744,5 +1953,5 @@
   "out": 23740,
   "total": 241480
  },
- "waited_today": 5430.0
+ "waited_today": 5470.0
 }

@@ -84,8 +84,10 @@ pub struct HookSession {
     perm_t: Option<f64>,
     /// 지금 질문이 추정(guess)인가 — PermissionRequest만 오고 아직 알림 확인 전
     pub guess: bool,
-    /// 서브에이전트가 올린 질문이면 그 aid (그 에이전트가 다시 움직이면 풀림)
-    ask_aid: Option<String>,
+    /// 서브에이전트가 올린 질문이면 그 aid들 (모두 다시 움직이면 풀림). 메인이 올린 질문이면 비어 있음
+    ask_aids: Vec<String>,
+    /// 질문 직전 (status, since) — 서브에이전트 해제·바로 승인 되돌림 때 이 상태로 돌아간다(끝난 세션이 working으로 되살아나지 않게)
+    pre: Option<(&'static str, f64)>,
 }
 
 /// PermissionRequest 뒤 이만큼 permission_prompt 알림(약 6초 대기 뒤 옴)이 없으면 바로 승인된 것으로 본다 (#118)
@@ -116,7 +118,8 @@ fn apply_ask(h: &mut HookSession, e: &Value, ts: f64, kind: Option<&'static str>
         if sure && h.guess {
             h.guess = false;
             if let Some(t0) = h.perm_t.take() {
-                if s.started.is_some_and(|x| x != 0.0) && h.wait0.is_none() {
+                let was_working = h.pre.is_some_and(|(st, _)| st == "working");
+                if was_working && s.started.is_some_and(|x| x != 0.0) && h.wait0.is_none() {
                     h.wait0 = Some(t0);
                 }
             }
@@ -124,26 +127,60 @@ fn apply_ask(h: &mut HookSession, e: &Value, ts: f64, kind: Option<&'static str>
         if s.ask.is_none() {
             s.ask = kind;
         }
+        // 서브에이전트들이 올린 질문에 다른 서브에이전트가 더하면 모두 풀려야 풀림 (메인이 올린 질문엔 더하지 않음)
+        if let Some(a) = aid {
+            if !h.ask_aids.is_empty() && !h.ask_aids.contains(&a) {
+                h.ask_aids.push(a);
+            }
+        }
         return;
     }
     if sure && s.status == "working" && s.started.is_some_and(|x| x != 0.0) && h.wait0.is_none() {
         h.wait0 = Some(ts);
     }
+    h.pre = Some((s.status, s.since));
     s.status = "needs_input";
     s.since = ts;
     s.note = Some(text);
     s.ask = kind;
     h.guess = !sure;
     h.perm_t = if sure { None } else { Some(ts) };
-    h.ask_aid = aid;
+    h.ask_aids = aid.into_iter().collect();
 }
 
-/// 질문이 풀림(다음 도구·프롬프트·재개·Stop·종료)
+/// 질문 표시를 지운다(다음 도구·프롬프트·재개·Stop·종료가 상태를 정함)
 fn clear_ask(h: &mut HookSession) {
     h.s.ask = None;
     h.perm_t = None;
     h.guess = false;
-    h.ask_aid = None;
+    h.ask_aids.clear();
+    h.pre = None;
+}
+
+/// 추정 권한 요청이 `at` 시각까지 PERM_QUICK초 넘게 확인되지 않았으면 바로 승인된 것 — 다음 이벤트 처리 전·재생 끝에 본다
+fn quick_approved(h: &mut HookSession, at: f64) {
+    if let (true, Some(t0)) = (h.guess && h.s.status == "needs_input", h.perm_t) {
+        if at - t0 > PERM_QUICK {
+            end_ask(h, t0);
+        }
+    }
+}
+
+/// 메인 이벤트 없이 질문이 풀림(서브에이전트가 다시 움직임·바로 승인): 질문 직전 상태로 — 일하던 중이었으면 `ts`부터 working
+fn end_ask(h: &mut HookSession, ts: f64) {
+    let pre = h.pre;
+    clear_ask(h);
+    match pre {
+        Some((st, since)) if st != "working" => {
+            h.s.status = st;
+            h.s.since = since;
+        }
+        _ => {
+            h.s.status = "working";
+            h.s.since = ts;
+        }
+    }
+    h.status_ended = h.s.status == "ended";
 }
 
 /// 파이썬 dict 키를 JSON 키 문자열로
@@ -318,11 +355,13 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
             fold: None,
             perm_t: None,
             guess: false,
-            ask_aid: None,
+            ask_aids: vec![],
+            pre: None,
         });
         if let Some(c) = get(e, "cwd").filter(|v| truthy(v)) {
             h.s.cwd = py_str(c);
         }
+        quick_approved(h, ts);
         // 멀티플렉서(Orca·cmux) 이동 정보: 마지막으로 받은 올바른 값 (서브에이전트 이벤트도 같은 셸이라 받는다)
         if let Some(j) = get(e, "term").and_then(crate::term::jump_of) {
             h.s.jump = Some(j);
@@ -337,19 +376,22 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
         }
         if get(e, "aid").is_some_and(truthy) {
             // 서브에이전트의 MCP 보고는 메인 보드를 덮지 않게 버린다
+            let aid = py_str(get(e, "aid").unwrap_or(&Value::Null));
             if rep.is_none() {
                 track_agent(h, e, ev, ts);
-                let aid = py_str(get(e, "aid").unwrap_or(&Value::Null));
                 // 서브에이전트가 권한·질문을 기다리면 메인도 멈춘 것 — 메인 질문으로 올린다(백그라운드 에이전트는 제외, #118)
                 if let Some((kind, sure)) = ask_signal(e, ev) {
-                    if !h.agents.get(&aid).is_some_and(|a| truthy(&a.bg)) {
+                    // 등록된 포그라운드 에이전트만 (유령 보조 에이전트·백그라운드 제외)
+                    if h.agents.get(&aid).is_some_and(|a| !truthy(&a.bg)) {
                         apply_ask(h, e, ts, kind, sure, Some(aid));
                     }
-                } else if h.ask_aid.as_deref() == Some(aid.as_str())
-                    && matches!(ev, "PreToolUse" | "SubagentStop")
-                    && h.s.status == "needs_input"
-                {
-                    // 질문을 올린 서브에이전트가 다시 움직임 → 답을 받은 것
+                    continue;
+                }
+            }
+            // 질문을 올린 서브에이전트가 다시 움직임(MCP 보고 포함) → 그 에이전트는 답을 받음. 모두 받으면 질문이 풀린다
+            if matches!(ev, "PreToolUse" | "SubagentStop") && h.s.status == "needs_input" && h.ask_aids.contains(&aid) {
+                h.ask_aids.retain(|a| *a != aid);
+                if h.ask_aids.is_empty() {
                     if let Some(t0) = h.wait0.take() {
                         h.waits.push(FeedWait {
                             sid: sid.clone(),
@@ -357,9 +399,7 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
                             t1: ts,
                         });
                     }
-                    clear_ask(h);
-                    h.s.status = "working";
-                    h.s.since = ts;
+                    end_ask(h, ts);
                 }
             }
             continue;
@@ -532,15 +572,9 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
         // SessionEnd 뒤에 같은 세션이 재개돼 상태가 바뀌었다면 종료 표시를 푼다
         h.status_ended = h.s.status == "ended";
     }
-    // 권한 요청 뒤 PERM_QUICK초 동안 확인 알림이 없으면 바로 승인(또는 거절)된 것 → 다시 일하는 중 (#118)
+    // 권한 요청 뒤 PERM_QUICK초 동안 확인 알림이 없으면 바로 승인(또는 거절)된 것 → 질문 직전 상태로 (#118)
     for h in sessions.values_mut() {
-        if let (true, Some(t0)) = (h.guess && h.s.status == "needs_input", h.perm_t) {
-            if now - t0 > PERM_QUICK {
-                clear_ask(h);
-                h.s.status = "working";
-                h.s.since = t0;
-            }
-        }
+        quick_approved(h, now);
     }
     Replay {
         sessions,

@@ -322,6 +322,32 @@ def build_base(out):
     ev("fx-ask-bg", c, t - 95, "PreToolUse", icon="🤖", text="서브에이전트: 감시", kind="agent", agent_desc="감시", bg=True, agent_req="Explore")
     ev("fx-ask-bg", c, t - 94, "SubagentStart", aid="ak3", atype="Explore")
     ev("fx-ask-bg", c, t - 40, "PermissionRequest", aid="ak3", atype="Explore", icon="⚡", text="pytest", kind="bash")
+    # 리뷰 반영: 메인이 끝난 뒤 서브에이전트 권한 → 풀리면 done으로(working으로 되살아나지 않음) · 서브에이전트 둘이 질문 → 둘 다 움직여야 풀림 ·
+    #     끝난 세션의 바로 승인 되돌림은 done 그대로 · 서브에이전트 MCP 보고로도 풀림
+    ev("fx-ask-donesub", c, t - 100, "UserPromptSubmit", text="끝난 뒤 서브에이전트 권한")
+    ev("fx-ask-donesub", c, t - 95, "PreToolUse", icon="🤖", text="서브에이전트: 정리", kind="agent", agent_desc="정리", bg=False, agent_req="Explore")
+    ev("fx-ask-donesub", c, t - 94, "SubagentStart", aid="ak4", atype="Explore")
+    ev("fx-ask-donesub", c, t - 80, "Stop")
+    ev("fx-ask-donesub", c, t - 40, "PermissionRequest", aid="ak4", atype="Explore", icon="⚡", text="pytest", kind="bash")
+    ev("fx-ask-donesub", c, t - 32, "Notification", aid="ak4", atype="Explore", text="Claude needs your permission to use Bash", ntype="permission_prompt")
+    ev("fx-ask-donesub", c, t - 20, "PreToolUse", aid="ak4", atype="Explore", icon="⚡", text="pytest", kind="bash")
+    ev("fx-ask-donequick", c, t - 100, "UserPromptSubmit", text="끝난 뒤 바로 승인")
+    ev("fx-ask-donequick", c, t - 95, "PreToolUse", icon="🤖", text="서브에이전트: 정리", kind="agent", agent_desc="정리", bg=False, agent_req="Explore")
+    ev("fx-ask-donequick", c, t - 94, "SubagentStart", aid="ak5", atype="Explore")
+    ev("fx-ask-donequick", c, t - 80, "Stop")
+    ev("fx-ask-donequick", c, t - 40, "PermissionRequest", aid="ak5", atype="Explore", icon="⚡", text="pytest", kind="bash")
+    ev("fx-ask-two", c, t - 100, "UserPromptSubmit", text="서브에이전트 둘이 질문")
+    for aid in ("ak6", "ak7"):
+        ev("fx-ask-two", c, t - 96, "PreToolUse", icon="🤖", text="서브에이전트: 조사", kind="agent", agent_desc="조사", bg=False, agent_req="Explore")
+        ev("fx-ask-two", c, t - 95, "SubagentStart", aid=aid, atype="Explore")
+    ev("fx-ask-two", c, t - 50, "PermissionRequest", aid="ak6", atype="Explore", icon="⚡", text="pytest", kind="bash")
+    ev("fx-ask-two", c, t - 44, "Notification", aid="ak6", atype="Explore", text="Claude needs your permission to use Bash", ntype="permission_prompt")
+    ev("fx-ask-two", c, t - 40, "PermissionRequest", aid="ak7", atype="Explore", icon="⚡", text="ruff", kind="bash")
+    ev("fx-ask-two", c, t - 30, "PreToolUse", aid="ak6", atype="Explore", icon="⚡", text="pytest", kind="bash")
+    # Gemini 반영: 확인 안 된 권한 요청(바로 승인, 긴 도구 실행 중) 뒤 30초 지나 온 새 권한 요청은 새 질문(since = 새 시각)
+    ev("fx-ask-late", c, t - 80, "UserPromptSubmit", text="긴 도구 뒤 새 권한")
+    ev("fx-ask-late", c, t - 70, "PermissionRequest", icon="⚡", text="cargo build", kind="bash")
+    ev("fx-ask-late", c, t - 30, "Notification", text="Claude needs your permission to use Bash", ntype="permission_prompt")
 
     # --- fx-cmux: cmux에서 연 세션(#37). 훅이 term.mux(kind cmux)를 실어 보냄 → 세션 jump.mux (마지막 올바른 값.
     #     잘못된 값·모르는 키는 버림, 서브에이전트 이벤트의 값도 받음, term 없는 이벤트는 유지). fx-cmux-bad: 잘못된 값만 → jump 없음

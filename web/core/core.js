@@ -165,8 +165,9 @@ function detect(st) {
   notifiedStall = new Set(ss.map(x => x.key));
   for (const s of st.sessions) {
     const p = prevStatus[s.sid];
-    // 추정 질문(confidence guess)은 소리·알림·이벤트 없이 따로 기억 — 확실해지는 순간 한 번 (#118, detect.rs와 같은 규칙)
-    const key = s.status === "needs_input" && s.confidence === "guess" ? "needs_input?" : s.status;
+    // 훅의 추정 권한 요청(confidence guess + ask permission)은 소리·알림·이벤트 없이 따로 기억 — 확실해지는 순간 한 번 (#118, detect.rs와 같은 규칙).
+    // 트랜스크립트 추정은 예전처럼 알림
+    const key = s.status === "needs_input" && s.confidence === "guess" && s.ask === "permission" ? "needs_input?" : s.status;
     if (p && p !== key) {
       lastAlert = s;
       if (key === "done") {

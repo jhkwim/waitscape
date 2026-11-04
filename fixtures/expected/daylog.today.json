@@ -60,7 +60,7 @@
    }
   ],
   "day": "2026-10-20",
-  "done": 13,
+  "done": 15,
   "end": 1792522800.0,
   "first": 1792504800,
   "last": 1792519195,
@@ -125,7 +125,7 @@
    "avg": 41.0,
    "n": 3
   },
-  "work": 6030,
+  "work": 6070,
   "workers": [
    {
     "done": 2,
@@ -196,6 +196,20 @@
     "provider": "claude",
     "sid": "fx-cmux",
     "work": 50
+   },
+   {
+    "done": 1,
+    "project": "ask-lab",
+    "provider": "claude",
+    "sid": "fx-ask-donequick",
+    "work": 20
+   },
+   {
+    "done": 1,
+    "project": "ask-lab",
+    "provider": "claude",
+    "sid": "fx-ask-donesub",
+    "work": 20
    },
    {
     "done": 1,

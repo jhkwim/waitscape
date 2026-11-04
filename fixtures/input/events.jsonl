@@ -76,22 +76,37 @@
 {"ts": 1792519100, "sid": "fx-ask-sub", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "서브에이전트 권한"}
 {"ts": 1792519100, "sid": "fx-ask-subok", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "서브에이전트 권한 승인됨"}
 {"ts": 1792519100, "sid": "fx-ask-bg", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "백그라운드 에이전트 권한"}
+{"ts": 1792519100, "sid": "fx-ask-donesub", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "끝난 뒤 서브에이전트 권한"}
+{"ts": 1792519100, "sid": "fx-ask-donequick", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "끝난 뒤 바로 승인"}
+{"ts": 1792519100, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "서브에이전트 둘이 질문"}
 {"ts": 1792519100, "sid": "fx-start", "cwd": "/Users/alex/dev/empty", "event": "SessionStart"}
 {"ts": 1792519100, "sid": "fx-big", "cwd": "/Users/alex/dev/bigrepo", "event": "Stop"}
 {"ts": 1792519100, "sid": "fx-stale", "cwd": "/Users/alex/dev/ghosts", "event": "Stop"}
 {"ts": 1792519100, "sid": "fx-mcp-fb", "cwd": "/Users/alex/dev/report-fb", "event": "PreToolUse", "icon": "📖", "text": "README.md 읽는 중", "kind": "read"}
+{"ts": 1792519104, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 조사", "kind": "agent", "agent_desc": "조사", "bg": false, "agent_req": "Explore"}
+{"ts": 1792519104, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 조사", "kind": "agent", "agent_desc": "조사", "bg": false, "agent_req": "Explore"}
 {"ts": 1792519105, "sid": "fx-ask-sub", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 조사", "kind": "agent", "agent_desc": "조사", "bg": false, "agent_req": "Explore"}
 {"ts": 1792519105, "sid": "fx-ask-subok", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 조사", "kind": "agent", "agent_desc": "조사", "bg": false, "agent_req": "Explore"}
 {"ts": 1792519105, "sid": "fx-ask-bg", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 감시", "kind": "agent", "agent_desc": "감시", "bg": true, "agent_req": "Explore"}
+{"ts": 1792519105, "sid": "fx-ask-donesub", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 정리", "kind": "agent", "agent_desc": "정리", "bg": false, "agent_req": "Explore"}
+{"ts": 1792519105, "sid": "fx-ask-donequick", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 정리", "kind": "agent", "agent_desc": "정리", "bg": false, "agent_req": "Explore"}
+{"ts": 1792519105, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "SubagentStart", "aid": "ak6", "atype": "Explore"}
+{"ts": 1792519105, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "SubagentStart", "aid": "ak7", "atype": "Explore"}
 {"ts": 1792519106, "sid": "fx-ask-sub", "cwd": "/Users/alex/dev/ask-lab", "event": "SubagentStart", "aid": "ak1", "atype": "Explore"}
 {"ts": 1792519106, "sid": "fx-ask-subok", "cwd": "/Users/alex/dev/ask-lab", "event": "SubagentStart", "aid": "ak2", "atype": "Explore"}
 {"ts": 1792519106, "sid": "fx-ask-bg", "cwd": "/Users/alex/dev/ask-lab", "event": "SubagentStart", "aid": "ak3", "atype": "Explore"}
+{"ts": 1792519106, "sid": "fx-ask-donesub", "cwd": "/Users/alex/dev/ask-lab", "event": "SubagentStart", "aid": "ak4", "atype": "Explore"}
+{"ts": 1792519106, "sid": "fx-ask-donequick", "cwd": "/Users/alex/dev/ask-lab", "event": "SubagentStart", "aid": "ak5", "atype": "Explore"}
 {"ts": 1792519110, "sid": "fx-ask-idle", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "text": "Claude is waiting for your input", "ntype": "idle_prompt"}
 {"ts": 1792519110, "sid": "fx-ask-sub", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "aid": "ak1", "atype": "Explore", "icon": "📖", "text": "a.py 읽는 중", "kind": "read"}
 {"ts": 1792519110, "sid": "fx-done", "cwd": "/Users/alex/dev/blog", "event": "UserPromptSubmit", "text": "글 오타 고쳐줘"}
+{"ts": 1792519120, "sid": "fx-ask-donesub", "cwd": "/Users/alex/dev/ask-lab", "event": "Stop"}
+{"ts": 1792519120, "sid": "fx-ask-donequick", "cwd": "/Users/alex/dev/ask-lab", "event": "Stop"}
+{"ts": 1792519120, "sid": "fx-ask-late", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "긴 도구 뒤 새 권한"}
 {"ts": 1792519120, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "UserPromptSubmit", "text": "cmux에서 작업", "term": {"mux": {"kind": "cmux", "workspace": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0", "surface": "9A8B7C6D-5E4F-3A2B-1C0D-E9F8A7B6C5D4"}}}
 {"ts": 1792519120, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "UserPromptSubmit", "text": "키 교체: @@FAKE_SK@@ 로 바꿔"}
 {"ts": 1792519125, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "PreToolUse", "icon": "🗒️", "text": "할 일 정리 중", "kind": "todo", "todos": [{"text": "password=@@FAKE_PW@@ 지우기", "status": "in_progress"}]}
+{"ts": 1792519130, "sid": "fx-ask-late", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "icon": "⚡", "text": "cargo build", "kind": "bash"}
 {"ts": 1792519130, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "SubagentStart", "aid": "cm1", "atype": "Explore", "term": {"mux": {"kind": "cmux", "workspace": "workspace:2", "surface": "surface:5", "token": "x"}}}
 {"ts": 1792519130, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: @@FAKE_GH@@ 점검", "kind": "agent", "agent_desc": "@@FAKE_GH@@ 점검", "bg": true, "agent_req": "Explore"}
 {"ts": 1792519131, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "SubagentStart", "aid": "m0", "atype": "Explore"}
@@ -110,22 +125,30 @@
 {"ts": 1792519145, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "PreToolUse", "icon": "📖", "text": "b.py 읽는 중", "kind": "read", "term": {"mux": {"kind": "unknown", "workspace": "workspace:9"}}}
 {"ts": 1792519150, "sid": "fx-input", "cwd": "/Users/alex/dev/infra", "event": "UserPromptSubmit", "text": "배포 스크립트 정리"}
 {"ts": 1792519150, "sid": "fx-ask-quick", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "icon": "⚡", "text": "npm test", "kind": "bash"}
+{"ts": 1792519150, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "aid": "ak6", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
 {"ts": 1792519150, "sid": "fx-cmux-bad", "cwd": "/Users/alex/dev/cmux-app", "event": "UserPromptSubmit", "text": "잘못된 cmux 값", "term": {"mux": {"kind": "cmux", "workspace": "workspace:2\n"}}}
 {"ts": 1792519153, "sid": "fx-ask-quick", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "⚡", "text": "npm test", "kind": "bash"}
 {"ts": 1792519155, "sid": "fx-input", "cwd": "/Users/alex/dev/infra", "event": "PreToolUse", "icon": "⚡", "text": "terraform plan", "kind": "bash"}
+{"ts": 1792519156, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "aid": "ak6", "atype": "Explore", "text": "Claude needs your permission to use Bash", "ntype": "permission_prompt"}
 {"ts": 1792519160, "sid": "fx-read", "cwd": "/Users/alex/dev/login-app", "event": "UserPromptSubmit", "text": "로그인 버그 고쳐줘"}
 {"ts": 1792519160, "sid": "fx-input", "cwd": "/Users/alex/dev/infra", "event": "Notification", "text": "Claude needs your permission to use Bash"}
 {"ts": 1792519160, "sid": "fx-ask-old", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "text": "Claude needs your permission to use Bash"}
 {"ts": 1792519160, "sid": "fx-ask-sub", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "aid": "ak1", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
 {"ts": 1792519160, "sid": "fx-ask-subok", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "aid": "ak2", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
 {"ts": 1792519160, "sid": "fx-ask-bg", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "aid": "ak3", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
+{"ts": 1792519160, "sid": "fx-ask-donesub", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "aid": "ak4", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
+{"ts": 1792519160, "sid": "fx-ask-donequick", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "aid": "ak5", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
+{"ts": 1792519160, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "aid": "ak7", "atype": "Explore", "icon": "⚡", "text": "ruff", "kind": "bash"}
 {"ts": 1792519166, "sid": "fx-ask-sub", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "aid": "ak1", "atype": "Explore", "text": "Claude needs your permission to use Bash", "ntype": "permission_prompt"}
 {"ts": 1792519168, "sid": "fx-ask-subok", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "aid": "ak2", "atype": "Explore", "text": "Claude needs your permission to use Bash", "ntype": "permission_prompt"}
+{"ts": 1792519168, "sid": "fx-ask-donesub", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "aid": "ak4", "atype": "Explore", "text": "Claude needs your permission to use Bash", "ntype": "permission_prompt"}
 {"ts": 1792519170, "sid": "fx-read", "cwd": "/Users/alex/dev/login-app", "event": "PreToolUse", "icon": "🔍", "text": "'session' 찾는 중", "kind": "search"}
 {"ts": 1792519170, "sid": "fx-ask-revert", "cwd": "/Users/alex/dev/ask-lab", "event": "PermissionRequest", "icon": "⚡", "text": "cargo build", "kind": "bash"}
 {"ts": 1792519170, "sid": "fx-ask-new", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "방금 권한 요청"}
 {"ts": 1792519170, "sid": "fx-ask-una", "cwd": "/Users/alex/dev/ask-lab", "event": "UserPromptSubmit", "text": "claude -p"}
 {"ts": 1792519170, "sid": "fx-ask-elicit", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "text": "MCP server requests input", "ntype": "elicitation_dialog"}
+{"ts": 1792519170, "sid": "fx-ask-two", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "aid": "ak6", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
+{"ts": 1792519170, "sid": "fx-ask-late", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "text": "Claude needs your permission to use Bash", "ntype": "permission_prompt"}
 {"ts": 1792519170, "sid": "fx-cmux", "cwd": "/Users/alex/dev/cmux-app", "event": "Stop"}
 {"ts": 1792519170, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PreToolUse", "icon": "✏️", "text": "main.py 고치는 중", "kind": "edit"}
 {"ts": 1792519180, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "aid": "p1", "atype": "Explore", "icon": "📖", "text": "schema.sql 읽는 중", "kind": "read"}
@@ -133,6 +156,7 @@
 {"ts": 1792519180, "sid": "fx-ask-old", "cwd": "/Users/alex/dev/ask-lab", "event": "Notification", "text": "Claude needs your permission to use Bash"}
 {"ts": 1792519180, "sid": "fx-ask-q", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "icon": "🔧", "text": "AskUserQuestion", "kind": "other", "ask": "question"}
 {"ts": 1792519180, "sid": "fx-ask-subok", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "aid": "ak2", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
+{"ts": 1792519180, "sid": "fx-ask-donesub", "cwd": "/Users/alex/dev/ask-lab", "event": "PreToolUse", "aid": "ak4", "atype": "Explore", "icon": "⚡", "text": "pytest", "kind": "bash"}
 {"ts": 1792519180, "sid": "fx-done", "cwd": "/Users/alex/dev/blog", "event": "Stop"}
 {"ts": 1792519180, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "PreToolUse", "icon": "⚡", "text": "Run full test suite", "kind": "bash"}
 {"ts": 1792519185, "sid": "fx-mask", "cwd": "/Users/alex/dev/secrets", "event": "Notification", "text": "token=@@FAKE_PW@@ 확인 필요 (키@@FAKE_AWS@@)"}
