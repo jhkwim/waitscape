@@ -342,9 +342,10 @@ CI(`.github/workflows/ci.yml`)가 PR과 main push마다 위 검사를 돌린다.
 
 ## Hook 등록
 데스크톱 앱은 온보딩·설정 → AI 연결에서 `wr-hook`을 등록한다(위 '데스크톱 앱'). 아래는 브라우저 버전(`server.py`)용 수동 등록이다.
-`~/.claude/settings.json`의 `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`(TaskCreate|TaskUpdate), `Notification`, `Stop`, `SessionEnd`, `SubagentStart`, `SubagentStop`에
+`~/.claude/settings.json`의 `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`(TaskCreate|TaskUpdate), `Notification`, `Stop`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `PermissionRequest`(관찰만 — 결정을 반환하지 않음)에
 `python3 <설치 경로>/hook.py` 등록(`<설치 경로>` = 이 저장소를 받은 폴더의 절대 경로). 제거하려면 해당 항목 삭제
 (등록 전 백업: `~/.claude/settings.json.bak-waiting-room`).
+훅 소요 시간(wr-hook 릴리스 빌드, PermissionRequest 입력, 1000회, Apple Silicon): p50 7.9ms · p95 10.3ms · p99 16.9ms — 권한 프롬프트 앞에서도 체감 지연 없음(목표 p95 ≤ 50ms).
 
 ## MCP 보고 (실험, 기본 꺼짐)
 AI가 MCP 도구 2개로 진행 상황을 직접 알린다: `waitscape_status`(state `working|asking|done`, `title`, `step`/`total`, done 때 `big`·`cheer`)와

@@ -870,6 +870,57 @@ def expire_agents(s, now):
             a.pop("health", None)
 
 
+PERM_QUICK = 10.0  # PermissionRequest 뒤 이만큼 permission_prompt 알림(약 6초 대기 뒤)이 없으면 바로 승인된 것 (#118, Rust PERM_QUICK)
+ASK_NTYPES = {"permission_prompt": "permission", "elicitation_dialog": "question",
+              "elicitation_url_dialog": "question", "agent_needs_input": "question"}
+
+
+def ask_signal(e):
+    """질문 신호 (#118): (종류, 확실) 또는 None(상태를 바꾸지 않음). 알림 종류가 없는 옛 Claude Code는 예전처럼 질문.
+    idle_prompt(끝난 뒤 입력 기다림)·auth_success·quota_* 등은 질문이 아님. 사람 없는 세션(-p)의 권한 요청도 아님 (Rust ask_signal)"""
+    if e["event"] == "Notification":
+        nt = e.get("ntype")
+        if nt is None:
+            return (None, True)
+        return (ASK_NTYPES[nt], True) if nt in ASK_NTYPES else None
+    if e["event"] == "PermissionRequest" and not e.get("una"):
+        return ("permission", False)
+    return None
+
+
+def apply_ask(s, e, kind, sure, wait0, aid=None):
+    """질문 신호를 세션에 반영 (Rust apply_ask). 이미 질문 중이면 처음 시각을 지키고, 추정이면 확실로 올린다."""
+    ts = e["ts"]
+    if s["status"] == "needs_input":
+        if sure and s.get("_guess"):
+            s["_guess"] = False
+            t0 = s.pop("_perm_t", None)
+            if t0 is not None and s["started"]:
+                wait0.setdefault(s["sid"], t0)
+        if s.get("ask") is None:
+            if kind is not None:
+                s["ask"] = kind
+        return
+    if sure and s["status"] == "working" and s["started"]:
+        wait0.setdefault(s["sid"], ts)
+    s.update(status="needs_input", since=ts, note=e.get("text", ""))
+    if kind is not None:
+        s["ask"] = kind
+    else:
+        s.pop("ask", None)
+    s["_guess"] = not sure
+    if sure:
+        s.pop("_perm_t", None)
+    else:
+        s["_perm_t"] = ts
+    s["_ask_aid"] = aid
+
+
+def clear_ask(s):
+    for k in ("ask", "_perm_t", "_guess", "_ask_aid"):
+        s.pop(k, None)
+
+
 def build_state():
     sessions = {}
     today = time.strftime("%Y-%m-%d")
@@ -918,6 +969,17 @@ def build_state():
         if e.get("aid"):
             if rep is None:  # 서브에이전트의 MCP 보고는 메인 보드를 덮지 않게 버린다
                 track_agent(s, e)
+                # 서브에이전트가 권한·질문을 기다리면 메인 질문으로 (백그라운드 에이전트 제외, #118)
+                sig = ask_signal(e)
+                if sig is not None:
+                    a = s["agents"].get(e["aid"])
+                    if not (a and a.get("bg")):
+                        apply_ask(s, e, sig[0], sig[1], wait0, e["aid"])
+                elif s.get("_ask_aid") == e["aid"] and ev in ("PreToolUse", "SubagentStop") and s["status"] == "needs_input":
+                    if e["sid"] in wait0:  # 질문을 올린 서브에이전트가 다시 움직임 → 답을 받은 것
+                        day_waits.append({"sid": e["sid"], "t0": wait0.pop(e["sid"]), "t1": e["ts"]})
+                    clear_ask(s)
+                    s.update(status="working", since=e["ts"])
             continue
         if e.get("todos") is not None:
             s["todos"] = e["todos"]
@@ -937,14 +999,17 @@ def build_state():
             s["pending_agents"].append((e["agent_desc"], e.get("bg", False), e.get("agent_req", "")))
         if ev == "PostToolUse":
             continue
-        if ev == "Notification":
-            if s["status"] == "working" and s["started"]:
-                wait0.setdefault(e["sid"], e["ts"])
-        elif ev in ("UserPromptSubmit", "Resume", "PreToolUse", "Stop"):
+        # 질문 대기 시작은 apply_ask가 정한다(확실한 질문만, 추정이 확인되면 PermissionRequest 시각부터)
+        if ev in ("UserPromptSubmit", "Resume", "PreToolUse", "Stop"):
             if e["sid"] in wait0:
                 day_waits.append({"sid": e["sid"], "t0": wait0.pop(e["sid"]), "t1": e["ts"]})
         elif ev == "SessionEnd":
             wait0.pop(e["sid"], None)
+        if ev in ("UserPromptSubmit", "Resume", "PreToolUse", "Stop", "SessionEnd"):
+            clear_ask(s)
+        sig = ask_signal(e)
+        if sig is not None:
+            apply_ask(s, e, sig[0], sig[1], wait0)
         if ev == "UserPromptSubmit":
             if s["todos"] and all(t["status"] == "completed" for t in s["todos"]):
                 s["todos"] = []
@@ -969,8 +1034,11 @@ def build_state():
             s["trail"] = (s["trail"] + [[k, e.get("icon", "🔧"), e.get("text", "")]])[-300:]
             s["activity"] = (s["activity"] + [{"ts": e["ts"], "icon": e.get("icon", "🔧"),
                                                "text": e.get("text", "")}])[-6:]
-        elif ev == "Notification":
-            s.update(status="needs_input", since=e["ts"], note=e.get("text", ""))
+            if e.get("ask"):  # AskUserQuestion·ExitPlanMode: 사람이 답해야 넘어감 (tonly.rs와 같은 규칙)
+                if s["started"]:
+                    wait0.setdefault(e["sid"], e["ts"])
+                s.update(status="needs_input", since=e["ts"], ask="question",
+                         note="계획 승인을 기다리는 중" if e["ask"] == "plan" else "질문에 답을 기다리는 중")
         elif ev == "Stop":
             if s["started"]:
                 s["run"] = e["ts"] - s["started"]
@@ -988,6 +1056,17 @@ def build_state():
             s["status"] = "ended"
             close_agents(s, e["ts"])
     now = time.time()
+    # 권한 요청 뒤 PERM_QUICK초 동안 확인 알림이 없으면 바로 승인(또는 거절)된 것 → 다시 일하는 중 (#118)
+    for s in sessions.values():
+        if s.get("_guess") and s["status"] == "needs_input" and s.get("_perm_t") is not None and now - s["_perm_t"] > PERM_QUICK:
+            t0 = s["_perm_t"]
+            clear_ask(s)
+            s.update(status="working", since=t0)
+    for s in sessions.values():
+        if s.pop("_guess", False):
+            s["confidence"] = "guess"  # 권한 요청만 오고 아직 확인 전 (Rust와 같음)
+        s.pop("_perm_t", None)
+        s.pop("_ask_aid", None)
     day_start = time.mktime(time.strptime(today, "%Y-%m-%d"))
     today_msgs = []
     for s in sessions.values():

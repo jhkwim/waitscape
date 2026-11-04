@@ -1,5 +1,5 @@
 {
- "done_today": 11,
+ "done_today": 12,
  "limits": {
   "five_hour": {
    "resets_at": 1792530600,
@@ -68,6 +68,390 @@
    "source": "mcp",
    "started": null,
    "status": "done",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 감시",
+     "ts": 1792519105
+    }
+   ],
+   "agents": [
+    {
+     "aid": "ak3",
+     "bg": true,
+     "desc": "감시",
+     "last": 1792519160,
+     "now": null,
+     "recent": [],
+     "since": 1792519106,
+     "status": "running",
+     "tools": 0,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "agent",
+   "kinds": {
+    "agent": 1
+   },
+   "last": 1792519160,
+   "project": "ask-lab",
+   "prompt": "백그라운드 에이전트 권한",
+   "prompt_ts": 1792519100,
+   "run": 0,
+   "sid": "fx-ask-bg",
+   "since": 1792519100,
+   "started": 1792519100,
+   "status": "working",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 감시"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ask": "question",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519170,
+   "note": "MCP server requests input",
+   "project": "ask-lab",
+   "prompt": "MCP가 묻는 질문",
+   "prompt_ts": 1792519140,
+   "run": 0,
+   "sid": "fx-ask-elicit",
+   "since": 1792519170,
+   "started": 1792519140,
+   "status": "needs_input",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519110,
+   "project": "ask-lab",
+   "prompt": "끝난 뒤 유휴 알림",
+   "prompt_ts": 1792519000,
+   "run": 50,
+   "sid": "fx-ask-idle",
+   "since": 1792519050,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ask": "permission",
+   "confidence": "guess",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519195,
+   "note": "example.com",
+   "project": "ask-lab",
+   "prompt": "방금 권한 요청",
+   "prompt_ts": 1792519170,
+   "run": 0,
+   "sid": "fx-ask-new",
+   "since": 1792519195,
+   "started": 1792519170,
+   "status": "needs_input",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519180,
+   "note": "Claude needs your permission to use Bash",
+   "project": "ask-lab",
+   "prompt": "옛 Claude Code(알림 종류 없음)",
+   "prompt_ts": 1792519140,
+   "run": 0,
+   "sid": "fx-ask-old",
+   "since": 1792519160,
+   "started": 1792519140,
+   "status": "needs_input",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "🔧",
+     "text": "AskUserQuestion",
+     "ts": 1792519180
+    }
+   ],
+   "agents": [],
+   "ask": "question",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "other",
+   "kinds": {
+    "other": 1
+   },
+   "last": 1792519180,
+   "note": "질문에 답을 기다리는 중",
+   "project": "ask-lab",
+   "prompt": "선택지 질문",
+   "prompt_ts": 1792519140,
+   "run": 0,
+   "sid": "fx-ask-q",
+   "since": 1792519180,
+   "started": 1792519140,
+   "status": "needs_input",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "other",
+     "🔧",
+     "AskUserQuestion"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "⚡",
+     "text": "npm test",
+     "ts": 1792519153
+    }
+   ],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "bash",
+   "kinds": {
+    "bash": 1
+   },
+   "last": 1792519153,
+   "note": "npm test",
+   "project": "ask-lab",
+   "prompt": "바로 승인",
+   "prompt_ts": 1792519140,
+   "run": 0,
+   "sid": "fx-ask-quick",
+   "since": 1792519153,
+   "started": 1792519140,
+   "status": "working",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "bash",
+     "⚡",
+     "npm test"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519170,
+   "note": "cargo build",
+   "project": "ask-lab",
+   "prompt": "승인 후 긴 도구",
+   "prompt_ts": 1792519140,
+   "run": 0,
+   "sid": "fx-ask-revert",
+   "since": 1792519170,
+   "started": 1792519140,
+   "status": "working",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 조사",
+     "ts": 1792519105
+    }
+   ],
+   "agents": [
+    {
+     "aid": "ak1",
+     "bg": false,
+     "desc": "조사",
+     "last": 1792519166,
+     "now": {
+      "icon": "📖",
+      "kind": "read",
+      "text": "a.py 읽는 중"
+     },
+     "recent": [
+      {
+       "icon": "📖",
+       "kind": "read",
+       "text": "a.py 읽는 중"
+      }
+     ],
+     "since": 1792519106,
+     "status": "running",
+     "tools": 1,
+     "type": "Explore"
+    }
+   ],
+   "ask": "permission",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "agent",
+   "kinds": {
+    "agent": 1
+   },
+   "last": 1792519166,
+   "note": "pytest",
+   "project": "ask-lab",
+   "prompt": "서브에이전트 권한",
+   "prompt_ts": 1792519100,
+   "run": 0,
+   "sid": "fx-ask-sub",
+   "since": 1792519160,
+   "started": 1792519100,
+   "status": "needs_input",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 조사"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 조사",
+     "ts": 1792519105
+    }
+   ],
+   "agents": [
+    {
+     "aid": "ak2",
+     "bg": false,
+     "desc": "조사",
+     "last": 1792519180,
+     "now": {
+      "icon": "⚡",
+      "kind": "bash",
+      "text": "pytest"
+     },
+     "recent": [
+      {
+       "icon": "⚡",
+       "kind": "bash",
+       "text": "pytest"
+      }
+     ],
+     "since": 1792519106,
+     "status": "running",
+     "tools": 1,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "agent",
+   "kinds": {
+    "agent": 1
+   },
+   "last": 1792519180,
+   "note": "pytest",
+   "project": "ask-lab",
+   "prompt": "서브에이전트 권한 승인됨",
+   "prompt_ts": 1792519100,
+   "run": 0,
+   "sid": "fx-ask-subok",
+   "since": 1792519180,
+   "started": 1792519100,
+   "status": "working",
+   "todos": [],
+   "tools": 1,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 조사"
+    ]
+   ]
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519195,
+   "project": "ask-lab",
+   "prompt": "claude -p",
+   "prompt_ts": 1792519170,
+   "run": 0,
+   "sid": "fx-ask-una",
+   "since": 1792519170,
+   "started": 1792519170,
+   "status": "working",
+   "todos": [],
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ask": "permission",
+   "ctx": null,
+   "cwd": "/Users/alex/dev/ask-lab",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792519191,
+   "note": "pay.ts 고치는 중",
+   "project": "ask-lab",
+   "prompt": "오래 기다리는 권한",
+   "prompt_ts": 1792519140,
+   "run": 0,
+   "sid": "fx-ask-wait",
+   "since": 1792519180,
+   "started": 1792519140,
+   "status": "needs_input",
    "todos": [],
    "tools": 0,
    "trail": []
@@ -1346,12 +1730,13 @@
    "trail": []
   }
  ],
- "today_agents": 10,
+ "today_agents": 13,
  "today_kinds": {
-  "agent": 7,
-  "bash": 6,
+  "agent": 10,
+  "bash": 8,
   "edit": 3,
-  "read": 8,
+  "other": 1,
+  "read": 9,
   "search": 3,
   "todo": 5
  },
@@ -1361,5 +1746,5 @@
   "out": 23440,
   "total": 241080
  },
- "waited_today": 5380.0
+ "waited_today": 5430.0
 }

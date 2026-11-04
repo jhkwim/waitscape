@@ -141,6 +141,18 @@ def test_hook_golden():
             check(line == c["out"], "hook %s: %s != %s" % (c["in"].get("tool_name"), line, c["out"]))
         finally:
             shutil.rmtree(home, ignore_errors=True)
+    # #118: 사람 없는 세션(claude -p)의 권한 요청은 una — wr-hook unattended_flag 테스트와 같은 규칙
+    for att, want in (("0", True), ("1", False)):
+        home = tempfile.mkdtemp(prefix="wr-hook-una-")
+        try:
+            env = dict(no_cmux_env(), HOME=home, USERPROFILE=home, CLAUDE_CODE_SESSION_ATTENDED=att)
+            d = {"session_id": "s", "hook_event_name": "PermissionRequest", "tool_name": "Bash", "tool_input": {"command": "ls"}}
+            subprocess.run([sys.executable, os.path.join(ROOT, "hook.py")], input=json.dumps(d).encode(), env=env, check=True)
+            with open(os.path.join(home, ".claude", "waiting-room", "events.jsonl"), encoding="utf-8") as f:
+                ev = json.loads(f.read())
+            check(bool(ev.get("una")) == want, "una ATTENDED=%s → %r" % (att, ev.get("una")))
+        finally:
+            shutil.rmtree(home, ignore_errors=True)
 
 
 def rec(key, ts, typ, **kw):

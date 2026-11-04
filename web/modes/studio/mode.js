@@ -7202,7 +7202,7 @@ C.registerMode({
     ctx.listen(view, "mouseleave", () => { if (hovCap || hovJump) { hovCap = hovJump = null; if (!animOn()) staticDraw(); } });
 
     /* ---------- 데이터 → 모델 → 보상 ---------- */
-    const lastActTs = new Map(), prevStall = new Map(), askSince = new Map();
+    const lastActTs = new Map(), prevStall = new Map(), askSince = new Map(), askGuess = new Set();
     let lastTick = 0, okRun = 0, startedAt = ctx.now();
     const totalDones = () => Object.values(sv.dones).reduce((t, n) => t + n, 0);
     const lvOf = () => 1 + Math.floor(Math.sqrt(totalDones() / 2));
@@ -7279,14 +7279,18 @@ C.registerMode({
         const raw = f.s.status, prev = prevRaw.get(f.sid), nm = f.label.replace("·", " · ");
         /* ⚡ 질문이 뜬 시각: 일하던 중(working)에 바로 질문으로 바뀐 것만 — 끝난 뒤 1분쯤 오는 "입력을 기다려요" 알림(done → needs_input)은 질문이 아님.
            같은 질문에 알림이 또 와서 since가 다시 적혀도 처음 본 시각을 지킴. MCP 세션은 AI가 상태를 직접 쓰므로 세지 않음(셀프 채점 방지) */
-        if (raw === "needs_input" && !firstSync && prev === "working" && f.s.source !== "mcp" && f.s.since > 0 && !askSince.has(f.sid)) askSince.set(f.sid, f.s.since);
+        /* 추정 질문(confidence guess — 권한 요청만 오고 아직 확인 전, 보통 몇 초 안에 바로 승인됨)은 세지도 기록하지도 않고, 확실해지면 그때 질문 시각(since)부터 (#118) */
+        const guess = raw === "needs_input" && f.s.confidence === "guess", wasGuess = askGuess.has(f.sid);
+        if (guess) askGuess.add(f.sid); else askGuess.delete(f.sid);
+        if (raw === "needs_input" && !guess && !firstSync && (prev === "working" || wasGuess) && f.s.source !== "mcp" && f.s.since > 0 && !askSince.has(f.sid)) askSince.set(f.sid, f.s.since);
         if (!firstSync) {
           if (prev === undefined) pushLog("🚪", X(`${nm} · ${cut(f.s.project, 14)} 출근`, `${nm} · ${cut(f.s.project, 14)} clocked in`));
-          else if (prev !== raw) {
-            if (raw === "needs_input") pushLog("❓", X(`${nm} · 입력 필요!`, `${nm} · needs input!`));
+          else if (prev !== raw && !(wasGuess && raw === "working")) {
+            if (raw === "needs_input") { if (!guess) pushLog("❓", X(`${nm} · 입력 필요!`, `${nm} · needs input!`)); }
             else if (raw === "done") celebrate(f, tc);
             else if (prev === "needs_input") { pushLog("✅", X(`${nm} · 확인됨, 작업 재개`, `${nm} · resumed`)); if (raw === "working") quick(f, nm, tc); }
           }
+          else if (prev === raw && wasGuess && !guess && raw === "needs_input") pushLog("❓", X(`${nm} · 입력 필요!`, `${nm} · needs input!`));
           if (f.kind === "stall" && !prevStall.get(f.sid)) pushLog("💤", X(`${nm} · 멈춤 의심`, `${nm} · may be stalled`));
           const ac = lastAct(f.s);
           if (ac && ac.ts > (lastActTs.get(f.sid) || 0) && actLogs < 3) { actLogs++; pushLog(ac.icon, `${nm} · ${cut(ac.text, 28)}`); }
@@ -7296,7 +7300,7 @@ C.registerMode({
         const ac = lastAct(f.s); if (ac) lastActTs.set(f.sid, ac.ts);
       }
       if (prevRaw.size > 120) [...prevRaw.keys()].slice(0, 40).forEach(k => prevRaw.delete(k));
-      { const seen = new Set(list.map(f => f.sid)); for (const k of askSince.keys()) if (!seen.has(k)) askSince.delete(k); }
+      { const seen = new Set(list.map(f => f.sid)); for (const k of askSince.keys()) if (!seen.has(k)) askSince.delete(k); for (const k of askGuess) if (!seen.has(k)) askGuess.delete(k); }
       /* 도감: 처음 출근한 날 */
       for (const f of HIRE.devAll || HIRE.devUnlock ? [] : floors) {   // 개발용 ?tiny=<동물>(예: oct — 모두 그 동물)·?tiny=unlock은 도감에 남기지 않음
         const d = sv.dex[f.animal] || (sv.dex[f.animal] = {}), key = f.shiny ? "s" : "n";

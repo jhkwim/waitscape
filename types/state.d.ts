@@ -152,8 +152,12 @@ export interface Session {
   /** 세션 출처 (P1 트랜스크립트 전용 엔진에서 추가). 없으면 "hook"으로 간주 @since 1.1.
    *  "mcp" = 훅이 없는 AI CLI(Codex·Gemini 등)가 MCP 도구로 보고해 생긴 세션 (sid = 사이드카 세션 키, tools·todos·agents는 비어 있음) @since 1.2 */
   source?: "hook" | "transcript" | "mcp";
-  /** status 판정의 확실성. "guess" = 트랜스크립트 전용 추정(예: 입력 필요일 수도). 없으면 "sure" @since 1.1 */
+  /** status 판정의 확실성. "guess" = 트랜스크립트 전용 추정(예: 입력 필요일 수도). 없으면 "sure" @since 1.1.
+   *  훅 세션도 권한 요청(PermissionRequest)만 오고 아직 알림으로 확인되기 전이면 "guess" — 보통 몇 초 안에 바로 승인돼 사라지므로 알리지 않는다 @since 1.7 */
   confidence?: "sure" | "guess";
+  /** 질문 종류(`status: "needs_input"`일 때만). "permission" = 도구 권한 승인, "question" = AI의 질문(AskUserQuestion·MCP elicitation)·계획 승인.
+   *  없으면 모름(옛 Claude Code·트랜스크립트·MCP 세션) @since 1.7 */
+  ask?: "permission" | "question";
 
   /** 이 세션을 만든 AI 코딩 도구 id (State.providers[].id). 없으면 "claude" @since 1.1. MCP 세션은 "codex" | "gemini" | "other" */
   provider?: string;

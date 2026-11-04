@@ -469,7 +469,7 @@ interface CoreApi {
   ```
   macOS도 같은 형식에 절대 경로를 넣는다.
 - **대체: shell form** (`args`를 모르는 구버전 Claude Code용. [PoC] `args`를 지원하는 최소 버전 확인): 경로를 `/`로 바꾸고 **공백이 없을 때만** 인용 없이 쓴다(Git Bash·PowerShell 모두에서 동작). 공백이 있으면 Git Bash용 `"C:/…/wr-hook.exe"`를 쓴다. PowerShell 폴백에서는 따옴표로 감싼 문자열이 실행되지 않으므로 이 경우는 지원 범위 밖으로 안내한다.
-- 등록 이벤트: `SessionStart, UserPromptSubmit, PreToolUse, PostToolUse(matcher TaskCreate|TaskUpdate), Notification, Stop, SessionEnd, SubagentStart, SubagentStop`(현행과 같음). Notification은 matcher 없이 전부 받고 `wr-hook`이 `permission_prompt`·`idle_prompt` 등 유형을 기록한다.
+- 등록 이벤트: `SessionStart, UserPromptSubmit, PreToolUse, PostToolUse(matcher TaskCreate|TaskUpdate), Notification, Stop, SessionEnd, SubagentStart, SubagentStop, PermissionRequest`(#118에서 PermissionRequest 추가 — 관찰 전용, 결정을 반환하지 않음). Notification은 matcher 없이 전부 받고 `wr-hook`이 `notification_type`을 `ntype`으로 기록한다(`permission_prompt`·`idle_prompt`·`elicitation_dialog` 등). 질문 판정 규칙: `docs/PRD.md` §3.2, `hooks.rs` `ask_signal`/`apply_ask` = server.py `ask_signal`/`apply_ask`.
 - **설치·제거 절차(`hooks_config`)**: settings.json 읽기 → 파싱 실패 시 중단(덮어쓰지 않음) → `settings.json.bak-waiting-room-<timestamp>` 백업 → 기존 항목은 보존하고 우리 항목(명령 경로에 `waiting-room/bin/wr-hook`가 들어 있는 것)만 추가하거나 제거(멱등) → 쓰기 직전 mtime을 다시 확인 → 임시 파일 + rename으로 원자적 쓰기. 제거하면 우리 항목만 지운다. 설정 화면에서 바뀔 내용을 diff로 보여 주고 동의를 받는다.
 - **콘솔 깜빡임(Windows)**: Claude Code(node)가 이미 콘솔을 가진 상태에서 파이프로 띄우므로 console subsystem exe도 새 창이 뜨지 않을 것으로 본다[추정]. 깜빡이면 `#![windows_subsystem = "windows"]`로 바꾼다(파이프 stdin은 상속되므로 동작함 [추정]). → [PoC] 둘 다 측정.
 - 성능 목표: `wr-hook` 1회 실행 < 10ms, 바이너리 < 1MB. 의존성은 serde_json만 쓰고, 정규식 마스킹은 작은 자체 구현으로 한다.

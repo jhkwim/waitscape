@@ -110,6 +110,22 @@ pub fn with_term(ev: &mut Value, get: impl Fn(&str) -> Option<String>) {
     }
 }
 
+/// 알림 종류 이름: 소문자·밑줄 1~32자 (그 밖은 기록하지 않음)
+pub fn ntype_ok(t: &str) -> bool {
+    (1..=32).contains(&t.len()) && t.bytes().all(|b| b.is_ascii_lowercase() || b == b'_')
+}
+
+/// 사람이 없는 세션(`claude -p`·SDK)의 권한 요청 표시(#118). Claude Code가 훅에 넘기는 `CLAUDE_CODE_SESSION_ATTENDED=0`만 본다(그 env 하나만 읽음)
+pub fn with_unattended(ev: &mut Value, get: impl Fn(&str) -> Option<String>) {
+    if let Some(o) = ev.as_object_mut() {
+        if o.get("event").and_then(|v| v.as_str()) == Some("PermissionRequest") && get(ATTENDED).as_deref() == Some("0") {
+            o.insert("una".into(), json!(true));
+        }
+    }
+}
+
+pub const ATTENDED: &str = "CLAUDE_CODE_SESSION_ATTENDED";
+
 /// 훅 입력 → 이벤트 한 줄 (기록하지 않을 이벤트면 None)
 pub fn summarize(d: &Value, ts: f64) -> Option<Value> {
     if !d.is_object() {
@@ -145,11 +161,28 @@ pub fn summarize(d: &Value, ts: f64) -> Option<Value> {
             m.extend(r.ok()?);
             ev.insert("report".into(), Value::Object(m));
         }
+        // PermissionRequest(#118): 관찰만 — 무엇을 승인하려는지 PreToolUse와 같은 요약. 결정은 절대 반환하지 않는다(stdout 없음, exit 0)
+        "PermissionRequest" => {
+            let (icon, text) = describe(tool, inp, true);
+            ev.insert("icon".into(), json!(icon));
+            ev.insert("text".into(), json!(text));
+            ev.insert("kind".into(), json!(kind_of(tool)));
+        }
         "PreToolUse" => {
             let (icon, text) = describe(tool, inp, true);
             ev.insert("icon".into(), json!(icon));
             ev.insert("text".into(), json!(text));
             ev.insert("kind".into(), json!(kind_of(tool)));
+            // 사람이 답해야 넘어가는 도구(#118): 상태 엔진이 질문으로 본다
+            match tool {
+                "AskUserQuestion" => {
+                    ev.insert("ask".into(), json!("question"));
+                }
+                "ExitPlanMode" => {
+                    ev.insert("ask".into(), json!("plan"));
+                }
+                _ => {}
+            }
             if tool == "TodoWrite" {
                 ev.insert("todos".into(), Value::Array(todos_of(inp, true)));
             } else if tool == "Agent" || tool == "Task" {
@@ -200,6 +233,10 @@ pub fn summarize(d: &Value, ts: f64) -> Option<Value> {
         }
         "Notification" => {
             ev.insert("text".into(), json!(short(&sval(get(d, "message"), true), 80)));
+            // 알림 종류(#118): permission_prompt·idle_prompt·elicitation_dialog… 형식이 맞는 짧은 이름만
+            if let Some(t) = get(d, "notification_type").and_then(|v| v.as_str()).filter(|t| ntype_ok(t)) {
+                ev.insert("ntype".into(), json!(t));
+            }
         }
         _ => {}
     }
@@ -211,6 +248,7 @@ fn run() -> Option<()> {
     std::io::stdin().read_to_end(&mut buf).ok()?;
     let d: Value = serde_json::from_slice(&buf).ok()?;
     let mut ev = summarize(&d, now())?;
+    with_unattended(&mut ev, env);
     with_term(&mut ev, env);
     let mut line = dumps(&ev);
     line.push(b'\n');
@@ -303,6 +341,26 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// #118: 사람 없는 세션 표시는 PermissionRequest에만, ATTENDED=0일 때만, 그 env 하나만 묻는다
+    #[test]
+    fn unattended_flag() {
+        let d = json!({"session_id": "s", "hook_event_name": "PermissionRequest", "tool_name": "Bash", "tool_input": {"command": "ls"}});
+        for (v, want) in [(Some("0"), true), (Some("1"), false), (None, false)] {
+            let asked = std::cell::RefCell::new(vec![]);
+            let mut ev = summarize(&d, 0.0).unwrap();
+            with_unattended(&mut ev, |k| {
+                asked.borrow_mut().push(k.to_string());
+                v.map(String::from)
+            });
+            assert_eq!(ev.get("una").is_some(), want, "{v:?}");
+            assert_eq!(*asked.borrow(), vec![ATTENDED.to_string()]);
+        }
+        let mut ev = summarize(&json!({"session_id": "s", "hook_event_name": "Notification", "message": "m"}), 0.0).unwrap();
+        with_unattended(&mut ev, |_| Some("0".into()));
+        assert!(ev.get("una").is_none());
+        assert!(ntype_ok("permission_prompt") && !ntype_ok("Bad-Type") && !ntype_ok("") && !ntype_ok(&"a".repeat(33)));
     }
 
     /// T9: MCP 보고 훅 분기 — hook.py가 만든 골든(fixtures/mcp/hook_cases.json)과 바이트 단위로 같다 (ts 고정)

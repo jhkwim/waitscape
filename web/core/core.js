@@ -165,17 +165,19 @@ function detect(st) {
   notifiedStall = new Set(ss.map(x => x.key));
   for (const s of st.sessions) {
     const p = prevStatus[s.sid];
-    if (p && p !== s.status) {
+    // 추정 질문(confidence guess)은 소리·알림·이벤트 없이 따로 기억 — 확실해지는 순간 한 번 (#118, detect.rs와 같은 규칙)
+    const key = s.status === "needs_input" && s.confidence === "guess" ? "needs_input?" : s.status;
+    if (p && p !== key) {
       lastAlert = s;
-      if (s.status === "done") {
+      if (key === "done") {
         chime("done"); notify(...text("done", s), "done"); emit("done", s);
         const m = memo.get(s.sid);
         if (m.trim()) { memoReady.add(s.sid); notify(...text("memo", s, m), "memo"); emit("memo-ready", s); }
-      } else if (s.status === "needs_input") {
+      } else if (key === "needs_input") {
         chime("input"); notify(...text("input", s), "input"); emit("input", s);
       }
     }
-    prevStatus[s.sid] = s.status;
+    prevStatus[s.sid] = key;
   }
 }
 function updateTitle() {

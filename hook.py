@@ -65,9 +65,17 @@ def main():
         if err:
             return
         ev["report"] = dict({"tool": kind}, **m)
+    elif ev["event"] == "PermissionRequest":
+        # 관찰만 (#118) — 결정은 절대 반환하지 않음. 사람 없는 세션(claude -p)은 una
+        ev["icon"], ev["text"] = describe(tool, inp)
+        ev["kind"] = KINDS.get(tool, "web" if tool.startswith("mcp__") else "other")
+        if os.environ.get("CLAUDE_CODE_SESSION_ATTENDED") == "0":
+            ev["una"] = True
     elif ev["event"] == "PreToolUse":
         ev["icon"], ev["text"] = describe(tool, inp)
         ev["kind"] = KINDS.get(tool, "web" if tool.startswith("mcp__") else "other")
+        if tool in ("AskUserQuestion", "ExitPlanMode"):  # 사람이 답해야 넘어가는 도구 (#118)
+            ev["ask"] = "question" if tool == "AskUserQuestion" else "plan"
         if tool == "TodoWrite":
             ev["todos"] = [{"text": short(t.get("activeForm") if t.get("status") == "in_progress" else t.get("content"), 60),
                             "status": t.get("status")} for t in inp.get("todos", [])]
@@ -94,6 +102,9 @@ def main():
             ev["text"] = short(prompt, 60)
     elif ev["event"] == "Notification":
         ev["text"] = short(d.get("message"), 80)
+        nt = d.get("notification_type")
+        if isinstance(nt, str) and 0 < len(nt) <= 32 and all(c == "_" or "a" <= c <= "z" for c in nt):
+            ev["ntype"] = nt  # 알림 종류 (#118)
     # 멀티플렉서(Orca·cmux)에서 연 셸: 이동 정보. 어댑터 표의 env만 읽고 형식 검증(mcp_report.mux_term — wr-hook term.rs와 같은 표)
     try:  # 이동 정보가 실패해도 이벤트는 기록한다
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
