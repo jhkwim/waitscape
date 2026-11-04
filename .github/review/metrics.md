@@ -66,3 +66,4 @@
 
 모델 비교 요약은 [`CALIBRATION.md`](CALIBRATION.md) "Flash 비교". "-"는 반영·토론이 없는 보정 실행이라는 뜻.
 | 2026-11-04 | #115 | 첫 커밋 | auto (Flash 기본+렌즈 5) + visual(추가 장면 2) + Claude 전문가 | 376 | Gemini 0 · visual 0 · Claude 0/4/4/0 | 100% | 100% | 100% | 0% | - (부분 반영: 백그라운드 에이전트 Resume·권한 승인 시각은 서버 신호가 없어 한계로 문서화, 라벨 위치는 rect 읽기 유지 — 2.6초만) | - | Claude만: 끝난 뒤 "입력 기다림" 알림도 질문으로 셈(거꾸로 된 보상)·MCP 셀프 재개·권한 승인 대기 부풀림·옛 보상 문구 2곳·짧은 턴 표시·숨은 직원 라벨·다중 창 문구·askSince 정리. Gemini·visual은 0건 |
+| 2026-11-04 | #117 | 첫 커밋 | auto (Flash 기본+렌즈 5) + Claude 사실 검증(문서만이라 visual 생략) |      161 | Gemini 0 · Claude 4/6/4 | - | - | 100% | 0% | 전부 반영(문서) | - | Claude만: 권한 대기 해제 신호 없음(PostToolUse matcher 좁음)·서브에이전트 PermissionRequest·"업데이트 필요" 문구 틀림·쓰는 쪽 회전 경쟁. 기존 "다음" 칩·단축키·confidence 필드 중복 짚음. Gemini 0건 |
