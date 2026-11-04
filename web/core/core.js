@@ -868,14 +868,15 @@ async function hintHooks() {
   if (store.get("hint:hooks10") || !api.hooks) return;
   let h; try { h = await api.hooks.status(); } catch { return; }
   const st = h && h.status;
-  if (!st || !st.installed || st.complete || st.stale) return;
+  if (!st || !st.installed || st.complete) return;   // 일부만 등록·옛 경로(stale) 모두 — 설정 탭 [다시 켜기]가 둘 다 고침
   if (app.nunchi || nx.on) { const off = on("nunchi", e => { if (e && !e.on && !nx.on) { off(); hintHooks(); } }); return; }   // 🙈 눈치 화면 위엔 띄우지 않음
-  const busy = document.querySelector("dialog[open]");   // 「vX로 올랐어요」·설정 등 다른 창이 떠 있으면 닫힌 뒤에
+  const host = document.getElementById("core-manager");   // 설정·업데이트 창은 #core-manager shadowRoot 안 (nxSet과 같은 방식)
+  const busy = document.querySelector("dialog[open]") || (host && host.shadowRoot && host.shadowRoot.querySelector("dialog[open]"));   // 다른 창이 떠 있으면 닫힌 뒤에
   if (busy) { busy.addEventListener("close", () => setTimeout(hintHooks, 400), { once: true }); return; }
   store.set("hint:hooks10", 1);
   const d = document.createElement("dialog");
-  d.className = "core-just"; d.setAttribute("aria-labelledby", "core-hint-t");
-  d.innerHTML = `<form method="dialog"><h2 id="core-hint-t">🔑 ${L.esc(t("hint.hooks.t"))}</h2><p>${L.esc(t("hint.hooks.b"))}</p>`
+  d.className = "core-just"; d.setAttribute("aria-labelledby", "core-hint-t"); d.setAttribute("aria-describedby", "core-hint-b");
+  d.innerHTML = `<form method="dialog"><h2 id="core-hint-t"><span aria-hidden="true">🔑</span> ${L.esc(t("hint.hooks.t"))}</h2><p id="core-hint-b">${L.esc(t("hint.hooks.b"))}</p>`
     + `<p class="mute">${L.esc(t("hint.hooks.m"))}</p><button value="go" autofocus>${L.esc(t("hint.hooks.go"))}</button><button value="later" class="later">${L.esc(t("hint.hooks.later"))}</button></form>`;
   d.addEventListener("close", () => { const go = d.returnValue === "go"; d.remove(); if (go) openSettings("hooks"); }, { once: true });
   document.body.appendChild(d);

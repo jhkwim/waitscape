@@ -6795,7 +6795,8 @@ C.registerMode({
       if (asker && !DRon) {
         const f = model.floors[floorIdx.get(asker.sid)], s = f && f.s;
         const perm = s && s.ask === "permission";
-        const q = s && s.note ? (perm ? X(`해도 될까요? — ${s.note}`, `May I? — ${s.note}`) : s.note) : X("확인이 필요해요", "Needs your input");   // 🔑 권한이면 무엇을 허락받는지 (#120)
+        const pm = perm && /permission to use (\S+)/i.exec(s.note || "");   // 알림 원문(훅이 일부만 등록된 경우)이면 도구 이름만
+        const q = s && s.note ? (pm ? X(`${pm[1]} 써도 될까요?`, `May I use ${pm[1]}?`) : perm ? X(`해도 될까요? — ${s.note}`, `May I? — ${s.note}`) : s.note) : X("확인이 필요해요", "Needs your input");   // 🔑 권한이면 무엇을 허락받는지 (#120)
         const h = `<span class="hd" style="background:${PROV[f.pk].c}">${f.shiny ? "✨" : ""}${EMO[f.animal]} ${esc(aName(f.animal))} · ${esc(f.pname)} ${askIco(s && s.ask)}${perm ? " " + X("권한", "permission") : ""}${s && s.confidence === "guess" ? " " + X("(추정)", "(guess)") : ""}</span>` +
           `<span class="q">${esc(q)}</span>${canTerm ? `<button class="btn" type="button" data-act="term" data-sid="${esc(asker.sid)}">🖥️ ${muxOf(s) ? X(`${muxOf(s)}로 이동`, `Go to ${muxOf(s)}`) : X("터미널로 이동", "Go to terminal")}</button>` : ""}` +
           `<span class="hint">${perm ? (muxOf(s) ? X(`${muxOf(s)}에서 허락해 주세요`, `Please approve in ${muxOf(s)}`) : X("터미널에서 허락해 주세요", "Please approve in the terminal")) : muxOf(s) ? X(`${muxOf(s)}에서 답해 주세요`, `Please answer in ${muxOf(s)}`) : X("터미널에서 답해 주세요", "Please answer in the terminal")}</span>`;

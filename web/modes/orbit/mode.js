@@ -40,9 +40,9 @@ function healthText(h) {
   return h.tool ? `${h.tool} ${mins(h.secs)}분째 실행 중` : `${mins(h.secs)}분째 응답 없음`;
 }
 function askText(note, ask) {
-  if (ask === "permission" && note) return `${note} 허가를 기다려요`;   // 질문 종류는 state ask가 먼저(#120), 없으면 알림 문구로 짐작
-  const m = /permission to use (\S+)/i.exec(note || "");
+  const m = /permission to use (\S+)/i.exec(note || "");   // 알림 원문(훅이 일부만 등록된 경우 등)이면 도구 이름만
   if (m) return `${m[1]} 허가를 기다려요`;
+  if (ask === "permission" && note) return `${note} 허가를 기다려요`;   // 질문 종류는 state ask (#120)
   if (/waiting for your input/i.test(note || "")) return "입력을 기다려요";
   return note || "응답을 기다려요";
 }

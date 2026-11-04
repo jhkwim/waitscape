@@ -56,8 +56,8 @@ function alerts(s) {
   if (s.status === "needs_input" && s.ask === "permission") out.push(["nx.b.perm", null]);   // #120
   else if (s.status === "needs_input" && s.ask === "question") out.push(["nx.b.q", null]);
   if (s.confidence === "guess") out.push(["nx.b.guess", null]);
-  if (s.source === "transcript") out.push(["nx.b.tx", null]);
-  else if (s.source === "mcp") out.push(["nx.b.mcp", null]);
+  if (s.status === "needs_input" && s.source === "transcript") out.push(["nx.b.tx", null]);   // 출처는 질문일 때만(늘 붙으면 경고처럼 읽힘)
+  else if (s.status === "needs_input" && s.source === "mcp") out.push(["nx.b.mcp", null]);
   if ((s.status === "working" && s.health && s.health.level === "stall") || ag.some(a => a.status === "running" && a.health && a.health.level === "stall")) out.push(["nx.b.stall", null]);
   const c = progress(s).ctx;
   if (c != null && c >= CTX_WARN) out.push(["nx.b.ctx", c]);

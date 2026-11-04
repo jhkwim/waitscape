@@ -58,6 +58,7 @@ body.quiet .core-update-mini { animation: none; }
 .core-just li { margin: 4px 0; }
 .core-just .mute { margin: 0 0 14px; font-size: 12px; opacity: .7; }
 .core-just p { margin: 0 0 10px; font-size: 13px; line-height: 1.5; }
+.core-just button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .core-just button.later { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); margin-right: 8px; }
 .core-just button { font: 600 13px/1 system-ui, sans-serif; border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; background: #ffd23f; color: #2e2040; float: right; }
 /* 프로바이더 배지 (Core.providerBadge). :where()로 명시도 0 → 모드가 쉽게 덮어씀 */
