@@ -4,6 +4,20 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::path::Path;
 
+/// 파일 식별자: unix (dev, inode), 그 외 생성 시각. 바뀌면 다른 파일(회전·교체) — MCP 보고·훅 로그 리더가 함께 쓴다
+pub fn ident(m: &std::fs::Metadata) -> Option<(u64, u64)> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        Some((m.dev(), m.ino()))
+    }
+    #[cfg(not(unix))]
+    {
+        let d = m.created().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?;
+        Some((d.as_secs(), d.subsec_nanos() as u64))
+    }
+}
+
 /// 파일 크기 (없으면 None)
 pub fn size(path: &Path) -> Option<u64> {
     std::fs::metadata(path).ok().map(|m| m.len())

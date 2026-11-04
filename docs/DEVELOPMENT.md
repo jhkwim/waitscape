@@ -102,7 +102,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
 - 테스트: `python3 scripts/test_limits_merge.py`, `python3 scripts/test_stale_agents.py`, `python3 scripts/test_daylog.py`, `node scripts/test_core_hide.js`, `node scripts/test_nunchi.js`, `node scripts/test_studio_hire.js`, `node scripts/test_studio_gacha.js`, `node scripts/test_studio_events.js`, `node scripts/test_studio_nap.js`, `node scripts/test_studio_weather.js`, `node scripts/test_studio_spot.js`, `node scripts/test_studio_earn.js`, `cargo test --workspace`, `sh scripts/rust_parity.sh`
 
 ## 구조
-- `hook.py` — Claude Code hook. 이벤트를 요약해 `~/.claude/waiting-room/events.jsonl`에 추가
+- `hook.py` — Claude Code hook. 이벤트를 요약해 `~/.claude/waiting-room/events.jsonl`에 추가 (쓰는 쪽은 회전하지 않음 — 앱 리더가 5MB에서 `events.1.jsonl`로 넘기고, server.py는 둘을 이어 최근 5000줄을 본다 #122)
 - `server.py` — 로그를 세션별 상태로 집계해 `/state`로 제공 (stdlib only, 127.0.0.1 바인딩). 흐름 모드 전용 `/trace`,
   퇴근 일보 `/daylog`, 모드 목록 `/modes`, 외부 모드 샌드박스 `/_modes/<id>/…`·`/_sdk/…`도 제공 (아래 'API')
 - `daylog.py` — 퇴근 일보용 하루치 일지(4시 경계 하루 파일, flock 원자적 쓰기, 14일 보존)와 카드용 집계. server.py가 상태를 만들 때 기록

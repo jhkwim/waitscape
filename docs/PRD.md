@@ -64,7 +64,7 @@ Waitscape의 처음 의도는 **AI 코딩 CLI를 쓰는 데 실제로 도움이 
 - [x] (A1) **서브에이전트**(`agent_id`가 있는) PermissionRequest·권한/질문 알림은 메인 세션 질문으로 올린다(질문한 에이전트가 모두 다시 움직이면 풀리고, 질문 직전 상태로 돌아간다 — 메인이 이미 끝났으면 done). 백그라운드 에이전트(`bg`)와 사람 없는 세션(`claude -p` — 훅 env `CLAUDE_CODE_SESSION_ATTENDED=0`, 2.1.318에서 확인)의 권한 요청은 질문으로 보지 않는다.
 - [x] (A1) `notification_type`이 없는 옛 Claude Code에서는 지금 동작을 유지한다(픽스처 `fx-ask-old`). 같은 질문에 알림이 또 와도 `since`는 처음 시각. PermissionRequest를 모르는 옛 버전이 settings.json의 새 항목을 무시하는지 확인해 INSTALL·DEVELOPMENT에 적는다.
 - [x] (A2 #120 — 눈치 표·업무 모드 배지) 이미 있는 `source`·`confidence` 필드를 화면에서 확인할 수 있다(근거 배지와 경과 시간, A2). 훅의 추정 권한 요청(`confidence = guess` + `ask = permission`)은 OS 알림을 보내지 않는다 — A1에서 먼저(앱 `detect.rs`·웹 `detect()`, 확실해지는 순간 한 번 알림). 트랜스크립트 추정은 확실해질 일이 없어 예전처럼 "확인이 필요할 수도"로 알린다(A1 리뷰 반영).
-- [ ] `events.jsonl`이 정해진 크기(예: 5MB)를 넘으면 **리더(앱)가** 회전한다. 여러 wr-hook 프로세스가 동시에 회전하면 줄이 사라지고 Windows에서는 rename이 실패할 수 있어서, 쓰는 쪽은 회전하지 않는다(`mcp.rs` 방식). 오프셋은 크기 감소와 파일 식별자로 다시 맞춘다.
+- [x] (A3 #122) `events.jsonl`이 정해진 크기(5MB)를 넘으면 **리더(앱)가** 회전한다(`events.1.jsonl` 하나만 남김 — 최대 약 10MB). 여러 wr-hook 프로세스가 동시에 회전하면 줄이 사라지고 Windows에서는 rename이 실패할 수 있어서, 쓰는 쪽은 회전하지 않는다(`mcp.rs` 방식). 오프셋은 크기 감소와 파일 식별자로 다시 맞춘다.
 - [x] (A1, `fixtures/make_fixtures.py` `fx-ask-*` 12개) 회귀 픽스처: "Stop 뒤 idle_prompt", "notification_type 없음(옛 버전)", "PreToolUse → PermissionRequest → 승인 → 다음 PreToolUse/Stop", "서브에이전트 PermissionRequest", "elicitation 질문". 훅 경로는 Rust와 `server.py`가 같은 결과를 낸다(parity, golden은 `server.py`가 만든다). "긴 Bash"는 트랜스크립트 전용 엔진(Rust만, 기대값 수기) 픽스처로 둔다.
 - [x] (A1) `hook.py`(참조 구현)도 wr-hook과 같은 필드를 남긴다(`fixtures/mcp/hook_cases.json` 골든 공유).
 - [x] (A1) 훅 소요 시간 p95 ≤ 50ms(맥, 로컬 측정)를 DEVELOPMENT에 적는다 — 측정 p50 7.9ms · p95 10.3ms · p99 16.9ms(릴리스 빌드, 1000회, Apple Silicon).

@@ -6,55 +6,137 @@
 
 use crate::clock::Tz;
 use crate::daylog::{FeedTurn, FeedWait};
-use crate::jsonl::{read_lines, size};
+use crate::jsonl::ident;
 use crate::model::{Activity, Agent, AgentTool, Session, Today};
 use crate::py::{get, num, py_str, truthy};
 use crate::report::{board_of, status_of, Fold};
 use indexmap::IndexMap;
 use serde_json::{json, Value};
 use std::collections::VecDeque;
-use std::io::Read;
 use std::path::Path;
 
 /// server.py가 보는 최근 줄 수
 pub const LOG_LINES: usize = 5000;
+/// 이만큼 커지면 리더(앱)가 `events.1.jsonl`로 회전한다 (#122). 쓰는 쪽(wr-hook)은 회전하지 않는다 —
+/// 여러 훅 프로세스가 동시에 돌고 Windows는 열린 파일 rename이 실패할 수 있어서(mcp.rs `ROTATE_AT`과 같은 방식)
+pub const LOG_ROTATE_AT: u64 = 5 << 20;
 
-/// events.jsonl 링버퍼. 매번 전체를 다시 파싱하지 않고 새 줄만 읽는다(파일이 줄면 처음부터).
+/// events.jsonl 링버퍼. 매번 전체를 다시 파싱하지 않고 새 줄만 읽는다 (#122 회전).
+/// - 처음 읽을 때는 회전된 `events.1.jsonl`의 줄을 먼저 채운다(server.py처럼 둘을 이어 최근 5000줄)
+/// - 회전·교체(파일 식별자가 바뀜)돼도 버퍼는 그대로, 옛 파일에 늦게 붙은 줄(회전 순간 열려 있던 훅이 쓴 것)을 마저 읽은 뒤 새 파일을 처음부터
+/// - 같은 파일이 잘리면 처음부터(+ events.1 다시 채움), 두 파일이 모두 없으면 비움
 #[derive(Debug, Default)]
 pub struct EventLog {
     off: u64,
     lines: VecDeque<Option<Value>>,
     /// 개행 없는 마지막 줄 (파이썬 readlines()는 이것도 한 줄로 본다)
     tail: Option<Option<Value>>,
+    /// 읽고 있는 events.jsonl 식별자 (`jsonl::ident`)
+    ident: Option<(u64, u64)>,
+    /// 회전된 파일(events.1.jsonl)의 (식별자, 읽은 위치) — 같은 파일이면 늦게 붙은 줄을 이어 읽는다
+    prev: Option<(Option<(u64, u64)>, u64)>,
+    /// 처음 읽기(events.1 채우기)를 했나
+    loaded: bool,
+}
+
+/// 열린 파일 `f`의 `off`부터 완성된 줄을 `f`에 넘기고 (읽은 끝, 개행 없는 마지막 조각)을 돌려준다 — 경로를 다시 열지 않아 교체 경합이 없다
+fn read_handle(f: &mut std::fs::File, mut off: u64, mut each: impl FnMut(&[u8])) -> (u64, Vec<u8>) {
+    use std::io::{BufRead, BufReader, Seek, SeekFrom};
+    if f.seek(SeekFrom::Start(off)).is_err() {
+        return (off, vec![]);
+    }
+    let mut r = BufReader::with_capacity(1 << 20, f);
+    let mut buf = Vec::with_capacity(1 << 16);
+    loop {
+        buf.clear();
+        match r.read_until(b'\n', &mut buf) {
+            Ok(n) if n > 0 && buf.last() == Some(&b'\n') => {
+                off += n as u64;
+                each(&buf);
+            }
+            _ => return (off, std::mem::take(&mut buf)),
+        }
+    }
 }
 
 impl EventLog {
     pub fn refresh(&mut self, path: &Path) {
-        let Some(sz) = size(path) else {
-            *self = EventLog::default();
+        self.refresh_at(path, LOG_ROTATE_AT);
+    }
+
+    fn push(lines: &mut VecDeque<Option<Value>>, raw: &[u8]) {
+        lines.push_back(serde_json::from_slice(raw).ok());
+        if lines.len() > LOG_LINES {
+            lines.pop_front();
+        }
+    }
+
+    /// 회전된 파일: 처음이면 처음부터(채우기), 아니면 기억한 같은 파일의 늦게 붙은 줄만
+    fn drain_old(&mut self, old: &Path) {
+        let Ok(mut f) = std::fs::File::open(old) else { return };
+        let Ok(meta) = f.metadata() else { return };
+        let id = ident(&meta);
+        let from = match self.prev {
+            Some((pid, poff)) if pid == id && meta.len() >= poff => poff,
+            Some(_) => return, // 다른 파일(또 회전됨 등) — 버퍼에 이미 있던 줄을 다시 넣지 않는다
+            None if !self.loaded => 0,
+            None => return,
+        };
+        let lines = &mut self.lines;
+        let (end, _) = read_handle(&mut f, from, |raw| Self::push(lines, raw));
+        self.prev = Some((id, end));
+    }
+
+    /// `rotate_at` 바이트를 넘으면 회전 (테스트는 작은 값)
+    pub fn refresh_at(&mut self, path: &Path, rotate_at: u64) {
+        let old = path.with_file_name("events.1.jsonl");
+        if !self.loaded {
+            self.drain_old(&old);
+            self.loaded = true;
+        }
+        let Ok(mut f) = std::fs::File::open(path) else {
+            // 없음: 방금 회전해 다음 훅이 새 파일을 만들기 전이면 events.1의 늦은 줄만. 둘 다 없으면 지운 것 → 비움
+            self.drain_old(&old);
+            if !old.exists() {
+                self.lines.clear();
+                self.prev = None;
+            }
+            self.off = 0;
+            self.ident = None;
+            self.tail = None;
             return;
         };
-        if sz < self.off {
-            *self = EventLog::default();
+        let Ok(meta) = f.metadata() else { return };
+        let (sz, id) = (meta.len(), ident(&meta));
+        if id != self.ident {
+            // 다른 파일(누가 회전·교체): 내가 읽던 파일이 지금 events.1이면 그 뒤에 붙은 줄을 마저 읽는다
+            if self.ident.is_some() {
+                self.prev = Some((self.ident, self.off));
+            }
+            self.drain_old(&old);
+            self.off = 0;
+            self.ident = id;
+        } else if sz < self.off {
+            // 같은 파일이 잘림 → 처음부터 (events.1 다시 채움)
+            *self = EventLog {
+                ident: id,
+                ..EventLog::default()
+            };
+            self.drain_old(&old);
+            self.loaded = true;
+        } else if self.prev.is_some() {
+            self.drain_old(&old); // 우리가 회전한 뒤 늦게 붙은 줄
         }
-        let mut off = self.off;
         let lines = &mut self.lines;
-        let _ = read_lines(path, &mut off, |raw| {
-            lines.push_back(serde_json::from_slice(raw).ok());
-            if lines.len() > LOG_LINES {
-                lines.pop_front();
-            }
-        });
+        let (off, rest) = read_handle(&mut f, self.off, |raw| Self::push(lines, raw));
         self.off = off;
-        self.tail = None;
-        if sz > off {
-            if let Ok(mut f) = std::fs::File::open(path) {
-                use std::io::{Seek, SeekFrom};
-                let mut buf = vec![];
-                if f.seek(SeekFrom::Start(off)).is_ok() && f.read_to_end(&mut buf).is_ok() && !buf.is_empty() {
-                    self.tail = Some(serde_json::from_slice(&buf).ok());
-                }
-            }
+        self.tail = (!rest.is_empty()).then(|| serde_json::from_slice(&rest).ok());
+        // 끝까지 다 읽었고(미완성 줄 없음) 충분히 크면 회전. 회전 순간 열려 있던 훅이 쓴 줄은 다음에 events.1에서 마저 읽는다.
+        // rename이 실패하면(Windows에서 대상이 열려 있음 등) 다음에 다시
+        if off >= rotate_at && self.tail.is_none() && std::fs::rename(path, &old).is_ok() {
+            self.prev = Some((id, off));
+            self.off = 0;
+            self.ident = None;
         }
     }
 
@@ -613,6 +695,63 @@ mod tests {
         assert!(w("a").is_empty() && w("b").is_empty());
         assert_eq!(w("c"), vec![(10.0, 30.0)]);
         assert_eq!((r.sessions["c"].s.status, r.sessions["c"].s.ask), ("working", None));
+    }
+
+    /// #122: 리더가 회전해도 최근 줄 버퍼(세션)는 그대로, 회전 순간 열려 있던 훅이 옛 파일에 쓴 줄도 마저 읽음,
+    /// 처음 켤 때 events.1을 먼저 채움(server.py와 같음), 같은 파일이 잘리면 처음부터(+ events.1), 둘 다 지우면 비움
+    #[test]
+    fn log_rotation_keeps_recent() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("wr-rot-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("events.jsonl");
+        let old = dir.join("events.1.jsonl");
+        let line = |sid: &str| format!("{{\"ts\": 1.0, \"sid\": \"{sid}\", \"event\": \"UserPromptSubmit\"}}\n");
+        let open = || std::fs::OpenOptions::new().create(true).append(true).open(&p).unwrap();
+        let sids = |l: &EventLog| l.recent().map(|v| v["sid"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+        let mut log = EventLog::default();
+        open().write_all((line("a") + &line("b")).as_bytes()).unwrap();
+        let mut late = open(); // 회전 순간 열려 있던 훅
+        log.refresh_at(&p, 40);
+        assert!(old.exists() && !p.exists(), "다 읽고 40바이트 넘으면 회전");
+        assert_eq!(sids(&log), ["a", "b"]);
+        late.write_all(line("late").as_bytes()).unwrap(); // 이름이 바뀐 옛 파일 끝에 붙음
+        drop(late);
+        log.refresh_at(&p, 1 << 20);
+        assert_eq!(sids(&log), ["a", "b", "late"], "새 파일이 생기기 전에도 버퍼 유지 + 늦은 줄");
+        open().write_all(line("c").as_bytes()).unwrap();
+        log.refresh_at(&p, 1 << 20);
+        open().write_all(line("d").as_bytes()).unwrap();
+        log.refresh_at(&p, 1 << 20);
+        assert_eq!(sids(&log), ["a", "b", "late", "c", "d"], "새 파일은 처음부터, 중복 없음");
+        // 처음 켤 때: events.1을 먼저 채운다
+        let mut cold = EventLog::default();
+        cold.refresh_at(&p, 1 << 20);
+        assert_eq!(sids(&cold), ["a", "b", "late", "c", "d"]);
+        // 다른 리더가 회전 → 내가 읽던 파일(이제 events.1)에 늦게 붙은 줄도
+        open().write_all(line("e").as_bytes()).unwrap();
+        let mut other = EventLog::default();
+        other.refresh_at(&p, 1); // 회전
+        let mut late = std::fs::OpenOptions::new().append(true).open(&old).unwrap();
+        late.write_all(line("f").as_bytes()).unwrap();
+        drop(late);
+        open().write_all(line("gg").as_bytes()).unwrap();
+        cold.refresh_at(&p, 1 << 20);
+        // 유닉스: 버퍼 + 늦은 줄. Windows(NTFS 터널링 — 곧바로 다시 만든 파일이 옛 생성 시각을 물려받아 같은 식별자)는
+        // "잘림"으로 보고 events.1 + 지금 파일로 다시 채운다(server.py와 같은 결과). 어느 쪽이든 유실·중복 없음
+        let got = sids(&cold);
+        let want = ["c", "d", "e", "f", "gg"];
+        assert!(got.ends_with(&want.map(String::from)), "남이 회전해도 유실 없음: {got:?}");
+        assert!(got == ["a", "b", "late", "c", "d", "e", "f", "gg"] || got == want, "{got:?}");
+        std::fs::write(&p, line("h")).unwrap(); // 같은 파일이 잘림(더 짧게) → 처음부터(events.1 + 지금 파일)
+        cold.refresh_at(&p, 1 << 20);
+        assert_eq!(sids(&cold), ["c", "d", "e", "f", "h"]);
+        std::fs::remove_file(&p).unwrap();
+        std::fs::remove_file(&old).unwrap(); // 둘 다 지움 → 비움
+        cold.refresh_at(&p, 1 << 20);
+        assert!(sids(&cold).is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
