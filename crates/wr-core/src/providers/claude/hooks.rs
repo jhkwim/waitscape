@@ -601,12 +601,9 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
                 }
                 s.kind = Some(k);
                 // AskUserQuestion·ExitPlanMode(wr-hook이 ask로 표시): 사람이 답해야 다음으로 감 — 트랜스크립트 전용(tonly.rs)과 같은 규칙
-                if let Some(a) = get(e, "ask").and_then(|v| v.as_str()) {
-                    let note = if a == "plan" {
-                        "계획 승인을 기다리는 중"
-                    } else {
-                        "질문에 답을 기다리는 중"
-                    };
+                // 메모(note)는 비운다 — 화면·알림이 지금 언어로 기본 문구를 쓴다(엔진 문자열은 언어를 모름)
+                if get(e, "ask").and_then(|v| v.as_str()).is_some() {
+                    let note = "";
                     if s.started.is_some_and(|x| x != 0.0) && h.wait0.is_none() {
                         h.wait0 = Some(ts);
                     }
