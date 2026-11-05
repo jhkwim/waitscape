@@ -68,6 +68,11 @@
    "source": "transcript",
    "project": "demo"
   },
+  "to-done-test": {
+   "status": "done",
+   "test": "fail",
+   "source": "transcript"
+  },
   "to-input-edit": {
    "status": "needs_input",
    "since": 1792519185,

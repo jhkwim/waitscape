@@ -5,7 +5,7 @@
    ?idle=N(일하던 두 세션이 N분째 쉼, &done=1이면 완료 뒤 쉼으로 바뀐 세션) · ?wake=S(S초 뒤 다시 일함)
    ?upd=1(새 버전 0.7.0 있음 — 배너·미니 보기 🎁 · [지금 업데이트]는 내려받기 42%에서 멈춤) · ?just=1(방금 이 버전으로 올린 뒤 「올랐어요」 카드)
    ?askkind=permission|question(질문 세션의 종류 · permission이면 note = 허락받을 도구 설명) · ?guess=1(그 질문이 추정) · ?hooks=partial(훅 일부만 등록 → 재설치 안내 창, #120)
-   ?inbox=1(관제 인박스: 🔑 권한(cmux 세션) · ❓ 질문 · 💤 멈춤 · ✉️ 확인 안 한 완료 2 — 다음 칩·눈치·업무 모드 "다음에 볼 것") · ?inbox=2(질문 없이 멈춤 1 · 완료 4 — 전광판·결재함)
+   ?inbox=1(관제 인박스: 🔑 권한(cmux 세션) · ❓ 질문 · 💤 멈춤 · ✉️ 확인 안 한 완료 2 — 다음 칩·눈치·업무 모드 "다음에 볼 것") · ?inbox=2(질문 없이 멈춤 1 · 완료 4 — 전광판·결재함) · 두 장면 모두 🧪 테스트 통과·실패 완료 하나씩
    ?nunchi=1(🙈 눈치 모드로 시작) · ?m=work(모드 덮어쓰기 — --extra는 mode=studio가 앞에 붙으므로) */
 (() => {
   const q = new URLSearchParams(location.search);
@@ -30,13 +30,15 @@
     if (q.has("inbox") && q.get("inbox") === "2") {   // ?inbox=2: 질문 없이 💤 멈춤 1 · ✉️ 확인 안 한 완료 4(오래 걸린 일 1) — 🎫 사장님 모니터 전광판·📥 결재함이 말풍선에 안 가린 모습
       Object.assign(S.find(x => x.sid === "1d18e2"), { health: { level: "stall", secs: 420, tool: "Bash" }, last: T0 - 420 });
       add("5eaa01", "notes", "claude", "done", { started: T0 - 2400, since: T0 - 1800, run: 600, prompt: "회의록 정리" });
-      add("5eaa02", "blog", "codex", "done", { started: T0 - 900, since: T0 - 700, run: 200, prompt: "오타 고치기" });
-      add("5eaa03", "infra", "claude", "done", { started: T0 - 800, since: T0 - 500, run: 300, prompt: "로그 정리" });
+      add("5eaa02", "blog", "claude", "done", { started: T0 - 900, since: T0 - 700, run: 200, prompt: "오타 고치기", test: "pass" });
+      add("5eaa03", "infra", "claude", "done", { started: T0 - 800, since: T0 - 500, run: 300, prompt: "로그 정리", test: "fail" });
+      S.find(x => x.sid === "1000e2").test = "pass";   // 🧪 테스트 배지(#138)
     } else if (q.has("inbox")) {   // ?inbox=1: 권한 1(cmux에서 연 세션) · 질문 1 · 멈춤 1 · 확인 안 한 완료 2
       Object.assign(S.find(x => x.sid === "8bbce2"), { status: "needs_input", ask: "permission", source: "hook", note: "Bash: npm run migrate", since: T0 - 400, jump: { mux: { kind: "cmux", workspace: "workspace:2" } } });
       Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", ask: "question", since: T0 - 95, note: "테스트 먼저 돌려도 될까요?" });
       Object.assign(S.find(x => x.sid === "1d18e2"), { health: { level: "stall", secs: 420, tool: "Bash" }, last: T0 - 420 });
-      add("5eaa01", "notes", "claude", "done", { started: T0 - 2400, since: T0 - 1800, run: 600, prompt: "회의록 정리" });
+      add("5eaa01", "notes", "claude", "done", { started: T0 - 2400, since: T0 - 1800, run: 600, prompt: "회의록 정리", test: "fail" });
+      S.find(x => x.sid === "1000e2").test = "pass";   // 🧪 테스트 배지(#138)
     }
     if (q.has("stall")) S.find(x => x.sid === "4ddee2").health = { level: "stall", secs: 420, tool: "Bash" };   // ?stall=1: 로봇(api-server)이 멈춤 의심
     const five = q.get("five");

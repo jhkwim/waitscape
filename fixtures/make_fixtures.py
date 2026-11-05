@@ -461,6 +461,59 @@ def build_base(out):
     x.say(t - 100, "리팩터링을 마쳤어요.", stop="end_turn", usage=(5000, 0, 900000, 20000))
     x.write(proj)
 
+    # --- fx-test*: 🧪 테스트 배지(#138) — 이번 턴의 마지막 테스트 실행(거절·차단·도구 오류는 실행 아님)
+    c = D + "testrepo"
+    # fx-tfail: pytest 실패 → cargo test는 자동 모드에 막힘 → 결과 = 실패
+    ev("fx-tfail", c, t - 900, "UserPromptSubmit", text="테스트 고치기")
+    ev("fx-tfail", c, t - 800, "Stop")
+    x = Tx("fx-tfail", c)
+    x.prompt(t - 900, "테스트 고치기")
+    x.call(t - 890, "f1", "Bash", {"command": "pytest -q tests", "description": "Run tests"}, dur=3, res="Exit code 1\n2 failed", err=True)
+    x.call(t - 880, "f2", "Bash", {"command": "cargo test -p core", "description": "Run tests"}, dur=1,
+           res="Permission for this action was denied by the Claude Code auto mode classifier.", err=True)
+    x.say(t - 800, "실패한 테스트가 남았어요.", stop="end_turn", usage=(300, 0, 0, 40))
+    x.write(proj)
+    # fx-tpass: 지난 턴 실패, 이번 턴 `cd … && npm test` 통과 → 사용자가 거절한 make test → 결과 = 통과
+    ev("fx-tpass", c, t - 1500, "UserPromptSubmit", text="고쳐 줘")
+    ev("fx-tpass", c, t - 1400, "Stop")
+    ev("fx-tpass", c, t - 700, "UserPromptSubmit", text="다시 확인")
+    ev("fx-tpass", c, t - 600, "Stop")
+    x = Tx("fx-tpass", c)
+    x.prompt(t - 1500, "고쳐 줘")
+    x.call(t - 1490, "p1", "Bash", {"command": "npm test", "description": "Run tests"}, dur=5, res="Exit code 1", err=True)
+    x.say(t - 1400, "실패했어요.", stop="end_turn", usage=(200, 0, 0, 20))
+    x.prompt(t - 700, "다시 확인")
+    x.call(t - 690, "p2", "Bash", {"command": "cd web && npm test 2>&1 | tail -5", "description": "Run tests"}, dur=5,
+           res="Tests:       12 passed, 12 total")
+    x.call(t - 680, "p3", "Bash", {"command": "make test", "description": "Run all"}, dur=1,
+           res=[{"type": "text", "text": "The user doesn't want to proceed with this tool use."}], err=True)
+    x.call(t - 670, "p4", "Bash", {"command": "grep -rn test src", "description": "Search"}, dur=1, res="Exit code 1", err=True)
+    x.say(t - 600, "통과했어요.", stop="end_turn", usage=(200, 0, 0, 20))
+    x.write(proj)
+    # fx-tran: 파이프로 종료 코드가 가려지고 출력에 표지도 없음 → 결과 = 돌림(ran) · 뒤의 백그라운드 실행은 세지 않음
+    ev("fx-tran", c, t - 400, "UserPromptSubmit", text="빌드 확인")
+    ev("fx-tran", c, t - 300, "Stop")
+    x = Tx("fx-tran", c)
+    x.prompt(t - 400, "빌드 확인")
+    x.call(t - 390, "n1", "Bash", {"command": "cargo test 2>&1 | tail -3", "description": "Run tests"}, dur=20, res="   Compiling core v0.1.0\n    Finished")
+    x.call(t - 360, "n2", "Bash", {"command": "pytest -q", "description": "Run tests", "run_in_background": True}, dur=1,
+           res="Command running in background with ID: bx1")
+    x.say(t - 300, "빌드는 됐어요.", stop="end_turn", usage=(200, 0, 0, 20))
+    x.write(proj)
+    # fx-tprev: 지난 턴에만 테스트 → 이번 턴은 표시 없음
+    ev("fx-tprev", c, t - 1300, "UserPromptSubmit", text="테스트")
+    ev("fx-tprev", c, t - 1200, "Stop")
+    ev("fx-tprev", c, t - 500, "UserPromptSubmit", text="문서만")
+    ev("fx-tprev", c, t - 450, "Stop")
+    x = Tx("fx-tprev", c)
+    x.prompt(t - 1300, "테스트")
+    x.call(t - 1290, "r1", "Bash", {"command": "go test ./...", "description": "Run tests"}, dur=4, res="ok")
+    x.say(t - 1200, "통과.", stop="end_turn", usage=(100, 0, 0, 10))
+    x.prompt(t - 500, "문서만")
+    x.call(t - 490, "r2", "Edit", {"file_path": c + "/README.md", "old_string": "a", "new_string": "b"}, dur=1)
+    x.say(t - 450, "고쳤어요.", stop="end_turn", usage=(100, 0, 0, 10))
+    x.write(proj)
+
     # --- fx-partial: 마지막 줄이 쓰는 중(개행 없음) → 무시. cases.json의 truncate 단계가 이 파일을 줄임
     c = D + "partial"
     ev("fx-partial", c, t - 200, "UserPromptSubmit", text="부분 기록 테스트")
@@ -738,6 +791,13 @@ def build_transcript_only(out):
     x.prompt(t - 120, "오타 고쳐줘")
     x.call(t - 100, "d1", "Edit", {"file_path": D + "demo/README.md", "old_string": "a", "new_string": "b"}, dur=0.5)
     x.say(t - 90, "고쳤어요.", stop="end_turn", usage=(500, 0, 0, 30))
+    x.write(proj)
+
+    x = new("to-done-test")   # 🧪 테스트 배지(#138): 이번 턴 마지막 실행이 실패
+    x.prompt(t - 140, "테스트 고쳐줘")
+    x.call(t - 130, "t1", "Bash", {"command": "pytest -q", "description": "Run tests"}, dur=3)
+    x.call(t - 120, "t2", "Bash", {"command": "npm run test", "description": "Run tests"}, dur=3, res="Exit code 1", err=True)
+    x.say(t - 110, "하나가 아직 실패해요.", stop="end_turn", usage=(500, 0, 0, 30))
     x.write(proj)
 
     x = new("to-input-edit")

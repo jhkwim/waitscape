@@ -160,6 +160,7 @@ impl ClaudeProvider {
         let Some(path) = self.transcript(&h.s.sid) else { return };
         let main = self.scans.get(&path, ctx.tz);
         let mut msgs: Vec<Usage> = main.msgs.values().copied().collect();
+        h.s.test = scan::test_of(main, h.s.prompt_ts); // 🧪 이번 턴의 마지막 테스트(#138)
         if h.s.status == "working" {
             h.s.say = Some(main.say.clone());
             h.s.health = Some(health(

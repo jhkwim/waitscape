@@ -711,6 +711,7 @@ body[data-mode="studio"] .stu .tkh { z-index: 62; pointer-events: none; white-sp
 body[data-mode="studio"] .stu .tray { width: 32px; height: 28px; z-index: 11; pointer-events: none; }
 body[data-mode="studio"] .stu .tray .tb { position: absolute; left: 0; bottom: 0; width: 32px; height: 8px; background: #a8703e; border: 2px solid #4a3560; box-sizing: border-box; }
 body[data-mode="studio"] .stu .tray .ev { position: absolute; left: 3px; width: 26px; background: linear-gradient(170deg, #fff 0 45%, #f3e6c8 46%); border: 2px solid #4a3560; box-sizing: border-box; }
+body[data-mode="studio"] .stu .tray .ev.tf::after { content: ""; position: absolute; right: 2px; top: 1px; width: 4px; height: 4px; background: #e0383a; }   /* 🧪 테스트 실패한 완료(#138) */
 body[data-mode="studio"] .stu .tray .ev.th { background: linear-gradient(170deg, #ffeec2 0 45%, #f0d48a 46%); }
 body[data-mode="studio"] .stu .tray u { position: absolute; right: -12px; top: -6px; text-decoration: none; background: #ff6b8a; color: #fff; border: 2px solid #4a3560; font-size: 10px; font-weight: 900; padding: 0 2px; line-height: 1.2; }
 body[data-mode="studio"] .stu .stamp { z-index: 27; width: 36px; height: 36px; border-radius: 50%; border: 3px solid #d8283a; color: #d8283a; background: rgba(255, 255, 255, .6); align-items: center; justify-content: center; font-size: 11px; font-weight: 900; pointer-events: none; box-sizing: border-box; }

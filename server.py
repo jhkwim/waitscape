@@ -70,16 +70,61 @@ SLOW, STALL = 120, 300          # 모델 응답이 이만큼(초) 없으면 느�
 TOOL_SLOW, TOOL_STALL = 120, 600  # 도구 하나가 이만큼 안 끝나면 느림/멈춤 의심
 
 
+# 🧪 테스트 배지(#138) — wr-core scan.rs의 같은 이름 상수와 같은 문자열(동등성)
+TEST_RE = re.compile(r"(?:^|[;&|(\n]\s*|\b(?:do|then)\s+)(?:[A-Z_][A-Z0-9_]*=\S*\s+)*(?:(?:bundle\s+exec|poetry\s+run|pipenv\s+run|uv\s+run|time|env(?:\s+[A-Z_][A-Z0-9_]*=\S*)*|timeout\s+\S+)\s+)*(?:cargo\s+(?:test|nextest)\b|(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test\b|(?:python3?\s+-m\s+|uv\s+run\s+)?pytest\b|go\s+test\b|(?:npx\s+)?(?:jest|vitest|playwright\s+test)\b|deno\s+test\b|bun\s+test\b|make\s+(?:test|check)\b|node\s+(?:--test\b|\S*test\S*\.m?js\b)|swift\s+test\b|dotnet\s+test\b|mvn\s+test\b|(?:\./)?gradlew?\s+test\b|rspec\b|phpunit\b)")
+UNQUOTE_RE = re.compile(r""""(?:[^"\\]|\\.)*"|'[^']*'""")
+PIPE_RE = re.compile(r"(?:^|[^|])\|(?:[^|]|$)")
+DENIED_RE = re.compile(r"^(?:Permission (?:for this (?:action|command) was denied|to use )|The user doesn't want to proceed|<tool_use_error>)")
+BG_RE = re.compile(r"^Command (?:running in background|did not complete within|was moved to the background)")
+FAIL_RE = re.compile(r"(?m)test result: FAILED|\b[1-9][0-9]* (?:failed|failing)\b|^\s*FAIL\b|^FAILED\b|\bTests?:\s+[1-9][0-9]* failed|^npm ERR!|^error\[E[0-9]+\]|^--- FAIL|could not compile|^AssertionError")
+PASS_RE = re.compile(r"(?m)test result: ok\.|\b[1-9][0-9]* passed\b|^ok\s|^PASS\b|\bTests?:\s+[0-9]+ passed|^OK\b|: ok$")
+
+
+def _shape(cmd):
+    """판정에 쓰는 명령 모양: 따옴표 구간을 지우고 heredoc 본문을 잘라 낸 것"""
+    return UNQUOTE_RE.sub('""', cmd.split("<<")[0]).lstrip()
+
+
+def _result_text(blk):
+    c = blk.get("content")
+    if isinstance(c, str):
+        return c
+    if isinstance(c, list):
+        return "".join(b.get("text") or "" for b in c if isinstance(b, dict) and isinstance(b.get("text"), str))
+    return ""
+
+
+def verdict(text, is_error, piped):
+    """결과 하나의 판정: None(실행 결과 아님: 거절·차단·백그라운드) | "pass" | "fail" | "ran"(결과 모름)"""
+    head = text.lstrip()[:200]
+    if DENIED_RE.search(head) or BG_RE.search(head):
+        return None
+    tail = text[-4000:]
+    if FAIL_RE.search(tail) or is_error:
+        return "fail"
+    if PASS_RE.search(tail) or not piped:
+        return "pass"
+    return "ran"
+
+
+def test_of(c, prompt_ts):
+    """이번 턴(prompt_ts 뒤)의 마지막 테스트 결과 "pass" | "fail" | "ran" | None"""
+    t = c.get("test")
+    if not prompt_ts or not t or t[0] < prompt_ts:
+        return None
+    return t[1]
+
+
 def iso(t):
     return datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp()
 
 
 def scan(path):
     """트랜스크립트를 이어 읽어 토큰(메시지 id로 중복 제거), 마지막 발화, 실행 중인 도구, 마지막 기록 시각을 모은다."""
-    c = _scan.setdefault(path, {"off": 0, "msgs": {}, "say": "", "pending": {}, "last_ts": 0})
+    c = _scan.setdefault(path, {"off": 0, "msgs": {}, "say": "", "pending": {}, "last_ts": 0, "test_ids": {}, "test": None})
     try:
         if os.path.getsize(path) < c["off"]:
-            c.update(off=0, msgs={}, say="", pending={}, last_ts=0)
+            c.update(off=0, msgs={}, say="", pending={}, last_ts=0, test_ids={}, test=None)
         with open(path, "rb") as f:
             f.seek(c["off"])
             for raw in f:
@@ -110,11 +155,21 @@ def scan(path):
                         if blk.get("type") == "text" and (blk.get("text") or "").strip():
                             c["say"] = " ".join(redact(blk["text"]).split())[:160]  # 마스킹 → 절단
                         elif blk.get("type") == "tool_use":
+                            inp = blk.get("input") if isinstance(blk.get("input"), dict) else {}
+                            cmd = inp.get("command")
+                            # 🧪 백그라운드 실행은 결과가 아직 없으므로 세지 않는다
+                            if blk.get("name") == "Bash" and isinstance(cmd, str) and not inp.get("run_in_background") \
+                                    and TEST_RE.search(_shape(cmd)):
+                                c["test_ids"][blk.get("id")] = bool(PIPE_RE.search(_shape(cmd)))
                             c["pending"][blk.get("id")] = (blk.get("name", ""), ts)
                 else:
                     for blk in blocks:
                         if blk.get("type") == "tool_result":
                             c["pending"].pop(blk.get("tool_use_id"), None)
+                            if blk.get("tool_use_id") in c["test_ids"]:
+                                v = verdict(_result_text(blk), bool(blk.get("is_error")), c["test_ids"].pop(blk.get("tool_use_id")))
+                                if v:
+                                    c["test"] = (ts, v)
     except OSError:
         pass
     return c
@@ -161,6 +216,9 @@ def add_tokens(s, day_start, today_msgs, now):
         return
     main = scan(path)
     msgs = list(main["msgs"].values())
+    t = test_of(main, s.get("prompt_ts"))   # 🧪 이번 턴의 마지막 테스트(#138)
+    if t:
+        s["test"] = t
     if s["status"] == "working":
         s["say"] = main["say"]
         s["health"] = health(main, s["last"], now)

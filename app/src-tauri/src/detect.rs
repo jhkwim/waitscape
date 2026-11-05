@@ -24,6 +24,21 @@ pub struct Alert {
     pub guess: bool,
     /// 질문 종류(state `ask`, #120): "permission" | "question" | "" 모름
     pub ask: &'static str,
+    /// 🧪 완료한 턴의 마지막 테스트(state `test`, #138): "pass" | "fail" | "ran"(결과 모름) | "" 안 돌림
+    pub test: &'static str,
+}
+
+/// 🧪 눈치 모드 완료 문구 뒤 " · 테스트 통과/실패"(이모지 없음 — 눈치 알림은 업무 툴처럼)
+fn test_note(t: &str, en: bool) -> &'static str {
+    match (t, en) {
+        ("pass", false) => " · 테스트 통과",
+        ("fail", false) => " · 테스트 실패",
+        ("pass", true) => " · tests passed",
+        ("fail", true) => " · tests failed",
+        ("ran", false) => " · 테스트 실행",
+        ("ran", true) => " · tests ran",
+        _ => "",
+    }
 }
 
 impl Alert {
@@ -32,10 +47,10 @@ impl Alert {
         let en = lang == "en";
         let m = self.mins;
         let body = match (self.kind, en) {
-            (Kind::Done, false) if m > 0 => format!("작업이 끝났습니다 · {m}분"),
-            (Kind::Done, false) => "작업이 끝났습니다".into(),
-            (Kind::Done, true) if m > 0 => format!("Task finished · {m} min"),
-            (Kind::Done, true) => "Task finished".into(),
+            (Kind::Done, false) if m > 0 => format!("작업이 끝났습니다 · {m}분{}", test_note(self.test, en)),
+            (Kind::Done, false) => format!("작업이 끝났습니다{}", test_note(self.test, en)),
+            (Kind::Done, true) if m > 0 => format!("Task finished · {m} min{}", test_note(self.test, en)),
+            (Kind::Done, true) => format!("Task finished{}", test_note(self.test, en)),
             (Kind::Input, false) => match (self.guess, self.ask) {
                 (true, _) => "확인이 필요할 수 있습니다",
                 (_, "permission") => "승인이 필요합니다",
@@ -142,6 +157,7 @@ impl Detector {
                         mins: m,
                         guess: false,
                         ask: "",
+                        test: "",
                     });
                 }
                 now_stalls.insert(key);
@@ -163,15 +179,29 @@ impl Detector {
                     if status == "done" {
                         let prompt = x.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
                         let run = x.get("run").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                        let test = match s(x, "test") {
+                            "pass" => "pass",
+                            "fail" => "fail",
+                            "ran" => "ran",
+                            _ => "",
+                        };
+                        // 🧪 완료한 턴에 테스트를 돌렸으면 본문 앞에 결과(#138)
+                        let mark = match test {
+                            "pass" => "🧪✓ ",
+                            "fail" => "🧪✗ ",
+                            "ran" => "🧪 ",
+                            _ => "",
+                        };
                         out.push(Alert {
                             kind: Kind::Done,
                             title: tr(lang, "done").replace("{p}", project),
-                            body: clip(prompt, 120),
+                            body: format!("{mark}{}", clip(prompt, 120)).trim_end().to_string(),
                             project: project.to_string(),
                             // 1분 미만은 1분으로(0분 표기 없음), 실행 시간을 모르면 0 = 분 생략
                             mins: if run > 0.0 { ((run / 60.0).round() as i64).max(1) } else { 0 },
                             guess: false,
                             ask: "",
+                            test,
                         });
                     } else if status == "needs_input" && !now.is_some_and(|n| self.last_input.get(&sid).is_some_and(|t| n - t < INPUT_GAP))
                     {
@@ -199,6 +229,7 @@ impl Detector {
                             mins: 0,
                             guess,
                             ask,
+                            test: "",
                         });
                     }
                 }
@@ -222,6 +253,20 @@ mod tests {
     fn st(status: &str, health: Option<&str>) -> Value {
         json!({"sessions": [{"sid": "a", "project": "demo", "status": status, "prompt": "fix it", "note": "Bash 허용?",
             "health": health.map(|l| json!({"level": l, "secs": 400.0})), "agents": []}]})
+    }
+
+    /// 🧪 #138: 완료한 턴에 테스트를 돌렸으면 알림 본문 앞에 결과 기호
+    #[test]
+    fn done_test_mark() {
+        let mut d = Detector::default();
+        d.feed(&st("working", None), "ko");
+        let mut v = st("done", None);
+        v["sessions"][0]["test"] = json!("fail");
+        let a = d.feed(&v, "ko").remove(0);
+        assert_eq!((a.test, a.body.as_str()), ("fail", "🧪✗ fix it"));
+        d.feed(&st("working", None), "ko");
+        let a = d.feed(&st("done", None), "ko").remove(0);
+        assert_eq!((a.test, a.body.as_str()), ("", "fix it"));
     }
 
     #[test]
@@ -249,6 +294,7 @@ mod tests {
                 mins: 0,
                 guess: false,
                 ask: "",
+                test: "",
             }]
         );
         // #118: 훅의 추정 권한 요청은 알리지 않고, 확실해지는 순간 한 번 알린다
@@ -323,6 +369,20 @@ mod tests {
         }
         let short = Alert { mins: 0, ..a.clone() };
         assert_eq!(short.plain("ko").1, "작업이 끝났습니다");
+        // 🧪 #138: 눈치 문구에 테스트 결과(이모지 없이)
+        assert_eq!(
+            Alert {
+                test: "fail",
+                ..short.clone()
+            }
+            .plain("ko")
+            .1,
+            "작업이 끝났습니다 · 테스트 실패"
+        );
+        assert_eq!(
+            Alert { test: "pass", ..a.clone() }.plain("en").1,
+            format!("Task finished · {} min · tests passed", a.mins)
+        );
         let ask = d.feed(&st("needs_input", None), "en").remove(0);
         assert_eq!(ask.plain("ko"), ("demo".into(), "입력이 필요합니다".into()));
         assert_eq!(

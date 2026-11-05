@@ -60,7 +60,7 @@
    }
   ],
   "day": "2026-10-20",
-  "done": 16,
+  "done": 22,
   "end": 1792522800.0,
   "first": 1792504800.0,
   "last": 1792522799.0,
@@ -89,10 +89,10 @@
   },
   "mvp": {
    "done": 2,
-   "project": "shop-api",
+   "project": "testrepo",
    "provider": "claude",
-   "sid": "fx-flow",
-   "work": 110.0
+   "sid": "fx-tpass",
+   "work": 200.0
   },
   "now": 1792558800,
   "outage_count": 0,
@@ -118,8 +118,22 @@
    "avg": 41.0,
    "n": 3
   },
-  "work": 6189.0,
+  "work": 6739.0,
   "workers": [
+   {
+    "done": 2,
+    "project": "testrepo",
+    "provider": "claude",
+    "sid": "fx-tpass",
+    "work": 200.0
+   },
+   {
+    "done": 2,
+    "project": "testrepo",
+    "provider": "claude",
+    "sid": "fx-tprev",
+    "work": 150.0
+   },
    {
     "done": 2,
     "project": "shop-api",
@@ -175,6 +189,20 @@
     "provider": "claude",
     "sid": "fx-night",
     "work": 119.0
+   },
+   {
+    "done": 1,
+    "project": "testrepo",
+    "provider": "claude",
+    "sid": "fx-tfail",
+    "work": 100.0
+   },
+   {
+    "done": 1,
+    "project": "testrepo",
+    "provider": "claude",
+    "sid": "fx-tran",
+    "work": 100.0
    },
    {
     "done": 1,

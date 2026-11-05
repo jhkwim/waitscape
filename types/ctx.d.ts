@@ -171,6 +171,8 @@ export interface InboxItem {
   since: number;
   /** 한 줄 맥락: 권한·질문 = 알림 문구(마스킹됨), 멈춤 = 마지막 도구 활동, 완료 = 마지막 프롬프트 */
   line: string;
+  /** 🧪 완료(done) 항목만: 그 턴의 마지막 테스트 결과(state `Session.test`). 돌리지 않았으면 없음 @since 1.9 */
+  test?: "pass" | "fail" | "ran";
 }
 
 export interface TraceQuery {
