@@ -179,6 +179,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
                               Claude 사이드카 보고는 엔진이 같은 cwd의 활성 세션 하나에만 붙임
       examples/snapshot.rs    Rust 스냅샷 러너 (cases.json·고정 시계 → fixtures/expected와 같은 형식)
       examples/bench.rs       실제 트랜스크립트 성능 측정 (읽기 전용)
+      examples/asks.rs        질문 알림 실사용 측정 — 훅 로그 재생, 숫자만 출력 (#136, 아래 "질문 알림 측정")
       tests/parity.rs         동등성 23/23(일지 8 포함) · 트랜스크립트 전용 24/24 · Auto 병합 (cargo test)
       tests/daylog.rs         일지 수집 경로(트랜스크립트 전용 세션의 턴·질문 대기, 끈 엔진은 쓰지 않음)
       tests/review_fixes.rs   교차 리뷰 회귀(오늘 집계·STALE·세션 재개·탐색 시계)
@@ -344,13 +345,15 @@ CI(`.github/workflows/ci.yml`)가 PR과 main push마다 위 검사를 돌린다.
 ```
 cargo run -p wr-core --example asks              # 기본 훅 로그(events.1.jsonl → events.jsonl)
 cargo run -p wr-core --example asks -- --detail  # 가짜 후보 목록까지
+cargo run -p wr-core --example asks -- --dedupe  # 훅이 두 번 등록돼 겹친 줄을 하나로 줄여서
 cargo run -p wr-core --example asks -- fixtures/input/events.jsonl
 ```
 훅 로그를 앱과 같은 `hooks::replay`로 다시 돌려 질문 구간(`Replay::asks`: 종류·질문 전 상태·확실해진 때·풀린 이벤트)을 얻고, 앱 알림 규칙(확실한 질문만 · 같은 세션 10분 간격, `detect.rs` `INPUT_GAP`)대로 알림이 갔을 구간을 날짜·종류별로 센다.
 - 풀린 이유: PreToolUse(도구가 이어짐 = 권한 승인·질문 답) · UserPromptSubmit · Resume(에이전트 결과 보고, 사람 입력 아님) · Stop · SessionEnd · sub(서브에이전트가 다시 움직임 = 사람이 승인) · open(로그 끝까지 질문 중)
 - 가짜 후보: **idle**(끝난 뒤 종류 없는 알림이 질문이 됨 — 알림 종류를 안 남기는 옛 훅의 유휴 알림) · **resume**(에이전트 결과 보고로 풀림) · **fast**(알림 뒤 3초 안에 풀림)
-- 새 훅(알림 종류 `ntype`을 남김, 0.6.4~) 첫 기록 앞은 "옛 훅" 기간으로 따로 센다. 같은 이벤트가 두 번씩 기록되면(옛 `hook.py`가 `wr-hook`과 함께 등록된 경우 등) 경고한다 — 숫자가 부풀려진다.
-- 근사치다: 앱은 파일이 바뀔 때만 상태를 보고, 숨긴 프로젝트는 알리지 않는다. 💤 멈춤은 트랜스크립트 판정이라 세지 않는다. 출력은 숫자와 세션 해시뿐(로그의 `text`·경로를 내보내지 않음), 외부 통신 없음.
+- 새 훅(0.6.4~: 알림 종류 `ntype`·PreToolUse `ask`·PermissionRequest를 남김) 첫 기록 앞은 "옛 훅" 기간으로 따로 센다. 같은 세션·이벤트·에이전트·문구가 0.5초 안에 두 번 기록되면(옛 `hook.py`가 `wr-hook`과 함께 등록된 경우 등) 경고한다 — 옛 형식 줄이 끝난 뒤 유휴 알림을 질문으로 만들고, 질문 표시를 곧바로 지운다. `--dedupe`면 겹친 쌍 중 필드가 많은 줄만 남긴다.
+- 질문에서 곧바로 이어진 질문은 알림으로 세지 않는다(앱은 상태 문자열이 바뀔 때만 알림, 추정 → 확실은 알림).
+- 근사치다: 앱은 파일이 바뀔 때만 상태를 보고, 숨긴 프로젝트는 알리지 않는다. "풀리기까지" 시간은 질문을 지운 다음 메인 이벤트까지라 승인 뒤 도구 실행·모델 시간이 더해진다(PostToolUse는 Task 도구만 기록). 💤 멈춤은 트랜스크립트 판정이라 세지 않는다. 출력은 숫자와 세션 해시뿐(로그의 `text`·경로를 내보내지 않음), 외부 통신 없음.
 
 ## Hook 등록
 데스크톱 앱은 온보딩·설정 → AI 연결에서 `wr-hook`을 등록한다(위 '데스크톱 앱'). 아래는 브라우저 버전(`server.py`)용 수동 등록이다.

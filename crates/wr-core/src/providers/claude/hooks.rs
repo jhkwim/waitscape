@@ -412,10 +412,13 @@ pub struct AskSpan {
     /// "permission" | "question" | None(종류 없는 옛 알림)
     pub kind: Option<&'static str>,
     pub t0: f64,
-    /// 질문 직전 상태("working" | "done" | "idle" …) — 끝난(done) 뒤 생긴 종류 없는 질문은 예전 훅의 유휴 알림일 가능성이 크다
+    /// 질문 직전 상태("working" | "done" | "idle" … · 질문에서 이어지면 "needs_input" / 추정 질문에서 이어지면 "needs_input?")
+    /// — 끝난(done) 뒤 생긴 종류 없는 질문은 예전 훅의 유휴 알림일 가능성이 크다
     pub from: &'static str,
     /// 추정(PermissionRequest)이 알림으로 확인된 때. 처음부터 확실했으면 t0. 끝까지 추정이면 None(알림 없음)
     pub sure_at: Option<f64>,
+    /// 풀린 때 = 질문을 지운 다음 메인 이벤트 시각. 사람의 응답 시간에 승인 뒤 도구 실행·모델 시간이 더해진다(PostToolUse는 Task 도구만 기록).
+    /// 바로 승인(quick)은 상태를 권한 요청 시각으로 되돌리지만 여기엔 그걸 알아챈 시각이 들어간다
     pub t1: Option<f64>,
     /// 풀린 이벤트: "PreToolUse" | "UserPromptSubmit" | "Resume" | "Stop" | "SessionEnd" | "quick"(바로 승인) | "sub"(서브에이전트가 다시 움직임) | "open"(아직 질문 중) | "other"
     pub end: &'static str,
@@ -464,7 +467,8 @@ impl Spans {
     fn step(&mut self, sid: &str, h: &HookSession, pre: AskMark, by: &'static str, ts: f64) {
         let now = AskMark::of(h);
         // 같은 이벤트에서 질문이 풀리고 새 질문이 섰으면(since가 바뀜) 앞 구간을 닫고 새로 연다
-        let renewed = pre.on && now.on && now.since != pre.since;
+        // 메인 PreToolUse는 늘 질문을 먼저 지우므로(clear_ask) 처리 뒤에도 질문이면 새 질문이다(같은 ts여도)
+        let renewed = pre.on && now.on && (now.since != pre.since || by == "PreToolUse");
         if pre.on && (!now.on || renewed) {
             if let Some(i) = self.open.remove(sid) {
                 let sp = &mut self.list[i];
@@ -478,7 +482,16 @@ impl Spans {
                 sid: sid.to_string(),
                 kind: h.s.ask,
                 t0: now.since,
-                from: if renewed { "needs_input" } else { pre.st },
+                // 질문에서 질문으로 이어짐: 앱은 상태 문자열이 바뀔 때만 알리므로(detect.rs) 추정 → 확실만 알림이 간다
+                from: if renewed {
+                    if pre.guess {
+                        "needs_input?"
+                    } else {
+                        "needs_input"
+                    }
+                } else {
+                    pre.st
+                },
                 sure_at: (!now.guess).then_some(now.since),
                 t1: None,
                 end: "open",
@@ -840,6 +853,16 @@ mod tests {
             json!({"ts": 2.0, "sid": "h", "event": "Stop"}),
             json!({"ts": 62.0, "sid": "h", "event": "Notification"}),
             json!({"ts": 90.0, "sid": "h", "event": "UserPromptSubmit"}),
+            // i: 질문에 답한 뒤 곧바로 다음 질문(같은 ts 포함) → 새 구간, 질문 전 상태 = needs_input(앱은 다시 알리지 않음) · 종료로 풀림
+            json!({"ts": 1.0, "sid": "i", "event": "UserPromptSubmit"}),
+            json!({"ts": 5.0, "sid": "i", "event": "PreToolUse", "ask": "question"}),
+            json!({"ts": 5.0, "sid": "i", "event": "PreToolUse", "ask": "plan"}),
+            json!({"ts": 9.0, "sid": "i", "event": "SessionEnd"}),
+            // j: 서브에이전트 질문 → 그 에이전트가 끝남(SubagentStop)
+            json!({"ts": 1.0, "sid": "j", "event": "UserPromptSubmit"}),
+            json!({"ts": 2.0, "sid": "j", "event": "SubagentStart", "aid": "y", "atype": "general"}),
+            json!({"ts": 3.0, "sid": "j", "aid": "y", "event": "Notification", "ntype": "permission_prompt"}),
+            json!({"ts": 6.0, "sid": "j", "aid": "y", "event": "SubagentStop"}),
         ];
         let r = replay(evs.iter(), 100.0, Tz::Fixed(0));
         let sp = |sid: &str| {
@@ -863,6 +886,18 @@ mod tests {
         );
         assert_eq!(sp("h"), vec![(None, 62.0, Some(62.0), Some(90.0), "UserPromptSubmit")]);
         assert_eq!(from("h"), Some("done"));
+        assert_eq!(
+            sp("i"),
+            vec![
+                (Some("question"), 5.0, Some(5.0), Some(5.0), "PreToolUse"),
+                (Some("question"), 5.0, Some(5.0), Some(9.0), "SessionEnd")
+            ]
+        );
+        assert_eq!(
+            r.asks.iter().filter(|a| a.sid == "i").map(|a| a.from).collect::<Vec<_>>(),
+            vec!["working", "needs_input"]
+        );
+        assert_eq!(sp("j"), vec![(Some("permission"), 3.0, Some(3.0), Some(6.0), "sub")]);
     }
 
     /// #122: 리더가 회전해도 최근 줄 버퍼(세션)는 그대로, 회전 순간 열려 있던 훅이 옛 파일에 쓴 줄도 마저 읽음,

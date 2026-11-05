@@ -3,6 +3,7 @@
 //!   cargo run -p wr-core --example asks                     # 기본 로그(events.1.jsonl → events.jsonl)
 //!   cargo run -p wr-core --example asks -- <파일…>           # 지정한 로그
 //!   cargo run -p wr-core --example asks -- --detail         # 가짜 후보 목록(이유·세션 해시·종류·끝난 이유·초·시각)
+//!   cargo run -p wr-core --example asks -- --dedupe         # 훅이 두 번 등록돼 겹친 줄을 하나로(정보가 많은 줄을 남김)
 //!
 //! 판정은 앱과 같은 `hooks::replay`(질문 구간 `Replay::asks`)를 쓰고, 알림은 앱 규칙을 흉내 낸다:
 //! 확실해진 질문만(추정 권한은 알리지 않음) · 같은 세션 10분에 한 번(`detect.rs` `INPUT_GAP`).
@@ -43,7 +44,8 @@ fn tag(sid: &str) -> String {
     format!("{:06x}", h & 0xff_ffff)
 }
 
-/// 가짜 후보의 이유. 서브에이전트가 다시 움직여 풀린 것(sub)은 사람이 승인한 결과라 후보가 아니고, 바로 승인(quick)은 애초에 알리지 않는다
+/// 가짜 후보의 이유. 서브에이전트가 다시 움직여 풀린 것(sub)은 그것만으로는 후보가 아니다(사람이 승인한 결과) — 3초 안이면 fast로 센다.
+/// 바로 승인(quick)은 애초에 알리지 않는다
 /// - idle: 끝난(done) 뒤 생긴 종류 없는 질문 = 옛 훅(알림 종류를 안 남김)의 유휴 알림이 질문으로 되살아남(A단계 #118이 고친 문제)
 /// - resume: 에이전트 결과 보고(Resume — 사람 입력이 아님)로 풀림
 /// - fast: 알림 뒤 3초 안에 풀림(사람이 반응할 수 없는 시간)
@@ -70,6 +72,7 @@ struct Row {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let detail = args.iter().any(|a| a == "--detail");
+    let dedupe = args.iter().any(|a| a == "--dedupe");
     let mut files: Vec<PathBuf> = args.iter().filter(|a| !a.starts_with("--")).map(PathBuf::from).collect();
     if files.is_empty() {
         let log = ClaudeConfig::from_env(&OsEnv).log;
@@ -81,13 +84,46 @@ fn main() {
         evs.extend(txt.lines().filter_map(|l| serde_json::from_str::<Value>(l).ok()));
     }
     let ts_of = |e: &Value| e.get("ts").and_then(|v| v.as_f64());
+    // 같은 세션·이벤트·에이전트·문구가 0.5초 안에 두 번 = 훅이 두 번 등록됨(예: 옛 hook.py가 wr-hook과 함께 남음) → 판정이 흔들린다.
+    // --dedupe면 겹친 쌍 중 정보가 많은 줄(ntype·ask·term이 있는 새 훅 줄)만 남긴다
+    let field = |e: &Value, k: &str| e.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let mut seen: HashMap<(String, String, String, String), (f64, usize)> = HashMap::new();
+    let mut dup = 0;
+    let mut kept: Vec<Value> = Vec::with_capacity(evs.len());
+    for e in evs {
+        let Some(t) = ts_of(&e) else { continue };
+        let key = (field(&e, "sid"), field(&e, "event"), field(&e, "aid"), field(&e, "text"));
+        let width = |v: &Value| v.as_object().map_or(0, |o| o.len());
+        match seen.get(&key) {
+            Some(&(p, at)) if (t - p).abs() < 0.5 => {
+                dup += 1;
+                if dedupe {
+                    if width(&e) > width(&kept[at]) {
+                        kept[at] = e;
+                    }
+                    continue;
+                }
+            }
+            _ => {}
+        }
+        seen.insert(key, (t, kept.len()));
+        kept.push(e);
+    }
+    let evs = kept;
     let ts: Vec<f64> = evs.iter().filter_map(ts_of).collect();
     let (Some(first), Some(last)) = (ts.iter().cloned().reduce(f64::min), ts.iter().cloned().reduce(f64::max)) else {
         println!("읽을 훅 로그가 없어요 ({}개 파일)", files.len());
         return;
     };
     // 새 훅(0.6.4~)은 알림 종류(ntype)를 남긴다. 그 전 줄은 옛 훅 기간으로 따로 센다
-    let new_hook = evs.iter().filter(|e| e.get("ntype").is_some()).filter_map(ts_of).reduce(f64::min);
+    // (새 훅만 남기는 것: 알림 종류 ntype · PreToolUse의 ask · PermissionRequest 이벤트)
+    let new_hook = evs
+        .iter()
+        .filter(|e| {
+            e.get("ntype").is_some() || e.get("ask").is_some() || e.get("event").and_then(|v| v.as_str()) == Some("PermissionRequest")
+        })
+        .filter_map(ts_of)
+        .reduce(f64::min);
     let period = |t: f64| if new_hook.is_some_and(|n| t >= n) { "새 훅" } else { "옛 훅" };
     let tz = Tz::Local;
     let r = replay(evs.iter(), last, tz);
@@ -101,24 +137,14 @@ fn main() {
         day(last),
         hm(last)
     );
-    // 같은 세션·같은 이벤트가 0.5초 안에 두 번 = 훅이 두 번 등록됨(예: 옛 hook.py가 wr-hook과 함께 남음) → 판정이 흔들린다
-    let mut seen: HashMap<(String, String), f64> = HashMap::new();
-    let mut dup = 0;
-    for e in &evs {
-        let (Some(t), Some(sid), Some(ev)) = (
-            ts_of(e),
-            e.get("sid").and_then(|v| v.as_str()),
-            e.get("event").and_then(|v| v.as_str()),
-        ) else {
-            continue;
-        };
-        if seen.insert((sid.into(), ev.into()), t).is_some_and(|p| (t - p).abs() < 0.5) {
-            dup += 1;
-        }
-    }
-    if dup * 5 > evs.len() {
+    if dup * 5 > evs.len() + dup * usize::from(dedupe) {
         println!(
-            "⚠️ 같은 이벤트가 두 번씩 기록되고 있어요({dup}줄) — 훅이 두 번 등록됐을 수 있어요(옛 hook.py 등). 이 상태의 숫자는 부풀려져요"
+            "⚠️ 같은 이벤트가 두 번씩 기록되고 있어요({dup}줄) — 훅이 두 번 등록됐을 수 있어요(옛 hook.py 등). {}",
+            if dedupe {
+                "겹친 줄을 하나로 줄여 셌어요(--dedupe)"
+            } else {
+                "이 상태의 숫자는 부풀려져요. --dedupe로 겹친 줄을 하나로 줄여 잴 수 있어요"
+            }
         );
     }
     match new_hook {
@@ -130,7 +156,7 @@ fn main() {
     let mut spans: Vec<&AskSpan> = r.asks.iter().collect();
     spans.sort_by(|a, b| a.sure_at.unwrap_or(a.t0).total_cmp(&b.sure_at.unwrap_or(b.t0)));
     let mut last_alert: HashMap<&str, f64> = HashMap::new();
-    let (mut guess_only, mut gapped) = (0, 0);
+    let (mut guess_only, mut gapped, mut chained) = (0, 0, 0);
     // "기간 · 날짜" → 종류 → 줄
     let mut table: BTreeMap<String, BTreeMap<&'static str, Row>> = BTreeMap::new();
     let mut sum: BTreeMap<&'static str, (usize, usize)> = BTreeMap::new();
@@ -140,13 +166,18 @@ fn main() {
             guess_only += 1;
             continue;
         };
+        // 질문에서 질문으로 이어진 구간: 앱은 상태 문자열이 바뀔 때만 알리므로 알림이 아니다(추정 → 확실은 알림)
+        if sp.from == "needs_input" {
+            chained += 1;
+            continue;
+        }
         if last_alert.get(sp.sid.as_str()).is_some_and(|t| at - t < INPUT_GAP) {
             gapped += 1;
             continue;
         }
         last_alert.insert(&sp.sid, at);
         let row = table
-            .entry(format!("{} · {}", period(at), day(at)))
+            .entry(format!("{} · {}", day(at), period(at)))
             .or_default()
             .entry(kind_name(sp.kind))
             .or_default();
@@ -164,7 +195,7 @@ fn main() {
             cands.push((at, sp, why));
         }
     }
-    println!("알리지 않은 구간: 추정(바로 승인 등) {guess_only} · 10분 간격으로 생략 {gapped}\n");
+    println!("알리지 않은 구간: 추정(바로 승인 등) {guess_only} · 질문에서 이어진 질문 {chained} · 10분 간격으로 생략 {gapped}\n");
     for (d, kinds) in &table {
         println!("■ {d}");
         for (k, row) in kinds {
