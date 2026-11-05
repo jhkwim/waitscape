@@ -340,6 +340,18 @@ CI(`.github/workflows/ci.yml`)가 PR과 main push마다 위 검사를 돌린다.
 `BLOCKED_EMAIL_DOMAINS`(쉼표 구분)는 커밋 이메일 검사의 차단 도메인 목록이다. CI에서는 저장소 시크릿으로 넣고(Settings → Secrets and variables → Actions), 비어 있으면 검사를 건너뛴다. 값은 코드·문서에 적지 않는다.
 기준 결과는 가짜 시크릿 원문이 하나라도 남으면 실패한다. 서버(포트)는 띄우지 않는다.
 
+### 질문 알림 측정 (#136)
+```
+cargo run -p wr-core --example asks              # 기본 훅 로그(events.1.jsonl → events.jsonl)
+cargo run -p wr-core --example asks -- --detail  # 가짜 후보 목록까지
+cargo run -p wr-core --example asks -- fixtures/input/events.jsonl
+```
+훅 로그를 앱과 같은 `hooks::replay`로 다시 돌려 질문 구간(`Replay::asks`: 종류·질문 전 상태·확실해진 때·풀린 이벤트)을 얻고, 앱 알림 규칙(확실한 질문만 · 같은 세션 10분 간격, `detect.rs` `INPUT_GAP`)대로 알림이 갔을 구간을 날짜·종류별로 센다.
+- 풀린 이유: PreToolUse(도구가 이어짐 = 권한 승인·질문 답) · UserPromptSubmit · Resume(에이전트 결과 보고, 사람 입력 아님) · Stop · SessionEnd · sub(서브에이전트가 다시 움직임 = 사람이 승인) · open(로그 끝까지 질문 중)
+- 가짜 후보: **idle**(끝난 뒤 종류 없는 알림이 질문이 됨 — 알림 종류를 안 남기는 옛 훅의 유휴 알림) · **resume**(에이전트 결과 보고로 풀림) · **fast**(알림 뒤 3초 안에 풀림)
+- 새 훅(알림 종류 `ntype`을 남김, 0.6.4~) 첫 기록 앞은 "옛 훅" 기간으로 따로 센다. 같은 이벤트가 두 번씩 기록되면(옛 `hook.py`가 `wr-hook`과 함께 등록된 경우 등) 경고한다 — 숫자가 부풀려진다.
+- 근사치다: 앱은 파일이 바뀔 때만 상태를 보고, 숨긴 프로젝트는 알리지 않는다. 💤 멈춤은 트랜스크립트 판정이라 세지 않는다. 출력은 숫자와 세션 해시뿐(로그의 `text`·경로를 내보내지 않음), 외부 통신 없음.
+
 ## Hook 등록
 데스크톱 앱은 온보딩·설정 → AI 연결에서 `wr-hook`을 등록한다(위 '데스크톱 앱'). 아래는 브라우저 버전(`server.py`)용 수동 등록이다.
 `~/.claude/settings.json`의 `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`(TaskCreate|TaskUpdate), `Notification`, `Stop`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `PermissionRequest`(관찰만 — 결정을 반환하지 않음)에
