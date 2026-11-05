@@ -4,6 +4,7 @@
 (() => {
 "use strict";
 const C = window.Core, esc = C.esc, t = (k, p) => C.t(k, p);
+const em = e => window.CoreI18n.msg(C.lang, e);   // 엔진·백엔드가 만든 한국어 고정 문구를 지금 언어로(#76)
 const APP = C.api.kind === "tauri";   // 데스크톱 앱: 설치·삭제·훅·한도·자동 시작을 백엔드 명령으로
 let dlg = null, tab = "modes", note = "", offs = [];
 let hookInfo = null, usageInfo = null;   // 앱: 마지막으로 받은 훅·한도 상태
@@ -46,7 +47,7 @@ function modesTab() {
         ${!i.trusted && i.author && i.author.name ? `<div class="mg-mute mg-small">${esc(t("m.by"))} ${esc(i.author.name)}${i.license ? " · " + esc(i.license) : ""}</div>` : ""}
         ${i.trusted ? "" : `<div class="mg-warn">⚠️ <b>${esc(t("m.notMine"))}</b> — ${esc(t("m.notMine.body"))}</div>`}
         ${!i.trusted && i.needs ? `<div class="mg-small"><span class="mg-mute">${esc(t("m.perm"))}:</span> ${i.needs.length ? i.needs.map(n => `<span class="mg-chip">${esc(n)}</span>`).join(" ") : esc(t("m.perm.none"))}</div>` : ""}
-        ${problem ? `<div class="mg-err">${esc(i.error ? t("m.broken") + ": " : "")}${esc(problem)}</div>` : ""}
+        ${problem ? `<div class="mg-err">${esc(i.error ? t("m.broken") + ": " : "")}${esc(em(problem))}</div>` : ""}
         ${ack ? `<div class="mg-err">${esc(t("m.permChanged"))}</div>` : ""}
       </div>
       <div class="mg-mode-ctl">
@@ -166,26 +167,26 @@ function inboxCard() {
 async function saveIbKey(v) {
   v = String(v || "").trim().replace(/\s+/g, "");
   ibDraft = v; ibKeyErr = "";
-  try { await C.api.settings.set({ inboxKey: v }); } catch (e) { ibKeyErr = String(e); render(); return; }
+  try { await C.api.settings.set({ inboxKey: v }); } catch (e) { ibKeyErr = em(e); render(); return; }
   ibDraft = null; C.settings.app.inboxKey = v;
   await retryIbKey();
 }
 async function retryIbKey() {   // 저장된 키로 다시 등록(입력 중인 값은 그대로)
   ibBusy = true; render();
-  try { ibInfo = C.api.nunchiRetry ? await C.api.nunchiRetry("inbox") : null; } catch (e) { ibInfo = { key: C.settings.app.inboxKey, ok: false, err: String(e) }; }
+  try { ibInfo = C.api.nunchiRetry ? await C.api.nunchiRetry("inbox") : null; } catch (e) { ibInfo = { key: C.settings.app.inboxKey, ok: false, err: em(e) }; }
   ibBusy = false; render();
 }
 /* 단축키 저장: 형식이 틀리면 백엔드가 거절 → 저장하지 않고 안내. 맞으면 다시 등록(같은 키여도 = 다시 시도) → 상태를 다시 읽음 */
 async function saveKey(v) {
   v = String(v || "").trim().replace(/\s+/g, "");
   nxDraft = v; nxKeyErr = "";
-  try { await C.api.settings.set({ nunchiKey: v }); } catch (e) { nxKeyErr = String(e); render(); return; }
+  try { await C.api.settings.set({ nunchiKey: v }); } catch (e) { nxKeyErr = em(e); render(); return; }
   nxDraft = null; C.settings.app.nunchiKey = v;
   await retryKey();
 }
 async function retryKey() {
   nxBusy = true; render();
-  try { nxInfo = C.api.nunchiRetry ? await C.api.nunchiRetry() : null; } catch (e) { nxInfo = { key: C.settings.app.nunchiKey, ok: false, err: String(e) }; }
+  try { nxInfo = C.api.nunchiRetry ? await C.api.nunchiRetry() : null; } catch (e) { nxInfo = { key: C.settings.app.nunchiKey, ok: false, err: em(e) }; }
   nxBusy = false; render();
 }
 function updateCard() {
@@ -235,7 +236,7 @@ function openUpdate() {
   go.addEventListener("click", async () => {
     go.disabled = later.disabled = true; st.textContent = t("upd.down0");
     try { await (C.update.install ? C.update.install() : C.api.update.install()); }   // 성공하면 앱이 다시 시작돼 돌아오지 않는다(core가 「새로 생긴 것」용으로 적어 둠)
-    catch (e) { st.textContent = String(e); go.disabled = later.disabled = false; }
+    catch (e) { st.textContent = em(e); go.disabled = later.disabled = false; }
   });
   c.addEventListener("keydown", e => e.stopPropagation());
   c.addEventListener("cancel", e => { if (go.disabled) e.preventDefault(); });   // 내려받는 중에는 Esc로 닫지 않음
@@ -263,7 +264,7 @@ function usageApp(on) {
 }
 let usageBusy = false, hookBusy = false;
 async function refreshUsage() { if (!APP || usageBusy) return; usageBusy = true; try { usageInfo = await C.api.usage.status(); } catch { usageInfo = {}; } usageBusy = false; render(); }
-async function refreshHooks() { if (!APP || hookBusy) return; hookBusy = true; try { hookInfo = await C.api.hooks.status(); } catch (e) { hookInfo = { error: String(e) }; } hookBusy = false; render(); }
+async function refreshHooks() { if (!APP || hookBusy) return; hookBusy = true; try { hookInfo = await C.api.hooks.status(); } catch (e) { hookInfo = { error: em(e) }; } hookBusy = false; render(); }
 function hooksTab() {
   const h = hookInfo;
   if (!h) { refreshHooks(); return `<p class="mg-mute">…</p>`; }
@@ -273,7 +274,7 @@ function hooksTab() {
   return `<section class="mg-card"><h3>${esc(t("h.title"))} <span class="mg-badge">${esc(t("h.state." + state))}</span></h3>
       <p>${esc(t("h.desc"))}</p>
       <p class="mg-mute mg-small">${esc(t("h.what", { bin: h.binPath || "", settings: h.settingsPath || "" }))}</p>
-      ${h.error ? `<p class="mg-err">${esc(h.error)}</p>` : ""}
+      ${h.error ? `<p class="mg-err">${esc(em(h.error))}</p>` : ""}
       ${s.legacy ? `<p class="mg-warn">⚠️ ${esc(t("h.legacy"))}</p>` : ""}
       ${h.refreshError ? `<p class="mg-warn">⚠️ ${esc(t("h.refreshErr", { e: h.refreshError }))}</p>` : ""}
       ${h.sidecar === false && !s.complete ? `<p class="mg-err">${esc(t("h.nosidecar"))}</p>` : ""}
@@ -284,7 +285,7 @@ function hooksTab() {
 }
 
 /* 앱: MCP 보고 연결 (Claude Code · Codex · Antigravity). 미리보기는 안내용 — [적용]하면 백엔드가 네이티브 확인 창을 한 번 더 띄운다 */
-async function refreshMcp() { if (!APP || mcpBusy) return; mcpBusy = true; try { mcpInfo = await C.api.mcp.status(); } catch (e) { mcpInfo = { error: String(e), clis: [] }; } mcpBusy = false; render(); }
+async function refreshMcp() { if (!APP || mcpBusy) return; mcpBusy = true; try { mcpInfo = await C.api.mcp.status(); } catch (e) { mcpInfo = { error: em(e), clis: [] }; } mcpBusy = false; render(); }
 const MCP_ICON = { claude: "🧣", codex: "🧢", antigravity: "👓" };   // 스튜디오 층 소품과 같은 표시
 function mcpRow(r, on, side) {
   const st = r.state, conn = st === "connected";
@@ -297,7 +298,7 @@ function mcpRow(r, on, side) {
     ? `${re}<button class="mg-btn" data-act="mcp-plan" data-cli="${esc(r.id)}" data-connect="0" ${on && r.managed && !busy ? "" : "disabled"}>${esc(t("mc.disconnect"))}</button>`
     : `<button class="mg-btn mg-primary" data-act="mcp-plan" data-cli="${esc(r.id)}" data-connect="1" ${on && side && (st === "detected") && !busy ? "" : "disabled"}>${esc(t("mc.connect"))}</button>`;
   return `<tr><td>${MCP_ICON[r.id] || "🤖"} ${esc(r.name)}<div class="mg-mute mg-small"><code>${esc(r.config || "")}</code></div></td>
-    <td>${badge}${mine}${conn && r.stale ? `<div class="mg-warn mg-small">${esc(t("mc.stale"))}</div>` : ""}${r.error ? `<div class="mg-err">${esc(r.error)}</div>` : ""}</td><td class="mg-mcp-act">${btn}</td></tr>`;
+    <td>${badge}${mine}${conn && r.stale ? `<div class="mg-warn mg-small">${esc(t("mc.stale"))}</div>` : ""}${r.error ? `<div class="mg-err">${esc(em(r.error))}</div>` : ""}</td><td class="mg-mcp-act">${btn}</td></tr>`;
 }
 const diffLine = l => `<span class="${l.startsWith("+ ") ? "mg-d-add" : l.startsWith("- ") ? "mg-d-del" : l.startsWith("@ ") || l.startsWith("$ ") ? "mg-d-head" : "mg-d-ctx"}">${esc(l)}</span>`;
 function mcpCard() {
@@ -319,7 +320,7 @@ function mcpCard() {
       <label class="mg-toggle mg-mcp-sw" title="${esc(t("mc.title"))}"><input type="checkbox" data-act="mcp-reports" aria-label="${esc(t("mc.title"))}" ${on ? "checked" : ""}><span></span></label></h3>
     <p>${esc(t("mc.desc"))}</p>
     ${!on ? `<p class="mg-mute mg-small">${esc(t("mc.off"))}</p>` : !m ? `<p class="mg-mute">…</p>` : `
-    ${m.error ? `<p class="mg-err">${esc(m.error)}</p>` : ""}
+    ${m.error ? `<p class="mg-err">${esc(em(m.error))}</p>` : ""}
     ${!side ? `<p class="mg-err">${esc(t("mc.nosidecar"))}</p>` : ""}
     <table class="mg-mcp-tbl"><thead><tr><th>${esc(t("mc.col.tool"))}</th><th>${esc(t("mc.col.state"))}</th><th></th></tr></thead>
       <tbody>${m.clis.map(r => mcpRow(r, on, side)).join("")}</tbody></table>
@@ -332,7 +333,7 @@ function mcpCard() {
 async function mcpPlan(cli, connect) {
   mcpNote = "";
   try { mcpPrev = { cli, connect, plan: await C.api.mcp.plan(cli, connect, mcpAllow) }; }
-  catch (e) { mcpPrev = null; mcpNote = String(e); }
+  catch (e) { mcpPrev = null; mcpNote = em(e); }
   render();
 }
 async function mcpApply() {
@@ -348,7 +349,7 @@ async function mcpApply() {
       if (pv.connect) { mcpJust = pv.cli; setTimeout(() => { if (mcpJust === pv.cli) { mcpJust = ""; render(); } }, 1400); }
       mcpPrev = null;
     }
-  } catch (e) { mcpNote = String(e); }
+  } catch (e) { mcpNote = em(e); }
   render();
 }
 
@@ -377,14 +378,14 @@ async function installPath(path) {
   if (!APP || !path) return;
   let info;
   try { info = await C.api.modeAdmin.prepare(path); }
-  catch (e) { note = t("m.install.fail", { e: String(e) }); tab = "modes"; render(); return; }
+  catch (e) { note = t("m.install.fail", { e: em(e) }); tab = "modes"; render(); return; }
   if (!(await confirmInstall(info))) { C.api.modeAdmin.cancel(info.stage); return; }
   try {
     await C.api.modeAdmin.commit(info.stage);
     // 새 설치는 꺼진 상태. 권한이 늘어난 업데이트는 코어가 권한 서명을 비교해 다시 동의를 받는다
     await C.manage.rescan();
     note = t("m.install.done", { name: info.name || info.id });
-  } catch (e) { note = t("m.install.fail", { e: String(e) }); }
+  } catch (e) { note = t("m.install.fail", { e: em(e) }); }
   tab = "modes"; render();
 }
 function devTab() {
