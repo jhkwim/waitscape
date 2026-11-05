@@ -6371,7 +6371,7 @@ C.registerMode({
     /* ---------- 🎫 관제 인박스 연출(B3): 사장님 모니터 = 번호표 전광판 · 지금 차례 직원 머리 위 번호표 · 📥 결재 서류함(안 본 완료 = 봉투) · 봄 처리하면 "결재" 도장 ----------
        번호표 = 큐에 새로 들어온 순서로 1, 2, 3…(앱을 켤 때 처음부터 · 999 다음 1). 같은 세션이라도 종류나 since가 바뀌면 새 번호.
        동작 줄이기면 깜빡임·도장 튐 없이 숫자·봉투만. 큐는 0.5초마다 다시 읽음(봄 기록은 localStorage) */
-    let ibC = { t: -9, q: [] }, ibCnt = 0, ibFront = "", ibFlash = -9, ibStamp = -9, ibDone = null;
+    let ibC = { t: -9, q: [] }, ibPos = { key: "" }, ibCnt = 0, ibFront = "", ibFlash = -9, ibStamp = -9, ibDone = null;
     const ibNum = new Map();   // sid → { kind, since, n }
     function ibList(tc, anim) {
       if (anim && tc >= ibC.t && tc - ibC.t < .5) return ibC.q;
@@ -6380,7 +6380,7 @@ C.registerMode({
       for (const k of [...ibNum.keys()]) if (!live.has(k)) ibNum.delete(k);
       for (const it of q) { const o = ibNum.get(it.sid); if (!o || o.kind !== it.kind || Math.abs(o.since - it.since) > (it.kind === "stall" ? 5 : 0)) ibNum.set(it.sid, { kind: it.kind, since: it.since, n: ibCnt = ibCnt % 999 + 1 }); }
       const dn = new Set(q.filter(it => it.kind === "done").map(it => it.sid));   // 안 본 완료가 큐에서 빠졌는데 세션은 그대로 완료 = 봄 처리 → 쾅
-      if (ibDone) for (const sid of ibDone) if (!dn.has(sid)) { const s = ss.find(x => x.sid === sid); if (s && s.status === "done") ibStamp = tc; }
+      if (ibDone) for (const sid of ibDone) if (!dn.has(sid)) { const s = ss.find(x => x.sid === sid); if (s && s.status === "done" && ctx.now() - (s.since || 0) <= 8 * 3600) ibStamp = tc; }   // 8시간 만료로 빠진 건 도장 없음
       ibDone = dn; ibC = { t: tc, q };
       return q;
     }
@@ -6388,24 +6388,25 @@ C.registerMode({
     function ibDraw(bf, tc, anim, n) {
       if (!bf.tk) return;
       const off = drB.active() || !!(NX.hidden || NX.mode), q = off ? [] : ibList(tc, anim), top = q[0];
+      if (off) { ibDone = null; ibC.t = -9; }   // 눈치 모드·일보 동안 봄 처리된 건 돌아와서 도장 없이
       sty(bf.tk, "display", top ? "flex" : "none");
       if (top) {
-        const fi = floorIdx.get(top.sid), where = fi != null && fi < n ? (n + 1 - fi) + "F" : cut(top.project, 4), no = ibNo(top.sid);
-        const sig = no + where + top.kind + q.length + ctx.lang, c = bf.tk.children;
+        const fi = floorIdx.get(top.sid), where = fi != null && fi < n ? (n + 1 - fi) + "F" : cfg.hideText ? "🤫" : cut(top.project, 4), no = ibNo(top.sid);
+        const sig = no + where + top.kind + q.length + ctx.lang + cfg.hideText, c = bf.tk.children;
         if (bf.tk._ib !== sig) { bf.tk._ib = sig; txt(c[0], X("지금 차례", "NOW")); txt(c[1], no); txt(c[2], `${IB_ICO[top.kind]}${where}${q.length > 1 ? " +" + (q.length - 1) : ""}`);
-          bf.tk.title = X(`지금 차례 ${no}번 · ${top.project} · 대기 ${q.length} (N 키로 이동)`, `Now serving ${no} · ${top.project} · ${q.length} waiting (press N)`); }
+          const pj = cfg.hideText ? "🤫" : top.project; bf.tk.title = X(`지금 차례 ${no}번 · ${pj} · 대기 ${q.length} (N 키로 이동)`, `Now serving ${no} · ${pj} · ${q.length} waiting (press N)`); }
         if (ibFront !== top.sid + no) { if (ibFront) ibFlash = tc; ibFront = top.sid + no; }   // 차례가 바뀌면 딩동(두 번 깜빡)
         const ding = anim && tc - ibFlash < 1.2 && Math.floor((tc - ibFlash) * 5) % 2 === 0;
         if (bf.tk.classList.contains("ding") !== ding) bf.tk.classList.toggle("ding", ding);
       } else ibFront = "";
       /* 머리 위 번호표(지금 차례 직원이 보일 때만) */
       const a = top && actors.get(top.sid), vis = a && a.par && a.loc !== "out" && a.loc !== "door" && a.el.style.display !== "none";
-      if (vis) {
-        const r = a.img.getBoundingClientRect(), br = bld.getBoundingClientRect(), k = scaleK || 1;
-        if (r.width) { sty(tkHead, "display", "block"); txt(tkHead, "🎫" + ibNo(top.sid));
-          sty(tkHead, "left", Math.round((r.right - br.left) / k - 8) + "px"); sty(tkHead, "top", Math.round((r.top - br.top) / k - 10 - (anim ? Math.round(Math.abs(Math.sin(tc * 3)) * 2) : 0)) + "px"); }
+      if (vis) {   // 위치는 직원 자리(left·top·부모·배율)가 바뀔 때만 다시 잼(매 프레임 강제 레이아웃 방지)
+        const es = a.el._s || {}, tp = parseFloat(es.top) || 0, key = `${top.sid}|${es.left}|${scaleK}|${FT.length}`;   // 콩콩(top만 바뀜)은 다시 재지 않고 차이만 더함
+        if (ibPos.key !== key || ibPos.par !== a.par || !a.par.isConnected) { const r = a.img.getBoundingClientRect(), br = bld.getBoundingClientRect(), k = scaleK || 1; ibPos = { key, par: a.par, tp, ok: !!r.width, x: Math.round((r.right - br.left) / k - 8), y: Math.round((r.top - br.top) / k - 30) }; }
+        if (ibPos.ok) { sty(tkHead, "display", "block"); txt(tkHead, "🎫" + ibNo(top.sid)); sty(tkHead, "left", ibPos.x + "px"); sty(tkHead, "top", Math.round(ibPos.y + tp - ibPos.tp - (anim ? Math.round(Math.abs(Math.sin(tc * 3)) * 2) : 0)) + "px"); }   // 이름표 위로
         else sty(tkHead, "display", "none");
-      } else sty(tkHead, "display", "none");
+      } else { sty(tkHead, "display", "none"); ibPos.key = ""; }
       /* 📥 결재 서류함: 봉투 최대 4장(오래 걸린 일 = 두꺼운 봉투) · 넘치면 +n */
       const ss = (ctx.state && ctx.state.sessions) || [], dq = q.filter(it => it.kind === "done");
       const th = dq.slice(0, 4).map(it => { const s = ss.find(x => x.sid === it.sid); return s && (s.run || 0) >= 600 ? 1 : 0; });
@@ -6978,11 +6979,13 @@ C.registerMode({
       let sx = deskx;
       if (k === "stall") {   // 💤 멈춤 의심: 눈 뜬 채 멈춘 모니터를 톡톡(예전엔 바닥에 누워 잠 — 자는 게 아니라 응답이 없는 것, 관제 인박스 B3)
         const h = f.s.health || { secs: 0 }, secs = h.secs + stateAge(), m = Math.max(1, Math.floor(secs / 60));
-        const bt = anim ? Math.floor(T * 2.5) % 4 : 3, tap = bt === 0 || bt === 1;   // 톡 · 톡 · (쉼) · (쉼)
-        setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: tap ? "r" : "" }); put(a, F, sx, B - 6, { dy: tap ? -1 : 0 }); tagOn(a, true);
+        const bt = anim ? Math.floor(T * 2.5) % 4 : 3, tap = !meet && (bt === 0 || bt === 1);   // 톡 · 톡 · (쉼) · (쉼) — 회의 배치(모니터 없음)는 화이트보드 앞에 멍하니 섬
+        setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", eyes: ph.blink ? "c" : "o", arms: tap ? "r" : "" }); put(a, F, sx, B - (meet ? 2 : 6), { dy: tap ? -1 : 0 }); tagOn(a, true);
         html(fl.gb, `<span style="color:${PROV_COLOR[f.pk]}">${esc(aName(f.animal))} · ${esc(f.pname)}</span><br>💤 ${X("톡톡", "tap tap")} ${mmss(secs)}<br>${esc(h.tool ? X(`${cut(h.tool, 10)} ${m}분째`, `${cut(h.tool, 10)} ${m}m`) : X("응답 없음", "no reply"))}`); sty(fl.gb, "display", "block"); bubble(a, "", false);
+        sty(fl.gb, "left", (meet ? sx + 44 : sx - 209) + "px"); if (fl.gb.classList.contains("gl") === meet) fl.gb.classList.toggle("gl", !meet);   // 책상: 직원 왼쪽(꼬리 오른쪽) · 회의: 직원 오른쪽
         sty(fl.tint, "display", "block"); setScreen("on"); hands(false, 0);   // 화면은 켜진 채 멈춤(코드 줄이 안 움직임)
-        cup(tap || !anim, anim ? X("톡", "tap") : X("톡톡", "tap")); sty(fl.sweat, "left", (sx + 116 + (bt === 1 ? 8 : 0)) + "px"); sty(fl.sweat, "top", (B - 104 - (bt === 1 ? 6 : 0)) + "px");   // 모니터 오른쪽 위 sty(fl.sweat, "opacity", "1");
+        cup(!meet && (tap || !anim), anim ? X("톡", "tap") : X("톡톡", "tap")); sty(fl.sweat, "opacity", "1");
+        sty(fl.sweat, "left", (sx + 116 + (bt === 1 ? 8 : 0)) + "px"); sty(fl.sweat, "top", (B - 104 - (bt === 1 ? 6 : 0)) + "px");   // 모니터 오른쪽 위
         return res;
       }
       bubble(a, "", false);

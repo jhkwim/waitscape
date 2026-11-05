@@ -702,13 +702,13 @@ body[data-mode="studio"] .stu .sp-dex .sp-gh { display: block; font-size: 12px; 
 body[data-mode="studio"] .stu .dex .sp-dex .eg div.na { opacity: .6; border-style: dashed; }   /* 움직임 줄이기라 지금은 못 보는 장면 */
 
 /* 🎫 관제 인박스(B3): 번호표 전광판(사장님 모니터) · 머리 위 번호표 · 📥 결재 서류함 · 도장 · ⏱ 기다린 시간 색 */
-body[data-mode="studio"] .stu .tkb { width: 64px; height: 44px; z-index: 10; background: #140c16; flex-direction: column; align-items: center; justify-content: center; line-height: 1; font-weight: 900; color: #ffb03a; text-shadow: 0 0 4px rgba(255, 140, 40, .75); pointer-events: auto; cursor: default; box-sizing: border-box; }
+body[data-mode="studio"] .stu .tkb { width: 64px; height: 44px; z-index: 10; background: #140c16; flex-direction: column; align-items: center; justify-content: center; line-height: 1; font-weight: 900; color: #ffb03a; text-shadow: 0 0 4px rgba(255, 140, 40, .75); pointer-events: none; overflow: hidden; box-sizing: border-box; }
 body[data-mode="studio"] .stu .tkb i { font-style: normal; font-size: 9px; color: #ff8a5a; }
 body[data-mode="studio"] .stu .tkb b { font-size: 17px; letter-spacing: 1px; margin: 2px 0 2px; font-variant-numeric: tabular-nums; }
 body[data-mode="studio"] .stu .tkb em { font-style: normal; font-size: 10px; color: #ffe2a8; white-space: nowrap; }
 body[data-mode="studio"] .stu .tkb.ding { background: #4a1e10; }
 body[data-mode="studio"] .stu .tkh { z-index: 62; pointer-events: none; white-space: nowrap; background: #fff8e6; color: #c8283a; border: 2px solid #4a3560; border-left-style: dashed; padding: 0 3px; font-size: calc(11px * var(--inv)); font-weight: 900; line-height: 1.3; }
-body[data-mode="studio"] .stu .tray { width: 32px; height: 28px; z-index: 11; pointer-events: auto; }
+body[data-mode="studio"] .stu .tray { width: 32px; height: 28px; z-index: 11; pointer-events: none; }
 body[data-mode="studio"] .stu .tray .tb { position: absolute; left: 0; bottom: 0; width: 32px; height: 8px; background: #a8703e; border: 2px solid #4a3560; box-sizing: border-box; }
 body[data-mode="studio"] .stu .tray .ev { position: absolute; left: 3px; width: 26px; background: linear-gradient(170deg, #fff 0 45%, #f3e6c8 46%); border: 2px solid #4a3560; box-sizing: border-box; }
 body[data-mode="studio"] .stu .tray .ev.th { background: linear-gradient(170deg, #ffeec2 0 45%, #f0d48a 46%); }
