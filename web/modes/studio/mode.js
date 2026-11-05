@@ -1471,11 +1471,13 @@ function mountLobby(root, ctx) {
     setLook(rooms[clamp(curIdx() + d, 0, NR - 1)].key);
   }
   function endLook() { if (look) { look = null; kick(); } }
-  /* 다음 칩 항목: 아직 못 담은 질문·완료(층과 함께, 지금 보고 있는 층은 빼고). 첫 항목 = 칩을 누르면 갈 층 */
-  function pending(tc) {
+  /* 다음 칩 항목 = 코어 관제 인박스(#126: 🔑 권한 → ❓ 질문 → 💤 멈춤 → ✉️ 확인 안 한 완료, 오래 기다린 순 — 눈치·업무 모드와 같은 순서).
+     지금 카메라가 담고 있는 질문·둘러보는 층은 뺀다. 첫 항목 = 칩을 누르면 갈 층(누르면 봄 처리) */
+  const IB_ICO = { permission: "🔑", question: "❓", stall: "💤", done: "✉️" };
+  function pending() {
     const fl = sid => { const f = model.bySid.get(sid); return f ? f.floor + "F" : ""; };
-    return model.askers.filter(a => !(shot.ask && shot.ask.sid === a.sid) && !(look && look.key === a.sid)).map(a => ({ sid: a.sid, t: "❓" + fl(a.sid) }))
-      .concat(launches.filter(l => tc - l.at < EXPIRE && model.bySid.has(l.info.sid) && !(look && look.key === l.info.sid)).map(l => ({ sid: l.info.sid, t: (l.big ? "🎉" : "✅") + fl(l.info.sid) })));
+    const list = ctx.core.inbox ? ctx.core.inbox.list() : ctx.core.inboxQueue((ctx.state && ctx.state.sessions) || [], ctx.now());
+    return list.filter(it => model.bySid.has(it.sid) && !(shot.ask && shot.ask.sid === it.sid) && !(look && look.key === it.sid)).map(it => ({ sid: it.sid, kind: it.kind, t: IB_ICO[it.kind] + fl(it.sid) }));
   }
   const KLBL = { work: ["⌨️ 작업 중", "⌨️ Working"], agents: ["🤖 서브 출동", "🤖 Sub-agents"], ask: ["❓ 답 대기", "❓ Waiting"], stall: ["💤 멈춤 의심", "💤 Stalled?"], done: ["✅ 완료", "✅ Done"], idle: ["☕ 쉬는 중", "☕ Idle"] };
   function stLabel(f) {
@@ -1786,8 +1788,8 @@ function mountLobby(root, ctx) {
     const st = tip || pkS || (look ? X(`👀 둘러보는 중 · ${left}초 뒤 자동 카메라`, `👀 Browsing · auto camera in ${left}s`) : panning ? b.prevSub || "" : cam.trans ? subEl._t || "" : subNow);
     sty(subEl, "display", st ? "block" : "none"); txt(subEl, st);
     drM.frame(st);   // 📋 자막이 비었을 때만 일보 알림 줄 subEl.classList.toggle("look", !!look && !tip && !pkS); subEl.classList.toggle("tip", !!tip);
-    /* 다음 칩: 아직 못 담은 질문·완료(큰 완료 🎉, 평소 ✅)와 그 층. 누르면 첫 항목의 층으로 */
-    const q = pending(tc);
+    /* 다음 칩: 관제 인박스 순서(🔑·❓·💤·✉️)와 그 층. 누르면 첫 항목의 층으로 */
+    const q = pending();
     nextEl.hidden = !q.length; txt(nextEl, X("다음 ", "Next ") + q.slice(0, 2).map(x => x.t).join(" ") + (q.length > 2 ? ` +${q.length - 2}` : ""));   // 두 개까지(방 이름표와 안 겹치게)
     nextEl.setAttribute("aria-label", q.length ? X(`눌러서 ${q[0].t} 보기`, `Click to view ${q[0].t}`) : "");
     /* 둘러볼 때: 방 이름표 아래 정보 줄 */
@@ -1824,7 +1826,7 @@ function mountLobby(root, ctx) {
     else if (b.dataset.act === "up") step(-1);
     else if (b.dataset.act === "down") step(1);
     else if (b.dataset.act === "dot" || b.dataset.act === "step") { if (model.bySid.has(b.dataset.sid)) setLook(b.dataset.sid); }
-    else if (b.dataset.act === "next") { const q = pending(clockT()); if (q.length) setLook(q[0].sid); }
+    else if (b.dataset.act === "next") { const q = pending(); if (q.length) { setLook(q[0].sid); if (ctx.core.inbox && (q[0].kind === "done" || q[0].kind === "stall")) ctx.core.inbox.mark(q[0].sid); } }   // 본 것으로(✉️·💤만 — 🔑·❓는 답할 때까지 남음)
     else if (b.dataset.act === "poke") pkM.tap(b, e);   // 👆 클릭 반응
     else if (b.dataset.act === "dr") drM.tap();   // 📋 큰 화면에서 일보 카드
     else if (b.dataset.act === "go") { const f = model.bySid.get(b.dataset.sid); if (goMux(f)) Promise.resolve(ctx.api.openTerminal(f.sid)).catch(() => {}); }   // 완료 보고 → 그 멀티플렉서(Orca·cmux) 세션
@@ -1852,7 +1854,7 @@ function mountLobby(root, ctx) {
     if (a === "dot") { const f = model.bySid.get(b.dataset.sid); return f ? `${f.floor}F ${EMO[f.animal]} ${cut(f.project, 14)} · ${stLabel(f)} — ${X("누르면 이동", "click to go")}` : ""; }
     if (a === "step") { const f = model.bySid.get(b.dataset.sid); return f && f.step ? `✍️ ${f.floor}F ${f.step.step}/${f.step.total} · ${cfg.hideText ? "🤫" : f.title ? cut(f.title, 30) : X("단계 보고", "step report")}` : ""; }
     if (a === "jump") { const f = model.bySid.get(b.dataset.sid); return f ? "🖥️ " + goLabel(f.s, X) : ""; }
-    if (a === "next") { const p = pending(clockT()); const f = p.length && model.bySid.get(p[0].sid); return f ? X(`👉 누르면 ${f.floor}F로 이동`, `👉 Click to go to ${f.floor}F`) : ""; }
+    if (a === "next") { const p = pending(); const f = p.length && model.bySid.get(p[0].sid); return f ? X(`👉 누르면 ${f.floor}F로 이동`, `👉 Click to go to ${f.floor}F`) : ""; }
     return "";
   }
   const tipTarget = t => { const b = t && t.closest ? t.closest("[data-act]") : null; return b && root.contains(b) && b.dataset.act !== "dexclose" && b.dataset.act !== "poke" && b.dataset.act !== "dr" ? b : null; };
@@ -1906,6 +1908,7 @@ function mountLobby(root, ctx) {
   ctx.listen(doc, "visibilitychange", ensureLoop);
   if (rm.addEventListener) ctx.listen(rm, "change", ensureLoop);
   ctx.on("settings", () => { renderHud(); ensureLoop(); });
+  ctx.on("inbox-go", it => { if (it && model.bySid.has(it.sid)) setLook(it.sid); });   // N 키(관제 인박스) → 그 층을 보여 줌
   ctx.on("nunchi", () => ensureLoop());   // 🙈 눈치 목록이 덮이고 걷힐 때
   ctx.on("paused", () => ensureLoop());   // 위젯 창 숨김·다시 보임
   ctx.every(1000, () => { if (ctx.paused) return; pkM.reload(); if (dcM.read(clockT())) sync(); if (!animOn()) draw(0, false); });

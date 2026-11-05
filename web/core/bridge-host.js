@@ -9,7 +9,7 @@
 const C = window.Core;
 const UNSTABLE = ["kinds", "kind", "trail", "run", "last", "prompt_ts", "cwd", "report", "jump"];   // types/state.d.ts @unstable (Session). report = AI가 쓴 원문(MCP 보고)은 외부 코드에 넘기지 않음. jump = 멀티플렉서 ID(#37)
 const EVENTS = ["state", "done", "input", "stall", "memo-ready", "memo", "settings", "mode"];
-const KEYS = /^([1-9]|b|B|,|nunchi|mini)$/;   // nunchi·mini = 샌드박스 안에서 누른 ⌘1·⌘2(Ctrl+1·2), ⌘,는 ","로
+const KEYS = /^([1-9]|b|B|,|nunchi|mini|inbox|inbox-skip)$/;   // nunchi·mini = 샌드박스 안에서 누른 ⌘1·⌘2(Ctrl+1·2), ⌘,는 ","로
 const STORE_LIMIT = 256 * 1024, MSG_LIMIT = 64 * 1024, NOTIFY_PER_MIN = 6;
 const SID = /^[A-Za-z0-9_-]{1,120}$/;
 // 권한 정책: 강력한 기능은 cross-origin iframe에서 기본 차단이지만 명시적으로도 끈다 (알려진 이름만 — 모르는 이름은 콘솔 경고가 남)

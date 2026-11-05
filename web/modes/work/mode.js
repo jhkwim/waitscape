@@ -9,6 +9,7 @@ const STATUS_LABEL = { working: "작업 중", agents: "에이전트 실행 중",
 const OPS_TAG = { "📖": "READ", "✏️": "EDIT", "📝": "WRITE", "⚡": "BASH", "🔍": "SEARCH", "🌐": "WEB", "🤖": "AGENT",
   "🗒️": "TODO", "📨": "REPORT", "🔌": "MCP", "🔧": "TOOL" };
 const opsTag = icon => OPS_TAG[icon] || "TOOL";
+const INBOX_LABEL = { permission: "🔑 권한 승인", question: "❓ 질문", stall: "💤 멈춤 의심", done: "✉️ 확인 안 한 완료" };
 const OPS_RANK = { needs_input: 0, working: 2, agents: 2, done: 3, idle: 4 };
 const SVG_CHEV = `<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const SVG_NOTE = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h6l3 3v8h-9zM9.5 2.5v3h3M5.5 8.5h5M5.5 11h3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
@@ -67,6 +68,7 @@ const MARKUP = `
     <div class="g-bar"><i></i><em class="pace"></em></div><div class="g-proj"></div></div>
   <div class="g-note" id="g-note"></div>
 </section>
+<section class="ops-next" id="ops-next" aria-label="다음에 볼 것" hidden></section>
 <section id="ops" aria-label="세션 목록">
   <div class="ops-head"><h2>세션 <span id="ops-count">0</span></h2>
     <div class="ops-actions"><button class="btn" id="ops-expand">모두 펼치기</button><button class="btn" id="ops-collapse">모두 접기</button></div></div>
@@ -175,6 +177,15 @@ C.registerMode({
         kpi("오늘 토큰", fmtTok(tt.total), `입력 ${fmtTok(tt.new)} · 출력 ${fmtTok(tt.out)} · 캐시 ${fmtTok(tt.cached)}`),
         kpi("오늘 대기 시간", dur(waited), "Claude 작업 완료까지 누적"),
       ].join(""));
+
+      // 다음에 볼 것(관제 인박스, #126) — 코어와 같은 순서, 최대 3줄. 가기 = 멀티플렉서 세션만, 건너뛰기 = 봄 처리
+      const nq = C.inbox ? C.inbox.list().slice(0, 3) : [], nxEl = $("#ops-next");
+      nxEl.hidden = !nq.length;
+      setHTML(nxEl, nq.length ? `<div class="ops-head"><h2>다음에 볼 것 <small>N 다음 · Shift+N 건너뛰기</small></h2></div>` + nq.map(q => {
+        const s = ss.find(x => x.sid === q.sid), mx = ctx.api.openTerminal && s ? C.muxName(s) : "";
+        return `<div class="nx-row k-${esc(q.kind)}"><span class="ib-tag">${INBOX_LABEL[q.kind]}</span><b>${esc(q.project)}</b><span class="ib-ln">${esc(q.line)}</span><span class="ib-num">${dur(now - q.since)}</span>`
+          + `<span class="ib-act">${mx ? `<button class="btn" data-ib-go="${esc(q.sid)}">${esc(mx)}로 이동</button>` : ""}<button class="btn" data-ib-skip="${esc(q.sid)}">건너뛰기</button></span></div>`;
+      }).join("") : "");
 
       // 세션 테이블
       const body = $("#ops-body");
@@ -309,6 +320,11 @@ C.registerMode({
     const applySettings = () => { qb.classList.toggle("on", ctx.settings.quiet); nb.hidden = !ctx.notif.canAsk; };
     qb.onclick = () => ctx.settings.setQuiet(!ctx.settings.quiet);
     nb.onclick = () => ctx.notif.request();
+    $("#ops-next").onclick = e => {
+      const g = e.target.closest("[data-ib-go]"), k = e.target.closest("[data-ib-skip]");
+      if (g && ctx.api.openTerminal) ctx.api.openTerminal(g.dataset.ibGo);
+      else if (k && C.inbox) { C.inbox.mark(k.dataset.ibSkip); render(); }
+    };
     $("#ops-expand").onclick = () => { for (const s of (last ? last.sessions : [])) opsOpen[s.sid] = true; saveOpsOpen(); render(); };
     $("#ops-collapse").onclick = () => { for (const s of (last ? last.sessions : [])) opsOpen[s.sid] = false; saveOpsOpen(); render(); };
     applySettings();

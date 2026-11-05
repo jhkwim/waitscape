@@ -62,10 +62,15 @@ impl Alert {
     }
 }
 
+/// 같은 세션의 질문 알림은 10분에 한 번(#126, PRD §4.4 — core.js detect()의 INPUT_GAP과 같은 값)
+const INPUT_GAP: f64 = 600.0;
+
 #[derive(Default)]
 pub struct Detector {
     prev: HashMap<String, String>,
     stalls: HashSet<String>,
+    /// 세션별 마지막 질문 알림 시각(state.now 기준)
+    last_input: HashMap<String, f64>,
     primed: bool,
 }
 
@@ -105,6 +110,8 @@ impl Detector {
     pub fn feed(&mut self, st: &Value, lang: &str) -> Vec<Alert> {
         let mut out = vec![];
         let sessions = st.get("sessions").and_then(|x| x.as_array()).cloned().unwrap_or_default();
+        // 질문 알림 간격용 시각. state에 now가 없으면(옛 테스트 입력) 간격을 두지 않는다
+        let now = st.get("now").and_then(|x| x.as_f64());
         // 멈춤 의심: 메인(작업 중) + 실행 중 서브에이전트
         let mut now_stalls = HashSet::new();
         for x in &sessions {
@@ -166,7 +173,11 @@ impl Detector {
                             guess: false,
                             ask: "",
                         });
-                    } else if status == "needs_input" {
+                    } else if status == "needs_input" && !now.is_some_and(|n| self.last_input.get(&sid).is_some_and(|t| n - t < INPUT_GAP))
+                    {
+                        if let Some(n) = now {
+                            self.last_input.insert(sid.clone(), n);
+                        }
                         let guess = s(x, "confidence") == "guess";
                         let note = x.get("note").and_then(|v| v.as_str()).unwrap_or("");
                         let ask = match s(x, "ask") {
@@ -197,6 +208,7 @@ impl Detector {
         // 사라진 세션 정리
         let live: HashSet<&str> = sessions.iter().map(|x| s(x, "sid")).collect();
         self.prev.retain(|k, _| live.contains(k.as_str()));
+        self.last_input.retain(|k, _| live.contains(k.as_str()));
         self.primed = true;
         out
     }
@@ -270,6 +282,27 @@ mod tests {
             (a.title.as_str(), a.plain("ko").1.as_str()),
             ("❓ demo has a question", "답변이 필요합니다")
         );
+    }
+
+    #[test]
+    fn input_gap_per_session() {
+        let at = |status: &str, now: f64| {
+            let mut v = st(status, None);
+            v["now"] = json!(now);
+            v
+        };
+        let mut d = Detector::default();
+        d.feed(&at("working", 1000.0), "ko");
+        assert_eq!(d.feed(&at("needs_input", 1001.0), "ko").len(), 1);
+        d.feed(&at("working", 1010.0), "ko");
+        assert!(
+            d.feed(&at("needs_input", 1100.0), "ko").is_empty(),
+            "10분 안의 두 번째 질문은 조용히"
+        );
+        d.feed(&at("working", 1200.0), "ko");
+        assert!(d.feed(&at("done", 1300.0), "ko").len() == 1, "완료 알림은 간격과 무관");
+        d.feed(&at("working", 1500.0), "ko");
+        assert_eq!(d.feed(&at("needs_input", 1601.0), "ko").len(), 1, "10분이 지나면 다시 알림");
     }
 
     #[test]

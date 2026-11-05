@@ -4,7 +4,9 @@
    ?tools=N(도구 수 N부터 1초에 1씩) · ?turn=1(30초마다 새 턴) · ?daylog=1(퇴근 일보 fixture) · ?role=widget(미니 보기 창)
    ?idle=N(일하던 두 세션이 N분째 쉼, &done=1이면 완료 뒤 쉼으로 바뀐 세션) · ?wake=S(S초 뒤 다시 일함)
    ?upd=1(새 버전 0.7.0 있음 — 배너·미니 보기 🎁 · [지금 업데이트]는 내려받기 42%에서 멈춤) · ?just=1(방금 이 버전으로 올린 뒤 「올랐어요」 카드)
-   ?askkind=permission|question(질문 세션의 종류 · permission이면 note = 허락받을 도구 설명) · ?guess=1(그 질문이 추정) · ?hooks=partial(훅 일부만 등록 → 재설치 안내 창, #120) */
+   ?askkind=permission|question(질문 세션의 종류 · permission이면 note = 허락받을 도구 설명) · ?guess=1(그 질문이 추정) · ?hooks=partial(훅 일부만 등록 → 재설치 안내 창, #120)
+   ?inbox=1(관제 인박스: 🔑 권한(cmux 세션) · ❓ 질문 · 💤 멈춤 · ✉️ 확인 안 한 완료 2 — 다음 칩·눈치·업무 모드 "다음에 볼 것")
+   ?nunchi=1(🙈 눈치 모드로 시작) · ?m=work(모드 덮어쓰기 — --extra는 mode=studio가 앞에 붙으므로) */
 (() => {
   const q = new URLSearchParams(location.search);
   const ROLE = q.get("role") === "widget" ? "widget" : "main";
@@ -25,6 +27,12 @@
     if (q.has("ask2")) Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", since: T0 - 30, note: "테스트 먼저 돌려도 될까요?" });   // ?ask2=1: 질문 두 명(뒷사람은 자기 층에서 순서 대기)
     /* ?idle=N: 일하던 두 세션(waitscape·api-server)이 N분째 쉬는 중 · ?wake=S: 페이지를 연 지 S초 뒤 다시 일함(😴 졸음·❗ 화들짝 확인, #106) */
     if (q.has("idle")) S.filter(x => x.sid === "1d18e2" || x.sid === "4ddee2").forEach(x => { const w = q.has("wake") && now - T0 >= +q.get("wake"); Object.assign(x, w ? { status: "working", since: T0 + +q.get("wake") } : q.has("done") ? { status: "done", since: T0 - (+q.get("idle") || 15) * 60 - 300 } : { status: "idle", since: T0 - (+q.get("idle") || 15) * 60 }); });   // &done=1: 완료 뒤 5분이 지나 쉼이 된 세션(since = 완료 시각)
+    if (q.has("inbox")) {   // ?inbox=1: 권한 1(cmux에서 연 세션) · 질문 1 · 멈춤 1 · 확인 안 한 완료 2
+      Object.assign(S.find(x => x.sid === "8bbce2"), { status: "needs_input", ask: "permission", source: "hook", note: "Bash: npm run migrate", since: T0 - 400, jump: { mux: { kind: "cmux", workspace: "workspace:2" } } });
+      Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", ask: "question", since: T0 - 95, note: "테스트 먼저 돌려도 될까요?" });
+      Object.assign(S.find(x => x.sid === "1d18e2"), { health: { level: "stall", secs: 420, tool: "Bash" }, last: T0 - 420 });
+      add("5eaa01", "notes", "claude", "done", { started: T0 - 2400, since: T0 - 1800, run: 600, prompt: "회의록 정리" });
+    }
     if (q.has("stall")) S.find(x => x.sid === "4ddee2").health = { level: "stall", secs: 420, tool: "Bash" };   // ?stall=1: 로봇(api-server)이 멈춤 의심
     const five = q.get("five");
     const rs = +(q.get("rs") || 2.6) * 3600;
@@ -38,7 +46,7 @@
   const UPD = q.has("upd") || q.has("just");
   const lang = q.get("lang") || "ko";
   const settings = { usageLookup: false, notify: { done: true, input: true, stall: true, memo: true }, quiet: false, langPref: lang, lang, autostart: false,
-    terminal: "auto", modes: {}, widget: false, hideProjects: [], hideBuiltin: true, activeOnly: true, recentMinutes: 30, updateCheck: false, nunchi: false, nunchiKey: "Control+KeyQ", nunchiLong: false, nunchiTheme: "system", nunchiGlobal: true };
+    terminal: "auto", modes: {}, widget: false, hideProjects: [], hideBuiltin: true, activeOnly: true, recentMinutes: 30, updateCheck: false, nunchi: q.has("nunchi"), nunchiKey: "Control+KeyQ", nunchiLong: false, nunchiTheme: "system", nunchiGlobal: true };
   const fire = (event, payload) => (L[event] || []).forEach(h => cbs[h] && cbs[h]({ event, payload }));
   setInterval(() => fire("state", mkState(Date.now() / 1000)), 1000);
   async function listModes() {
@@ -68,5 +76,5 @@
     invoke: async (cmd, args) => { if (cmd in H) return H[cmd](args || {}); console.warn("[mock] 모르는 명령", cmd); return null; },
   };
   if (q.has("just")) try { localStorage.setItem("update:just", JSON.stringify({ to: "0.4.2", from: "0.4.1", notes: "🎰 가짜 요약 한 줄이에요.\n🦊 두 번째 줄이에요.\n\n자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요." })); } catch {}
-  try { localStorage.setItem("onboarded", "1"); localStorage.setItem("onb:hooks", "1"); localStorage.setItem("mode", q.get("mode") || "studio"); } catch {}
+  try { localStorage.setItem("onboarded", "1"); localStorage.setItem("onb:hooks", "1"); localStorage.setItem("mode", q.get("m") || q.get("mode") || "studio"); } catch {}
 })();

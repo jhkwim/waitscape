@@ -75,7 +75,8 @@ function today(day, st) {
   const work = ok && day.work > 0 ? day.work : null, wait = ok && day.wait && day.wait.avg != null ? day.wait.avg : null;
   return done || work || longest || wait != null ? { done: done || 0, work, longest, wait } : null;
 }
-/* 창 안 단축키 판정(코어 keydown): ⌘1(맥)·Ctrl+1(그 밖) = 눈치 모드, ⌘2·Ctrl+2 = 미니 보기(위젯에선 큰 화면으로), 수식키 없는 B = 눈치 모드, 수식키 없는 1~9 = 모드 전환, 쉼표 = 설정.
+/* 창 안 단축키 판정(코어 keydown): ⌘1(맥)·Ctrl+1(그 밖) = 눈치 모드, ⌘2·Ctrl+2 = 미니 보기(위젯에선 큰 화면으로), 수식키 없는 B = 눈치 모드, 수식키 없는 1~9 = 모드 전환, 쉼표 = 설정,
+   N = 관제 인박스 맨 앞으로 이동 · Shift+N = 건너뛰기(#126).
    입력란(textarea·input·select·편집 가능)에서는 아무것도 안 함. 그 밖의 수식키 조합은 브라우저·OS에 맡김(null).
    e: { key, code, metaKey, ctrlKey, altKey, shiftKey, target: { tagName, isContentEditable } } */
 const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
@@ -89,6 +90,7 @@ function hotkey(e, mac) {
   if (mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey) return e.altKey || e.shiftKey ? null : one ? "nunchi" : two ? "mini" : comma ? "settings" : null;   // ⌘2 = 미니 보기 ↔ 큰 화면 · ⌘, = 설정
   if (e.metaKey || e.ctrlKey || e.altKey) return null;
   if (e.code === "KeyB" || e.key === "b" || e.key === "B") return "nunchi";
+  if (e.code === "KeyN" || e.key === "n" || e.key === "N") return e.shiftKey ? "inbox-skip" : "inbox";
   if (comma) return "settings";
   return num ? "mode:" + num : null;
 }
@@ -160,6 +162,7 @@ function create(env) {
       root.innerHTML = `<header class="nx-top"><div class="nx-brand">${LOGO}<b>Agent Sessions</b></div><nav class="nx-tabs" role="tablist"></nav><span class="nx-sp"></span><span class="nx-upd"><i></i><span class="u"></span></span><button type="button" class="nx-gear nx-minib" data-act="nx-mini">${MINI}<span class="lb"></span><kbd></kbd></button><button type="button" class="nx-gear" data-act="nx-settings">${GEAR}<span class="lb"></span><kbd></kbd></button></header>
         <section class="nx-sum"><div class="nx-left"><div class="nx-stats"><div class="c-run"><span data-l="run"></span><b data-k="run">0</b></div><div class="c-ask"><span data-l="ask"></span><b data-k="ask">0</b></div><div class="c-done"><span data-l="done"></span><b data-k="done">0</b></div></div><div class="nx-today" hidden></div></div>
           <div class="nx-lims"><div class="nx-lim" data-w="five"><span class="n"></span><span class="bar"><i></i><u></u></span><span class="v"></span><span class="r"></span><span class="bd" hidden></span></div><div class="nx-lim" data-w="week"><span class="n"></span><span class="bar"><i></i><u></u></span><span class="v"></span><span class="r"></span><span class="bd" hidden></span></div></div></section>
+        <section class="nx-next" hidden><h4><span class="h"></span><kbd></kbd></h4><ol></ol></section>
         <div class="nx-card"><table class="nx-tbl"><colgroup><col class="c-p"><col class="c-s"><col><col class="c-g"><col class="c-e"><col class="c-n"><col class="c-o"></colgroup><thead><tr></tr></thead><tbody></tbody></table></div>
         <section class="nx-log"><h4></h4><ol></ol></section>
         <footer class="nx-foot"><span class="hk"><i></i><span></span></span><span class="pv"></span><span class="cap" role="status"></span><span class="nx-sp"></span><span class="back"></span><span class="lc"></span></footer>
@@ -171,6 +174,8 @@ function create(env) {
         if (e.target.closest("[data-act=nx-mini]")) { env.openMini && env.openMini(); return; }
         const tg = e.target.closest("[data-sub]");
         if (tg) { const k = tg.dataset.sub; if (opened.has(k)) opened.delete(k); else opened.add(k); saveOpened(); render(); return; }
+        const sk = e.target.closest("[data-skip]");
+        if (sk && env.inboxSkip) { env.inboxSkip(sk.dataset.skip); render(); return; }
         const b = e.target.closest("[data-open]");
         if (b && env.openTerminal) env.openTerminal(b.dataset.open);
       });
@@ -202,6 +207,7 @@ function create(env) {
     root.querySelector('[data-w="five"] .n').textContent = t("nx.five"); root.querySelector('[data-w="week"] .n').textContent = t("nx.week");
     root.querySelector("thead tr").innerHTML = ["nx.col.p", "nx.col.s", "nx.col.t", "nx.col.g", "nx.col.e", "nx.col.n", ""].map((k, i) => `<th${i >= 4 ? ' class="r"' : ""}>${k ? esc(t(k)) : ""}</th>`).join("");
     root.querySelector(".nx-log h4").textContent = t("nx.log");
+    root.querySelector(".nx-next .h").textContent = t("ib.title"); root.querySelector(".nx-next kbd").textContent = t("ib.keys");
     root.querySelector(".nx-upd .u").textContent = t("nx.live");
     const mb = root.querySelector(".nx-minib"); mb.hidden = !env.openMini;   // 미니 보기(앱만): 위젯은 눈치 목록으로 뜸
     mb.querySelector(".lb").textContent = t("nx.mini"); mb.querySelector("kbd").textContent = miniKeyLabel(isMac());
@@ -301,6 +307,13 @@ function create(env) {
       + (sum.longest ? it("nx.td.long", `${sum.longest.project} · ${secs(sum.longest.run)}`) : "") + (sum.wait != null ? it("nx.td.wait", secs(sum.wait)) : "");
     tdEl.hidden = !th;   // 완료 수는 바로 위 요약에 — 카드는 작업 시간·가장 오래 걸린 일·입력 대기 평균
     if (tdEl._h !== th) { tdEl._h = th; tdEl.innerHTML = th; }
+    /* 다음에 볼 것(관제 인박스, #126): 코어와 같은 순서 · 최대 3줄 · 담백한 글자 배지(이모지 없음) */
+    const nq = env.inbox ? env.inbox().slice(0, 3) : [], nxt = root.querySelector(".nx-next");
+    const nh = nq.map(q => { const s = st.sessions.find(x => x.sid === q.sid), mx = env.openTerminal && s ? L.muxName(s) : "";
+      return `<li data-sid="${esc(q.sid)}" class="k-${esc(q.kind)}"><span class="bd">${esc(t("ib.k." + q.kind))}</span><b>${esc(q.project)}</b><span class="ln">${esc(q.line)}</span><span class="num">${clock(now - q.since)}</span>`
+        + `<span class="act">${mx ? `<button type="button" class="open" data-open="${esc(q.sid)}">${esc(t("nx.go", { m: mx }))}</button>` : ""}<button type="button" class="skip" data-skip="${esc(q.sid)}">${esc(t("ib.skipBtn"))}</button></span></li>`; }).join("");
+    nxt.hidden = !nh;
+    const nol = nxt.querySelector("ol"); if (nol._h !== nh) { nol._h = nh; nol.innerHTML = nh; }
     const vis = list.filter(x => filter === "all" || (filter === "run" ? RUN[x.status] : filter === "ask" ? x.status === "needs_input" : x.status === "done"));
     const prov = x => (L.provider(st, x) || {}).name || "";
     const tb = root.querySelector("tbody");

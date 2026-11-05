@@ -38,7 +38,7 @@ const Core = window.Core = {
   hash: L.hash, pick: L.pick, esc: L.esc, fmt: L.fmt, fmtTok: L.fmtTok, dur: L.dur, hms: L.hms,
   untilText: L.untilText, clockText: L.clockText, spanText: L.spanText,
   sessionStatus: L.sessionStatus, isActive: L.isActive, stalls: L.stalls, summary: L.summary,
-  limitCalc: L.limitCalc, limits: L.limits, limitNote: L.limitNote,
+  limitCalc: L.limitCalc, limits: L.limits, limitNote: L.limitNote, inboxQueue: L.inboxQueue, INBOX_KINDS: L.INBOX_KINDS,   // 관제 인박스 순서(#126)
   provider: L.provider, can: L.can, providerBadge: L.providerBadge,
   apiVersion: L.API_VERSION, apiCompat: L.apiCompat,
 };
@@ -103,15 +103,17 @@ function start() {
   if (state && inst.update) { try { inst.update(state, ctx); } catch (e) { log("update: " + e.message); } }
 }
 
-// 숫자키·B·쉼표·🙈 ⌘1/⌘2/⌘,(맥, 그 밖 Ctrl)는 호스트 단축키 → iframe에 포커스가 있어도 전달(코어 nunchi.js lib.hotkey와 같은 규칙:
+// 숫자키·B·N(Shift+N)·쉼표·🙈 ⌘1/⌘2/⌘,(맥, 그 밖 Ctrl)는 호스트 단축키 → iframe에 포커스가 있어도 전달(코어 nunchi.js lib.hotkey와 같은 규칙:
 // 길게 눌러 반복은 무시, 한국어 자판이어도 물리 키(code) 기준, 입력란 무시)
 const keyOf = e => {
+  if (e.defaultPrevented) return null;   // 모드가 그 키를 직접 썼으면(preventDefault) 호스트로 넘기지 않음
   if (e.repeat || /^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return null;
   const mac = /Mac|iPhone|iPad/.test(navigator.platform || ""), d = /^Digit([1-9])$/.exec(e.code || ""), n = d ? d[1] : /^[1-9]$/.test(e.key) ? e.key : null;
   const comma = e.code === "Comma" || e.key === ",";
   if (mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey) return e.altKey || e.shiftKey ? null : n === "1" ? "nunchi" : n === "2" ? "mini" : comma ? "," : null;
   if (e.metaKey || e.ctrlKey || e.altKey) return null;
   if (e.code === "KeyB" || e.key === "b" || e.key === "B") return "b";
+  if (e.code === "KeyN" || e.key === "n" || e.key === "N") return e.shiftKey ? "inbox-skip" : "inbox";   // 관제 인박스
   return comma ? "," : n;
 };
 document.addEventListener("keydown", e => {

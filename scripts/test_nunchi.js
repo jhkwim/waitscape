@@ -71,6 +71,10 @@ assert.strictEqual(N.hotkey(k("1", { metaKey: true, shiftKey: true }), true), nu
 assert.strictEqual(N.hotkey(k("!", { metaKey: true, code: "Digit1" }), true), "nunchi");   // 자판 배열이 달라도 물리 키 1
 assert.strictEqual(N.hotkey(k("1"), true), "mode:1"); assert.strictEqual(N.hotkey(k("7"), false), "mode:7");
 assert.strictEqual(N.hotkey(k("b"), true), "nunchi"); assert.strictEqual(N.hotkey(k("B"), false), "nunchi");
+// N = 관제 인박스 다음 · Shift+N = 건너뛰기 (한국어 자판 "ㅜ"도 물리 키로) · 수식키·입력란은 아님
+assert.strictEqual(N.hotkey(k("n"), true), "inbox"); assert.strictEqual(N.hotkey(k("N", { shiftKey: true }), false), "inbox-skip");
+assert.strictEqual(N.hotkey(k("ㅜ", { code: "KeyN" }), true), "inbox"); assert.strictEqual(N.hotkey(k("n", { metaKey: true }), true), null);
+assert.strictEqual(N.hotkey(k("n", { altKey: true }), false), null); assert.strictEqual(N.hotkey(k("n", { target: { tagName: "INPUT" } }), true), null);
 assert.strictEqual(N.hotkey(k(","), true), "settings");
 assert.strictEqual(N.hotkey(k("b", { metaKey: true }), true), null); assert.strictEqual(N.hotkey(k("3", { ctrlKey: true }), false), null);
 for (const tagName of ["INPUT", "TEXTAREA", "SELECT"]) assert.strictEqual(N.hotkey(k("1", { metaKey: true, target: { tagName } }), true), null);

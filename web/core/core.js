@@ -157,6 +157,8 @@ let state = null, serverOffset = 0;
 const now = () => Date.now() / 1000 - serverOffset;
 const prevStatus = {};
 let notifiedStall = new Set();
+/* 같은 세션의 질문 알림(소리·OS 알림)은 10분에 한 번(#126, PRD §4.4 — detect.rs INPUT_GAP과 같은 값). 상태 이벤트("input")는 그대로 보냄 */
+const INPUT_GAP = 600, lastAsk = {};
 
 function detect(st) {
   // 새로 멈춤 의심이 생기면 한 번만
@@ -175,11 +177,14 @@ function detect(st) {
         const m = memo.get(s.sid);
         if (m.trim()) { memoReady.add(s.sid); notify(...text("memo", s, m), "memo"); emit("memo-ready", s); }
       } else if (key === "needs_input") {
-        chime("input"); notify(...text("input", s), "input"); emit("input", s);
+        if (!(now() - (lastAsk[s.sid] ?? -Infinity) < INPUT_GAP)) { lastAsk[s.sid] = now(); chime("input"); notify(...text("input", s), "input"); }
+        emit("input", s);
       }
     }
     prevStatus[s.sid] = key;
   }
+  const live = new Set(st.sessions.map(s => s.sid));
+  for (const k of Object.keys(lastAsk)) if (!live.has(k)) delete lastAsk[k];
 }
 function updateTitle() {
   if (nx.phase === "plain" || nx.phase === "returning") { if (document.title !== NUNCHI_TITLE) document.title = NUNCHI_TITLE; return; }
@@ -487,12 +492,14 @@ const keyHandler = e => {
   if (!a) return;
   if (a === "nunchi" && (e.metaKey || e.ctrlKey)) e.preventDefault();   // ⌘1·Ctrl+1: 브라우저 탭 이동 대신(막히지 않는 브라우저도 있어 화면 힌트는 B)
   if (a === "mini" && (e.metaKey || e.ctrlKey)) e.preventDefault();
-  if (a === "nunchi") nunchiKey(); else if (a === "settings") openSettings(); else if (a === "mini") miniKey(); else hostKey(a.slice(5));
+  if (a === "nunchi") nunchiKey(); else if (a === "settings") openSettings(); else if (a === "mini") miniKey(); else if (a === "inbox") inboxGo(); else if (a === "inbox-skip") inboxSkip(); else hostKey(a.slice(5));
 };
 function hostKey(k) {   // 외부 모드 iframe에서 전달된 키도 여기로
   if (k === "b" || k === "B" || k === "nunchi") { nunchiKey(); return; }
   if (k === "mini") { miniKey(); return; }   // 샌드박스 안 ⌘2·Ctrl+2   // 🙈 눈치 모드 (예전 업무 모드 전환은 전환기·숫자 키로)
   if (k === ",") { openSettings(); return; }
+  if (k === "inbox") { inboxGo(); return; }
+  if (k === "inbox-skip") { inboxSkip(); return; }
   const n = +k;
   if (n >= 1 && n <= 9) { const m = visible()[n - 1]; if (m) setMode(m.id); }
 }
@@ -634,6 +641,7 @@ async function openTerminal(sid) {
   let r;
   try { r = await api.openTerminal(sid); } catch (e) { toast(String(e)); return "unsupported"; }
   const res = r && r.result, kind = String((r && r.kind) || ""), mx = { mux: MUX_LABEL[kind] || kind }, O = kind === "orca";
+  if (res === "opened" || res === "mux") inboxMark(sid);   // 그 세션에 닿음 = 봄(앱만 띄운 mux-app·mux-launch는 아님)
   if (res === "opened" || res === "mux") return "opened";
   if (res === "mux-app") { toast(t(O ? "term.orcaApp" : "term.muxApp", mx)); return "opened"; }
   if (res === "mux-launch") { toast(t("term.orcaLaunch", mx)); return "opened"; }
@@ -642,6 +650,47 @@ async function openTerminal(sid) {
     catch { toast(res === "mux-perm" ? t("term.muxPermPath", { ...mx, path: r.cwd }) : r.cwd); } }
   else toast(t("term.none"));
   return "unsupported";
+}
+
+/* ---------- 관제 인박스 (#126, docs/PRD.md §4): 지금 사람 손이 필요한 세션을 한 줄로 ----------
+   순서는 core-lib inboxQueue(순수 함수, scripts/test_inbox.js). 본 항목 = localStorage "inbox:seen" { sid: since } — 메인·위젯·PiP 창이 같은 저장소를 읽는다.
+   N = 맨 앞으로: 멀티플렉서(cmux·Orca) 세션이면 그 터미널로, 아니면 안내 토스트(+ 모드가 "inbox-go"로 그 직원을 보여 줌). Shift+N = 건너뛰기.
+   봄 처리: 이동함·건너뜀(그 since만 — 새 질문·새 완료가 오면 다시 뜸) */
+const INBOX_SEEN = "inbox:seen";
+const inboxSeen = () => { const v = storeJson(INBOX_SEEN, {}); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; };
+const qNow = () => (state && state.now) || now();   // 서버 시각(health.secs와 같은 기준 — 멈춘 때가 흔들리지 않게)
+const inboxList = () => (state ? L.inboxQueue(state.sessions, qNow(), inboxSeen()) : []);
+function inboxMark(sid) {
+  const s = state && state.sessions.find(x => x.sid === sid), it = s && L.inboxQueue([s], qNow())[0];
+  if (!it) return false;
+  const live = new Set(((rawState && rawState.sessions) || state.sessions).map(x => x.sid));   // 사라진 세션 기록은 정리(쌓이지 않게)
+  const m = Object.fromEntries(Object.entries(inboxSeen()).filter(([k]) => live.has(k)));
+  m[sid] = it.since;
+  store.set(INBOX_SEEN, JSON.stringify(m));
+  emit("inbox", inboxList());
+  if (nx.on && state) { nx.state(state); for (const x of nxSubs) x.state(state); }   // 🙈 눈치 표의 "다음에 볼 것"도 바로
+  return true;
+}
+const inboxToast = msg => toast(nx.on ? window.CoreNunchi.lib.stripIcon(msg) : msg);   // 🙈 눈치 모드: 이모지 없이
+function inboxGo() {
+  const it = inboxList()[0];
+  if (!it) { inboxToast(t("ib.empty")); return null; }
+  const s = state.sessions.find(x => x.sid === it.sid);
+  emit("inbox-go", it);
+  if (api.openTerminal && L.muxName(s)) openTerminal(it.sid);   // 봄 처리는 이동이 될 때만(openTerminal 안에서) — 못 가면 큐에 남음
+  else {   // 바로 갈 수 없는 세션: 안내만. 권한·질문은 답할 때까지 큐에 남김(봄 처리는 완료·멈춤만) — 넘기려면 Shift+N
+    if (it.kind === "done" || it.kind === "stall") inboxMark(it.sid);
+    inboxToast(t("ib.go." + it.kind, { p: it.project }));
+  }
+  return it;
+}
+function inboxSkip() {
+  const it = inboxList()[0];
+  if (!it) { inboxToast(t("ib.empty")); return null; }
+  inboxMark(it.sid);
+  const n = inboxList()[0];
+  inboxToast(n ? t("ib.skip", { p: n.project }) : t("ib.skipEnd"));
+  return it;
 }
 
 /* ---------- 미니 보기 열기 (앱 메인 창: 📌 미니 보기·포켓 위에 띄우기) ----------
@@ -673,6 +722,7 @@ const nx = window.CoreNunchi.create({
   daylog: api.daylog ? () => api.daylog("today") : null,   // 오늘 요약(일보와 같은 집계, 4시 경계)
   quiet: () => settings.quiet,
   openTerminal: sid => api.openTerminal ? openTerminal(sid) : undefined,
+  inbox: () => inboxList(), inboxSkip: sid => inboxMark(sid),   // 다음에 볼 것(관제 인박스)
   showMain: WIDGET && api.closeWidget ? () => api.closeWidget() : null,
   openSettings: WIDGET ? null : () => openSettings(),   // 눈치 화면 머리줄 [설정] — 켜진 뒤 여는 설정 창은 눈치 화면 위에(닫는 건 켜는 순간뿐)
   openMini: !WIDGET && api.openWidget ? () => miniKey() : null,   // 눈치 화면 [미니 보기] — 위젯도 눈치 목록으로 뜸
@@ -695,7 +745,7 @@ function nxSet(v, o) {
 }
 function nxSub(doc) {   // 추가 문서(PiP)에 작은 목록 — 메인의 블라인드·연출 없이 바로
   if (!doc.querySelector("link[data-nx-css]")) { const l = doc.createElement("link"); l.rel = "stylesheet"; l.href = new URL("core/nunchi.css", location.href).href; l.dataset.nxCss = ""; doc.head.appendChild(l); }
-  const s = window.CoreNunchi.create({ doc, widget: true, t, L, store, miniSettings: () => openSettings(), state: () => state, now: () => now(), hook: () => null, order: () => null, cat: () => null,
+  const s = window.CoreNunchi.create({ doc, widget: true, t, L, store, miniSettings: () => openSettings(), state: () => state, now: () => now(), hook: () => null, order: () => null, cat: () => null, inbox: () => inboxList(), inboxSkip: sid => inboxMark(sid),
     long: () => false, quiet: () => true, onPhase: () => {}, theme: () => app.nunchiTheme || "system", openTerminal: api.openTerminal ? sid => openTerminal(sid) : undefined });
   if (nx.on) s.set(true, { instant: true });
   if (state) s.state(state);
@@ -929,7 +979,8 @@ const Core = window.Core = {
   hash: L.hash, pick: L.pick, esc: L.esc, fmt: L.fmt, fmtTok: L.fmtTok, dur: L.dur, hms: L.hms,
   untilText: L.untilText, clockText: L.clockText, spanText: L.spanText,
   sessionStatus: L.sessionStatus, isActive: L.isActive, stalls: L.stalls, summary: L.summary,
-  limitCalc: L.limitCalc, limits: L.limits, limitNote: L.limitNote,
+  limitCalc: L.limitCalc, limits: L.limits, limitNote: L.limitNote, inboxQueue: L.inboxQueue, INBOX_KINDS: L.INBOX_KINDS,
+  inbox: { list: inboxList, go: inboxGo, skip: inboxSkip, mark: inboxMark },   // 관제 인박스(본 항목 기억 포함) — 순서만 필요하면 inboxQueue
   filterSessions: L.filterSessions, isLive: L.isLive,
   provider: L.provider, can: L.can, providerBadge: L.providerBadge, muxName: L.muxName,
   apiVersion: L.API_VERSION, apiCompat: L.apiCompat,
@@ -998,10 +1049,11 @@ async function bootWidget(fallback) {
   for (const k of ["Width", "Height"]) { try { Object.defineProperty(window, "outer" + k, { get: () => window["inner" + k], configurable: true }); } catch {} }
   window.resizeTo = (w, h) => api.resizeWidget(Math.round(w), Math.round(h));
   window.close = () => api.closeWidget();   // 위젯 닫기 = 미니 보기 끝 → 큰 화면 복귀(백엔드). 창이 하나도 안 보이는 상태를 만들지 않는다
-  /* 위젯 창 단축키: 🙈 눈치 모드(⌘1·Ctrl+1·B)만 — 모드 전환·설정은 큰 창에서 */
+  /* 위젯 창 단축키: 🙈 눈치 모드(⌘1·Ctrl+1·B)와 관제 인박스(N·Shift+N)만 — 모드 전환·설정은 큰 창에서 */
   document.addEventListener("keydown", e => {   // 위젯: ⌘1·B = 눈치 모드, ⌘2 = 큰 화면으로
     const a = window.CoreNunchi.lib.hotkey(e, window.CoreNunchi.lib.isMac());
     if (a === "nunchi") { e.preventDefault(); nunchiKey(); } else if (a === "mini" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); miniKey(); }
+    else if (a === "inbox") inboxGo(); else if (a === "inbox-skip") inboxSkip();   // 관제 인박스 N · Shift+N
     else if (a === "settings" && (e.metaKey || e.ctrlKey) && api.menuAction) { e.preventDefault(); api.menuAction("settings-mini").catch(() => {}); }   // ⌘, = 큰 화면 + 설정(닫으면 미니로)
   });
   // 창 끌기: 빈 자리는 누르자마자 끌기. 모드가 "누르면 반응"으로 표시한 자리([data-act="poke"])는 누른 채 4px 넘게 움직일 때만 끌기로 넘기고,
