@@ -324,6 +324,8 @@ export interface CoreLib {
   /** 관제 인박스 순서. seen = { sid: since } 본 항목(빠짐). 추정·idle·8시간 넘은 완료는 없음 @since 1.8 */
   inboxQueue(sessions: Session[] | null | undefined, now: number, seen?: Record<string, number>): InboxItem[];
   readonly INBOX_KINDS: InboxItem["kind"][];
+  /** @trusted 관제 인박스(코어가 본 항목을 기억, 기본 모드에만 — 외부 모드는 inboxQueue로 순서만). go = N, skip = Shift+N, mark = 본 것으로 @since 1.8 */
+  readonly inbox?: { list(): InboxItem[]; go(): InboxItem | null; skip(): InboxItem | null; mark(sid: string): boolean };
   /** 세션 목록용 배지 HTML (`<span class="core-provider" data-provider>`). 기본: Claude 하나뿐이면 "" */
   providerBadge(state: State | null, s: Session, opts?: { hideDefault?: boolean; iconOnly?: boolean }): string;
   readonly apiVersion: string;

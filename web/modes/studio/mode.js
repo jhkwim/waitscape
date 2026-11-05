@@ -1826,7 +1826,7 @@ function mountLobby(root, ctx) {
     else if (b.dataset.act === "up") step(-1);
     else if (b.dataset.act === "down") step(1);
     else if (b.dataset.act === "dot" || b.dataset.act === "step") { if (model.bySid.has(b.dataset.sid)) setLook(b.dataset.sid); }
-    else if (b.dataset.act === "next") { const q = pending(); if (q.length) { setLook(q[0].sid); if (ctx.core.inbox) ctx.core.inbox.mark(q[0].sid); } }   // 본 것으로(✉️ 완료는 칩에서 빠짐)
+    else if (b.dataset.act === "next") { const q = pending(); if (q.length) { setLook(q[0].sid); if (ctx.core.inbox && (q[0].kind === "done" || q[0].kind === "stall")) ctx.core.inbox.mark(q[0].sid); } }   // 본 것으로(✉️·💤만 — 🔑·❓는 답할 때까지 남음)
     else if (b.dataset.act === "poke") pkM.tap(b, e);   // 👆 클릭 반응
     else if (b.dataset.act === "dr") drM.tap();   // 📋 큰 화면에서 일보 카드
     else if (b.dataset.act === "go") { const f = model.bySid.get(b.dataset.sid); if (goMux(f)) Promise.resolve(ctx.api.openTerminal(f.sid)).catch(() => {}); }   // 완료 보고 → 그 멀티플렉서(Orca·cmux) 세션

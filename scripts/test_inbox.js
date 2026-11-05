@@ -27,12 +27,16 @@ assert.deepStrictEqual(q.map(x => x.sid), ["perm", "q-old", "q-new", "bg-stall",
 assert.deepStrictEqual(q.map(x => x.kind), ["permission", "question", "question", "stall", "stall", "done", "done"]);
 assert.strictEqual(q[0].line, "Bash: npm test");
 assert.strictEqual(q.find(x => x.sid === "stuck").line, "cargo build");
-assert.strictEqual(q.find(x => x.sid === "stuck").since, NOW - 400);      // 멈춘 때 = 마지막 이벤트
-assert.strictEqual(q.find(x => x.sid === "bg-stall").since, NOW - 500);
+assert.strictEqual(q.find(x => x.sid === "stuck").since, NOW - 400);      // 멈춘 때 = now - health.secs
+assert.strictEqual(q.find(x => x.sid === "bg-stall").since, NOW - 400);
+// 같은 멈춤: last가 바뀌어도(서브에이전트 이벤트), 계산이 1~2초 흔들려도 건너뛴 상태 유지 · 새 멈춤(한참 뒤)은 다시 뜬다
+const stuck = ss.find(x => x.sid === "stuck"), later = { ...stuck, last: NOW + 25, health: { ...stall, secs: 432 } };
+assert.deepStrictEqual(L.inboxQueue([later], NOW + 30, { stuck: NOW - 400 }), []);
+assert.strictEqual(L.inboxQueue([{ ...later, health: { ...stall, secs: 300 } }], NOW + 30, { stuck: NOW - 400 }).length, 1);
 assert.strictEqual(q.find(x => x.sid === "done-old").line, "테스트 고치기");
 
 // 본 항목(seen = 그 since)은 빠지고, since가 바뀌면(새 질문) 다시 뜬다
-const seen = { perm: NOW - 30, "done-old": NOW - 3000, "q-new": 123 };
+const seen = { perm: NOW - 30, "done-old": NOW - 3000, "q-new": 123, "q-old": NOW - 89 };   // 질문은 정확히 같은 since만
 assert.deepStrictEqual(L.inboxQueue(ss, NOW, seen).map(x => x.sid), ["q-old", "q-new", "bg-stall", "stuck", "done-new"]);
 const again = ss.map(x => x.sid === "perm" ? { ...x, since: NOW - 5 } : x);
 assert.strictEqual(L.inboxQueue(again, NOW, seen)[0].sid, "perm");

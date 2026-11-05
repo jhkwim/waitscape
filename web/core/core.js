@@ -641,7 +641,7 @@ async function openTerminal(sid) {
   let r;
   try { r = await api.openTerminal(sid); } catch (e) { toast(String(e)); return "unsupported"; }
   const res = r && r.result, kind = String((r && r.kind) || ""), mx = { mux: MUX_LABEL[kind] || kind }, O = kind === "orca";
-  if (res === "opened" || res === "mux" || res === "mux-app" || res === "mux-launch") inboxMark(sid);   // 이동함 = 봄
+  if (res === "opened" || res === "mux") inboxMark(sid);   // 그 세션에 닿음 = 봄(앱만 띄운 mux-app·mux-launch는 아님)
   if (res === "opened" || res === "mux") return "opened";
   if (res === "mux-app") { toast(t(O ? "term.orcaApp" : "term.muxApp", mx)); return "opened"; }
   if (res === "mux-launch") { toast(t("term.orcaLaunch", mx)); return "opened"; }
@@ -658,15 +658,17 @@ async function openTerminal(sid) {
    봄 처리: 이동함·건너뜀(그 since만 — 새 질문·새 완료가 오면 다시 뜸) */
 const INBOX_SEEN = "inbox:seen";
 const inboxSeen = () => { const v = storeJson(INBOX_SEEN, {}); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; };
-const inboxList = () => (state ? L.inboxQueue(state.sessions, now(), inboxSeen()) : []);
+const qNow = () => (state && state.now) || now();   // 서버 시각(health.secs와 같은 기준 — 멈춘 때가 흔들리지 않게)
+const inboxList = () => (state ? L.inboxQueue(state.sessions, qNow(), inboxSeen()) : []);
 function inboxMark(sid) {
-  const s = state && state.sessions.find(x => x.sid === sid), it = s && L.inboxQueue([s], now())[0];
+  const s = state && state.sessions.find(x => x.sid === sid), it = s && L.inboxQueue([s], qNow())[0];
   if (!it) return false;
   const live = new Set(((rawState && rawState.sessions) || state.sessions).map(x => x.sid));   // 사라진 세션 기록은 정리(쌓이지 않게)
   const m = Object.fromEntries(Object.entries(inboxSeen()).filter(([k]) => live.has(k)));
   m[sid] = it.since;
   store.set(INBOX_SEEN, JSON.stringify(m));
   emit("inbox", inboxList());
+  if (nx.on && state) { nx.state(state); for (const x of nxSubs) x.state(state); }   // 🙈 눈치 표의 "다음에 볼 것"도 바로
   return true;
 }
 const inboxToast = msg => toast(nx.on ? window.CoreNunchi.lib.stripIcon(msg) : msg);   // 🙈 눈치 모드: 이모지 없이
@@ -674,10 +676,12 @@ function inboxGo() {
   const it = inboxList()[0];
   if (!it) { inboxToast(t("ib.empty")); return null; }
   const s = state.sessions.find(x => x.sid === it.sid);
-  inboxMark(it.sid);
   emit("inbox-go", it);
-  if (api.openTerminal && L.muxName(s)) openTerminal(it.sid);
-  else inboxToast(t("ib.go." + it.kind, { p: it.project }));
+  if (api.openTerminal && L.muxName(s)) openTerminal(it.sid);   // 봄 처리는 이동이 될 때만(openTerminal 안에서) — 못 가면 큐에 남음
+  else {   // 바로 갈 수 없는 세션: 안내만. 권한·질문은 답할 때까지 큐에 남김(봄 처리는 완료·멈춤만) — 넘기려면 Shift+N
+    if (it.kind === "done" || it.kind === "stall") inboxMark(it.sid);
+    inboxToast(t("ib.go." + it.kind, { p: it.project }));
+  }
   return it;
 }
 function inboxSkip() {
@@ -741,7 +745,7 @@ function nxSet(v, o) {
 }
 function nxSub(doc) {   // 추가 문서(PiP)에 작은 목록 — 메인의 블라인드·연출 없이 바로
   if (!doc.querySelector("link[data-nx-css]")) { const l = doc.createElement("link"); l.rel = "stylesheet"; l.href = new URL("core/nunchi.css", location.href).href; l.dataset.nxCss = ""; doc.head.appendChild(l); }
-  const s = window.CoreNunchi.create({ doc, widget: true, t, L, store, miniSettings: () => openSettings(), state: () => state, now: () => now(), hook: () => null, order: () => null, cat: () => null,
+  const s = window.CoreNunchi.create({ doc, widget: true, t, L, store, miniSettings: () => openSettings(), state: () => state, now: () => now(), hook: () => null, order: () => null, cat: () => null, inbox: () => inboxList(), inboxSkip: sid => inboxMark(sid),
     long: () => false, quiet: () => true, onPhase: () => {}, theme: () => app.nunchiTheme || "system", openTerminal: api.openTerminal ? sid => openTerminal(sid) : undefined });
   if (nx.on) s.set(true, { instant: true });
   if (state) s.state(state);
@@ -975,7 +979,7 @@ const Core = window.Core = {
   hash: L.hash, pick: L.pick, esc: L.esc, fmt: L.fmt, fmtTok: L.fmtTok, dur: L.dur, hms: L.hms,
   untilText: L.untilText, clockText: L.clockText, spanText: L.spanText,
   sessionStatus: L.sessionStatus, isActive: L.isActive, stalls: L.stalls, summary: L.summary,
-  limitCalc: L.limitCalc, limits: L.limits, limitNote: L.limitNote, inboxQueue: L.inboxQueue,
+  limitCalc: L.limitCalc, limits: L.limits, limitNote: L.limitNote, inboxQueue: L.inboxQueue, INBOX_KINDS: L.INBOX_KINDS,
   inbox: { list: inboxList, go: inboxGo, skip: inboxSkip, mark: inboxMark },   // 관제 인박스(본 항목 기억 포함) — 순서만 필요하면 inboxQueue
   filterSessions: L.filterSessions, isLive: L.isLive,
   provider: L.provider, can: L.can, providerBadge: L.providerBadge, muxName: L.muxName,

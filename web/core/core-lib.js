@@ -66,7 +66,7 @@ function stalls(st) {
    done은 원시 status로 본다(sessionStatus의 5분 → idle과 무관), 끝난 지 8시간이 넘으면 뺀다.
    seen = { sid: since } — 이동·건너뛰기로 본 항목의 since. 세션의 since가 바뀌면(새 질문·새 완료) 다시 뜬다 */
 const INBOX_KINDS = ["permission", "question", "stall", "done"];
-const INBOX_DONE_MAX = 8 * 3600;
+const INBOX_DONE_MAX = 8 * 3600, STALL_TOL = 5;
 const lastText = s => { const a = s.activity && s.activity[s.activity.length - 1]; return a ? String(a.text || "") : ""; };
 function inboxItem(s, now) {
   if (s.status === "needs_input") {
@@ -77,8 +77,9 @@ function inboxItem(s, now) {
   const st = h => h && h.level === "stall";
   const ag = (s.agents || []).filter(a => a.status === "running" && st(a.health));
   if ((s.status === "working" && st(s.health)) || ag.length) {
-    // 멈춘 때 = 마지막 이벤트(메인) 또는 서브에이전트의 마지막 이벤트 — 같은 멈춤이면 값이 그대로라 건너뛰기가 유지된다
-    const ts = [...(s.status === "working" && st(s.health) ? [s.last || s.since || 0] : []), ...ag.map(a => a.last || a.since || 0)];
+    // 멈춘 때 = now - health.secs(도구 시작 또는 조용해진 때). s.last는 서브에이전트 이벤트에도 바뀌므로 쓰지 않는다.
+    // 매번 계산이라 1~2초 흔들릴 수 있어 본 항목 비교는 STALL_TOL 안이면 같은 멈춤으로 본다
+    const ts = [...(s.status === "working" && st(s.health) ? [s.health] : []), ...ag.map(a => a.health)].map(h => Math.round(now - (h.secs || 0)));
     return { kind: "stall", since: Math.min(...ts), line: lastText(s) };
   }
   return null;
@@ -87,7 +88,8 @@ function inboxQueue(sessions, now, seen) {
   const out = [];
   for (const s of sessions || []) {
     const it = s && s.sid ? inboxItem(s, now) : null;
-    if (!it || (seen && seen[s.sid] === it.since)) continue;
+    const sv = seen && seen[s.sid];
+    if (!it || (typeof sv === "number" && (it.kind === "stall" ? Math.abs(sv - it.since) <= STALL_TOL : sv === it.since))) continue;
     out.push({ sid: s.sid, project: s.project || "?", ...it });
   }
   const rk = k => INBOX_KINDS.indexOf(k);
