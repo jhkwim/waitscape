@@ -132,7 +132,7 @@ const memo = {
 /* ✍️ MCP 보고 세션(source "mcp")의 prompt·note는 AI가 직접 쓴 제목 → OS 알림에는 출처를 붙인다(앱이 하는 말처럼 보이지 않게) */
 const aiSrc = (s, v) => v && s && s.source === "mcp" ? `✍️ ${L.provider(state, s).name}: ${v}` : v;
 const DEFAULT_TEXTS = {
-  done: s => [t("n.done", { p: s.project }), (s.test === "pass" ? "🧪✓ " : s.test === "fail" ? "🧪✗ " : "") + aiSrc(s, s.prompt || "")],   // 🧪 테스트 결과(#138, detect.rs와 같음)
+  done: s => [t("n.done", { p: s.project }), ((s.test === "pass" ? "🧪✓ " : s.test === "fail" ? "🧪✗ " : s.test === "ran" ? "🧪 " : "") + aiSrc(s, s.prompt || "")).trim()],   // 🧪 테스트 결과(#138, detect.rs와 같음)
   input: s => [t(s.ask === "permission" ? "n.perm" : s.ask === "question" ? "n.ask" : "n.input", { p: s.project }), aiSrc(s, s.note || "")],   // 질문 종류별 (#120)
   stall: x => [t("n.stall", { p: x.project }), t("n.stall.body", { who: x.agent ? x.agent.desc || x.agent.type : t("n.main"), m: Math.max(1, Math.floor(x.health.secs / 60)) })],
   memo: (s, text) => [t("n.memo", { p: s.project }), text.slice(0, 80)],
@@ -142,7 +142,7 @@ const DEFAULT_TEXTS = {
 let lastAlert = null;   // 방금 감지한 세션(제목·본문은 모드 문구라 프로젝트·시간을 따로 받음)
 function nunchiText(kind, title, body) {
   const s = lastAlert, p = (s && s.project) || NUNCHI_TITLE;
-  if (kind === "done") { const m = s && s.run > 0 ? Math.max(1, Math.round(s.run / 60)) : 0, tn = s && (s.test === "pass" || s.test === "fail") ? t("nx.n.t." + s.test) : ""; return [p, (m ? t("nx.n.doneM", { m }) : t("nx.n.done")) + tn]; }
+  if (kind === "done") { const m = s && s.run > 0 ? Math.max(1, Math.round(s.run / 60)) : 0, tn = s && ["pass", "fail", "ran"].includes(s.test) ? t("nx.n.t." + s.test) : ""; return [p, (m ? t("nx.n.doneM", { m }) : t("nx.n.done")) + tn]; }
   if (kind === "input") return [p, t(s && s.ask === "permission" ? "nx.n.perm" : s && s.ask === "question" ? "nx.n.q" : "nx.n.ask")];
   if (kind === "stall") return [p, t("nx.n.stall", { m: s && s.health ? Math.max(1, Math.floor(s.health.secs / 60)) : 1 })];
   return [p, String(body || "").slice(0, 80)];   // memo: 메모 내용(사용자가 쓴 것)만

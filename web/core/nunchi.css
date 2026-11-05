@@ -135,6 +135,7 @@
 .nx-next li.k-done .bd, .nx-next li.k-stall .bd { color: var(--mute); background: var(--line); }
 .nx-next .tst { font-weight: 600; color: var(--fg); }   /* 🧪 테스트 결과(#138) — 글자만 */
 .nx-next .tst.t-fail { color: var(--hi); }
+.nx-next .tst.t-ran { color: var(--mute); font-weight: 500; }
 .nx-next li b { color: var(--fg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-next .ln { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .nx-next .num { font-variant-numeric: tabular-nums; }

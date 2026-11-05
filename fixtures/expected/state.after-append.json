@@ -1,5 +1,5 @@
 {
- "done_today": 19,
+ "done_today": 20,
  "limits": {
   "five_hour": {
    "resets_at": 1792530600,
@@ -1892,6 +1892,33 @@
    "activity": [],
    "agents": [],
    "ctx": null,
+   "cwd": "/Users/alex/dev/testrepo",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792518900,
+   "project": "testrepo",
+   "prompt": "빌드 확인",
+   "prompt_ts": 1792518800,
+   "run": 100,
+   "sid": "fx-tran",
+   "since": 1792518900,
+   "started": null,
+   "status": "done",
+   "test": "ran",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 200,
+    "out": 20,
+    "total": 220
+   },
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
    "cwd": "/Users/alex/dev/twins",
    "kind": "think",
    "kinds": {},
@@ -2031,9 +2058,9 @@
  },
  "today_tokens": {
   "cached": 1131500,
-  "new": 218640,
-  "out": 23840,
-  "total": 242480
+  "new": 218840,
+  "out": 23860,
+  "total": 242700
  },
- "waited_today": 5920.0
+ "waited_today": 6020.0
 }

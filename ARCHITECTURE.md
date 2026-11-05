@@ -100,7 +100,7 @@ claude-waiting-room/
 | agents | SubagentStart/Stop | `<sid>/subagents/agent-*.jsonl` + `*.meta.json`(이미 trace에서 씀) |
 | todos | TodoWrite·TaskCreate·TaskUpdate | 같은 tool_use input을 트랜스크립트에서 읽음 |
 | activity/trail/kinds | 훅의 요약 | tool_use에 `describe()`/`KINDS` 이식본 적용 |
-| test(🧪, #138) | 트랜스크립트(`scan.rs` `ScanCache.test`) — 훅 PostToolUse는 Task 도구만이라 Bash 결과가 없음 | 같음(같은 캐시). 이번 턴(`prompt_ts` 뒤) 마지막 테스트 명령의 `is_error`, 거절·차단·도구 오류 제외 |
+| test(🧪, #138) | 트랜스크립트(`scan.rs` `ScanCache.test`) — 훅 PostToolUse는 Task 도구만이라 Bash 결과가 없음 | 같음(같은 캐시). 이번 턴(`prompt_ts` 뒤) 마지막 테스트 명령 — 출력 끝 4000자의 실패·통과 표지 → `is_error` → 파이프 없는 종료 코드 → 모르면 `ran`. 거절·차단·도구 오류·백그라운드 제외. 규칙 문자열은 `scan.rs` 상수 = `server.py` (scripts/test_test_badge.py) |
 | 터미널 힌트 | 훅이 env를 기록 (§3.6) | 없음 → "폴더에서 터미널 열기"로 대체 |
 
 > 에이전트: SubagentStop이 누락돼 running으로 남은 에이전트는, 마지막 활동(훅 `last`와 에이전트 트랜스크립트 마지막 기록 중 늦은 것)이 STALE(6시간, 세션 숨김과 같은 상수)보다 오래되면 `status:"done"` + `stale:true`(`ended` = 마지막 활동)로 내려가 멈춤 판정·running 집계에서 빠진다. 토큰 집계는 유지. server.py `expire_agents`, Rust `expire_agents`/`agent_stale`(트랜스크립트 전용은 tonly.rs)가 같은 규칙.

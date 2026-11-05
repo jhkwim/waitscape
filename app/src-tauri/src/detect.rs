@@ -24,7 +24,7 @@ pub struct Alert {
     pub guess: bool,
     /// 질문 종류(state `ask`, #120): "permission" | "question" | "" 모름
     pub ask: &'static str,
-    /// 🧪 완료한 턴의 마지막 테스트(state `test`, #138): "pass" | "fail" | "" 안 돌림
+    /// 🧪 완료한 턴의 마지막 테스트(state `test`, #138): "pass" | "fail" | "ran"(결과 모름) | "" 안 돌림
     pub test: &'static str,
 }
 
@@ -35,6 +35,8 @@ fn test_note(t: &str, en: bool) -> &'static str {
         ("fail", false) => " · 테스트 실패",
         ("pass", true) => " · tests passed",
         ("fail", true) => " · tests failed",
+        ("ran", false) => " · 테스트 실행",
+        ("ran", true) => " · tests ran",
         _ => "",
     }
 }
@@ -180,18 +182,20 @@ impl Detector {
                         let test = match s(x, "test") {
                             "pass" => "pass",
                             "fail" => "fail",
+                            "ran" => "ran",
                             _ => "",
                         };
                         // 🧪 완료한 턴에 테스트를 돌렸으면 본문 앞에 결과(#138)
                         let mark = match test {
                             "pass" => "🧪✓ ",
                             "fail" => "🧪✗ ",
+                            "ran" => "🧪 ",
                             _ => "",
                         };
                         out.push(Alert {
                             kind: Kind::Done,
                             title: tr(lang, "done").replace("{p}", project),
-                            body: format!("{mark}{}", clip(prompt, 120)),
+                            body: format!("{mark}{}", clip(prompt, 120)).trim_end().to_string(),
                             project: project.to_string(),
                             // 1분 미만은 1분으로(0분 표기 없음), 실행 시간을 모르면 0 = 분 생략
                             mins: if run > 0.0 { ((run / 60.0).round() as i64).max(1) } else { 0 },

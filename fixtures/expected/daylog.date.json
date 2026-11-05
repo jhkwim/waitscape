@@ -60,7 +60,7 @@
    }
   ],
   "day": "2026-10-20",
-  "done": 21,
+  "done": 22,
   "end": 1792522800.0,
   "first": 1792504800.0,
   "last": 1792522799.0,
@@ -118,7 +118,7 @@
    "avg": 41.0,
    "n": 3
   },
-  "work": 6639.0,
+  "work": 6739.0,
   "workers": [
    {
     "done": 2,
@@ -195,6 +195,13 @@
     "project": "testrepo",
     "provider": "claude",
     "sid": "fx-tfail",
+    "work": 100.0
+   },
+   {
+    "done": 1,
+    "project": "testrepo",
+    "provider": "claude",
+    "sid": "fx-tran",
     "work": 100.0
    },
    {

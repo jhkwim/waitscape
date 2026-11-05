@@ -327,6 +327,7 @@ python3 scripts/compare.py fixtures/expected <다른 구현의 결과 폴더>
 sh scripts/rust_parity.sh             # Rust(wr-core) 동등성 23/23 + 트랜스크립트 전용 24/24
 python3 scripts/test_daylog.py        # 퇴근 일보 일지 회귀 (임시 폴더만 씀, server.py는 빈 포트(7800 우선)로 잠깐 띄움)
 python3 scripts/test_mcp_reports.py   # MCP 보고 회귀 (임시 폴더만 씀)
+python3 scripts/test_test_badge.py    # 🧪 테스트 배지 판정이 server.py와 scan.rs에서 같은지(정규식·명령 표·판정 예)
 bash scripts/test_review_report.sh target/debug/wr-hook   # run_review.sh 보고 스모크(가짜 gh·agy, 옛 wr-hook 흉내, 임시 폴더만 씀)
 cargo test --workspace                # 단위 테스트 + 동등성 + HTTP(포트 7792, 사용 중이면 빈 포트)
 python3 scripts/check_secrets.py --leak         # 시크릿·개인 경로 패턴 + 기준 결과 마스킹 유출

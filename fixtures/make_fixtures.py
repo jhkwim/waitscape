@@ -483,11 +483,22 @@ def build_base(out):
     x.call(t - 1490, "p1", "Bash", {"command": "npm test", "description": "Run tests"}, dur=5, res="Exit code 1", err=True)
     x.say(t - 1400, "실패했어요.", stop="end_turn", usage=(200, 0, 0, 20))
     x.prompt(t - 700, "다시 확인")
-    x.call(t - 690, "p2", "Bash", {"command": "cd web && npm test 2>&1 | tail -5", "description": "Run tests"}, dur=5, res="ok")
+    x.call(t - 690, "p2", "Bash", {"command": "cd web && npm test 2>&1 | tail -5", "description": "Run tests"}, dur=5,
+           res="Tests:       12 passed, 12 total")
     x.call(t - 680, "p3", "Bash", {"command": "make test", "description": "Run all"}, dur=1,
            res=[{"type": "text", "text": "The user doesn't want to proceed with this tool use."}], err=True)
     x.call(t - 670, "p4", "Bash", {"command": "grep -rn test src", "description": "Search"}, dur=1, res="Exit code 1", err=True)
     x.say(t - 600, "통과했어요.", stop="end_turn", usage=(200, 0, 0, 20))
+    x.write(proj)
+    # fx-tran: 파이프로 종료 코드가 가려지고 출력에 표지도 없음 → 결과 = 돌림(ran) · 뒤의 백그라운드 실행은 세지 않음
+    ev("fx-tran", c, t - 400, "UserPromptSubmit", text="빌드 확인")
+    ev("fx-tran", c, t - 300, "Stop")
+    x = Tx("fx-tran", c)
+    x.prompt(t - 400, "빌드 확인")
+    x.call(t - 390, "n1", "Bash", {"command": "cargo test 2>&1 | tail -3", "description": "Run tests"}, dur=20, res="   Compiling core v0.1.0\n    Finished")
+    x.call(t - 360, "n2", "Bash", {"command": "pytest -q", "description": "Run tests", "run_in_background": True}, dur=1,
+           res="Command running in background with ID: bx1")
+    x.say(t - 300, "빌드는 됐어요.", stop="end_turn", usage=(200, 0, 0, 20))
     x.write(proj)
     # fx-tprev: 지난 턴에만 테스트 → 이번 턴은 표시 없음
     ev("fx-tprev", c, t - 1300, "UserPromptSubmit", text="테스트")

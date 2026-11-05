@@ -146,6 +146,7 @@ body[data-mode="work"] .ops-next .k-done .ib-tag { color: var(--text-2); }
 body[data-mode="work"] .ops-next b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 body[data-mode="work"] .ops-next .ib-test { font-weight: 600; color: var(--ok); }   /* 🧪 #138 */
 body[data-mode="work"] .ops-next .ib-test.t-fail { color: var(--danger); }
+body[data-mode="work"] .ops-next .ib-test.t-ran { color: var(--text-2); font-weight: 500; }
 body[data-mode="work"] .ops-next .ib-ln { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 body[data-mode="work"] .ops-next .ib-num { color: var(--text-2); font-variant-numeric: tabular-nums; }
 body[data-mode="work"] .ops-next .ib-act { display: flex; gap: 6px; }

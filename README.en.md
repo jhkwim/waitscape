@@ -121,7 +121,7 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 - Guesses (like a permission request that might be approved right away) are left out.
 - A question alert for the same session rings at most once every 10 minutes (the question itself still shows).
 - Questions that wait long get an orange speech-bubble border after 5 minutes and red after 15. The top chip shows the longest wait, like "❓2 · longest 14m".
-- 🧪 Finished work carries that turn's test result: ✓ passed / ✗ failed (last run) if tests ran, nothing if they didn't. Shown in Up next, Studio's done sign, the inbox tray (red dot = failed) and the done notification (Claude Code only).
+- 🧪 Finished work carries that turn's test result: ✓ passed / ✗ failed (from the last run's output and exit code), just 🧪 if a pipe like `| tail` hid the result, nothing if no tests ran. Shown in Up next, Studio's done sign, the inbox tray (red dot = failed) and the done notification (Claude Code only).
 - A 💤 stalled staff member doesn't nap: they sit with eyes open, tapping a frozen monitor (so you can tell them apart from resting staff).
 
 ## And more

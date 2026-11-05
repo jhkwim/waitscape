@@ -6726,7 +6726,10 @@ C.registerMode({
       let title, on = 0, cur = -1;
       if (k === "ask") title = a.goal !== "boss" || (a.loc === "home" && !a.moving) ? "❓ " + X("입력 필요", "Needs input") : a.loc === "boss" && !a.moving ? "💬 " + X("질문 중", "Asking") : "🏃 " + X("질문하러 이동", "Heading down");
       else if (k === "stall") title = "💤 " + X("멈춤 의심", "Stalled?");
-      else if (k === "done") { title = (bigOf(s) ? "🎉 " + X("큰 일 완료!", "Big one done!") : "✅ " + X("완료", "Done")) + (s.test === "pass" ? " 🧪✓" : s.test === "fail" ? " 🧪✗" : ""); on = 5; }   // 🧪 그 턴의 테스트(#138)
+      else if (k === "done") {   // 🧪 그 턴의 테스트(#138) — 표지판 폭(약 124px)에 들게 큰 일이면 짧게
+        const tm = { pass: " 🧪✓", fail: " 🧪✗", ran: " 🧪" }[s.test] || "";
+        title = (bigOf(s) ? "🎉 " + (tm ? X("완료!", "Done!") : X("큰 일 완료!", "Big one done!")) : "✅ " + X("완료", "Done")) + tm; on = 5;
+      }
       else if (k === "idle") title = "💤 " + X("쉬는 중", "Resting");
       else if (f.layout === "meet") { const d = f.agAll.filter(x => x.status === "done").length, tot = Math.max(1, f.agAll.length); title = "🤝 " + X(`서브 ${d}/${tot}`, `Sub ${d}/${tot}`); on = Math.min(5, Math.round(d / tot * 5)); cur = on < 5 ? on : -1; }
       else {
