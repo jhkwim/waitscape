@@ -63,6 +63,12 @@
 - 의미 보정(버그 수정): 끝난 세션에 오는 Claude의 유휴 알림(`idle_prompt`)은 더 이상 `needs_input`을 만들지 않음. 같은 질문에 알림이 또 와도 `since`는 처음 시각
 - 훅 이벤트(events.jsonl): Notification `ntype`, `PermissionRequest`(icon·text·kind, 사람 없는 세션이면 `una`), AskUserQuestion·ExitPlanMode PreToolUse에 `ask`
 
+## 1.8 (예정, 관제 인박스 jhkwim/waitscape#126)
+- `CoreLib.inboxQueue(sessions, now, seen?)` · `CoreLib.INBOX_KINDS` (추가만) — 지금 사람 손이 필요한 세션 순서(🔑 권한 → ❓ 질문 → 💤 멈춤 → ✉️ 확인 안 한 완료, 같은 종류는 오래 기다린 순). 추정(`confidence: "guess"`)·idle은 넣지 않음. 외부 모드도 씀
+- `Core.inbox` (@trusted, 코어가 본 항목을 기억): `list()` · `go()`(N) · `skip()`(Shift+N) · `mark(sid)`. 이벤트 `inbox`(목록이 바뀜) · `inbox-go`(N으로 고른 항목 — 모드가 그 직원을 보여 줌)
+- 호스트 단축키에 **N**(다음으로 이동)·**Shift+N**(건너뛰기) 추가 — 외부 모드 iframe 안에서 눌러도 SDK가 넘긴다. 모드는 N을 따로 쓰지 말 것
+- 같은 세션의 질문 알림(소리·OS 알림)은 10분에 한 번. `input` 이벤트는 그대로 매번
+
 ## (코어 전용, cmux AppleScript 이동 jhkwim/waitscape#102)
 - 내부 `CoreApi.openTerminal?()` 결과에 `"mux-perm"` 추가(코어 전용): cmux 소켓이 막혀 AppleScript로 가려 했는데 macOS 자동화 허용이 없음 → cwd 복사. 모드 계약(state·ctx·브리지) 변화 없음
 

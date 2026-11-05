@@ -94,7 +94,7 @@ body[data-mode="work"] {
 body[data-mode="work"] > :where(.mode-root) > header, body[data-mode="work"] > :where(.mode-root) > section { width: 100%; }
 body[data-mode="work"] > :where(.mode-root) > header { order: 0; } body[data-mode="work"] > :where(.mode-root) > .banner { order: 1; } body[data-mode="work"] > :where(.mode-root) > .ops-kpi { order: 2; }
 body[data-mode="work"] > :where(.mode-root) > .gauges { order: 3; } body[data-mode="work"] > :where(.mode-root) > #ops { order: 4; }
-body[data-mode="work"] .gauges, body[data-mode="work"] .banner, body[data-mode="work"] .ops-kpi, body[data-mode="work"] #ops { max-width: 1440px; margin-left: auto; margin-right: auto; }
+body[data-mode="work"] .gauges, body[data-mode="work"] .banner, body[data-mode="work"] .ops-kpi, body[data-mode="work"] #ops, body[data-mode="work"] .ops-next { max-width: 1440px; margin-left: auto; margin-right: auto; }
 body[data-mode="work"] .tnum, body[data-mode="work"] .num { font-variant-numeric: tabular-nums; }
 body[data-mode="work"] .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
 body[data-mode="work"] .nil { color: var(--text-3); }
@@ -134,6 +134,20 @@ body[data-mode="work"] .banner.stall .banner-emoji { background: var(--danger); 
 body[data-mode="work"] .banner-title { font-family: inherit; font-size: 13px; font-weight: 600; }
 body[data-mode="work"] .banner-body, body[data-mode="work"] .banner.call .banner-body { color: var(--text-2); font-size: 12.5px; }
 
+/* 다음에 볼 것(관제 인박스) */
+body[data-mode="work"] .ops-next { display: block; margin-top: 20px; padding: 0 24px; }
+body[data-mode="work"] .ops-next[hidden] { display: none; }
+body[data-mode="work"] .ops-next h2 small { font-size: 11.5px; font-weight: 400; color: var(--text-3); }
+body[data-mode="work"] .ops-next .nx-row { display: grid; grid-template-columns: 130px minmax(80px, 180px) 1fr auto auto; align-items: center; gap: 12px;
+  padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+body[data-mode="work"] .ops-next .ib-tag { font-size: 12px; font-weight: 600; color: var(--warn); white-space: nowrap; }
+body[data-mode="work"] .ops-next .k-stall .ib-tag { color: var(--danger); }
+body[data-mode="work"] .ops-next .k-done .ib-tag { color: var(--text-2); }
+body[data-mode="work"] .ops-next b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body[data-mode="work"] .ops-next .ib-ln { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+body[data-mode="work"] .ops-next .ib-num { color: var(--text-2); font-variant-numeric: tabular-nums; }
+body[data-mode="work"] .ops-next .ib-act { display: flex; gap: 6px; }
+@media (max-width: 760px) { body[data-mode="work"] .ops-next .nx-row { grid-template-columns: auto 1fr auto; } body[data-mode="work"] .ops-next .ib-ln, body[data-mode="work"] .ops-next .ib-num { display: none; } }
 /* KPI 행 */
 body[data-mode="work"] .ops-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin-top: 16px;
   padding: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: calc(100% - 48px); }

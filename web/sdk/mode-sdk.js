@@ -103,7 +103,7 @@ function start() {
   if (state && inst.update) { try { inst.update(state, ctx); } catch (e) { log("update: " + e.message); } }
 }
 
-// 숫자키·B·쉼표·🙈 ⌘1/⌘2/⌘,(맥, 그 밖 Ctrl)는 호스트 단축키 → iframe에 포커스가 있어도 전달(코어 nunchi.js lib.hotkey와 같은 규칙:
+// 숫자키·B·N(Shift+N)·쉼표·🙈 ⌘1/⌘2/⌘,(맥, 그 밖 Ctrl)는 호스트 단축키 → iframe에 포커스가 있어도 전달(코어 nunchi.js lib.hotkey와 같은 규칙:
 // 길게 눌러 반복은 무시, 한국어 자판이어도 물리 키(code) 기준, 입력란 무시)
 const keyOf = e => {
   if (e.repeat || /^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return null;
@@ -112,6 +112,7 @@ const keyOf = e => {
   if (mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey) return e.altKey || e.shiftKey ? null : n === "1" ? "nunchi" : n === "2" ? "mini" : comma ? "," : null;
   if (e.metaKey || e.ctrlKey || e.altKey) return null;
   if (e.code === "KeyB" || e.key === "b" || e.key === "B") return "b";
+  if (e.code === "KeyN" || e.key === "n" || e.key === "N") return e.shiftKey ? "inbox-skip" : "inbox";   // 관제 인박스
   return comma ? "," : n;
 };
 document.addEventListener("keydown", e => {

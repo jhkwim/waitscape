@@ -155,6 +155,22 @@ export interface CoreEvents {
   settings: { quiet: boolean };
   /** 메인 화면 모드가 바뀜 */
   mode: string;
+  /** 관제 인박스 목록이 바뀜(본 처리·건너뛰기) @trusted @since 1.8 */
+  inbox: InboxItem[];
+  /** N 키로 맨 앞 항목을 고름 — 모드는 그 세션(직원)을 보여 주면 됨 @trusted @since 1.8 */
+  "inbox-go": InboxItem;
+}
+
+/** 관제 인박스 항목 @since 1.8 */
+export interface InboxItem {
+  sid: string;
+  project: string;
+  /** 순서: permission(권한 승인) → question(질문) → stall(멈춤 의심) → done(확인 안 한 완료) */
+  kind: "permission" | "question" | "stall" | "done";
+  /** 기다리기 시작한 시각(epoch 초). 본 처리는 이 값으로 기억 — 새 질문·새 완료면 바뀌어 다시 뜬다 */
+  since: number;
+  /** 한 줄 맥락: 권한·질문 = 알림 문구(마스킹됨), 멈춤 = 마지막 도구 활동, 완료 = 마지막 프롬프트 */
+  line: string;
 }
 
 export interface TraceQuery {
@@ -305,6 +321,9 @@ export interface CoreLib {
   can(state: State | null, s: Session, cap: ProviderCapability): boolean;
   /** 멀티플렉서(cmux·Orca)에서 연 세션(`jump.mux`)이면 표시 이름("cmux" | "Orca"), 아니면 "". 이동 버튼은 이 값이 있을 때만 @since 1.6 */
   muxName(s: Session | null | undefined): string;
+  /** 관제 인박스 순서. seen = { sid: since } 본 항목(빠짐). 추정·idle·8시간 넘은 완료는 없음 @since 1.8 */
+  inboxQueue(sessions: Session[] | null | undefined, now: number, seen?: Record<string, number>): InboxItem[];
+  readonly INBOX_KINDS: InboxItem["kind"][];
   /** 세션 목록용 배지 HTML (`<span class="core-provider" data-provider>`). 기본: Claude 하나뿐이면 "" */
   providerBadge(state: State | null, s: Session, opts?: { hideDefault?: boolean; iconOnly?: boolean }): string;
   readonly apiVersion: string;

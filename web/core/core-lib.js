@@ -60,6 +60,39 @@ function stalls(st) {
   }
   return out;
 }
+/* ---------- 관제 인박스 (#126, docs/PRD.md §4.2): 지금 사람 손이 필요한 세션을 한 줄로 ----------
+   종류 순서: permission(권한 승인) → question(질문) → stall(멈춤 의심) → done(확인 안 한 완료). 같은 종류 안에서는 오래 기다린 순서.
+   추정(confidence guess)은 넣지 않는다(바로 승인되면 몇 초 안에 사라지고, 트랜스크립트 추정은 틀릴 수 있음). ask가 없는 옛 질문은 question.
+   done은 원시 status로 본다(sessionStatus의 5분 → idle과 무관), 끝난 지 8시간이 넘으면 뺀다.
+   seen = { sid: since } — 이동·건너뛰기로 본 항목의 since. 세션의 since가 바뀌면(새 질문·새 완료) 다시 뜬다 */
+const INBOX_KINDS = ["permission", "question", "stall", "done"];
+const INBOX_DONE_MAX = 8 * 3600;
+const lastText = s => { const a = s.activity && s.activity[s.activity.length - 1]; return a ? String(a.text || "") : ""; };
+function inboxItem(s, now) {
+  if (s.status === "needs_input") {
+    if (s.confidence === "guess") return null;
+    return { kind: s.ask === "permission" ? "permission" : "question", since: s.since || 0, line: s.note || "" };
+  }
+  if (s.status === "done") return now - (s.since || 0) > INBOX_DONE_MAX ? null : { kind: "done", since: s.since || 0, line: s.prompt || "" };
+  const st = h => h && h.level === "stall";
+  const ag = (s.agents || []).filter(a => a.status === "running" && st(a.health));
+  if ((s.status === "working" && st(s.health)) || ag.length) {
+    // 멈춘 때 = 마지막 이벤트(메인) 또는 서브에이전트의 마지막 이벤트 — 같은 멈춤이면 값이 그대로라 건너뛰기가 유지된다
+    const ts = [...(s.status === "working" && st(s.health) ? [s.last || s.since || 0] : []), ...ag.map(a => a.last || a.since || 0)];
+    return { kind: "stall", since: Math.min(...ts), line: lastText(s) };
+  }
+  return null;
+}
+function inboxQueue(sessions, now, seen) {
+  const out = [];
+  for (const s of sessions || []) {
+    const it = s && s.sid ? inboxItem(s, now) : null;
+    if (!it || (seen && seen[s.sid] === it.since)) continue;
+    out.push({ sid: s.sid, project: s.project || "?", ...it });
+  }
+  const rk = k => INBOX_KINDS.indexOf(k);
+  return out.sort((a, b) => rk(a.kind) - rk(b.kind) || a.since - b.since || (a.sid < b.sid ? -1 : a.sid > b.sid ? 1 : 0));
+}
 function summary(st, now) {
   const ss = (st && st.sessions) || [];
   const working = ss.filter(isActive), calling = ss.filter(s => s.status === "needs_input");
@@ -197,7 +230,7 @@ window.CoreLib = {
   setLang(l) { lang = l === "en" ? "en" : "ko"; },
   hash, pick, esc, fmt, fmtTok, dur, hms, untilText, clockText, spanText,
   sessionStatus, isActive, isLive, hideMatcher, filterSessions, DEFAULT_HIDE_PROJECTS, DEFAULT_RECENT_MINUTES,
-  stalls, summary, limitCalc, limits, limitNote,
+  stalls, summary, limitCalc, limits, limitNote, inboxQueue, INBOX_KINDS,
   provider, can, providerBadge, PROVIDER_CAPS: CAPS,
   API_VERSION, apiCompat, muxName, MUX_NAME,
 };

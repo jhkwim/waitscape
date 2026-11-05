@@ -124,6 +124,23 @@
 .nx-tbl .open { border: 1px solid var(--acc-line); background: var(--acc-soft); color: var(--acc); font-weight: 600; border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .nx-tbl .open:hover { background: var(--acc); color: var(--acc-fg); border-color: var(--acc); }
 .nx-tbl tr.empty td { color: var(--faint); text-align: center; }
+/* 다음에 볼 것(관제 인박스) — 표 위 한 묶음, 최대 3줄 */
+.nx-next { flex: none; margin: 0 28px 14px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.nx-next[hidden] { display: none; }
+.nx-next h4 { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--fg); }
+.nx-next h4 kbd { font: inherit; font-size: 11.5px; font-weight: 400; color: var(--faint); }
+.nx-next ol { list-style: none; margin: 0; padding: 0; }
+.nx-next li { display: grid; grid-template-columns: auto minmax(80px, 160px) 1fr auto auto; align-items: center; gap: 12px; padding: 5px 0; font-size: 14px; color: var(--mute); }
+.nx-next li .bd { margin-left: 0; }
+.nx-next li.k-done .bd, .nx-next li.k-stall .bd { color: var(--mute); background: var(--line); }
+.nx-next li b { color: var(--fg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-next .ln { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.nx-next .num { font-variant-numeric: tabular-nums; }
+.nx-next .act { display: flex; gap: 6px; }
+.nx-next .open, .nx-next .skip { border: 1px solid var(--line); background: transparent; color: var(--mute); border-radius: 8px; padding: 3px 10px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.nx-next .open { border-color: var(--acc-line); background: var(--acc-soft); color: var(--acc); font-weight: 600; }
+.nx-next .open:hover { background: var(--acc); color: var(--acc-fg); border-color: var(--acc); }
+.nx-next .skip:hover { color: var(--fg); }
 .nx-log { flex: none; padding: 24px 28px 0; }
 .nx-log h4 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--fg); }
 .nx-log ol { list-style: none; margin: 0; padding: 0; }
@@ -217,6 +234,7 @@
   .nx-tabs { margin-left: 0; } .nx-tabs button { padding: 0 8px; } .nx-top { gap: 10px; padding: 0 14px; } .nx-brand b { font-size: 15px; }
   .nx-sum, .nx-log { padding-left: 14px; padding-right: 14px; } .nx-card { margin: 0 14px; }
   .nx-log li { grid-template-columns: 46px 100px 1fr; }
+  .nx-next { margin: 0 14px 12px; } .nx-next li { grid-template-columns: auto minmax(60px, 1fr) auto auto; } .nx-next .ln { display: none; } .nx-next h4 kbd { display: none; }
 }
 @media (max-width: 1100px) { .nx-tbl .pg-step { display: none; } }
 /* 눈치 화면 위로 안내 토스트(경로 복사 등)가 보이게, 담백한 모양 */
