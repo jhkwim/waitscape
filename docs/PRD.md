@@ -176,11 +176,11 @@ Waitscape의 처음 의도는 **AI 코딩 CLI를 쓰는 데 실제로 도움이 
 
 ## 6. 지원 범위
 
-| CLI | A | B |
-|---|---|---|
-| Claude Code (훅 켬) | 전부 | 전부 |
-| Claude Code (훅 없음, 트랜스크립트만) | 근거 배지·추정은 알리지 않음 | 확신 있는 상태만 큐에 넣음 |
-| Codex·Antigravity (MCP 보고) | 근거 = 자기보고 배지. 30분 넘게 보고가 없는 `working`은 이미 `confidence = guess`(`mcp.rs` `GUESS_AFTER`)이므로 그걸 표시만 함 | `question`·완료만 큐에 넣음 |
+| CLI | A | B | C2 🧪 테스트 배지 |
+|---|---|---|---|
+| Claude Code (훅 켬) | 전부 | 전부 | 표시 |
+| Claude Code (훅 없음, 트랜스크립트만) | 근거 배지·추정은 알리지 않음 | 확신 있는 상태만 큐에 넣음 | 표시(트랜스크립트로 판정) |
+| Codex·Antigravity (MCP 보고) | 근거 = 자기보고 배지. 30분 넘게 보고가 없는 `working`은 이미 `confidence = guess`(`mcp.rs` `GUESS_AFTER`)이므로 그걸 표시만 함 | `question`·완료만 큐에 넣음 | 표시 안 함(도구 정보 없음) |
 
 ## 7. 검증 방법
 
