@@ -1,6 +1,7 @@
 //! 🙈 눈치 모드 (#51): 전역 단축키(tauri-plugin-global-shortcut, Rust에서만 등록) · 창 제목 · 단축키 상태.
 //! 켜고 끄기는 settings `nunchi` 하나 — 단축키·트레이·웹(B 키)이 모두 `save_patch`로 바꾸고, 모든 창은 `settings` 이벤트로 함께 전환한다.
 //! 단축키를 다른 앱이 이미 쓰면 등록이 실패한다 → 로그 + 설정 화면 안내(`nunchi_status`). 손쉬운 사용 권한은 필요 없다(Carbon 핫키).
+//! 📥 관제 인박스 전역 단축키(#128)도 같은 틀로 하나 더 등록한다(`Which::Inbox`, 설정 `inboxKey`·`inboxGlobal`) — 누르면 메인 창 코어가 큐 맨 앞으로 이동.
 
 use crate::backend::Backend;
 use std::str::FromStr;
@@ -24,6 +25,64 @@ pub struct Hotkey {
     inner: Mutex<HkState>,
     /// 등록·해제를 한 번에 하나씩(빠른 연속 저장). 이 락은 메인 스레드에서 잡지 않는다
     apply: Mutex<()>,
+}
+
+/// 앱이 등록하는 전역 단축키 종류
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Which {
+    /// 🙈 눈치 모드 켜고 끄기
+    Nunchi,
+    /// 📥 관제 인박스: 맨 앞 세션으로
+    Inbox,
+}
+
+impl Which {
+    pub fn parse(s: Option<&str>) -> Which {
+        if s == Some("inbox") {
+            Which::Inbox
+        } else {
+            Which::Nunchi
+        }
+    }
+    fn tag(self) -> &'static str {
+        match self {
+            Which::Nunchi => "nunchi",
+            Which::Inbox => "inbox",
+        }
+    }
+    /// 실제로 등록할 키(스위치가 꺼져 있으면 빈 키)
+    pub fn want(self, s: &crate::settings::AppSettings) -> String {
+        match self {
+            Which::Nunchi => effective_key(&s.nunchi_key, s.nunchi_global),
+            Which::Inbox => effective_key(&s.inbox_key, s.inbox_global),
+        }
+        .to_string()
+    }
+}
+
+/// 단축키 둘의 등록 상태
+#[derive(Default)]
+pub struct Hotkeys {
+    nunchi: Hotkey,
+    inbox: Hotkey,
+}
+
+impl Hotkeys {
+    fn of(&self, w: Which) -> &Hotkey {
+        match w {
+            Which::Nunchi => &self.nunchi,
+            Which::Inbox => &self.inbox,
+        }
+    }
+    /// 눌린 단축키가 어느 쪽인가 — 인박스로 등록된 키면 Inbox, 아니면 눈치 모드(예전 동작)
+    fn which(&self, sc: &Shortcut) -> Which {
+        let inbox = self.inbox.inner.lock().unwrap_or_else(|e| e.into_inner()).reg;
+        if inbox.as_ref() == Some(sc) {
+            Which::Inbox
+        } else {
+            Which::Nunchi
+        }
+    }
 }
 
 /// 할 일: 건너뜀 · (옛 등록 해제 후) 새 키 등록. 같은 키로 **이미 등록 성공**했을 때만 건너뛴다(실패했으면 같은 키로 다시 시도 가능), force면 늘 다시
@@ -56,8 +115,14 @@ pub fn plan(cur: &HkState, want: &str, force: bool) -> Plan {
 /// 큰 창이 보이면 그 창 코어에 맡긴다(`nunchi-key`): 전환 연출 중에 또 누르면 되돌리지 않고 "바로 끝"이어야 해서(B 키와 같은 규칙)
 pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
     tauri_plugin_global_shortcut::Builder::new()
-        .with_handler(|app, _sc, ev| {
+        .with_handler(|app, sc, ev| {
             if ev.state() != ShortcutState::Pressed {
+                return;
+            }
+            if app.try_state::<Hotkeys>().is_some_and(|h| h.which(sc) == Which::Inbox) {
+                // 📥 인박스: 큐(본 항목 포함)는 웹 코어가 가진다 → 메인 창 코어에 맡김(창이 숨어 있어도 웹뷰는 살아 있음).
+                // 멀티플렉서 세션은 그 터미널로, 아니면 OS 알림으로 어떤 세션인지 알려 줌(core.js inboxGo)
+                app.emit_to("main", "inbox-key", ()).ok();
                 return;
             }
             let shown = app.get_webview_window("main").is_some_and(|w| w.is_visible().unwrap_or(false));
@@ -81,13 +146,15 @@ pub fn toggle(app: &AppHandle) {
 
 /// 단축키를 (다시) 등록한다 — 키는 **실행 시점의 설정**에서 읽는다(빠른 연속 저장 때 늦게 도착한 옛 키로 덮지 않게). 빈 키면 끔.
 /// 메인 스레드에서 부르지 말 것: 플러그인이 메인 스레드 작업을 기다린다. 그동안 상태 락(inner)은 쥐지 않아 `nunchi_status`가 막히지 않는다
-pub fn apply_key(app: &AppHandle, force: bool) {
-    let (Some(hk), Some(be)) = (app.try_state::<Hotkey>(), app.try_state::<Arc<Backend>>()) else {
+pub fn apply_key(app: &AppHandle, which: Which, force: bool) {
+    let (Some(hks), Some(be)) = (app.try_state::<Hotkeys>(), app.try_state::<Arc<Backend>>()) else {
         return;
     };
+    let hk = hks.of(which);
+    let tag = which.tag();
     let _one = hk.apply.lock().unwrap_or_else(|e| e.into_inner());
     let s = be.settings();
-    let want = effective_key(&s.nunchi_key, s.nunchi_global).to_string();
+    let want = which.want(&s);
     let cur = hk.inner.lock().unwrap_or_else(|e| e.into_inner()).clone();
     let Plan::Apply { unreg, key } = plan(&cur, &want, force) else {
         return;
@@ -106,15 +173,15 @@ pub fn apply_key(app: &AppHandle, force: bool) {
     let next = match res {
         Ok(reg) => {
             if reg.is_some() {
-                wlog!("nunchi", "단축키 등록: {key}");
+                wlog!("nunchi", "단축키 등록({tag}): {key}");
             } else {
-                wlog!("nunchi", "단축키 끔");
+                wlog!("nunchi", "단축키 끔({tag})");
             }
             HkState { reg, key, err: None }
         }
         Err(e) => {
             // 다른 앱이 선점했거나 형식이 틀림 → 설정 화면에 안내([다시 시도] 가능)
-            wlog!("nunchi", "단축키 등록 실패 {key}: {e}");
+            wlog!("nunchi", "단축키 등록 실패({tag}) {key}: {e}");
             HkState {
                 reg: None,
                 key,
@@ -126,11 +193,11 @@ pub fn apply_key(app: &AppHandle, force: bool) {
 }
 
 /// 설정 화면용 `{ key, ok, err }`
-pub fn status(app: &AppHandle) -> serde_json::Value {
-    let Some(hk) = app.try_state::<Hotkey>() else {
+pub fn status(app: &AppHandle, which: Which) -> serde_json::Value {
+    let Some(hks) = app.try_state::<Hotkeys>() else {
         return serde_json::Value::Null;
     };
-    let g = hk.inner.lock().unwrap_or_else(|e| e.into_inner());
+    let g = hks.of(which).inner.lock().unwrap_or_else(|e| e.into_inner());
     serde_json::json!({ "key": g.key, "ok": g.reg.is_some(), "err": g.err })
 }
 
@@ -158,10 +225,13 @@ pub fn titles(app: &AppHandle, on: bool) {
 
 /// 시작: 단축키 등록(작업 스레드) + 창 제목
 pub fn start(app: &AppHandle, on: bool) {
-    app.manage(Hotkey::default());
+    app.manage(Hotkeys::default());
     titles(app, on);
     let a = app.clone();
-    std::thread::spawn(move || apply_key(&a, false));
+    std::thread::spawn(move || {
+        apply_key(&a, Which::Nunchi, false);
+        apply_key(&a, Which::Inbox, false);
+    });
 }
 
 #[cfg(test)]
@@ -229,6 +299,27 @@ mod tests {
                 key: String::new()
             }
         );
+    }
+
+    #[test]
+    fn which_key() {
+        assert_eq!(Which::parse(Some("inbox")), Which::Inbox);
+        assert_eq!(Which::parse(None), Which::Nunchi);
+        let mut s = crate::settings::AppSettings::default();
+        assert_eq!(Which::Inbox.want(&s), crate::settings::INBOX_KEY);
+        s.inbox_global = false;
+        assert_eq!(
+            (Which::Inbox.want(&s).as_str(), Which::Nunchi.want(&s).as_str()),
+            ("", crate::settings::NUNCHI_KEY)
+        );
+        assert!(Shortcut::from_str(crate::settings::INBOX_KEY_MAC).is_ok() && Shortcut::from_str(crate::settings::INBOX_KEY_PC).is_ok());
+        // 눌린 키 구분: 인박스로 등록된 키만 Inbox
+        let h = Hotkeys::default();
+        let n = Shortcut::from_str("Control+KeyQ").unwrap();
+        let i = Shortcut::from_str(crate::settings::INBOX_KEY_MAC).unwrap();
+        assert_eq!(h.which(&i), Which::Nunchi, "아무것도 등록 전이면 예전 동작");
+        h.inbox.inner.lock().unwrap().reg = Some(i);
+        assert_eq!((h.which(&i), h.which(&n)), (Which::Inbox, Which::Nunchi));
     }
 
     #[test]

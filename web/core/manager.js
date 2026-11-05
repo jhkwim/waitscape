@@ -10,7 +10,8 @@ let hookInfo = null, usageInfo = null;   // 앱: 마지막으로 받은 훅·한
 let mcpInfo = null, mcpPrev = null, mcpAllow = true, mcpJust = "", mcpBusy = false, mcpNote = "";   // 앱: MCP 연결 상태·미리보기·방금 연결한 CLI
 let updNote = "", updBusy = false;        // 앱: 설정의 [지금 확인] 결과 문구
 let logNote = "";                         // 앱: [로그 폴더 열기]·[오픈소스 라이선스] 실패 이유
-let nxInfo = null, nxBusy = false, nxKeyErr = "", nxDraft = null;   // 앱: 🙈 눈치 모드 단축키 등록 상태 { key, ok, err } · 형식 오류 · 저장 안 된 입력
+let nxInfo = null, nxBusy = false, nxKeyErr = "", nxDraft = null;
+let ibInfo = null, ibBusy = false, ibKeyErr = "", ibDraft = null;   // 앱: 📥 관제 인박스 단축키(같은 틀)   // 앱: 🙈 눈치 모드 단축키 등록 상태 { key, ok, err } · 형식 오류 · 저장 안 된 입력
 
 // 모드 CSS가 설정 화면에 새지 않도록 Shadow DOM 안에 그린다(모드는 body 아래 요소를 넓게 꾸미는 경우가 많음)
 let shadow = null, cssReady = null;
@@ -104,6 +105,7 @@ function generalTab() {
     <section class="mg-card"><h3>${esc(t("g.quiet"))}</h3>
       <label class="mg-row"><span class="mg-toggle"><input type="checkbox" data-act="quiet" ${s.quiet ? "checked" : ""}><span></span></span> ${esc(t("g.quiet.desc"))}</label></section>
     ${nunchiCard()}
+    ${inboxCard()}
     <section class="mg-card"><h3>${esc(t("g.notif"))}</h3>
       ${n.canAsk && window.Notification && Notification.permission !== "denied" ? `<p><button class="mg-btn" data-act="notif">${esc(t("g.notif.ask"))}</button></p>` : `<p class="mg-mute">${esc(perm)}</p>`}
       ${["done", "input", "stall", "memo"].map(k => `<label class="mg-row"><span class="mg-toggle"><input type="checkbox" data-act="nk" data-k="${k}" ${app.notify[k] !== false ? "checked" : ""}><span></span></span> ${esc(t("g.notif." + k))}</label>`).join("")}
@@ -133,7 +135,7 @@ function nunchiCard() {
       <div class="mg-nxkey${on ? "" : " off"}"><p><label>${esc(t("g.nunchi.key"))} <input type="text" data-act="nx-key" value="${esc(key)}" spellcheck="false" autocomplete="off"${dis} style="width:13em;font:12px ui-monospace,Menlo,Consolas,monospace"></label>
         <b class="mg-kbd">${esc(keyLabel(key))}</b> <button class="mg-btn" data-act="nx-key-save"${dis}>${esc(t("g.nunchi.save"))}</button> <button class="mg-btn" data-act="nx-key-reset"${dis}>${esc(t("g.nunchi.reset"))}</button></p>
       <p class="mg-mute mg-small">${esc(t("g.nunchi.keyDesc"))}</p>
-      ${!on ? "" : nxKeyErr ? `<p class="mg-err" role="alert">${esc(t(/macos-option-only/.test(nxKeyErr) ? "g.nunchi.macopt" : "g.nunchi.bad", { k: nxDraft || "" }))}</p>` : !nxInfo ? "" : nxInfo.err
+      ${!on ? "" : nxKeyErr ? `<p class="mg-err" role="alert">${esc(t(/same-key/.test(nxKeyErr) ? "g.nunchi.same" : /macos-option-only/.test(nxKeyErr) ? "g.nunchi.macopt" : "g.nunchi.bad", { k: nxDraft || "" }))}</p>` : !nxInfo ? "" : nxInfo.err
         ? `<p class="mg-err" role="alert">${esc(t("g.nunchi.fail", { k: keyLabel(nxInfo.key), e: nxInfo.err }))} <button class="mg-btn" data-act="nx-key-retry">${esc(t("g.nunchi.retry"))}</button></p>`
         : nxInfo.ok ? `<p class="mg-note">${esc(t("g.nunchi.ok", { k: `${keyLabel(nxInfo.key)} (${nxInfo.key})` }))}</p>` : nxInfo.key === "" ? `<p class="mg-mute mg-small">${esc(t("g.nunchi.off"))}</p>` : ""}</div>`;
   return `<section class="mg-card"><h3>${esc(t("g.nunchi"))}</h3>
@@ -143,6 +145,32 @@ function nunchiCard() {
       ${[[false, "g.nunchi.short"], [true, "g.nunchi.long"]].map(([v, k]) => `<label class="mg-row"><input type="radio" name="nx-long" data-act="nx-long" value="${v ? 1 : 0}" ${!!app.nunchiLong === v ? "checked" : ""}> ${esc(t(k))}</label>`).join("")}
       <p class="mg-mute mg-small">${esc(t("g.nunchi.animDesc"))}</p>
       <p><label><b>${esc(t("g.nunchi.theme"))}</b> <select data-act="nx-theme" aria-label="${esc(t("g.nunchi.theme"))}">${["system", "light", "dark"].map(v => `<option value="${v}" ${(app.nunchiTheme || "system") === v ? "selected" : ""}>${esc(t("g.nunchi.theme." + v))}</option>`).join("")}</select></label></p></section>`;
+}
+/* 📥 다음에 볼 것(관제 인박스, #128): 창 안 N·Shift+N 안내 + (앱) 전역 단축키 스위치·키·등록 상태 — 눈치 모드 카드와 같은 틀 */
+const IB_KEY = MAC ? "Control+Shift+KeyN" : "Alt+Shift+KeyN";
+function inboxCard() {
+  const app = C.settings.app, key = ibDraft != null ? ibDraft : app.inboxKey == null ? IB_KEY : app.inboxKey;
+  const inapp = `<p class="mg-inapp">${esc(t("g.inbox.inapp"))}</p>`;
+  if (!APP) return `<section class="mg-card"><h3>${esc(t("g.inbox"))}</h3>${inapp}</section>`;
+  if (C.api.nunchiStatus && !ibInfo && !ibBusy) { ibBusy = true; C.api.nunchiStatus("inbox").then(r => { ibInfo = r || {}; }, () => { ibInfo = {}; }).finally(() => { ibBusy = false; render(); }); }
+  const on = app.inboxGlobal !== false, dis = on ? "" : " disabled";
+  const msg = !on ? "" : ibKeyErr ? `<p class="mg-err" role="alert">${esc(t(/same-key/.test(ibKeyErr) ? "g.inbox.same" : /macos-option-only/.test(ibKeyErr) ? "g.nunchi.macopt" : "g.nunchi.bad", { k: ibDraft || "" }))}</p>` : !ibInfo ? "" : ibInfo.err
+    ? `<p class="mg-err" role="alert">${esc(t("g.nunchi.fail", { k: keyLabel(ibInfo.key), e: ibInfo.err }))} <button class="mg-btn" data-act="ib-key-retry">${esc(t("g.nunchi.retry"))}</button></p>`
+    : ibInfo.ok ? `<p class="mg-note">${esc(t("g.nunchi.ok", { k: `${keyLabel(ibInfo.key)} (${ibInfo.key})` }))}</p>` : ibInfo.key === "" ? `<p class="mg-mute mg-small">${esc(t("g.nunchi.off"))}</p>` : "";
+  return `<section class="mg-card"><h3>${esc(t("g.inbox"))}</h3>${inapp}
+      <label class="mg-row"><span class="mg-toggle"><input type="checkbox" data-act="ib-global" ${on ? "checked" : ""}><span></span></span> ${esc(t("g.inbox.global", { k: keyLabel(key) || "—" }))}</label>
+      <div class="mg-nxkey${on ? "" : " off"}"><p><label>${esc(t("g.inbox.key"))} <input type="text" data-act="ib-key" value="${esc(key)}" spellcheck="false" autocomplete="off"${dis} style="width:13em;font:12px ui-monospace,Menlo,Consolas,monospace"></label>
+        <b class="mg-kbd">${esc(keyLabel(key))}</b> <button class="mg-btn" data-act="ib-key-save"${dis}>${esc(t("g.nunchi.save"))}</button> <button class="mg-btn" data-act="ib-key-reset"${dis}>${esc(t("g.nunchi.reset"))}</button></p>
+      <p class="mg-mute mg-small">${esc(t("g.inbox.keyDesc"))}</p>${msg}</div></section>`;
+}
+async function saveIbKey(v) {
+  v = String(v || "").trim().replace(/\s+/g, "");
+  ibDraft = v; ibKeyErr = "";
+  try { await C.api.settings.set({ inboxKey: v }); } catch (e) { ibKeyErr = String(e); render(); return; }
+  ibDraft = null; C.settings.app.inboxKey = v;
+  ibBusy = true; render();
+  try { ibInfo = C.api.nunchiRetry ? await C.api.nunchiRetry("inbox") : null; } catch (e) { ibInfo = { key: v, ok: false, err: String(e) }; }
+  ibBusy = false; render();
 }
 /* 단축키 저장: 형식이 틀리면 백엔드가 거절 → 저장하지 않고 안내. 맞으면 다시 등록(같은 키여도 = 다시 시도) → 상태를 다시 읽음 */
 async function saveKey(v) {
@@ -443,6 +471,9 @@ async function onClick(e) {
   else if (b.dataset.act === "nx-key-save") { const i = b.closest(".mg-card").querySelector('[data-act="nx-key"]'); await saveKey(i ? i.value : ""); return; }
   else if (b.dataset.act === "nx-key-reset") { await saveKey(NX_KEY); return; }
   else if (b.dataset.act === "nx-key-retry") { await retryKey(); return; }
+  else if (b.dataset.act === "ib-key-save") { const i = b.closest(".mg-card").querySelector('[data-act="ib-key"]'); await saveIbKey(i ? i.value : ""); return; }
+  else if (b.dataset.act === "ib-key-reset") { await saveIbKey(IB_KEY); return; }
+  else if (b.dataset.act === "ib-key-retry") { await saveIbKey(C.settings.app.inboxKey == null ? IB_KEY : C.settings.app.inboxKey); return; }
   render();
 }
 async function onChange(e) {
@@ -457,7 +488,9 @@ async function onChange(e) {
   else if (act === "nx-long") await C.settings.set({ nunchiLong: el.value === "1" });
   else if (act === "nx-global") { await C.settings.set({ nunchiGlobal: el.checked }); nxInfo = null; setTimeout(() => render(), 400); }   // 백엔드가 등록 해제·재등록(작업 스레드) → 상태를 다시 읽음
   else if (act === "nx-theme") await C.settings.set({ nunchiTheme: ["light", "dark"].includes(el.value) ? el.value : "system" });
-  else if (act === "nx-key") { nxDraft = el.value; return; }   // [저장]을 눌러야 바뀜(입력은 다시 그려도 남김)
+  else if (act === "nx-key") { nxDraft = el.value; return; }
+  else if (act === "ib-key") { ibDraft = el.value; return; }
+  else if (act === "ib-global") { await C.settings.set({ inboxGlobal: el.checked }); ibInfo = null; setTimeout(() => render(), 400); }   // [저장]을 눌러야 바뀜(입력은 다시 그려도 남김)
   else if (act === "nk") await C.settings.set({ notify: { ...C.settings.app.notify, [el.dataset.k]: el.checked } });
   else if (act === "mcp-reports") { await C.settings.set({ mcpReports: el.checked }); mcpInfo = null; mcpPrev = null; }
   else if (act === "mcp-allow") { mcpAllow = el.checked; if (mcpPrev && mcpPrev.cli === "claude" && mcpPrev.connect) { await mcpPlan("claude", true); return; } }

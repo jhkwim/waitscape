@@ -422,6 +422,10 @@ export interface AppSettings {
   nunchiKey?: string;
   /** 눈치 모드 연출: false = 짧게(블라인드만, 기본) · true = 퇴장·출근 연출까지(스튜디오) @since 1.6 */
   nunchiLong?: boolean;
+  /** (앱) 📥 관제 인박스 전역 단축키 — 맨 앞 세션으로(창 안 N과 같은 동작). 기본 맥 "Control+Shift+KeyN" · 그 밖 "Alt+Shift+KeyN", "" = 끔. 눈치 모드 키와 같은 값은 저장 거절 @since 1.8 */
+  inboxKey?: string;
+  /** (앱) 인박스 전역 단축키 쓰기(기본 true). false면 등록만 해제 @since 1.8 */
+  inboxGlobal?: boolean;
 }
 
 /* ------------------------------------------------------------------ 샌드박스 브리지 (외부 모드 ⇄ 호스트, postMessage) */

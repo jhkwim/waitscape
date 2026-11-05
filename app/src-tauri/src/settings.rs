@@ -71,6 +71,11 @@ pub struct AppSettings {
     pub nunchi_theme: String,
     /// 다른 앱을 쓰는 중에도 전역 단축키 쓰기(기본 켜짐). 끄면 등록만 해제하고 `nunchi_key`는 그대로 둔다(다시 켜면 그 키로). 창 안 ⌘1·B와는 무관
     pub nunchi_global: bool,
+    /// 📥 관제 인박스 전역 단축키(#128): 맨 앞 세션으로 이동(창 안 N과 같은 동작). 기본 `INBOX_KEY` — 맥 ⌃⇧N · 윈도우 Alt+Shift+N. 빈 문자열 = 끔.
+    /// 눈치 모드 단축키와 같은 값은 저장하지 않는다(patched 오류)
+    pub inbox_key: String,
+    /// 인박스 전역 단축키 스위치(기본 켜짐). 끄면 등록만 해제(키 값은 그대로)
+    pub inbox_global: bool,
 }
 
 /// 눈치 모드 **전역** 기본 단축키(플랫폼별, 다른 앱을 쓰는 중에도). 앱 창 안에서는 따로 ⌘1 / Ctrl+1 · B(웹 core.js `nunchiHotkey`).
@@ -81,6 +86,11 @@ pub struct AppSettings {
 ///   ⌃⌥`는 한 손으로 누르기 어렵다는 피드백으로 바꿈. 키 이름은 global-hotkey 0.8의 정식 형식 `KeyQ`
 pub const NUNCHI_KEY: &str = if cfg!(target_os = "macos") { NUNCHI_KEY_MAC } else { NUNCHI_KEY_PC };
 pub const NUNCHI_KEY_MAC: &str = "Control+KeyQ";
+/// 관제 인박스 전역 기본 단축키 — ⌃N·Alt+N은 터미널·편집기의 "다음 줄"·메뉴와 겹쳐 Shift를 더함(맥 ⌃⇧N · 윈도우·리눅스 Alt+Shift+N).
+/// 맥에서 Option+Shift만인 조합은 macOS 15+가 막으므로 Control을 쓴다
+pub const INBOX_KEY: &str = if cfg!(target_os = "macos") { INBOX_KEY_MAC } else { INBOX_KEY_PC };
+pub const INBOX_KEY_MAC: &str = "Control+Shift+KeyN";
+pub const INBOX_KEY_PC: &str = "Alt+Shift+KeyN";
 /// 지금까지 맥 기본값이었던 것들(맥에서 저장돼 있으면 ⌃Q로 한 번 옮김)
 const MAC_OLD: [&str; 2] = ["Alt+Backquote", "Control+Alt+Backquote"];
 pub const NUNCHI_KEY_PC: &str = "Alt+Backquote";
@@ -165,6 +175,11 @@ pub fn check_key_for(key: &str, mac: bool) -> Result<String, String> {
     Ok(k.to_string())
 }
 
+/// 두 전역 단축키가 같은가(대소문자 무시, 빈 값은 다름)
+pub fn same_key(a: &str, b: &str) -> bool {
+    !a.is_empty() && a.eq_ignore_ascii_case(b)
+}
+
 pub const MAX_HIDE_PATTERNS: usize = 100;
 pub const MAX_HIDE_LEN: usize = 200;
 
@@ -192,12 +207,14 @@ impl Default for AppSettings {
             nunchi_long: false,
             nunchi_theme: "system".into(),
             nunchi_global: true,
+            inbox_key: INBOX_KEY.into(),
+            inbox_global: true,
         }
     }
 }
 
 /// 프론트(`set_settings`)가 바꿀 수 있는 키
-const PATCHABLE: [&str; 20] = [
+const PATCHABLE: [&str; 22] = [
     "usageLookup",
     "notify",
     "quiet",
@@ -218,6 +235,8 @@ const PATCHABLE: [&str; 20] = [
     "nunchiLong",
     "nunchiTheme",
     "nunchiGlobal",
+    "inboxKey",
+    "inboxGlobal",
 ];
 
 pub const TERMINALS: [&str; 9] = [
@@ -276,6 +295,10 @@ impl AppSettings {
         // 단축키: 옛 기본값은 한 번 새 기본값으로 → 파일에서 읽은 값이 이상하면 기본값(설정 화면에서 바꿀 때는 patched가 오류로 막음), 빈 값은 끔
         (self.nunchi_key, self.nunchi_key_v) = migrate_key(self.nunchi_key.trim(), self.nunchi_key_v, cfg!(target_os = "macos"));
         self.nunchi_key = check_key(&self.nunchi_key).unwrap_or_else(|_| NUNCHI_KEY.into());
+        self.inbox_key = check_key(self.inbox_key.trim()).unwrap_or_else(|_| INBOX_KEY.into());
+        if same_key(&self.inbox_key, &self.nunchi_key) {
+            self.inbox_key = String::new(); // 파일에서 겹치면 인박스 쪽을 끔(설정 화면에서는 patched가 막음)
+        }
         if !matches!(self.nunchi_theme.as_str(), "system" | "light" | "dark") {
             self.nunchi_theme = "system".into();
         }
@@ -296,13 +319,16 @@ impl AppSettings {
             if !PATCHABLE.contains(&k.as_str()) {
                 return Err(format!("unknown setting: {k}"));
             }
-            if k == "nunchiKey" {
+            if k == "nunchiKey" || k == "inboxKey" {
                 // 잘못된 단축키는 조용히 바꾸지 않고 오류(설정 화면에 표시, 저장 안 됨)
-                check_key(x.as_str().ok_or("bad setting: nunchiKey")?)?;
+                check_key(x.as_str().ok_or(format!("bad setting: {k}"))?)?;
             }
             v[k] = x.clone();
         }
         let s: AppSettings = serde_json::from_value(v).map_err(|e| format!("bad setting: {e}"))?;
+        if same_key(&s.inbox_key, &s.nunchi_key) {
+            return Err("same-key: inboxKey = nunchiKey".into());
+        }
         Ok(s.sanitized())
     }
 }
@@ -310,6 +336,28 @@ impl AppSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn inbox_key_rules() {
+        let s = AppSettings::default();
+        assert!(s.inbox_global && s.inbox_key == INBOX_KEY && !same_key(INBOX_KEY, NUNCHI_KEY));
+        assert!(check_key_for(INBOX_KEY_MAC, true).is_ok() && check_key_for(INBOX_KEY_PC, false).is_ok());
+        assert_eq!(s.patched(&json!({"inboxKey": "Ctrl+Alt+J"})).unwrap().inbox_key, "Ctrl+Alt+J");
+        assert_eq!(s.patched(&json!({"inboxKey": ""})).unwrap().inbox_key, "");
+        assert!(s.patched(&json!({"inboxKey": "J"})).is_err());
+        // 눈치 키와 같은 값은 거절(양쪽 어느 걸 바꿔도)
+        assert!(s.patched(&json!({"inboxKey": NUNCHI_KEY.to_lowercase()})).is_err());
+        assert!(s.patched(&json!({"nunchiKey": INBOX_KEY})).is_err());
+        assert!(!s.patched(&json!({"inboxGlobal": false})).unwrap().inbox_global);
+        // 파일에서 겹치거나 깨진 값: 겹치면 인박스 끔, 깨지면 기본값
+        let f: AppSettings = serde_json::from_value(json!({"nunchiKey": "Ctrl+Alt+J", "inboxKey": "Ctrl+Alt+J", "nunchiKeyV": 4})).unwrap();
+        assert_eq!(f.sanitized().inbox_key, "");
+        let g: AppSettings = serde_json::from_value(json!({"inboxKey": "??"})).unwrap();
+        assert_eq!(g.sanitized().inbox_key, INBOX_KEY);
+        // 옛 파일(필드 없음) = 기본값
+        let old: AppSettings = serde_json::from_value(json!({"quiet": true})).unwrap();
+        assert!(old.inbox_global && old.inbox_key == INBOX_KEY);
+    }
 
     #[test]
     fn defaults_and_patch() {

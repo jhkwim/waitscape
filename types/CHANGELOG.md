@@ -68,6 +68,7 @@
 - `Core.inbox` (@trusted, 코어가 본 항목을 기억): `list()` · `go()`(N) · `skip()`(Shift+N) · `mark(sid)`. 이벤트 `inbox`(목록이 바뀜) · `inbox-go`(N으로 고른 항목 — 모드가 그 직원을 보여 줌)
 - 호스트 단축키에 **N**(다음으로 이동)·**Shift+N**(건너뛰기) 추가 — 외부 모드 iframe 안에서 눌러도 SDK가 넘긴다. 모드는 N을 따로 쓰지 말 것
 - 같은 세션의 질문 알림(소리·OS 알림)은 10분에 한 번. `input` 이벤트는 그대로 매번
+- (코어 전용, #128) 설정 `AppSettings.inboxKey`·`inboxGlobal`, 내부 `CoreApi.nunchiStatus(which?)`·`nunchiRetry(which?)`(`"inbox"`). 모드 계약 변화 없음
 
 ## (코어 전용, cmux AppleScript 이동 jhkwim/waitscape#102)
 - 내부 `CoreApi.openTerminal?()` 결과에 `"mux-perm"` 추가(코어 전용): cmux 소켓이 막혀 AppleScript로 가려 했는데 macOS 자동화 허용이 없음 → cwd 복사. 모드 계약(state·ctx·브리지) 변화 없음
