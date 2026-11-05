@@ -264,7 +264,8 @@ pub fn notify(app: AppHandle, w: WebviewWindow, be: B, title: String, body: Stri
     main_only(&w)?;
     let t: String = title.chars().take(140).collect();
     let b: String = body.chars().take(280).collect();
-    os_notify(&app, &t, &b, be.settings().quiet);
+    let s = be.settings();
+    os_notify(&app, &t, &b, s.quiet || s.nunchi); // 🙈 눈치 모드면 효과음 없이(백엔드 알림과 같은 규칙)
     Ok(())
 }
 

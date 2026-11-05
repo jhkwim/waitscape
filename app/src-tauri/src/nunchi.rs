@@ -23,8 +23,6 @@ pub struct HkState {
 #[derive(Default)]
 pub struct Hotkey {
     inner: Mutex<HkState>,
-    /// 등록·해제를 한 번에 하나씩(빠른 연속 저장). 이 락은 메인 스레드에서 잡지 않는다
-    apply: Mutex<()>,
 }
 
 /// 앱이 등록하는 전역 단축키 종류
@@ -65,6 +63,8 @@ impl Which {
 pub struct Hotkeys {
     nunchi: Hotkey,
     inbox: Hotkey,
+    /// 등록·해제를 두 키 통틀어 한 번에 하나씩(빠른 연속 저장·두 키 맞바꾸기). 이 락은 메인 스레드에서 잡지 않는다
+    apply: Mutex<()>,
 }
 
 impl Hotkeys {
@@ -74,13 +74,15 @@ impl Hotkeys {
             Which::Inbox => &self.inbox,
         }
     }
-    /// 눌린 단축키가 어느 쪽인가 — 인박스로 등록된 키면 Inbox, 아니면 눈치 모드(예전 동작)
-    fn which(&self, sc: &Shortcut) -> Which {
-        let inbox = self.inbox.inner.lock().unwrap_or_else(|e| e.into_inner()).reg;
-        if inbox.as_ref() == Some(sc) {
-            Which::Inbox
+    /// 눌린 단축키가 어느 쪽인가. 등록 직후 상태를 적기 전 같은 순간이면 어느 쪽도 아님(None — 눈치 모드로 잘못 토글하지 않음)
+    fn which(&self, sc: &Shortcut) -> Option<Which> {
+        let is = |h: &Hotkey| h.inner.lock().unwrap_or_else(|e| e.into_inner()).reg.as_ref() == Some(sc);
+        if is(&self.inbox) {
+            Some(Which::Inbox)
+        } else if is(&self.nunchi) {
+            Some(Which::Nunchi)
         } else {
-            Which::Nunchi
+            None
         }
     }
 }
@@ -119,7 +121,11 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
             if ev.state() != ShortcutState::Pressed {
                 return;
             }
-            if app.try_state::<Hotkeys>().is_some_and(|h| h.which(sc) == Which::Inbox) {
+            let which = app.try_state::<Hotkeys>().and_then(|h| h.which(sc));
+            if which.is_none() {
+                return;
+            }
+            if which == Some(Which::Inbox) {
                 // 📥 인박스: 큐(본 항목 포함)는 웹 코어가 가진다 → 메인 창 코어에 맡김(창이 숨어 있어도 웹뷰는 살아 있음).
                 // 멀티플렉서 세션은 그 터미널로, 아니면 OS 알림으로 어떤 세션인지 알려 줌(core.js inboxGo)
                 app.emit_to("main", "inbox-key", ()).ok();
@@ -152,7 +158,7 @@ pub fn apply_key(app: &AppHandle, which: Which, force: bool) {
     };
     let hk = hks.of(which);
     let tag = which.tag();
-    let _one = hk.apply.lock().unwrap_or_else(|e| e.into_inner());
+    let _one = hks.apply.lock().unwrap_or_else(|e| e.into_inner());
     let s = be.settings();
     let want = which.want(&s);
     let cur = hk.inner.lock().unwrap_or_else(|e| e.into_inner()).clone();
@@ -317,9 +323,10 @@ mod tests {
         let h = Hotkeys::default();
         let n = Shortcut::from_str("Control+KeyQ").unwrap();
         let i = Shortcut::from_str(crate::settings::INBOX_KEY_MAC).unwrap();
-        assert_eq!(h.which(&i), Which::Nunchi, "아무것도 등록 전이면 예전 동작");
+        assert_eq!(h.which(&i), None, "등록 상태를 적기 전이면 무시");
         h.inbox.inner.lock().unwrap().reg = Some(i);
-        assert_eq!((h.which(&i), h.which(&n)), (Which::Inbox, Which::Nunchi));
+        h.nunchi.inner.lock().unwrap().reg = Some(n);
+        assert_eq!((h.which(&i), h.which(&n)), (Some(Which::Inbox), Some(Which::Nunchi)));
     }
 
     #[test]

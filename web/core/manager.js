@@ -168,8 +168,11 @@ async function saveIbKey(v) {
   ibDraft = v; ibKeyErr = "";
   try { await C.api.settings.set({ inboxKey: v }); } catch (e) { ibKeyErr = String(e); render(); return; }
   ibDraft = null; C.settings.app.inboxKey = v;
+  await retryIbKey();
+}
+async function retryIbKey() {   // 저장된 키로 다시 등록(입력 중인 값은 그대로)
   ibBusy = true; render();
-  try { ibInfo = C.api.nunchiRetry ? await C.api.nunchiRetry("inbox") : null; } catch (e) { ibInfo = { key: v, ok: false, err: String(e) }; }
+  try { ibInfo = C.api.nunchiRetry ? await C.api.nunchiRetry("inbox") : null; } catch (e) { ibInfo = { key: C.settings.app.inboxKey, ok: false, err: String(e) }; }
   ibBusy = false; render();
 }
 /* 단축키 저장: 형식이 틀리면 백엔드가 거절 → 저장하지 않고 안내. 맞으면 다시 등록(같은 키여도 = 다시 시도) → 상태를 다시 읽음 */
@@ -473,7 +476,7 @@ async function onClick(e) {
   else if (b.dataset.act === "nx-key-retry") { await retryKey(); return; }
   else if (b.dataset.act === "ib-key-save") { const i = b.closest(".mg-card").querySelector('[data-act="ib-key"]'); await saveIbKey(i ? i.value : ""); return; }
   else if (b.dataset.act === "ib-key-reset") { await saveIbKey(IB_KEY); return; }
-  else if (b.dataset.act === "ib-key-retry") { await saveIbKey(C.settings.app.inboxKey == null ? IB_KEY : C.settings.app.inboxKey); return; }
+  else if (b.dataset.act === "ib-key-retry") { await retryIbKey(); return; }
   render();
 }
 async function onChange(e) {

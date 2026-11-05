@@ -175,9 +175,18 @@ pub fn check_key_for(key: &str, mac: bool) -> Result<String, String> {
     Ok(k.to_string())
 }
 
-/// 두 전역 단축키가 같은가(대소문자 무시, 빈 값은 다름)
+/// 두 전역 단축키가 같은가(빈 값은 다름). 플러그인 형식으로 읽어 비교 — 수식키 순서·별칭(Ctrl/Control, 맥 CmdOrCtrl = Super)·Q/KeyQ가 달라도 같은 키.
+/// 읽지 못하면 글자 비교(대소문자 무시)
 pub fn same_key(a: &str, b: &str) -> bool {
-    !a.is_empty() && a.eq_ignore_ascii_case(b)
+    use std::str::FromStr;
+    use tauri_plugin_global_shortcut::Shortcut;
+    if a.is_empty() || b.is_empty() {
+        return false;
+    }
+    match (Shortcut::from_str(a), Shortcut::from_str(b)) {
+        (Ok(x), Ok(y)) => x == y,
+        _ => a.eq_ignore_ascii_case(b),
+    }
 }
 
 pub const MAX_HIDE_PATTERNS: usize = 100;
@@ -348,6 +357,9 @@ mod tests {
         // 눈치 키와 같은 값은 거절(양쪽 어느 걸 바꿔도)
         assert!(s.patched(&json!({"inboxKey": NUNCHI_KEY.to_lowercase()})).is_err());
         assert!(s.patched(&json!({"nunchiKey": INBOX_KEY})).is_err());
+        // 순서·별칭이 달라도 같은 키
+        assert!(same_key("Shift+Control+KeyN", "Control+Shift+KeyN") && same_key("Ctrl+Shift+N", "Control+Shift+KeyN"));
+        assert!(!same_key("Control+KeyN", "Control+Shift+KeyN") && !same_key("", ""));
         assert!(!s.patched(&json!({"inboxGlobal": false})).unwrap().inbox_global);
         // 파일에서 겹치거나 깨진 값: 겹치면 인박스 끔, 깨지면 기본값
         let f: AppSettings = serde_json::from_value(json!({"nunchiKey": "Ctrl+Alt+J", "inboxKey": "Ctrl+Alt+J", "nunchiKeyV": 4})).unwrap();
