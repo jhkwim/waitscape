@@ -401,6 +401,113 @@ pub struct Replay {
     pub last_event: Option<f64>,
     /// 마지막 MCP 보고 이벤트 시각
     pub last_report: Option<f64>,
+    /// 메인 세션의 질문(needs_input) 구간 — 앱은 쓰지 않고 측정 도구(examples/asks.rs, #136)가 쓴다
+    pub asks: Vec<AskSpan>,
+}
+
+/// 질문 구간 하나(#136): 언제 질문이 됐고, 언제 확실해졌고(= 앱이 알림을 보내는 때), 무엇으로 풀렸나
+#[derive(Debug, Clone, PartialEq)]
+pub struct AskSpan {
+    pub sid: String,
+    /// "permission" | "question" | None(종류 없는 옛 알림)
+    pub kind: Option<&'static str>,
+    pub t0: f64,
+    /// 질문 직전 상태("working" | "done" | "idle" … · 질문에서 이어지면 "needs_input" / 추정 질문에서 이어지면 "needs_input?")
+    /// — 끝난(done) 뒤 생긴 종류 없는 질문은 예전 훅의 유휴 알림일 가능성이 크다
+    pub from: &'static str,
+    /// 추정(PermissionRequest)이 알림으로 확인된 때. 처음부터 확실했으면 t0. 끝까지 추정이면 None(알림 없음)
+    pub sure_at: Option<f64>,
+    /// 풀린 때 = 질문을 지운 다음 메인 이벤트 시각. 사람의 응답 시간에 승인 뒤 도구 실행·모델 시간이 더해진다(PostToolUse는 Task 도구만 기록).
+    /// 바로 승인(quick)은 상태를 권한 요청 시각으로 되돌리지만 여기엔 그걸 알아챈 시각이 들어간다
+    pub t1: Option<f64>,
+    /// 풀린 이벤트: "PreToolUse" | "UserPromptSubmit" | "Resume" | "Stop" | "SessionEnd" | "quick"(바로 승인) | "sub"(서브에이전트가 다시 움직임) | "open"(아직 질문 중) | "other"
+    pub end: &'static str,
+}
+
+/// 이벤트 처리 전후로 비교할 메인 세션의 질문 표시
+#[derive(Clone, Copy)]
+struct AskMark {
+    st: &'static str,
+    on: bool,
+    guess: bool,
+    since: f64,
+}
+
+impl AskMark {
+    fn of(h: &HookSession) -> Self {
+        AskMark {
+            st: h.s.status,
+            on: h.s.status == "needs_input",
+            guess: h.guess,
+            since: h.s.since,
+        }
+    }
+}
+
+fn ev_name(ev: &str) -> &'static str {
+    match ev {
+        "PreToolUse" => "PreToolUse",
+        "UserPromptSubmit" => "UserPromptSubmit",
+        "Resume" => "Resume",
+        "Stop" => "Stop",
+        "SessionEnd" => "SessionEnd",
+        "SubagentStop" => "sub",
+        _ => "other",
+    }
+}
+
+/// 질문 구간 기록: 판정은 건드리지 않고 이벤트 전후 상태만 비교한다
+#[derive(Default)]
+struct Spans {
+    list: Vec<AskSpan>,
+    open: std::collections::HashMap<String, usize>,
+}
+
+impl Spans {
+    fn step(&mut self, sid: &str, h: &HookSession, pre: AskMark, by: &'static str, ts: f64) {
+        let now = AskMark::of(h);
+        // 같은 이벤트에서 질문이 풀리고 새 질문이 섰으면(since가 바뀜) 앞 구간을 닫고 새로 연다
+        // 메인 PreToolUse는 늘 질문을 먼저 지우므로(clear_ask) 처리 뒤에도 질문이면 새 질문이다(같은 ts여도)
+        let renewed = pre.on && now.on && (now.since != pre.since || by == "PreToolUse");
+        if pre.on && (!now.on || renewed) {
+            if let Some(i) = self.open.remove(sid) {
+                let sp = &mut self.list[i];
+                sp.t1 = Some(ts);
+                sp.end = by;
+            }
+        }
+        if now.on && (!pre.on || renewed) {
+            self.open.insert(sid.to_string(), self.list.len());
+            self.list.push(AskSpan {
+                sid: sid.to_string(),
+                kind: h.s.ask,
+                t0: now.since,
+                // 질문에서 질문으로 이어짐: 앱은 상태 문자열이 바뀔 때만 알리므로(detect.rs) 추정 → 확실만 알림이 간다
+                from: if renewed {
+                    if pre.guess {
+                        "needs_input?"
+                    } else {
+                        "needs_input"
+                    }
+                } else {
+                    pre.st
+                },
+                sure_at: (!now.guess).then_some(now.since),
+                t1: None,
+                end: "open",
+            });
+        } else if now.on {
+            if let Some(&i) = self.open.get(sid) {
+                let sp = &mut self.list[i];
+                if sp.kind.is_none() {
+                    sp.kind = h.s.ask;
+                }
+                if pre.guess && !now.guess && sp.sure_at.is_none() {
+                    sp.sure_at = Some(ts);
+                }
+            }
+        }
+    }
 }
 
 /// 훅 이벤트를 순서대로 돌려 세션 상태를 만든다. today 집계(waited, done, kinds, agents)도 함께.
@@ -410,6 +517,7 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
     let mut t = Today::default();
     let mut last_event: Option<f64> = None;
     let mut last_report: Option<f64> = None;
+    let mut spans = Spans::default();
     for e in events {
         let (Some(sidv), Some(ts)) = (get(e, "sid"), num(get(e, "ts"))) else {
             continue;
@@ -443,37 +551,92 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
         if let Some(c) = get(e, "cwd").filter(|v| truthy(v)) {
             h.s.cwd = py_str(c);
         }
+        let pre = AskMark::of(h);
         quick_approved(h, ts);
-        // 멀티플렉서(Orca·cmux) 이동 정보: 마지막으로 받은 올바른 값 (서브에이전트 이벤트도 같은 셸이라 받는다)
-        if let Some(j) = get(e, "term").and_then(crate::term::jump_of) {
-            h.s.jump = Some(j);
-        }
-        h.s.last = ts;
-        if tz.local_date(ts) == today {
-            if ev == "PreToolUse" && rep.is_none() {
-                *t.kinds.entry(json_key(&getd(e, "kind", json!("other")))).or_insert(0) += 1;
-            } else if ev == "SubagentStart" {
-                t.agents += 1;
+        spans.step(&sid, h, pre, "quick", ts);
+        let pre = AskMark::of(h);
+        let by = if get(e, "aid").is_some_and(truthy) { "sub" } else { ev_name(ev) };
+        'ev: {
+            // 멀티플렉서(Orca·cmux) 이동 정보: 마지막으로 받은 올바른 값 (서브에이전트 이벤트도 같은 셸이라 받는다)
+            if let Some(j) = get(e, "term").and_then(crate::term::jump_of) {
+                h.s.jump = Some(j);
             }
-        }
-        if get(e, "aid").is_some_and(truthy) {
-            // 서브에이전트의 MCP 보고는 메인 보드를 덮지 않게 버린다
-            let aid = py_str(get(e, "aid").unwrap_or(&Value::Null));
-            if rep.is_none() {
-                track_agent(h, e, ev, ts);
-                // 서브에이전트가 권한·질문을 기다리면 메인도 멈춘 것 — 메인 질문으로 올린다(백그라운드 에이전트는 제외, #118)
-                if let Some((kind, sure)) = ask_signal(e, ev) {
-                    // 등록된 포그라운드 에이전트만 (유령 보조 에이전트·백그라운드 제외)
-                    if h.agents.get(&aid).is_some_and(|a| !truthy(&a.bg)) {
-                        apply_ask(h, e, ts, kind, sure, Some(aid));
-                    }
-                    continue;
+            h.s.last = ts;
+            if tz.local_date(ts) == today {
+                if ev == "PreToolUse" && rep.is_none() {
+                    *t.kinds.entry(json_key(&getd(e, "kind", json!("other")))).or_insert(0) += 1;
+                } else if ev == "SubagentStart" {
+                    t.agents += 1;
                 }
             }
-            // 질문을 올린 서브에이전트가 다시 움직임(MCP 보고 포함) → 그 에이전트는 답을 받음. 모두 받으면 질문이 풀린다
-            if matches!(ev, "PreToolUse" | "SubagentStop") && h.s.status == "needs_input" && h.ask_aids.contains(&aid) {
-                h.ask_aids.retain(|a| *a != aid);
-                if h.ask_aids.is_empty() {
+            if get(e, "aid").is_some_and(truthy) {
+                // 서브에이전트의 MCP 보고는 메인 보드를 덮지 않게 버린다
+                let aid = py_str(get(e, "aid").unwrap_or(&Value::Null));
+                if rep.is_none() {
+                    track_agent(h, e, ev, ts);
+                    // 서브에이전트가 권한·질문을 기다리면 메인도 멈춘 것 — 메인 질문으로 올린다(백그라운드 에이전트는 제외, #118)
+                    if let Some((kind, sure)) = ask_signal(e, ev) {
+                        // 등록된 포그라운드 에이전트만 (유령 보조 에이전트·백그라운드 제외)
+                        if h.agents.get(&aid).is_some_and(|a| !truthy(&a.bg)) {
+                            apply_ask(h, e, ts, kind, sure, Some(aid));
+                        }
+                        break 'ev;
+                    }
+                }
+                // 질문을 올린 서브에이전트가 다시 움직임(MCP 보고 포함) → 그 에이전트는 답을 받음. 모두 받으면 질문이 풀린다
+                if matches!(ev, "PreToolUse" | "SubagentStop") && h.s.status == "needs_input" && h.ask_aids.contains(&aid) {
+                    h.ask_aids.retain(|a| *a != aid);
+                    if h.ask_aids.is_empty() {
+                        if let Some(t0) = h.wait0.take() {
+                            h.waits.push(FeedWait {
+                                sid: sid.clone(),
+                                t0,
+                                t1: ts,
+                            });
+                        }
+                        end_ask(h, ts);
+                    }
+                }
+                break 'ev;
+            }
+            let s = &mut h.s;
+            if let Some(td) = get(e, "todos").filter(|v| !v.is_null()) {
+                s.todos = td.as_array().cloned().unwrap_or_default();
+            }
+            if let Some(tn) = get(e, "task_new").filter(|v| truthy(v)) {
+                let id = get(tn, "id")
+                    .filter(|v| truthy(v))
+                    .cloned()
+                    .unwrap_or_else(|| json!((s.todos.len() + 1).to_string()));
+                s.todos
+                    .push(json!({"id": id, "text": getd(tn, "text", Value::Null), "status": "pending"}));
+            }
+            if let Some(u) = get(e, "task_upd").filter(|v| truthy(v)) {
+                let uid = getd(u, "id", Value::Null);
+                let ust = getd(u, "status", Value::Null);
+                let utx = getd(u, "text", Value::Null);
+                for td in s.todos.iter_mut() {
+                    if let Value::Object(o) = td {
+                        if o.get("id") == Some(&uid) {
+                            if truthy(&ust) {
+                                o.insert("status".into(), ust.clone());
+                            }
+                            if truthy(&utx) && ust.as_str() == Some("in_progress") {
+                                o.insert("text".into(), utx.clone());
+                            }
+                        }
+                    }
+                }
+                s.todos.retain(|td| get(td, "status").and_then(|v| v.as_str()) != Some("deleted"));
+            }
+            if let Some(d) = get(e, "agent_desc").filter(|v| truthy(v)) {
+                h.pending_agents
+                    .push((d.clone(), getd(e, "bg", json!(false)), getd(e, "agent_req", json!(""))));
+            }
+            // 일지: 질문 대기 구간 (server.py build_state와 같은 규칙. 끝난 뒤 오는 알림은 대기가 아님 —
+            // 대기 시작은 apply_ask가 정한다: 확실한 질문만, 추정이 확인되면 PermissionRequest 시각부터)
+            match ev {
+                "UserPromptSubmit" | "Resume" | "PreToolUse" | "Stop" => {
                     if let Some(t0) = h.wait0.take() {
                         h.waits.push(FeedWait {
                             sid: sid.clone(),
@@ -481,185 +644,140 @@ pub fn replay<'a>(events: impl Iterator<Item = &'a Value>, now: f64, tz: Tz) -> 
                             t1: ts,
                         });
                     }
-                    end_ask(h, ts);
                 }
+                "SessionEnd" => h.wait0 = None,
+                _ => {}
             }
-            continue;
-        }
-        let s = &mut h.s;
-        if let Some(td) = get(e, "todos").filter(|v| !v.is_null()) {
-            s.todos = td.as_array().cloned().unwrap_or_default();
-        }
-        if let Some(tn) = get(e, "task_new").filter(|v| truthy(v)) {
-            let id = get(tn, "id")
-                .filter(|v| truthy(v))
-                .cloned()
-                .unwrap_or_else(|| json!((s.todos.len() + 1).to_string()));
-            s.todos
-                .push(json!({"id": id, "text": getd(tn, "text", Value::Null), "status": "pending"}));
-        }
-        if let Some(u) = get(e, "task_upd").filter(|v| truthy(v)) {
-            let uid = getd(u, "id", Value::Null);
-            let ust = getd(u, "status", Value::Null);
-            let utx = getd(u, "text", Value::Null);
-            for td in s.todos.iter_mut() {
-                if let Value::Object(o) = td {
-                    if o.get("id") == Some(&uid) {
-                        if truthy(&ust) {
-                            o.insert("status".into(), ust.clone());
-                        }
-                        if truthy(&utx) && ust.as_str() == Some("in_progress") {
-                            o.insert("text".into(), utx.clone());
-                        }
+            if matches!(ev, "UserPromptSubmit" | "Resume" | "PreToolUse" | "Stop" | "SessionEnd") {
+                clear_ask(h);
+            }
+            if let Some((kind, sure)) = ask_signal(e, ev) {
+                apply_ask(h, e, ts, kind, sure, None);
+            }
+            let s = &mut h.s;
+            match ev {
+                "PostToolUse" => break 'ev,
+                "UserPromptSubmit" => {
+                    if !s.todos.is_empty()
+                        && s.todos
+                            .iter()
+                            .all(|td| get(td, "status").and_then(|v| v.as_str()) == Some("completed"))
+                    {
+                        s.todos.clear();
                     }
-                }
-            }
-            s.todos.retain(|td| get(td, "status").and_then(|v| v.as_str()) != Some("deleted"));
-        }
-        if let Some(d) = get(e, "agent_desc").filter(|v| truthy(v)) {
-            h.pending_agents
-                .push((d.clone(), getd(e, "bg", json!(false)), getd(e, "agent_req", json!(""))));
-        }
-        // 일지: 질문 대기 구간 (server.py build_state와 같은 규칙. 끝난 뒤 오는 알림은 대기가 아님 —
-        // 대기 시작은 apply_ask가 정한다: 확실한 질문만, 추정이 확인되면 PermissionRequest 시각부터)
-        match ev {
-            "UserPromptSubmit" | "Resume" | "PreToolUse" | "Stop" => {
-                if let Some(t0) = h.wait0.take() {
-                    h.waits.push(FeedWait {
-                        sid: sid.clone(),
-                        t0,
-                        t1: ts,
-                    });
-                }
-            }
-            "SessionEnd" => h.wait0 = None,
-            _ => {}
-        }
-        if matches!(ev, "UserPromptSubmit" | "Resume" | "PreToolUse" | "Stop" | "SessionEnd") {
-            clear_ask(h);
-        }
-        if let Some((kind, sure)) = ask_signal(e, ev) {
-            apply_ask(h, e, ts, kind, sure, None);
-        }
-        let s = &mut h.s;
-        match ev {
-            "PostToolUse" => continue,
-            "UserPromptSubmit" => {
-                if !s.todos.is_empty()
-                    && s.todos
-                        .iter()
-                        .all(|td| get(td, "status").and_then(|v| v.as_str()) == Some("completed"))
-                {
-                    s.todos.clear();
-                }
-                h.agents.retain(|_, a| a.status == "running");
-                h.fold = None;
-                s.prompt_ts = Some(ts);
-                s.status = "working";
-                s.since = ts;
-                s.started = Some(ts);
-                s.tools = 0;
-                s.prompt = getd(e, "text", json!(""));
-                s.activity.clear();
-                s.kind = Some(json!("think"));
-                s.kinds.clear();
-                s.trail.clear();
-            }
-            "Resume" => {
-                if s.status != "working" {
+                    h.agents.retain(|_, a| a.status == "running");
+                    h.fold = None;
+                    s.prompt_ts = Some(ts);
                     s.status = "working";
                     s.since = ts;
-                    s.started = Some(s.started.filter(|&x| x != 0.0).unwrap_or(ts));
+                    s.started = Some(ts);
+                    s.tools = 0;
+                    s.prompt = getd(e, "text", json!(""));
+                    s.activity.clear();
+                    s.kind = Some(json!("think"));
+                    s.kinds.clear();
+                    s.trail.clear();
                 }
-            }
-            "PreToolUse" => {
-                if s.status != "working" {
-                    s.status = "working";
+                "Resume" => {
+                    if s.status != "working" {
+                        s.status = "working";
+                        s.since = ts;
+                        s.started = Some(s.started.filter(|&x| x != 0.0).unwrap_or(ts));
+                    }
+                }
+                "PreToolUse" => {
+                    if s.status != "working" {
+                        s.status = "working";
+                        s.since = ts;
+                    }
+                    if let Some((_, r)) = &rep {
+                        match r {
+                            Some(("status", m)) => h.fold.get_or_insert_with(Fold::default).status(m, ts),
+                            Some((_, m)) => h.fold.get_or_insert_with(Fold::default).board(m, ts),
+                            None => {}
+                        }
+                        h.status_ended = h.s.status == "ended";
+                        break 'ev;
+                    }
+                    s.tools += 1;
+                    let k = getd(e, "kind", json!("other"));
+                    *s.kinds.entry(json_key(&k)).or_insert(0) += 1;
+                    let icon = getd(e, "icon", json!("🔧"));
+                    let text = getd(e, "text", json!(""));
+                    s.trail.push([k.clone(), icon.clone(), text.clone()]);
+                    if s.trail.len() > 300 {
+                        s.trail.remove(0);
+                    }
+                    s.activity.push(Activity { ts, icon, text });
+                    if s.activity.len() > 6 {
+                        s.activity.remove(0);
+                    }
+                    s.kind = Some(k);
+                    // AskUserQuestion·ExitPlanMode(wr-hook이 ask로 표시): 사람이 답해야 다음으로 감 — 트랜스크립트 전용(tonly.rs)과 같은 규칙
+                    // 메모(note)는 비운다 — 화면·알림이 지금 언어로 기본 문구를 쓴다(엔진 문자열은 언어를 모름)
+                    if get(e, "ask").and_then(|v| v.as_str()).is_some() {
+                        let note = "";
+                        if s.started.is_some_and(|x| x != 0.0) && h.wait0.is_none() {
+                            h.wait0 = Some(ts);
+                        }
+                        s.status = "needs_input";
+                        s.since = ts;
+                        s.note = Some(json!(note));
+                        s.ask = Some("question");
+                    }
+                }
+                "Stop" => {
+                    if let Some(st) = s.started.filter(|&x| x != 0.0) {
+                        s.run = ts - st;
+                        // 이번 턴에 AI가 MCP로 끝(done)을 보고했으면 큰 일 표시·칭찬 한마디도 일지로 (보고 읽기가 꺼져 있으면 엔진이 지움)
+                        let fin = h.fold.as_ref().filter(|f| f.state.as_deref() == Some("done"));
+                        h.turns.push(FeedTurn {
+                            sid: sid.clone(),
+                            cwd: s.cwd.clone(),
+                            prompt: s.prompt.as_str().unwrap_or("").to_string(),
+                            start: st,
+                            end: ts,
+                            big: fin.is_some_and(|f| f.big.is_some()),
+                            cheer: fin.and_then(|f| f.cheer.clone()),
+                        });
+                        if tz.local_date(ts) == today {
+                            t.waited += ts - st;
+                            t.done += 1;
+                        }
+                    }
+                    s.status = "done";
                     s.since = ts;
+                    s.started = None;
                 }
-                if let Some((_, r)) = &rep {
-                    match r {
-                        Some(("status", m)) => h.fold.get_or_insert_with(Fold::default).status(m, ts),
-                        Some((_, m)) => h.fold.get_or_insert_with(Fold::default).board(m, ts),
-                        None => {}
+                "SessionEnd" => {
+                    s.status = "ended";
+                    h.status_ended = true;
+                    for a in h.agents.values_mut() {
+                        if a.status == "running" {
+                            a.status = "done";
+                            a.ended = Some(ts);
+                        }
                     }
-                    h.status_ended = h.s.status == "ended";
-                    continue;
                 }
-                s.tools += 1;
-                let k = getd(e, "kind", json!("other"));
-                *s.kinds.entry(json_key(&k)).or_insert(0) += 1;
-                let icon = getd(e, "icon", json!("🔧"));
-                let text = getd(e, "text", json!(""));
-                s.trail.push([k.clone(), icon.clone(), text.clone()]);
-                if s.trail.len() > 300 {
-                    s.trail.remove(0);
-                }
-                s.activity.push(Activity { ts, icon, text });
-                if s.activity.len() > 6 {
-                    s.activity.remove(0);
-                }
-                s.kind = Some(k);
-                // AskUserQuestion·ExitPlanMode(wr-hook이 ask로 표시): 사람이 답해야 다음으로 감 — 트랜스크립트 전용(tonly.rs)과 같은 규칙
-                // 메모(note)는 비운다 — 화면·알림이 지금 언어로 기본 문구를 쓴다(엔진 문자열은 언어를 모름)
-                if get(e, "ask").and_then(|v| v.as_str()).is_some() {
-                    let note = "";
-                    if s.started.is_some_and(|x| x != 0.0) && h.wait0.is_none() {
-                        h.wait0 = Some(ts);
-                    }
-                    s.status = "needs_input";
-                    s.since = ts;
-                    s.note = Some(json!(note));
-                    s.ask = Some("question");
-                }
+                _ => {}
             }
-            "Stop" => {
-                if let Some(st) = s.started.filter(|&x| x != 0.0) {
-                    s.run = ts - st;
-                    // 이번 턴에 AI가 MCP로 끝(done)을 보고했으면 큰 일 표시·칭찬 한마디도 일지로 (보고 읽기가 꺼져 있으면 엔진이 지움)
-                    let fin = h.fold.as_ref().filter(|f| f.state.as_deref() == Some("done"));
-                    h.turns.push(FeedTurn {
-                        sid: sid.clone(),
-                        cwd: s.cwd.clone(),
-                        prompt: s.prompt.as_str().unwrap_or("").to_string(),
-                        start: st,
-                        end: ts,
-                        big: fin.is_some_and(|f| f.big.is_some()),
-                        cheer: fin.and_then(|f| f.cheer.clone()),
-                    });
-                    if tz.local_date(ts) == today {
-                        t.waited += ts - st;
-                        t.done += 1;
-                    }
-                }
-                s.status = "done";
-                s.since = ts;
-                s.started = None;
-            }
-            "SessionEnd" => {
-                s.status = "ended";
-                h.status_ended = true;
-                for a in h.agents.values_mut() {
-                    if a.status == "running" {
-                        a.status = "done";
-                        a.ended = Some(ts);
-                    }
-                }
-            }
-            _ => {}
+            // SessionEnd 뒤에 같은 세션이 재개돼 상태가 바뀌었다면 종료 표시를 푼다
+            h.status_ended = h.s.status == "ended";
         }
-        // SessionEnd 뒤에 같은 세션이 재개돼 상태가 바뀌었다면 종료 표시를 푼다
-        h.status_ended = h.s.status == "ended";
+        spans.step(&sid, h, pre, by, ts);
     }
     // 권한 요청 뒤 PERM_QUICK초 동안 확인 알림이 없으면 바로 승인(또는 거절)된 것 → 질문 직전 상태로 (#118)
-    for h in sessions.values_mut() {
+    for (sid, h) in sessions.iter_mut() {
+        let pre = AskMark::of(h);
         quick_approved(h, now);
+        spans.step(sid, h, pre, "quick", now);
     }
     Replay {
         sessions,
         today: t,
         last_event,
         last_report,
+        asks: spans.list,
     }
 }
 
@@ -692,6 +810,94 @@ mod tests {
         assert!(w("a").is_empty() && w("b").is_empty());
         assert_eq!(w("c"), vec![(10.0, 30.0)]);
         assert_eq!((r.sessions["c"].s.status, r.sessions["c"].s.ask), ("working", None));
+    }
+
+    /// #136 질문 구간: 무엇으로 풀렸나·언제 확실해졌나(알림 시각). 상태 판정은 그대로
+    #[test]
+    fn ask_spans() {
+        let evs = vec![
+            // a: 권한 알림 → 다음 도구로 풀림
+            json!({"ts": 1.0, "sid": "a", "event": "UserPromptSubmit"}),
+            json!({"ts": 10.0, "sid": "a", "event": "PermissionRequest"}),
+            json!({"ts": 16.0, "sid": "a", "event": "Notification", "ntype": "permission_prompt"}),
+            json!({"ts": 30.0, "sid": "a", "event": "PreToolUse"}),
+            // b: 권한 요청만 오고 알림 없이 다음 이벤트가 PERM_QUICK 뒤 → 바로 승인(알림 아님)
+            json!({"ts": 1.0, "sid": "b", "event": "UserPromptSubmit"}),
+            json!({"ts": 10.0, "sid": "b", "event": "PermissionRequest"}),
+            json!({"ts": 25.0, "sid": "b", "event": "PreToolUse"}),
+            // c: 질문(elicitation) → 다음 도구
+            json!({"ts": 1.0, "sid": "c", "event": "UserPromptSubmit"}),
+            json!({"ts": 5.0, "sid": "c", "event": "Notification", "ntype": "elicitation_dialog"}),
+            json!({"ts": 9.0, "sid": "c", "event": "PreToolUse"}),
+            // d: 종류 없는 옛 알림 → Stop
+            json!({"ts": 1.0, "sid": "d", "event": "UserPromptSubmit"}),
+            json!({"ts": 5.0, "sid": "d", "event": "Notification"}),
+            json!({"ts": 7.0, "sid": "d", "event": "Stop"}),
+            // e: 서브에이전트의 권한 → 그 에이전트가 다시 움직임
+            json!({"ts": 1.0, "sid": "e", "event": "UserPromptSubmit"}),
+            json!({"ts": 2.0, "sid": "e", "event": "SubagentStart", "aid": "x", "atype": "general"}),
+            json!({"ts": 3.0, "sid": "e", "aid": "x", "event": "Notification", "ntype": "permission_prompt"}),
+            json!({"ts": 8.0, "sid": "e", "aid": "x", "event": "PreToolUse"}),
+            // f: 질문 → 에이전트 결과 보고(Resume)로 풀림
+            json!({"ts": 1.0, "sid": "f", "event": "UserPromptSubmit"}),
+            json!({"ts": 4.0, "sid": "f", "event": "Notification", "ntype": "elicitation_dialog"}),
+            json!({"ts": 5.0, "sid": "f", "event": "Resume"}),
+            // g: 아직 질문 중 · 유휴 알림은 구간이 아님
+            json!({"ts": 1.0, "sid": "g", "event": "UserPromptSubmit"}),
+            json!({"ts": 2.0, "sid": "g", "event": "Stop"}),
+            json!({"ts": 50.0, "sid": "g", "event": "Notification", "ntype": "idle_prompt"}),
+            json!({"ts": 60.0, "sid": "g", "event": "UserPromptSubmit"}),
+            json!({"ts": 70.0, "sid": "g", "event": "PreToolUse", "ask": "question"}),
+            // h: 옛 훅(알림 종류 없음)의 끝난 뒤 유휴 알림 → 질문으로 되살아남(from = done)
+            json!({"ts": 1.0, "sid": "h", "event": "UserPromptSubmit"}),
+            json!({"ts": 2.0, "sid": "h", "event": "Stop"}),
+            json!({"ts": 62.0, "sid": "h", "event": "Notification"}),
+            json!({"ts": 90.0, "sid": "h", "event": "UserPromptSubmit"}),
+            // i: 질문에 답한 뒤 곧바로 다음 질문(같은 ts 포함) → 새 구간, 질문 전 상태 = needs_input(앱은 다시 알리지 않음) · 종료로 풀림
+            json!({"ts": 1.0, "sid": "i", "event": "UserPromptSubmit"}),
+            json!({"ts": 5.0, "sid": "i", "event": "PreToolUse", "ask": "question"}),
+            json!({"ts": 5.0, "sid": "i", "event": "PreToolUse", "ask": "plan"}),
+            json!({"ts": 9.0, "sid": "i", "event": "SessionEnd"}),
+            // j: 서브에이전트 질문 → 그 에이전트가 끝남(SubagentStop)
+            json!({"ts": 1.0, "sid": "j", "event": "UserPromptSubmit"}),
+            json!({"ts": 2.0, "sid": "j", "event": "SubagentStart", "aid": "y", "atype": "general"}),
+            json!({"ts": 3.0, "sid": "j", "aid": "y", "event": "Notification", "ntype": "permission_prompt"}),
+            json!({"ts": 6.0, "sid": "j", "aid": "y", "event": "SubagentStop"}),
+        ];
+        let r = replay(evs.iter(), 100.0, Tz::Fixed(0));
+        let sp = |sid: &str| {
+            r.asks
+                .iter()
+                .filter(|a| a.sid == sid)
+                .map(|a| (a.kind, a.t0, a.sure_at, a.t1, a.end))
+                .collect::<Vec<_>>()
+        };
+        let from = |sid: &str| r.asks.iter().find(|a| a.sid == sid).map(|a| a.from);
+        assert_eq!(sp("a"), vec![(Some("permission"), 10.0, Some(16.0), Some(30.0), "PreToolUse")]);
+        assert_eq!(sp("b"), vec![(Some("permission"), 10.0, None, Some(25.0), "quick")]);
+        assert_eq!(sp("c"), vec![(Some("question"), 5.0, Some(5.0), Some(9.0), "PreToolUse")]);
+        assert_eq!(sp("d"), vec![(None, 5.0, Some(5.0), Some(7.0), "Stop")]);
+        assert_eq!(sp("e"), vec![(Some("permission"), 3.0, Some(3.0), Some(8.0), "sub")]);
+        assert_eq!(sp("f"), vec![(Some("question"), 4.0, Some(4.0), Some(5.0), "Resume")]);
+        assert_eq!(sp("g"), vec![(Some("question"), 70.0, Some(70.0), None, "open")]);
+        assert_eq!(
+            (from("a"), from("d"), from("g")),
+            (Some("working"), Some("working"), Some("working"))
+        );
+        assert_eq!(sp("h"), vec![(None, 62.0, Some(62.0), Some(90.0), "UserPromptSubmit")]);
+        assert_eq!(from("h"), Some("done"));
+        assert_eq!(
+            sp("i"),
+            vec![
+                (Some("question"), 5.0, Some(5.0), Some(5.0), "PreToolUse"),
+                (Some("question"), 5.0, Some(5.0), Some(9.0), "SessionEnd")
+            ]
+        );
+        assert_eq!(
+            r.asks.iter().filter(|a| a.sid == "i").map(|a| a.from).collect::<Vec<_>>(),
+            vec!["working", "needs_input"]
+        );
+        assert_eq!(sp("j"), vec![(Some("permission"), 3.0, Some(3.0), Some(6.0), "sub")]);
     }
 
     /// #122: 리더가 회전해도 최근 줄 버퍼(세션)는 그대로, 회전 순간 열려 있던 훅이 옛 파일에 쓴 줄도 마저 읽음,
