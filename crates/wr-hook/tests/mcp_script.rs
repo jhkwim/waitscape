@@ -535,12 +535,23 @@ fn swap_while_sidecar_runs() {
     let d = tmp("swap");
     let bin = d.join(if cfg!(windows) { "wr-hook.exe" } else { "wr-hook" });
     std::fs::copy(self::bin(), &bin).unwrap();
-    let mut child = Command::new(&bin)
-        .args(["mcp", "--reports", "off"])
-        .env("HOME", &d)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .spawn()
+    // #82: Linux에서 방금 쓴 실행 파일을 다른 테스트 스레드의 fork(exec 전)가 쓰기 fd째 물고 있으면 ETXTBSY — 잠깐 뒤 다시
+    let mut child = (0..40)
+        .find_map(|i| {
+            match Command::new(&bin)
+                .args(["mcp", "--reports", "off"])
+                .env("HOME", &d)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::null())
+                .spawn()
+            {
+                Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy && i < 39 => {
+                    std::thread::sleep(Duration::from_millis(50));
+                    None
+                }
+                r => Some(r.unwrap()),
+            }
+        })
         .unwrap();
     let _w = watchdog(child.id(), CHILD_LIMIT);
     std::thread::sleep(Duration::from_millis(200));
