@@ -11,12 +11,15 @@ const lits = [...core.matchAll(/bad\((?:entry\.error \|\| )?"([^"]*[가-힣][^"]
   .map(s => s.replace(/\$\{[^}]+\}/g, k => sample[k] ?? "x"));
 assert.ok(lits.length >= 10, "validate 문구를 찾지 못함: " + lits.length);
 for (const s of lits) assert.ok(!/[가-힣]/.test(en(s)), "영어로 옮기지 못함: " + s);
-// 엔진(wr-core modes.rs·hooks_config.rs = server.py)과 같은 문구
-for (const s of ["mode.json이 없어요", "mode.json을 읽을 수 없어요 (OSError)", "폴더 이름은 모드 id 형식이어야 하고 링크가 아니어야 해요",
-  "settings.json을 해석할 수 없어 건드리지 않았어요", "settings.json 최상위가 객체가 아니라 건드리지 않았어요", "그 사이 settings.json이 바뀌었어요. 다시 시도해 주세요", "파일 오류: Permission denied"])
-  assert.ok(!/[가-힣]/.test(en(s)), "영어로 옮기지 못함: " + s);
+// 엔진(wr-core modes.rs·hooks_config.rs = server.py)의 한국어 문구도 소스에서 모아 확인 — 엔진에 문구가 늘면 표도 늘려야 함
+const rs = f => fs.readFileSync(path.join(__dirname, "../crates/wr-core/src", f), "utf8").split("#[cfg(test)]")[0];
+const eng = [...rs("modes.rs").matchAll(/"([^"\n]*[가-힣][^"\n]*)"/g), ...rs("hooks_config.rs").matchAll(/write!\(f, "([^"]*[가-힣][^"]*)"/g)]
+  .map(m => m[1].replace(/\{[a-z_]*\}/g, "Permission denied"))
+  .filter(s => !s.startsWith("//"));
+assert.ok(eng.length >= 8, "엔진 문구를 찾지 못함: " + eng.length);
+for (const s of eng) assert.ok(!/[가-힣]/.test(en(s)), "영어로 옮기지 못함(엔진): " + s);
 assert.strictEqual(en("폴더 이름(foo)과 id(bar)가 달라요"), "Folder name (foo) and id (bar) differ");
 assert.strictEqual(I.msg("ko", "mode.json이 없어요"), "mode.json이 없어요");   // 한국어 화면은 그대로
 assert.strictEqual(en("same-key: inboxKey = nunchiKey"), "same-key: inboxKey = nunchiKey");   // 모르는 문구·코드는 그대로
 assert.strictEqual(en(new Error("x")), "Error: x");
-console.log(`test_i18n_msg: ok (validate ${lits.length})`);
+console.log(`test_i18n_msg: ok (validate ${lits.length}, 엔진 ${eng.length})`);

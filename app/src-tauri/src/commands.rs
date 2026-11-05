@@ -285,7 +285,7 @@ pub async fn open_widget(app: AppHandle, be: B<'_>, mode_id: Option<String>) -> 
         return Err(l!(
             be.settings().lang == "en",
             "v1: 위젯은 포켓·스튜디오 모드만",
-            "v1: the widget is only for the Pocket and Studio modes"
+            "v1: the widget supports only Pocket and Studio modes"
         ));
     }
     // Ok(false) = 직전 전환 직후라 무시함(연타 가드, windows::SETTLE)
@@ -717,7 +717,7 @@ pub async fn commit_mode_install(w: WebviewWindow, be: B<'_>, stage: String) -> 
         l!(
             en,
             "설치 준비가 만료됐어요. 다시 선택해 주세요",
-            "The install preparation expired. Please choose it again"
+            "Install preparation expired. Please select it again"
         )
     })?;
     // 실패해도 commit이 기존 판을 되돌려 두므로 스테이징은 지워도 된다

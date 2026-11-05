@@ -286,6 +286,7 @@ const detect = () => {
    코어 validate()가 만드는 문구를 화면에 그릴 때만 영어로 옮긴다. 모르는 문구는 그대로 */
 const KO_EN = [
   [/^mode\.json이 없어요$/, () => "mode.json is missing"],
+  [/^mode\.json이 너무 크거나 링크예요$/, () => "mode.json is too large or is a link"],
   [/^mode\.json을 읽을 수 없어요(?: \((\w+)\))?$/, (_, e) => "Can't read mode.json" + (e ? ` (${e})` : "")],
   [/^폴더 이름은 모드 id 형식이어야 하고 링크가 아니어야 해요$/, () => "The folder name must be a mode id and not a link"],
   [/^id 형식이 잘못됐어요 (\(.*\))$/, (_, r) => `Invalid id format ${r}`],

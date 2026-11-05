@@ -1086,10 +1086,10 @@ pub struct Applied {
 
 fn write_one(f: &FileChange, tag: &str, en: bool) -> Result<Option<PathBuf>, String> {
     match &f.after {
-        Some(bytes) => hc::write_raw(&f.path, f.exists, f.mtime, bytes, tag).map_err(|e| e.to_string()),
+        Some(bytes) => hc::write_raw(&f.path, f.exists, f.mtime, bytes, tag).map_err(|e| crate::lang::hook_err(&e, en)),
         None => {
             if hc::mtime_of(&f.path) != f.mtime {
-                return Err(hc::HookError::Changed.to_string());
+                return Err(crate::lang::hook_err(&hc::HookError::Changed, en));
             }
             std::fs::remove_file(&f.path).map_err(|e| l!(en, "파일 오류: {}", "File error: {}", e.kind()))?;
             Ok(None)

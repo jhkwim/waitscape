@@ -10,3 +10,17 @@ macro_rules! l {
         }
     };
 }
+
+/// wr-core `HookError`(문구가 server.py와 같아 엔진에서는 한국어 고정)를 설정 언어로 — 영어 문장 안에 끼워 넣을 때 (#76)
+pub fn hook_err(e: &wr_core::hooks_config::HookError, en: bool) -> String {
+    use wr_core::hooks_config::HookError as H;
+    if !en {
+        return e.to_string();
+    }
+    match e {
+        H::Parse => "Couldn't parse settings.json, so it was left untouched".into(),
+        H::NotObject => "settings.json isn't a JSON object at the top level, so it was left untouched".into(),
+        H::Changed => "settings.json changed in the meantime. Please try again".into(),
+        H::Io(x) => format!("File error: {x}"),
+    }
+}

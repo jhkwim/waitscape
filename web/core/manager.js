@@ -444,29 +444,29 @@ async function onClick(e) {
   if (b.dataset.act === "up" || b.dataset.act === "down") C.manage.move(id, b.dataset.act === "up" ? -1 : 1);
   else if (b.dataset.act === "delete" && info && APP) {
     try { if (await C.api.modeAdmin.remove(info.dir)) { C.manage.forget(info.id); await C.manage.rescan(); note = t("m.deleted", { id: info.id }); } }
-    catch (err) { note = String(err); }
+    catch (err) { note = em(err); }
   }
   else if (b.dataset.act === "delete" && info) showDelete(info);
   else if (b.dataset.act === "inst-folder" || b.dataset.act === "inst-zip") {
     let p = null;
-    try { p = await C.api.modeAdmin.pick(b.dataset.act === "inst-zip" ? "zip" : "folder"); } catch (err) { note = String(err); }
+    try { p = await C.api.modeAdmin.pick(b.dataset.act === "inst-zip" ? "zip" : "folder"); } catch (err) { note = em(err); }
     if (p) { await installPath(p); return; }
   }
-  else if (b.dataset.act === "open-dir") C.api.modeAdmin.openDir().catch(err => { note = String(err); render(); });
-  else if (b.dataset.act === "open-logs") { logNote = ""; C.api.openLogDir().catch(err => { logNote = String(err); render(); }); return; }
-  else if (b.dataset.act === "open-licenses") { if (!C.api.openLicenses) return; logNote = ""; C.api.openLicenses().catch(err => { logNote = String(err); render(); }); return; }
+  else if (b.dataset.act === "open-dir") C.api.modeAdmin.openDir().catch(err => { note = em(err); render(); });
+  else if (b.dataset.act === "open-logs") { logNote = ""; C.api.openLogDir().catch(err => { logNote = em(err); render(); }); return; }
+  else if (b.dataset.act === "open-licenses") { if (!C.api.openLicenses) return; logNote = ""; C.api.openLicenses().catch(err => { logNote = em(err); render(); }); return; }
   else if (b.dataset.act === "hooks-on" || b.dataset.act === "hooks-off") {
     try {
       const r = await (b.dataset.act === "hooks-on" ? C.api.hooks.install() : C.api.hooks.uninstall());
       hookInfo = r.status || null;
       note = r.cancelled ? t("h.cancelled") : r.backup ? t("h.backup", { p: r.backup }) : "";
-    } catch (err) { note = String(err); hookInfo = null; }
+    } catch (err) { note = em(err); hookInfo = null; }
   }
   else if (b.dataset.act === "mcp-plan") { await mcpPlan(b.dataset.cli, b.dataset.connect === "1"); return; }
   else if (b.dataset.act === "mcp-apply") { await mcpApply(); return; }
   else if (b.dataset.act === "mcp-cancel") { mcpPrev = null; mcpNote = ""; }
   else if (b.dataset.act === "keychain") {
-    try { const r = await C.api.usage.keychain(); usageInfo = r.status; if (!r.ok) usageInfo = { ...usageInfo, err: r.err }; } catch (err) { usageInfo = { ...(usageInfo || {}), err: String(err) }; }
+    try { const r = await C.api.usage.keychain(); usageInfo = r.status; if (!r.ok) usageInfo = { ...usageInfo, err: r.err }; } catch (err) { usageInfo = { ...(usageInfo || {}), err: em(err) }; }
   }
   else if (b.dataset.act === "rescan") { await C.manage.rescan(); note = t("m.rescanned"); }
   else if (b.dataset.act === "update-now") { checkNow(); return; }
@@ -603,7 +603,7 @@ async function hooksStep(fresh) {
         hookInfo = r && r.status || null;
       } catch (err) {
         b.disabled = false; b.textContent = t("o.h.on");
-        msg.className = "mg-note mg-err"; msg.textContent = String(err);
+        msg.className = "mg-note mg-err"; msg.textContent = em(err);
       }
     });
     root().appendChild(c);
