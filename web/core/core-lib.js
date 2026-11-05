@@ -73,7 +73,7 @@ function inboxItem(s, now) {
     if (s.confidence === "guess") return null;
     return { kind: s.ask === "permission" ? "permission" : "question", since: s.since || 0, line: s.note || "" };
   }
-  if (s.status === "done") return now - (s.since || 0) > INBOX_DONE_MAX ? null : { kind: "done", since: s.since || 0, line: s.prompt || "" };
+  if (s.status === "done") return now - (s.since || 0) > INBOX_DONE_MAX ? null : { kind: "done", since: s.since || 0, line: s.prompt || "", ...(s.test === "pass" || s.test === "fail" ? { test: s.test } : {}) };   // 🧪 그 턴의 마지막 테스트(#138)
   const st = h => h && h.level === "stall";
   const ag = (s.agents || []).filter(a => a.status === "running" && st(a.health));
   if ((s.status === "working" && st(s.health)) || ag.length) {

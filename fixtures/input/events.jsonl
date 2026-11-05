@@ -16,8 +16,13 @@
 {"ts": 1792517200, "sid": "fx-idle", "cwd": "/Users/alex/dev/notes", "event": "UserPromptSubmit", "text": "회의록 요약해줘"}
 {"ts": 1792517300, "sid": "fx-idle", "cwd": "/Users/alex/dev/notes", "event": "PreToolUse", "icon": "📖", "text": "meeting.md 읽는 중", "kind": "read"}
 {"ts": 1792517400, "sid": "fx-idle", "cwd": "/Users/alex/dev/notes", "event": "Stop"}
+{"ts": 1792517700, "sid": "fx-tpass", "cwd": "/Users/alex/dev/testrepo", "event": "UserPromptSubmit", "text": "고쳐 줘"}
+{"ts": 1792517800, "sid": "fx-tpass", "cwd": "/Users/alex/dev/testrepo", "event": "Stop"}
+{"ts": 1792517900, "sid": "fx-tprev", "cwd": "/Users/alex/dev/testrepo", "event": "UserPromptSubmit", "text": "테스트"}
+{"ts": 1792518000, "sid": "fx-tprev", "cwd": "/Users/alex/dev/testrepo", "event": "Stop"}
 {"ts": 1792518300, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "UserPromptSubmit", "text": "API 구조 조사해줘"}
 {"ts": 1792518300, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "UserPromptSubmit", "text": "결제 실패율이 왜 올랐는지 조사하고 고쳐줘. 키는 @@FAKE_SK@@ 야"}
+{"ts": 1792518300, "sid": "fx-tfail", "cwd": "/Users/alex/dev/testrepo", "event": "UserPromptSubmit", "text": "테스트 고치기"}
 {"ts": 1792518320, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 라우터와 미들웨어 구조 조사", "kind": "agent", "agent_desc": "라우터와 미들웨어 구조 조사", "bg": true, "agent_req": "Explore"}
 {"ts": 1792518321, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "SubagentStart", "aid": "p0", "atype": "Explore"}
 {"ts": 1792518321, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: DB 스키마 비교", "kind": "agent", "agent_desc": "DB 스키마 비교", "bg": true, "agent_req": "Explore"}
@@ -31,7 +36,9 @@
 {"ts": 1792518343.5, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "PreToolUse", "icon": "🤖", "text": "서브에이전트: 재시도 로직 테스트 작성", "kind": "agent", "agent_desc": "재시도 로직 테스트 작성", "bg": true, "agent_req": "general-purpose"}
 {"ts": 1792518344, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "SubagentStart", "aid": "a3x", "atype": "general-purpose"}
 {"ts": 1792518350, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "Stop"}
+{"ts": 1792518400, "sid": "fx-tfail", "cwd": "/Users/alex/dev/testrepo", "event": "Stop"}
 {"ts": 1792518500, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "UserPromptSubmit", "text": "작업 셋 만들어"}
+{"ts": 1792518500, "sid": "fx-tpass", "cwd": "/Users/alex/dev/testrepo", "event": "UserPromptSubmit", "text": "다시 확인"}
 {"ts": 1792518500, "sid": "fx-mcp-cheer", "cwd": "/Users/alex/dev/report-cheer", "event": "UserPromptSubmit", "text": "로그인 버그 고쳐줘"}
 {"ts": 1792518510, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PreToolUse", "icon": "🔧", "text": "TaskCreate", "kind": "todo"}
 {"ts": 1792518510.5, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_new": {"id": "1", "text": "설계"}}
@@ -42,10 +49,13 @@
 {"ts": 1792518596, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "SubagentStop", "aid": "a1x", "atype": "Explore"}
 {"ts": 1792518600, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_upd": {"id": "1", "status": "in_progress", "text": "설계하는 중"}}
 {"ts": 1792518600, "sid": "fx-flow", "cwd": "/Users/alex/dev/shop-api", "event": "Resume"}
+{"ts": 1792518600, "sid": "fx-tpass", "cwd": "/Users/alex/dev/testrepo", "event": "Stop"}
 {"ts": 1792518700, "sid": "fx-ended", "cwd": "/Users/alex/dev/gone", "event": "UserPromptSubmit", "text": "정리해줘"}
 {"ts": 1792518700, "sid": "fx-tasks", "cwd": "/Users/alex/dev/tasks", "event": "PostToolUse", "task_upd": {"id": "1", "status": "completed", "text": ""}}
+{"ts": 1792518700, "sid": "fx-tprev", "cwd": "/Users/alex/dev/testrepo", "event": "UserPromptSubmit", "text": "문서만"}
 {"ts": 1792518710, "sid": "fx-ended", "cwd": "/Users/alex/dev/gone", "event": "SubagentStart", "aid": "e0", "atype": "Explore"}
 {"ts": 1792518720, "sid": "fx-ended", "cwd": "/Users/alex/dev/gone", "event": "SessionEnd"}
+{"ts": 1792518750, "sid": "fx-tprev", "cwd": "/Users/alex/dev/testrepo", "event": "Stop"}
 {"ts": 1792518780, "sid": "fx-bash", "cwd": "/Users/alex/dev/payment", "event": "UserPromptSubmit", "text": "결제 테스트 전부 돌려줘"}
 {"ts": 1792518800, "sid": "fx-bash", "cwd": "/Users/alex/dev/payment", "event": "PreToolUse", "icon": "🗒️", "text": "할 일 정리 중", "kind": "todo", "todos": [{"text": "구조 파악", "status": "completed"}, {"text": "테스트 수정", "status": "completed"}, {"text": "전체 테스트 돌리는 중", "status": "in_progress"}, {"text": "리포트", "status": "pending"}]}
 {"ts": 1792518800, "sid": "fx-party", "cwd": "/Users/alex/dev/api-server", "event": "PreToolUse", "aid": "p0", "atype": "Explore", "icon": "🔍", "text": "'router' 찾는 중", "kind": "search"}

@@ -6409,10 +6409,10 @@ C.registerMode({
       } else { sty(tkHead, "display", "none"); ibPos.key = ""; }
       /* 📥 결재 서류함: 봉투 최대 4장(오래 걸린 일 = 두꺼운 봉투) · 넘치면 +n */
       const ss = (ctx.state && ctx.state.sessions) || [], dq = q.filter(it => it.kind === "done");
-      const th = dq.slice(0, 4).map(it => { const s = ss.find(x => x.sid === it.sid); return s && (s.run || 0) >= 600 ? 1 : 0; });
+      const th = dq.slice(0, 4).map(it => { const s = ss.find(x => x.sid === it.sid); return (s && (s.run || 0) >= 600 ? 1 : 0) + (it.test === "fail" ? 2 : 0); });   // 1 = 두꺼운 봉투 · 2 = 🧪 테스트 실패(빨간 점, #138)
       const tsig = th.join("") + "|" + dq.length + ctx.lang;
       if (bf.tray._ib !== tsig) { bf.tray._ib = tsig; let y = 2, h = "";
-        th.forEach((t, j) => { h += `<i class="ev${t ? " th" : ""}" style="bottom:${y}px;height:${t ? 12 : 9}px;left:${[3, 6, 1, 5][j]}px"></i>`; y += t ? 7 : 5; });   // 엇갈려 쌓인 봉투   // 아래 봉투일수록 받침에 가려짐
+        th.forEach((t, j) => { const k = t & 1; h += `<i class="ev${k ? " th" : ""}${t & 2 ? " tf" : ""}" style="bottom:${y}px;height:${k ? 12 : 9}px;left:${[3, 6, 1, 5][j]}px"></i>`; y += k ? 7 : 5; });   // 엇갈려 쌓인 봉투   // 아래 봉투일수록 받침에 가려짐
         html(bf.tray, h + `<b class="tb"></b>${dq.length > 4 ? `<u>+${dq.length - 4}</u>` : ""}`); }   // 툴팁 없음: 모니터·화분 👆 누를 자리(z60)가 덮음
       /* "결재" 도장 쾅(1.6초) — 동작 줄이기면 튐 없이 */
       const su = tc - ibStamp, on = !off && su >= 0 && su < 1.6;
@@ -6726,7 +6726,7 @@ C.registerMode({
       let title, on = 0, cur = -1;
       if (k === "ask") title = a.goal !== "boss" || (a.loc === "home" && !a.moving) ? "❓ " + X("입력 필요", "Needs input") : a.loc === "boss" && !a.moving ? "💬 " + X("질문 중", "Asking") : "🏃 " + X("질문하러 이동", "Heading down");
       else if (k === "stall") title = "💤 " + X("멈춤 의심", "Stalled?");
-      else if (k === "done") { title = bigOf(s) ? "🎉 " + X("큰 일 완료!", "Big one done!") : "✅ " + X("완료", "Done"); on = 5; }
+      else if (k === "done") { title = (bigOf(s) ? "🎉 " + X("큰 일 완료!", "Big one done!") : "✅ " + X("완료", "Done")) + (s.test === "pass" ? " 🧪✓" : s.test === "fail" ? " 🧪✗" : ""); on = 5; }   // 🧪 그 턴의 테스트(#138)
       else if (k === "idle") title = "💤 " + X("쉬는 중", "Resting");
       else if (f.layout === "meet") { const d = f.agAll.filter(x => x.status === "done").length, tot = Math.max(1, f.agAll.length); title = "🤝 " + X(`서브 ${d}/${tot}`, `Sub ${d}/${tot}`); on = Math.min(5, Math.round(d / tot * 5)); cur = on < 5 ? on : -1; }
       else {

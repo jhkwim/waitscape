@@ -299,6 +299,7 @@ pub fn new_session(sid: String, ts: f64) -> Session {
         source: None,
         confidence: None,
         ask: None,
+        test: None,
         provider: None,
         report: None,
         kinds: IndexMap::new(),

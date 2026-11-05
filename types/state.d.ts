@@ -158,6 +158,10 @@ export interface Session {
   /** 질문 종류(`status: "needs_input"`일 때만). "permission" = 도구 권한 승인, "question" = AI의 질문(AskUserQuestion·MCP elicitation)·계획 승인.
    *  없으면 모름(옛 Claude Code·트랜스크립트·MCP 세션) @since 1.7 */
   ask?: "permission" | "question";
+  /** 🧪 이번 턴(마지막 프롬프트 뒤)에 돌린 테스트 명령의 마지막 결과. 돌리지 않았으면 없음.
+   *  Bash의 흔한 테스트 실행기(cargo/npm/pytest/go test/jest/vitest/make test/node …test….js 등)와 결과의 is_error로 정한다.
+   *  사용자 거절·권한 차단·도구 오류는 실행으로 치지 않는다. 명령 원문은 담지 않는다. Claude 트랜스크립트만(MCP 세션은 없음) @since 1.9 */
+  test?: "pass" | "fail";
 
   /** 이 세션을 만든 AI 코딩 도구 id (State.providers[].id). 없으면 "claude" @since 1.1. MCP 세션은 "codex" | "gemini" | "other" */
   provider?: string;

@@ -1,5 +1,5 @@
 {
- "done_today": 14,
+ "done_today": 19,
  "limits": {
   "five_hour": {
    "resets_at": 1792530600,
@@ -753,6 +753,7 @@
    "since": 1792519100,
    "started": null,
    "status": "done",
+   "test": "pass",
    "todos": [],
    "tokens": {
     "cached": 900000,
@@ -1022,6 +1023,7 @@
    "since": 1792518600,
    "started": 1792518600,
    "status": "working",
+   "test": "pass",
    "todos": [],
    "tokens": {
     "cached": 72000,
@@ -1810,6 +1812,86 @@
    "activity": [],
    "agents": [],
    "ctx": null,
+   "cwd": "/Users/alex/dev/testrepo",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792518400,
+   "project": "testrepo",
+   "prompt": "테스트 고치기",
+   "prompt_ts": 1792518300,
+   "run": 100,
+   "sid": "fx-tfail",
+   "since": 1792518400,
+   "started": null,
+   "status": "done",
+   "test": "fail",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 300,
+    "out": 40,
+    "total": 340
+   },
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/testrepo",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792518600,
+   "project": "testrepo",
+   "prompt": "다시 확인",
+   "prompt_ts": 1792518500,
+   "run": 100,
+   "sid": "fx-tpass",
+   "since": 1792518600,
+   "started": null,
+   "status": "done",
+   "test": "pass",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 200,
+    "out": 20,
+    "total": 220
+   },
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/testrepo",
+   "kind": "think",
+   "kinds": {},
+   "last": 1792518750,
+   "project": "testrepo",
+   "prompt": "문서만",
+   "prompt_ts": 1792518700,
+   "run": 50,
+   "sid": "fx-tprev",
+   "since": 1792518750,
+   "started": null,
+   "status": "done",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 100,
+    "out": 10,
+    "total": 110
+   },
+   "tools": 0,
+   "trail": []
+  },
+  {
+   "activity": [],
+   "agents": [],
+   "ctx": null,
    "cwd": "/Users/alex/dev/twins",
    "kind": "think",
    "kinds": {},
@@ -1949,9 +2031,9 @@
  },
  "today_tokens": {
   "cached": 1131500,
-  "new": 217740,
-  "out": 23740,
-  "total": 241480
+  "new": 218640,
+  "out": 23840,
+  "total": 242480
  },
- "waited_today": 5470.0
+ "waited_today": 5920.0
 }

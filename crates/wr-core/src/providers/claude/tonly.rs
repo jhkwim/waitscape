@@ -547,9 +547,14 @@ impl TOnly {
         } else {
             c
         };
-        let (main_msgs, main_last, main_say) = {
+        let (main_msgs, main_last, main_say, main_test) = {
             let m = scans.get(path, tz);
-            (m.msgs.values().copied().collect::<Vec<Usage>>(), m.last_ts, m.say.clone())
+            (
+                m.msgs.values().copied().collect::<Vec<Usage>>(),
+                m.last_ts,
+                m.say.clone(),
+                super::scan::test_of(m, c.prompt_ts),
+            )
         };
         let mut status: &'static str;
         let mut since;
@@ -716,6 +721,7 @@ impl TOnly {
         s.run = run;
         s.last = c.last_ts;
         s.prompt_ts = c.prompt_ts;
+        s.test = main_test; // 🧪 이번 턴의 마지막 테스트(#138)
         s.cwd = c.cwd.clone();
         s.project = project_name(&c.cwd);
 

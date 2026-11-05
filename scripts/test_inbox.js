@@ -43,6 +43,13 @@ assert.strictEqual(L.inboxQueue(again, NOW, seen)[0].sid, "perm");
 
 // 같은 since면 sid 순(창마다 같은 순서)
 assert.deepStrictEqual(L.inboxQueue([s("b", "done", 5), s("a", "done", 5)], NOW).map(x => x.sid), ["a", "b"]);
+// 🧪 #138: 완료 항목은 그 턴의 테스트 결과를 그대로 싣고, 모르는 값·다른 종류는 싣지 않는다
+{
+  const t = L.inboxQueue([s("tp", "done", 30, { test: "pass" }), s("tf", "done", 20, { test: "fail" }), s("tx", "done", 10, { test: "weird" }),
+    s("tq", "needs_input", 5, { test: "fail" })], NOW);
+  assert.deepStrictEqual(t.map(x => [x.sid, x.test]), [["tq", undefined], ["tp", "pass"], ["tf", "fail"], ["tx", undefined]]);
+  assert.ok(!("test" in t.find(x => x.sid === "tx")));
+}
 // 빈 입력
 assert.deepStrictEqual(L.inboxQueue(null, NOW), []);
 assert.deepStrictEqual(L.inboxQueue([{ status: "done" }], NOW), []);

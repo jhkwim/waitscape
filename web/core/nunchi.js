@@ -310,7 +310,7 @@ function create(env) {
     /* 다음에 볼 것(관제 인박스, #126): 코어와 같은 순서 · 최대 3줄 · 담백한 글자 배지(이모지 없음) */
     const nq = env.inbox ? env.inbox().slice(0, 3) : [], nxt = root.querySelector(".nx-next");
     const nh = nq.map(q => { const s = st.sessions.find(x => x.sid === q.sid), mx = env.openTerminal && s ? L.muxName(s) : "";
-      return `<li data-sid="${esc(q.sid)}" class="k-${esc(q.kind)}"><span class="bd">${esc(t("ib.k." + q.kind))}</span><b>${esc(q.project)}</b><span class="ln">${esc(q.line)}</span><span class="num">${clock(now - q.since)}</span>`
+      return `<li data-sid="${esc(q.sid)}" class="k-${esc(q.kind)}"><span class="bd">${esc(t("ib.k." + q.kind))}</span><b>${esc(q.project)}</b><span class="ln">${q.test ? `<span class="tst t-${esc(q.test)}">${esc(t("ib.t." + q.test))}</span> ` : ""}${esc(q.line)}</span><span class="num">${clock(now - q.since)}</span>`
         + `<span class="act">${mx ? `<button type="button" class="open" data-open="${esc(q.sid)}">${esc(t("nx.go", { m: mx }))}</button>` : ""}<button type="button" class="skip" data-skip="${esc(q.sid)}">${esc(t("ib.skipBtn"))}</button></span></li>`; }).join("");
     nxt.hidden = !nh;
     const nol = nxt.querySelector("ol"); if (nol._h !== nh) { nol._h = nh; nol.innerHTML = nh; }

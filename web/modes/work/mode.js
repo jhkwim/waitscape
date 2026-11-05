@@ -183,7 +183,7 @@ C.registerMode({
       nxEl.hidden = !nq.length;
       setHTML(nxEl, nq.length ? `<div class="ops-head"><h2>다음에 볼 것 <small>N 다음 · Shift+N 건너뛰기</small></h2></div>` + nq.map(q => {
         const s = ss.find(x => x.sid === q.sid), mx = ctx.api.openTerminal && s ? C.muxName(s) : "";
-        return `<div class="nx-row k-${esc(q.kind)}"><span class="ib-tag">${INBOX_LABEL[q.kind]}</span><b>${esc(q.project)}</b><span class="ib-ln">${esc(q.line)}</span><span class="ib-num">${dur(now - q.since)}</span>`
+        return `<div class="nx-row k-${esc(q.kind)}"><span class="ib-tag">${INBOX_LABEL[q.kind]}</span><b>${esc(q.project)}</b><span class="ib-ln">${q.test ? `<span class="ib-test t-${esc(q.test)}" title="${q.test === "pass" ? "테스트 통과" : "테스트 실패"}">🧪 ${q.test === "pass" ? "통과" : "실패"}</span> ` : ""}${esc(q.line)}</span><span class="ib-num">${dur(now - q.since)}</span>`
           + `<span class="ib-act">${mx ? `<button class="btn" data-ib-go="${esc(q.sid)}">${esc(mx)}로 이동</button>` : ""}<button class="btn" data-ib-skip="${esc(q.sid)}">건너뛰기</button></span></div>`;
       }).join("") : "");
 

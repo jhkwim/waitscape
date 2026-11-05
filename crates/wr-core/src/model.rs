@@ -125,6 +125,9 @@ pub struct Session {
     /// @since 1.7 질문 종류 "permission"(권한 승인) | "question"(AI의 질문·계획 승인). `needs_input`일 때만. 없으면 옛 Claude Code(알림 종류 없음)·트랜스크립트·MCP
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ask: Option<&'static str>,
+    /// 🧪 이번 턴의 마지막 테스트 실행 결과 "pass" | "fail" — 돌리지 않았으면 없음(Claude 트랜스크립트만, #138)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test: Option<&'static str>,
     /// @since 1.1 프로바이더 id (예: "claude")
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<&'static str>,
