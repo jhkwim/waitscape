@@ -672,15 +672,23 @@ function inboxMark(sid) {
   return true;
 }
 const inboxToast = msg => toast(nx.on ? window.CoreNunchi.lib.stripIcon(msg) : msg);   // 🙈 눈치 모드: 이모지 없이
-function inboxGo() {
+/* 전역 단축키(다른 앱을 쓰는 중): 창 안 토스트는 안 보이므로 OS 알림으로 안내(종류 알림 설정과 무관 — 사용자가 직접 누른 것의 답) */
+const inboxSay = (msg, body, global) => {
+  if (!global) { inboxToast(msg); return; }
+  const plain = nx.on ? window.CoreNunchi.lib.stripIcon(msg) : msg;
+  if (api.notify) api.notify(plain, nx.on ? "" : body || ""); else toast(plain);   // 🙈 눈치 모드: 본문(프롬프트·질문·경로) 없이 제목만
+};
+function inboxGo(o = {}) {
   const it = inboxList()[0];
-  if (!it) { inboxToast(t("ib.empty")); return null; }
+  if (!it) { inboxSay(t("ib.empty"), "", o.global); return null; }
   const s = state.sessions.find(x => x.sid === it.sid);
   emit("inbox-go", it);
-  if (api.openTerminal && L.muxName(s)) openTerminal(it.sid);   // 봄 처리는 이동이 될 때만(openTerminal 안에서) — 못 가면 큐에 남음
+  if (api.openTerminal && L.muxName(s)) {   // 봄 처리는 이동이 될 때만(openTerminal 안에서) — 못 가면 큐에 남음
+    openTerminal(it.sid).then(r => { if (o.global && r !== "opened") inboxSay(t("ib.go." + it.kind, { p: it.project }), it.line || "", true); });   // 전역 키: 창 안 토스트는 안 보이니 알림으로도
+  }
   else {   // 바로 갈 수 없는 세션: 안내만. 권한·질문은 답할 때까지 큐에 남김(봄 처리는 완료·멈춤만) — 넘기려면 Shift+N
     if (it.kind === "done" || it.kind === "stall") inboxMark(it.sid);
-    inboxToast(t("ib.go." + it.kind, { p: it.project }));
+    inboxSay(t("ib.go." + it.kind, { p: it.project }), it.line || (s && s.cwd) || "", o.global);
   }
   return it;
 }
@@ -1025,6 +1033,7 @@ function tauriBoot(s) {
   }
   if (WIDGET) return;
   api.on("nunchi-key", nunchiKey);   // 전역 단축키(큰 창이 보일 때 백엔드가 이 창에 맡김)
+  api.on("inbox-key", () => inboxGo({ global: !document.hasFocus() }));   // 📥 인박스 전역 단축키(창이 숨어 있어도 — 다른 앱 중이면 안내는 OS 알림, 이 창이 앞이면 토스트)
   api.on("set-mode", id => { if (typeof id === "string") setMode(id); });
   api.on("open-settings", p => openSettings(undefined, { fromMini: !!(p && p.fromMini) }));
   if (api.update && appInfo.features.updater) {

@@ -120,8 +120,8 @@ function tauriApi(T) {
     // { version, features: { updater, terminalJump }, updateReady } — 메인 창만 (capabilities/main.json)
     appInfo: () => invoke("app_info"),
     // 🙈 눈치 모드 전역 단축키 등록 상태 { key, ok, err } — 다른 앱이 선점하면 err. 메인 창만
-    nunchiStatus: () => invoke("nunchi_status"),
-    nunchiRetry: () => invoke("nunchi_retry"),
+    nunchiStatus: which => invoke("nunchi_status", which ? { which } : {}),   // which = "inbox" → 📥 관제 인박스 단축키
+    nunchiRetry: which => invoke("nunchi_retry", which ? { which } : {}),
     // 창 우클릭 메뉴(네이티브) · 메뉴와 같은 동작(위젯 ⚙ = 큰 화면 + 설정). 메인·위젯 창
     contextMenu: (sid, title) => invoke("context_menu", { sid: sid || null, title: title || null }),
     menuAction: id => invoke("menu_action", { id }),

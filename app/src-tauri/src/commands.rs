@@ -77,7 +77,11 @@ pub fn save_patch_with(app: &AppHandle, be: &Backend, make: impl FnOnce(&AppSett
     }
     if before.nunchi_key != after.nunchi_key || before.nunchi_global != after.nunchi_global {
         let a = app.clone();
-        std::thread::spawn(move || crate::nunchi::apply_key(&a, false));
+        std::thread::spawn(move || crate::nunchi::apply_key(&a, crate::nunchi::Which::Nunchi, false));
+    }
+    if before.inbox_key != after.inbox_key || before.inbox_global != after.inbox_global {
+        let a = app.clone();
+        std::thread::spawn(move || crate::nunchi::apply_key(&a, crate::nunchi::Which::Inbox, false));
     }
     if before.lang != after.lang
         || before.quiet != after.quiet
@@ -260,7 +264,8 @@ pub fn notify(app: AppHandle, w: WebviewWindow, be: B, title: String, body: Stri
     main_only(&w)?;
     let t: String = title.chars().take(140).collect();
     let b: String = body.chars().take(280).collect();
-    os_notify(&app, &t, &b, be.settings().quiet);
+    let s = be.settings();
+    os_notify(&app, &t, &b, s.quiet || s.nunchi); // 🙈 눈치 모드면 효과음 없이(백엔드 알림과 같은 규칙)
     Ok(())
 }
 
@@ -831,20 +836,21 @@ pub fn menu_action(app: AppHandle, w: WebviewWindow, id: String) -> Result<(), S
     Ok(())
 }
 
-/// 🙈 눈치 모드 단축키 상태 `{ key, ok, err }` (다른 앱이 선점하면 err). 메인 창만.
+/// 전역 단축키 상태 `{ key, ok, err }` (다른 앱이 선점하면 err). which: 없음 = 🙈 눈치 모드 · "inbox" = 📥 관제 인박스(#128). 메인 창만.
 /// async = 메인 스레드 밖에서(단축키 등록이 메인 스레드 작업을 기다리는 동안 상태를 물어도 교착 없음)
 #[tauri::command(async)]
-pub fn nunchi_status(app: AppHandle, w: WebviewWindow) -> Result<Value, String> {
+pub fn nunchi_status(app: AppHandle, w: WebviewWindow, which: Option<String>) -> Result<Value, String> {
     main_only(&w)?;
-    Ok(crate::nunchi::status(&app))
+    Ok(crate::nunchi::status(&app, crate::nunchi::Which::parse(which.as_deref())))
 }
 
-/// 🙈 단축키 다시 등록(키가 같아도 — 설정 화면 [다시 시도]). 결과 상태를 돌려준다. 메인 창만
+/// 전역 단축키 다시 등록(키가 같아도 — 설정 화면 [다시 시도]). 결과 상태를 돌려준다. 메인 창만
 #[tauri::command(async)]
-pub fn nunchi_retry(app: AppHandle, w: WebviewWindow) -> Result<Value, String> {
+pub fn nunchi_retry(app: AppHandle, w: WebviewWindow, which: Option<String>) -> Result<Value, String> {
     main_only(&w)?;
-    crate::nunchi::apply_key(&app, true);
-    Ok(crate::nunchi::status(&app))
+    let k = crate::nunchi::Which::parse(which.as_deref());
+    crate::nunchi::apply_key(&app, k, true);
+    Ok(crate::nunchi::status(&app, k))
 }
 
 #[tauri::command]

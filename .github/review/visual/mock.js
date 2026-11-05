@@ -46,7 +46,7 @@
   const UPD = q.has("upd") || q.has("just");
   const lang = q.get("lang") || "ko";
   const settings = { usageLookup: false, notify: { done: true, input: true, stall: true, memo: true }, quiet: false, langPref: lang, lang, autostart: false,
-    terminal: "auto", modes: {}, widget: false, hideProjects: [], hideBuiltin: true, activeOnly: true, recentMinutes: 30, updateCheck: false, nunchi: q.has("nunchi"), nunchiKey: "Control+KeyQ", nunchiLong: false, nunchiTheme: "system", nunchiGlobal: true };
+    terminal: "auto", modes: {}, widget: false, hideProjects: [], hideBuiltin: true, activeOnly: true, recentMinutes: 30, updateCheck: false, nunchi: q.has("nunchi"), nunchiKey: "Control+KeyQ", nunchiLong: false, nunchiTheme: "system", nunchiGlobal: true, inboxKey: "Control+Shift+KeyN", inboxGlobal: true };
   const fire = (event, payload) => (L[event] || []).forEach(h => cbs[h] && cbs[h]({ event, payload }));
   setInterval(() => fire("state", mkState(Date.now() / 1000)), 1000);
   async function listModes() {
@@ -59,7 +59,7 @@
     get_settings: () => settings, set_settings: ({ patch }) => { Object.assign(settings, patch); return { ...settings }; },
     get_brand: () => ({ name: "Waitscape", identifier: "io.github.jhkwim.waitscape" }), list_modes: listModes,
     app_info: () => ({ version: "0.4.2", features: { updater: UPD, terminalJump: true }, updateReady: UPD }),
-    nunchi_status: () => ({ key: settings.nunchiKey, ok: true, err: null }),
+    nunchi_status: ({ which }) => which === "inbox" ? { key: settings.inboxKey, ok: true, err: null } : { key: settings.nunchiKey, ok: true, err: null },
     update_status: () => UPD && q.has("upd") ? { compiled: true, ready: true, current: "0.4.2", phase: "", available: { version: "0.7.0", notes: "🎰 가짜 요약 한 줄이에요.\n🦊 두 번째 줄이에요.\n\n자세한 내용은 GitHub 릴리스 페이지에서 볼 수 있어요." } } : { compiled: UPD, ready: UPD, current: "0.4.2", available: null },
     update_install: () => { setTimeout(() => fire("update-progress", { phase: "downloading", pct: 42, got: 4, total: 10 }), 0); return new Promise(() => {}); }, notify: () => null, set_tray_modes: () => null, usage_status: () => ({}), hooks_status: () => q.get("hooks") === "partial" ? { status: { installed: true, complete: false, stale: false, legacy: false, count: 9 } } : { status: { installed: true, complete: true, stale: false, legacy: false, count: 10 } },
     open_terminal: () => ({ result: "opened" }), open_widget: () => null, close_widget: () => null, widget_resize: () => null,
