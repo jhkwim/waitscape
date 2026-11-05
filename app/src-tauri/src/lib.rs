@@ -5,6 +5,8 @@
 
 #[macro_use]
 pub mod applog;
+#[macro_use]
+mod lang;
 mod backend;
 pub mod commands;
 mod ctxmenu;
@@ -89,7 +91,10 @@ pub fn run() {
             app.manage(winpos::WinPos::load(config.clone()));
             let be = Arc::new(Backend::new(data, config));
             // 이미 훅을 켠 사용자: 설치된 wr-hook을 이 버전의 sidecar로 조용히 맞춘다(별도 스레드, settings.json은 안 건드림)
-            hooks::refresh_on_start(hooks::HookPaths::new(&be.claude.root, &be.claude.settings));
+            hooks::refresh_on_start(
+                hooks::HookPaths::new(&be.claude.root, &be.claude.settings),
+                be.settings().lang == "en",
+            );
             app.manage(be.clone());
             app.manage(updater::Updates::default());
             // 큰 창은 숨긴 채 만들고, 마지막 화면(큰 화면/미니 보기)으로 시작

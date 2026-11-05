@@ -278,6 +278,23 @@ pub fn run_with_timeout(prog: &Path, args: &[String], path_env: Option<&str>, li
     }
 }
 
+/// `run_with_timeout`의 오류 문구(한국어 고정 — terminal.rs가 비교에 쓴다)를 화면 언어로 (#76)
+fn run_err(e: &str, en: bool) -> String {
+    if !en {
+        return e.to_string();
+    }
+    if e == "시간 초과" {
+        return "timed out".into();
+    }
+    if let Some(rest) = e.strip_prefix("종료 코드 ") {
+        return format!("exit code {rest}");
+    }
+    if let Some(rest) = e.strip_prefix("실행 실패: ") {
+        return format!("couldn't run: {rest}");
+    }
+    e.to_string()
+}
+
 /// 테스트에서 바꿔 끼우는 CLI 실행기 (`prog`, `args`) → stdout
 pub type Runner<'a> = &'a dyn Fn(&Path, &[String]) -> Result<String, String>;
 
@@ -345,11 +362,11 @@ impl Record {
             })
     }
 
-    fn save(&self, p: &Path) -> Result<(), String> {
+    fn save(&self, p: &Path, en: bool) -> Result<(), String> {
         let mut text = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
         text.push('\n');
         // 우리 파일이라 백업 없이 임시 파일 + rename만
-        let dir = p.parent().ok_or("경로 오류")?;
+        let dir = p.parent().ok_or_else(|| l!(en, "경로 오류", "Invalid path"))?;
         std::fs::create_dir_all(dir).map_err(|e| e.kind().to_string())?;
         let tmp = dir.join(format!(".mcp-connect.tmp-{}", std::process::id()));
         std::fs::write(&tmp, text).map_err(|e| e.kind().to_string())?;
@@ -360,14 +377,14 @@ impl Record {
     }
 
     /// 한 CLI 기록만 바꿔 저장 (None = 지움)
-    fn put(p: &Path, cli: Cli, rec: Option<CliRecord>) -> Result<(), String> {
+    fn put(p: &Path, cli: Cli, rec: Option<CliRecord>, en: bool) -> Result<(), String> {
         let mut r = Record::load(p);
         r.v = 1;
         match rec {
             Some(x) => r.clis.insert(cli.id().into(), x),
             None => r.clis.remove(cli.id()),
         };
-        r.save(p)
+        r.save(p, en)
     }
 }
 
@@ -384,7 +401,7 @@ struct Raw {
     exists: bool,
 }
 
-fn read_opt(p: &Path, home: &Path) -> Result<Option<Raw>, String> {
+fn read_opt(p: &Path, home: &Path, en: bool) -> Result<Option<Raw>, String> {
     match std::fs::read(p) {
         Ok(bytes) => Ok(Some(Raw {
             bytes,
@@ -392,22 +409,34 @@ fn read_opt(p: &Path, home: &Path) -> Result<Option<Raw>, String> {
             exists: true,
         })),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(e) => Err(format!("{} 읽기 실패: {}", short(p, home), e.kind())),
+        Err(e) => Err(l!(en, "{} 읽기 실패: {}", "Couldn't read {}: {}", short(p, home), e.kind())),
     }
 }
 
-fn read_raw(p: &Path, home: &Path) -> Result<Raw, String> {
-    read_opt(p, home)?.ok_or_else(|| format!("{} 파일이 없어요 — 그 AI 도구를 한 번 실행한 뒤 다시 시도해 주세요", short(p, home)))
+fn read_raw(p: &Path, home: &Path, en: bool) -> Result<Raw, String> {
+    read_opt(p, home, en)?.ok_or_else(|| {
+        l!(
+            en,
+            "{} 파일이 없어요 — 그 AI 도구를 한 번 실행한 뒤 다시 시도해 주세요",
+            "{} doesn't exist — run that AI tool once, then try again",
+            short(p, home)
+        )
+    })
 }
 
 fn short(p: &Path, home: &Path) -> String {
     crate::commands::tilde(&p.to_string_lossy(), &home.to_string_lossy())
 }
 
-fn parse_json(raw: &Raw, p: &Path, home: &Path) -> Result<Value, String> {
-    let v: Value = serde_json::from_slice(&raw.bytes).map_err(|_| format!("{}을(를) 해석할 수 없어 건드리지 않았어요", short(p, home)))?;
+fn parse_json(raw: &Raw, p: &Path, home: &Path, en: bool) -> Result<Value, String> {
+    let v: Value = serde_json::from_slice(&raw.bytes).map_err(|_| toml_err(p, home, en))?;
     if !v.is_object() {
-        return Err(format!("{} 최상위가 객체가 아니라 건드리지 않았어요", short(p, home)));
+        return Err(l!(
+            en,
+            "{} 최상위가 객체가 아니라 건드리지 않았어요",
+            "Left {} untouched: its top level isn't an object",
+            short(p, home)
+        ));
     }
     Ok(v)
 }
@@ -466,8 +495,14 @@ pub fn shell_line(args: &[String]) -> String {
 
 /* ---------- Codex (TOML, 원문 보존) ---------- */
 
-fn toml_err(p: &Path, home: &Path) -> String {
-    format!("{}을(를) 해석할 수 없어 건드리지 않았어요", short(p, home))
+/// 해석할 수 없는 설정 파일 (TOML·JSON 공통)
+fn toml_err(p: &Path, home: &Path, en: bool) -> String {
+    l!(
+        en,
+        "{}을(를) 해석할 수 없어 건드리지 않았어요",
+        "Left {} untouched: it couldn't be parsed",
+        short(p, home)
+    )
 }
 
 fn codex_table(doc: &toml_edit::DocumentMut) -> Option<&dyn toml_edit::TableLike> {
@@ -687,6 +722,8 @@ pub struct Plan {
     pub notes: Vec<String>,
     /// 적용 뒤 이 CLI의 연결 기록 (None = 지움)
     rec: Option<CliRecord>,
+    /// 화면 문구 언어 (#76)
+    en: bool,
 }
 
 impl Plan {
@@ -734,12 +771,12 @@ impl Plan {
         if after.as_deref() == Some(&raw.bytes[..]) && raw.exists {
             return;
         }
-        let tag = if !raw.exists {
-            " (새 파일)"
-        } else if after.is_none() {
-            " (파일 삭제 — 앱이 만든 빈 파일)"
-        } else {
-            ""
+        let tag = match (raw.exists, after.is_none(), self.en) {
+            (false, _, false) => " (새 파일)",
+            (false, _, true) => " (new file)",
+            (true, true, false) => " (파일 삭제 — 앱이 만든 빈 파일)",
+            (true, true, true) => " (file deleted — empty file the app created)",
+            _ => "",
         };
         if !raw.exists {
             self.note("new-file");
@@ -778,7 +815,7 @@ fn restorable(cur: &[u8], rec: Option<&FileRec>) -> Option<Vec<u8>> {
 }
 
 /// 바뀔 내용을 계산한다(아무것도 쓰지 않음). `auto_allow`는 Claude 연결에만 쓰인다
-pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<Plan, String> {
+pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool, en: bool) -> Result<Plan, String> {
     let record = Record::load(&p.record);
     let old = record.clis.get(cli.id()).cloned();
     let (bin, rep) = (p.cmd(), p.rep());
@@ -791,30 +828,33 @@ pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<P
         diff: vec![],
         notes: vec![],
         rec: None,
+        en,
     };
     // 연결: 기존 기록(연결 전부터 있던 항목 기억)을 이어 간다 / 해제: 남길 것이 없으면 지움
     let mut rec = old.clone().unwrap_or_default();
     rec.at = now_s();
     let path = p.config_of(cli).to_path_buf();
-    let raw = read_raw(&path, &p.home)?;
+    let raw = read_raw(&path, &p.home, en)?;
     let other = || {
-        format!(
+        l!(
+            en,
             "{}에 이름이 같은 다른 서버(waitscape)가 있어 건드리지 않았어요",
+            "Left {} untouched: it already has a different server named waitscape",
             short(&path, &p.home)
         )
     };
     let added = old.as_ref().is_some_and(|r| r.server_added);
     match cli {
         Cli::Codex => {
-            let text = String::from_utf8(raw.bytes.clone()).map_err(|_| toml_err(&path, &p.home))?;
-            let doc: toml_edit::DocumentMut = text.parse().map_err(|_| toml_err(&path, &p.home))?;
+            let text = String::from_utf8(raw.bytes.clone()).map_err(|_| toml_err(&path, &p.home, en))?;
+            let doc: toml_edit::DocumentMut = text.parse().map_err(|_| toml_err(&path, &p.home, en))?;
             let st = codex_state(&doc, &bin, &rep);
             let strip = |t: &str, drop: bool| codex_without(t, drop).unwrap_or_default();
             if connect {
                 if st == Entry::Other {
                     return Err(other());
                 }
-                let w = codex_with(&text, &bin, &rep).map_err(|_| toml_err(&path, &p.home))?;
+                let w = codex_with(&text, &bin, &rep).map_err(|_| toml_err(&path, &p.home, en))?;
                 let (next, created) = (w.text, w.created);
                 if old.is_none() {
                     rec.server_added = st == Entry::None;
@@ -842,7 +882,7 @@ pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<P
                     let env = old.as_ref().map(|r| r.env_added.clone()).unwrap_or_default();
                     if !env.is_empty() {
                         let drop = old.as_ref().is_some_and(|r| r.env_created);
-                        let next = codex_drop_env(&text, &env, drop).map_err(|_| toml_err(&path, &p.home))?;
+                        let next = codex_drop_env(&text, &env, drop).map_err(|_| toml_err(&path, &p.home, en))?;
                         let lines = vec![format!("- [mcp_servers.waitscape] env_vars: {}", env.join(", "))];
                         out.file(&path, raw, Some(next.into_bytes()), false, false, lines, true, &p.home);
                     }
@@ -854,14 +894,14 @@ pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<P
                     out.file(&path, raw, Some(b), true, false, lines, true, &p.home);
                 } else if st != Entry::None {
                     let drop = old.as_ref().is_some_and(|r| r.created_parent);
-                    let next = codex_without(&text, drop).map_err(|_| toml_err(&path, &p.home))?;
+                    let next = codex_without(&text, drop).map_err(|_| toml_err(&path, &p.home, en))?;
                     out.file(&path, raw, Some(next.into_bytes()), false, false, lines, true, &p.home);
                 }
                 out.rec = None;
             }
         }
         Cli::Antigravity => {
-            let v = parse_json(&raw, &path, &p.home)?;
+            let v = parse_json(&raw, &path, &p.home, en)?;
             let st = mc::entry_state(v.get("mcpServers"), &bin, &rep);
             let same = json_like(&v, &raw.bytes) == raw.bytes;
             let cur = v.pointer("/mcpServers/waitscape").cloned().unwrap_or(json!({}));
@@ -874,8 +914,14 @@ pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<P
                     rec.created_parent = v.get("mcpServers").is_none();
                 }
                 let entry = mc::antigravity_entry(&bin, &rep);
-                let next = mc::with_server(&v, entry.clone())
-                    .ok_or_else(|| format!("{}의 mcpServers 형식이 달라 건드리지 않았어요", short(&path, &p.home)))?;
+                let next = mc::with_server(&v, entry.clone()).ok_or_else(|| {
+                    l!(
+                        en,
+                        "{}의 mcpServers 형식이 달라 건드리지 않았어요",
+                        "Left {} untouched: its mcpServers has an unexpected format",
+                        short(&path, &p.home)
+                    )
+                })?;
                 let mut lines = vec![];
                 if st == Entry::Stale {
                     lines.extend(entry_lines('-', "mcpServers.waitscape", &cur));
@@ -907,14 +953,16 @@ pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<P
         }
         Cli::Claude => {
             // ~/.claude.json은 읽기만 (상태 확인). 바꾸는 건 claude CLI
-            let v = parse_json(&raw, &path, &p.home)?;
+            let v = parse_json(&raw, &path, &p.home, en)?;
             let st = mc::entry_state(v.get("mcpServers"), &bin, &rep);
             let exe = p.clis.get("claude").map(|x| x.to_string_lossy().into_owned());
             let add = mc::claude_add_args(&bin, &rep);
             let need_cli = |out: &mut Plan, args: Vec<String>| -> Result<(), String> {
                 let exe = exe.clone().ok_or_else(|| {
-                    format!(
+                    l!(
+                        en,
                         "claude 명령을 찾지 못했어요. 터미널에서 직접 실행해 주세요: claude {}",
+                        "Couldn't find the claude command. Run this in a terminal yourself: claude {}",
                         shell_line(&add)
                     )
                 })?;
@@ -957,14 +1005,24 @@ pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<P
                 }
                 if auto_allow {
                     // settings.json이 없으면 {}에서 시작해 새로 만든다 (Claude Code를 실행해도 생기지 않을 수 있음)
-                    let sraw = read_opt(&sp, &p.home)?.unwrap_or(Raw {
+                    let sraw = read_opt(&sp, &p.home, en)?.unwrap_or(Raw {
                         bytes: vec![],
                         mtime: None,
                         exists: false,
                     });
-                    let sv = if sraw.exists { parse_json(&sraw, &sp, &p.home)? } else { json!({}) };
-                    let (next, added) = mc::with_allow_tracked(&sv)
-                        .ok_or_else(|| format!("{}의 permissions 형식이 달라 건드리지 않았어요", short(&sp, &p.home)))?;
+                    let sv = if sraw.exists {
+                        parse_json(&sraw, &sp, &p.home, en)?
+                    } else {
+                        json!({})
+                    };
+                    let (next, added) = mc::with_allow_tracked(&sv).ok_or_else(|| {
+                        l!(
+                            en,
+                            "{}의 permissions 형식이 달라 건드리지 않았어요",
+                            "Left {} untouched: its permissions has an unexpected format",
+                            short(&sp, &p.home)
+                        )
+                    })?;
                     // 이미 기록이 있으면(다시 연결) 처음 기록을 유지 — 해제 때 원래 상태로
                     if rec.allow.is_none() {
                         rec.allow = Some(added);
@@ -989,9 +1047,9 @@ pub fn plan(p: &McpPaths, cli: Cli, connect: bool, auto_allow: bool) -> Result<P
                 keep.file = None;
                 let mut keep_allow = false;
                 if let Some(added_rules) = old.as_ref().and_then(|r| r.allow.clone()) {
-                    match read_opt(&sp, &p.home) {
+                    match read_opt(&sp, &p.home, en) {
                         Ok(Some(sraw)) => {
-                            let sv = parse_json(&sraw, &sp, &p.home)?;
+                            let sv = parse_json(&sraw, &sp, &p.home, en)?;
                             let next = mc::without_added(&sv, &added_rules);
                             let lines = mc::allow_diff(&sv, &next);
                             if let Some(b) = restorable(&sraw.bytes, old.as_ref().and_then(|r| r.allow_file.as_ref())) {
@@ -1026,14 +1084,14 @@ pub struct Applied {
     pub backups: Vec<String>,
 }
 
-fn write_one(f: &FileChange, tag: &str) -> Result<Option<PathBuf>, String> {
+fn write_one(f: &FileChange, tag: &str, en: bool) -> Result<Option<PathBuf>, String> {
     match &f.after {
-        Some(bytes) => hc::write_raw(&f.path, f.exists, f.mtime, bytes, tag).map_err(|e| e.to_string()),
+        Some(bytes) => hc::write_raw(&f.path, f.exists, f.mtime, bytes, tag).map_err(|e| crate::lang::hook_err(&e, en)),
         None => {
             if hc::mtime_of(&f.path) != f.mtime {
-                return Err(hc::HookError::Changed.to_string());
+                return Err(crate::lang::hook_err(&hc::HookError::Changed, en));
             }
-            std::fs::remove_file(&f.path).map_err(|e| format!("파일 오류: {}", e.kind()))?;
+            std::fs::remove_file(&f.path).map_err(|e| l!(en, "파일 오류: {}", "File error: {}", e.kind()))?;
             Ok(None)
         }
     }
@@ -1042,6 +1100,7 @@ fn write_one(f: &FileChange, tag: &str) -> Result<Option<PathBuf>, String> {
 /// 계획대로 쓴다: (Claude) `~/.claude.json` 백업 사본 → CLI 실행 → (CLI가 바꿨으면 기록부터 저장) → 파일마다 백업·mtime 재확인·원자적 쓰기 → 연결 기록.
 /// 확인(사용자 동의)은 부르는 쪽이 먼저 받는다
 pub fn apply(p: &McpPaths, plan: Plan, run: Runner, tag: &str) -> Result<Applied, String> {
+    let en = plan.en;
     let mut backups = vec![];
     let h = p.home.to_string_lossy().into_owned();
     if !plan.cmds.is_empty() {
@@ -1054,22 +1113,31 @@ pub fn apply(p: &McpPaths, plan: Plan, run: Runner, tag: &str) -> Result<Applied
             b = cj.with_file_name(format!("{name}.bak-waiting-room-{tag}-{n}"));
             n += 1;
         }
-        std::fs::copy(cj, &b).map_err(|e| format!("백업 실패: {}", e.kind()))?;
+        std::fs::copy(cj, &b).map_err(|e| l!(en, "백업 실패: {}", "Backup failed: {}", e.kind()))?;
         let bshort = crate::commands::tilde(&b.to_string_lossy(), &h);
         backups.push(b.to_string_lossy().into_owned());
         for (i, c) in plan.cmds.iter().enumerate() {
             if let Err(e) = run(Path::new(&c[0]), &c[1..]) {
+                let e = run_err(&e, en);
                 let what = format!("claude {}", c[1..3.min(c.len())].join(" "));
                 // remove는 됐는데 add가 실패 → 원래 등록 되돌리기
                 if i > 0 {
                     if let Some(rb) = &plan.rollback {
                         return Err(match run(Path::new(&rb[0]), &rb[1..]) {
-                            Ok(_) => format!("{what} 실패 — {e}. 원래 등록은 되돌렸어요"),
-                            Err(_) => format!("{what} 실패 — {e}. 원래 등록을 되돌리지 못했어요. 백업: {bshort}"),
+                            Ok(_) => l!(
+                                en,
+                                "{what} 실패 — {e}. 원래 등록은 되돌렸어요",
+                                "{what} failed — {e}. The original registration was restored"
+                            ),
+                            Err(_) => l!(
+                                en,
+                                "{what} 실패 — {e}. 원래 등록을 되돌리지 못했어요. 백업: {bshort}",
+                                "{what} failed — {e}. Couldn't restore the original registration. Backup: {bshort}"
+                            ),
                         });
                     }
                 }
-                return Err(format!("{what} 실패 — {e}. 백업: {bshort}"));
+                return Err(l!(en, "{what} 실패 — {e}. 백업: {bshort}", "{what} failed — {e}. Backup: {bshort}"));
             }
         }
         // CLI가 이미 바꿨으므로, 뒤의 파일 쓰기가 실패해도 앱이 해제할 수 있게 기록부터 남긴다
@@ -1089,17 +1157,25 @@ pub fn apply(p: &McpPaths, plan: Plan, run: Runner, tag: &str) -> Result<Applied
                 r
             })
         };
-        Record::put(&p.record, plan.cli, interim)?;
+        Record::put(&p.record, plan.cli, interim, en)?;
     }
     let mut rec = plan.rec.clone();
     for f in &plan.files {
-        let bk = write_one(f, tag).map_err(|e| {
+        let bk = write_one(f, tag, en).map_err(|e| {
             if plan.cmds.is_empty() {
                 e
             } else if plan.connect {
-                format!("서버는 등록됐어요. 권한 규칙은 쓰지 못했어요(다시 시도해 주세요) — {e}")
+                l!(
+                    en,
+                    "서버는 등록됐어요. 권한 규칙은 쓰지 못했어요(다시 시도해 주세요) — {e}",
+                    "The server was registered, but the permission rules couldn't be written (please try again) — {e}"
+                )
             } else {
-                format!("서버 등록은 지웠어요. 권한 규칙은 지우지 못했어요(다시 시도해 주세요) — {e}")
+                l!(
+                    en,
+                    "서버 등록은 지웠어요. 권한 규칙은 지우지 못했어요(다시 시도해 주세요) — {e}",
+                    "The server registration was removed, but the permission rules couldn't be removed (please try again) — {e}"
+                )
             }
         })?;
         if let Some(b) = &bk {
@@ -1119,7 +1195,7 @@ pub fn apply(p: &McpPaths, plan: Plan, run: Runner, tag: &str) -> Result<Applied
             }
         }
     }
-    Record::put(&p.record, plan.cli, rec)?;
+    Record::put(&p.record, plan.cli, rec, en)?;
     Ok(Applied {
         changed: !plan.is_empty(),
         backups,
@@ -1129,7 +1205,7 @@ pub fn apply(p: &McpPaths, plan: Plan, run: Runner, tag: &str) -> Result<Applied
 /* ---------- 상태 ---------- */
 
 /// 설정 화면 한 줄: `{id, name, detected, cli, config, state: missing|detected|connected|other|error, managed, error?, autoAllow?}`
-pub fn status(p: &McpPaths) -> Value {
+pub fn status(p: &McpPaths, en: bool) -> Value {
     let record = Record::load(&p.record);
     let (bin, rep) = (p.cmd(), p.rep());
     let rows: Vec<Value> = Cli::ALL
@@ -1151,7 +1227,7 @@ pub fn status(p: &McpPaths) -> Value {
                 // 우리 형식이지만 예전 설정(다른 경로·Codex env_vars 없음) → 화면에 "다시 연결" 안내
                 "stale": false,
             });
-            let entry = match read_raw(path, &p.home) {
+            let entry = match read_raw(path, &p.home, en) {
                 Err(e) => {
                     if path.exists() {
                         row["error"] = json!(e);
@@ -1165,11 +1241,11 @@ pub fn status(p: &McpPaths) -> Value {
                     {
                         Some(doc) => Some(codex_state(&doc, &bin, &rep)),
                         None => {
-                            row["error"] = json!(toml_err(path, &p.home));
+                            row["error"] = json!(toml_err(path, &p.home, en));
                             None
                         }
                     },
-                    _ => match parse_json(&raw, path, &p.home) {
+                    _ => match parse_json(&raw, path, &p.home, en) {
                         Ok(v) => Some(mc::entry_state(v.get("mcpServers"), &bin, &rep)),
                         Err(e) => {
                             row["error"] = json!(e);
@@ -1251,7 +1327,7 @@ mod tests {
         let p = &t.p;
         std::fs::write(&p.codex_config, CODEX).unwrap();
         let none: Runner = &|_, _| panic!("Codex는 CLI를 실행하지 않음");
-        let pl = plan(p, Cli::Codex, true, false).unwrap();
+        let pl = plan(p, Cli::Codex, true, false, false).unwrap();
         assert!(pl.diff.iter().any(|l| l == "+ [mcp_servers.waitscape]"), "{:?}", pl.diff);
         apply(p, pl, none, "t1").unwrap();
         let text = std::fs::read_to_string(&p.codex_config).unwrap();
@@ -1266,14 +1342,14 @@ mod tests {
         );
         assert!(text.contains("args = [\"mcp\", \"--reports\","));
         assert_eq!(backups(&t.dir.join("home/.codex")), 1);
-        assert_eq!(status(p)["clis"][1]["state"], "connected");
+        assert_eq!(status(p, false)["clis"][1]["state"], "connected");
         // 다시 연결: 바뀔 것 없음
-        assert!(plan(p, Cli::Codex, true, false).unwrap().is_empty());
-        let pl = plan(p, Cli::Codex, false, false).unwrap();
+        assert!(plan(p, Cli::Codex, true, false, false).unwrap().is_empty());
+        let pl = plan(p, Cli::Codex, false, false, false).unwrap();
         assert!(pl.files[0].restore, "그대로면 백업 원본으로");
         apply(p, pl, none, "t2").unwrap();
         assert_eq!(std::fs::read_to_string(&p.codex_config).unwrap(), CODEX, "바이트 동일");
-        assert_eq!(status(p)["clis"][1]["state"], "detected");
+        assert_eq!(status(p, false)["clis"][1]["state"], "detected");
     }
 
     #[test]
@@ -1284,11 +1360,11 @@ mod tests {
         // [mcp_servers] 표가 없던 파일 → 해제하면 우리가 만든 부모도 지움
         let orig = "model = \"o4\"\n# 끝 주석\n";
         std::fs::write(&p.codex_config, orig).unwrap();
-        apply(p, plan(p, Cli::Codex, true, false).unwrap(), none, "a").unwrap();
+        apply(p, plan(p, Cli::Codex, true, false, false).unwrap(), none, "a").unwrap();
         // 그 사이 사용자가 다른 줄을 고침 → 백업 복원 불가, 우리 표만 지운다
         let edited = std::fs::read_to_string(&p.codex_config).unwrap().replace("o4", "o5");
         std::fs::write(&p.codex_config, &edited).unwrap();
-        let pl = plan(p, Cli::Codex, false, false).unwrap();
+        let pl = plan(p, Cli::Codex, false, false, false).unwrap();
         assert!(!pl.files[0].restore);
         apply(p, pl, none, "b").unwrap();
         assert_eq!(std::fs::read_to_string(&p.codex_config).unwrap(), orig.replace("o4", "o5"));
@@ -1305,12 +1381,12 @@ mod tests {
             p.rep()
         );
         std::fs::write(&p.codex_config, &mine).unwrap();
-        let pl = plan(p, Cli::Codex, true, false).unwrap();
+        let pl = plan(p, Cli::Codex, true, false, false).unwrap();
         apply(p, pl, none, "a").unwrap();
         let after = std::fs::read_to_string(&p.codex_config).unwrap();
         assert!(after.contains("# 내가 README 보고 넣음") && after.contains("enabled_tools"));
-        assert_eq!(status(p)["clis"][1]["added"], false);
-        let pl = plan(p, Cli::Codex, false, false).unwrap();
+        assert_eq!(status(p, false)["clis"][1]["added"], false);
+        let pl = plan(p, Cli::Codex, false, false, false).unwrap();
         assert_eq!(pl.notes, ["not-ours", "rest-same"], "연결 전부터 있던 항목은 해제 때 남김");
         apply(p, pl, none, "b").unwrap();
         let back = std::fs::read_to_string(&p.codex_config).unwrap();
@@ -1318,7 +1394,7 @@ mod tests {
         assert!(!back.contains("env_vars"), "우리가 만든 env_vars 키는 해제 때 지움:\n{back}");
         // 다른 서버가 같은 이름이면 거부
         std::fs::write(&p.codex_config, "[mcp_servers.waitscape]\ncommand = \"npx\"\nargs = [\"x\"]\n").unwrap();
-        assert!(plan(p, Cli::Codex, true, false).unwrap_err().contains("다른 서버"));
+        assert!(plan(p, Cli::Codex, true, false, false).unwrap_err().contains("다른 서버"));
     }
 
     /// PR #39 리뷰 🟡2: env_vars 없이 연결해 둔(PR #36) Codex 항목은 Stale("다시 연결" 안내), 다시 연결하면 최신
@@ -1328,7 +1404,7 @@ mod tests {
         let p = &t.p;
         let none: Runner = &|_, _| unreachable!();
         std::fs::write(&p.codex_config, CODEX).unwrap();
-        apply(p, plan(p, Cli::Codex, true, false).unwrap(), none, "a").unwrap();
+        apply(p, plan(p, Cli::Codex, true, false, false).unwrap(), none, "a").unwrap();
         // PR #36 형식으로 되돌림: env_vars 줄만 없앰
         let text = std::fs::read_to_string(&p.codex_config).unwrap();
         let old: String = text
@@ -1337,12 +1413,12 @@ mod tests {
             .map(|l| format!("{l}\n"))
             .collect();
         std::fs::write(&p.codex_config, &old).unwrap();
-        let st = status(p);
+        let st = status(p, false);
         assert_eq!(
             (st["clis"][1]["state"].clone(), st["clis"][1]["stale"].clone()),
             (json!("connected"), json!(true))
         );
-        let pl = plan(p, Cli::Codex, true, false).unwrap();
+        let pl = plan(p, Cli::Codex, true, false, false).unwrap();
         assert!(
             pl.diff.iter().any(|l| l.starts_with("- ")),
             "고칠 때 옛 항목도 보여 줌: {:?}",
@@ -1350,13 +1426,13 @@ mod tests {
         );
         assert!(pl.diff.iter().any(|l| l.contains("env_vars")), "{:?}", pl.diff);
         apply(p, pl, none, "b").unwrap();
-        assert_eq!(status(p)["clis"][1]["stale"], false);
+        assert_eq!(status(p, false)["clis"][1]["stale"], false);
         assert!(
-            plan(p, Cli::Codex, true, false).unwrap().is_empty(),
+            plan(p, Cli::Codex, true, false, false).unwrap().is_empty(),
             "다시 연결 뒤에는 바뀔 것 없음"
         );
         // 해제: 우리가 넣은 표째 지움 → 원문 그대로
-        apply(p, plan(p, Cli::Codex, false, false).unwrap(), none, "c").unwrap();
+        apply(p, plan(p, Cli::Codex, false, false, false).unwrap(), none, "c").unwrap();
         assert_eq!(
             codex_without(&std::fs::read_to_string(&p.codex_config).unwrap(), false).unwrap(),
             CODEX
@@ -1375,8 +1451,8 @@ mod tests {
             p.rep()
         );
         std::fs::write(&p.codex_config, &old).unwrap();
-        assert_eq!(status(p)["clis"][1]["stale"], true, "Orca env가 없음");
-        apply(p, plan(p, Cli::Codex, true, false).unwrap(), none, "a").unwrap();
+        assert_eq!(status(p, false)["clis"][1]["stale"], true, "Orca env가 없음");
+        apply(p, plan(p, Cli::Codex, true, false, false).unwrap(), none, "a").unwrap();
         let after = std::fs::read_to_string(&p.codex_config).unwrap();
         assert!(
             after.contains(
@@ -1385,7 +1461,7 @@ mod tests {
             "{after}"
         );
         assert!(!after.contains("TOKEN"), "토큰류 env는 넣지 않음");
-        assert_eq!(status(p)["clis"][1]["stale"], false);
+        assert_eq!(status(p, false)["clis"][1]["stale"], false);
         assert_eq!(
             Record::load(&p.record).clis["codex"].env_added,
             ["ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH"]
@@ -1404,8 +1480,8 @@ mod tests {
             p.rep()
         );
         std::fs::write(&p.codex_config, &mine).unwrap();
-        assert_eq!(status(p)["clis"][1]["stale"], true, "CMUX_WORKSPACE_ID가 없음");
-        apply(p, plan(p, Cli::Codex, true, false).unwrap(), none, "a").unwrap();
+        assert_eq!(status(p, false)["clis"][1]["stale"], true, "CMUX_WORKSPACE_ID가 없음");
+        apply(p, plan(p, Cli::Codex, true, false, false).unwrap(), none, "a").unwrap();
         let after = std::fs::read_to_string(&p.codex_config).unwrap();
         assert!(
             after.contains(
@@ -1420,9 +1496,9 @@ mod tests {
             "우리가 더한 이름만 기록"
         );
         assert!(!rec.clis["codex"].env_created);
-        assert_eq!(status(p)["clis"][1]["stale"], false);
+        assert_eq!(status(p, false)["clis"][1]["stale"], false);
         // 해제: 연결 전부터 있던 항목이라 남기되 우리가 더한 이름만 뺀다
-        let pl = plan(p, Cli::Codex, false, false).unwrap();
+        let pl = plan(p, Cli::Codex, false, false, false).unwrap();
         assert!(pl.notes.contains(&"not-ours".to_string()));
         apply(p, pl, none, "b").unwrap();
         let back = std::fs::read_to_string(&p.codex_config).unwrap();
@@ -1439,20 +1515,28 @@ mod tests {
         let t = setup("broken");
         let p = &t.p;
         assert!(
-            plan(p, Cli::Codex, true, false).unwrap_err().contains("없어요"),
+            plan(p, Cli::Codex, true, false, false).unwrap_err().contains("없어요"),
             "없으면 만들지 않음"
         );
         assert!(!p.codex_config.exists());
         std::fs::write(&p.codex_config, "[mcp_servers\nx=").unwrap();
-        assert!(plan(p, Cli::Codex, true, false).unwrap_err().contains("해석할 수 없어"));
+        assert!(plan(p, Cli::Codex, true, false, false).unwrap_err().contains("해석할 수 없어"));
+        // 영어 화면이면 영어 문구 (#76)
+        assert!(plan(p, Cli::Codex, true, false, true).unwrap_err().contains("couldn't be parsed"));
+        assert_eq!(run_err("시간 초과", true), "timed out");
+        assert_eq!(run_err("종료 코드 3: bad", true), "exit code 3: bad");
+        assert_eq!(run_err("시간 초과", false), "시간 초과");
         std::fs::write(&p.antigravity_config, "{ nope").unwrap();
-        assert!(plan(p, Cli::Antigravity, true, false).unwrap_err().contains("해석할 수 없어"));
+        assert!(plan(p, Cli::Antigravity, true, false, false)
+            .unwrap_err()
+            .contains("해석할 수 없어"));
         std::fs::write(&p.antigravity_config, "[]").unwrap();
-        assert!(plan(p, Cli::Antigravity, true, false).is_err());
+        assert!(plan(p, Cli::Antigravity, true, false, false).is_err());
         assert_eq!(std::fs::read_to_string(&p.antigravity_config).unwrap(), "[]");
-        assert!(plan(p, Cli::Claude, true, true).unwrap_err().contains(".claude.json"));
-        let st = status(p);
+        assert!(plan(p, Cli::Claude, true, true, false).unwrap_err().contains(".claude.json"));
+        let st = status(p, false);
         assert_eq!(st["clis"][1]["state"], "error");
+        assert!(status(p, true)["clis"][1]["error"].as_str().unwrap().contains("couldn't be parsed"));
         assert_eq!(st["clis"][0]["state"], "detected", "CLI가 있으면 감지됨");
         assert_eq!(backups(&t.dir.join("home/.codex")), 0);
     }
@@ -1464,7 +1548,7 @@ mod tests {
         let none: Runner = &|_, _| unreachable!();
         let orig = "{\n    \"mcpServers\": {\n        \"github\": {\n            \"$typeName\": \"x\",\n            \"command\": \"gh\",\n            \"args\": [\"mcp\"]\n        }\n    },\n    \"z\": 1\n}";
         std::fs::write(&p.antigravity_config, orig).unwrap();
-        let pl = plan(p, Cli::Antigravity, true, false).unwrap();
+        let pl = plan(p, Cli::Antigravity, true, false, false).unwrap();
         apply(p, pl, none, "a").unwrap();
         let text = std::fs::read_to_string(&p.antigravity_config).unwrap();
         let v: Value = serde_json::from_str(&text).unwrap();
@@ -1473,15 +1557,15 @@ mod tests {
         assert_eq!(v["mcpServers"]["waitscape"]["enabledTools"], json!(mc::TOOLS));
         assert!(text.contains("\n        \"waitscape\""), "원본 4칸 들여쓰기 유지:\n{text}");
         assert!(!text.ends_with('\n'), "끝 줄바꿈 없던 원본은 그대로");
-        apply(p, plan(p, Cli::Antigravity, false, false).unwrap(), none, "b").unwrap();
+        apply(p, plan(p, Cli::Antigravity, false, false, false).unwrap(), none, "b").unwrap();
         assert_eq!(std::fs::read_to_string(&p.antigravity_config).unwrap(), orig, "바이트 동일");
         // 다른 키가 바뀐 뒤 해제: 우리 항목만 빠지고 순서 유지, 우리가 만든 mcpServers는 비면 지움
         std::fs::write(&p.antigravity_config, "{\"a\":1}\n").unwrap();
-        apply(p, plan(p, Cli::Antigravity, true, false).unwrap(), none, "c").unwrap();
+        apply(p, plan(p, Cli::Antigravity, true, false, false).unwrap(), none, "c").unwrap();
         let mut v: Value = serde_json::from_slice(&std::fs::read(&p.antigravity_config).unwrap()).unwrap();
         v["b"] = json!(2);
         std::fs::write(&p.antigravity_config, serde_json::to_string(&v).unwrap() + "\n").unwrap();
-        apply(p, plan(p, Cli::Antigravity, false, false).unwrap(), none, "d").unwrap();
+        apply(p, plan(p, Cli::Antigravity, false, false, false).unwrap(), none, "d").unwrap();
         assert_eq!(std::fs::read_to_string(&p.antigravity_config).unwrap(), "{\"a\":1,\"b\":2}\n");
     }
 
@@ -1502,7 +1586,7 @@ mod tests {
             calls.borrow_mut().push((prog.to_path_buf(), args.to_vec()));
             Ok(String::new())
         };
-        let pl = plan(p, Cli::Claude, true, true).unwrap();
+        let pl = plan(p, Cli::Claude, true, true, false).unwrap();
         assert_eq!(pl.cmds.len(), 1);
         apply(p, pl, &run, "a").unwrap();
         {
@@ -1525,10 +1609,10 @@ mod tests {
             p.rep()
         );
         std::fs::write(&p.claude_json, cj).unwrap();
-        let st = status(p);
+        let st = status(p, false);
         assert_eq!(st["clis"][0]["state"], "connected");
         assert_eq!(st["clis"][0]["autoAllow"], true);
-        let pl = plan(p, Cli::Claude, false, false).unwrap();
+        let pl = plan(p, Cli::Claude, false, false, false).unwrap();
         assert_eq!(pl.cmds[0][1..], mc::claude_remove_args()[..]);
         apply(p, pl, &run, "b").unwrap();
         assert_eq!(
@@ -1541,13 +1625,13 @@ mod tests {
         let mut q = p.clone();
         q.clis.clear();
         std::fs::write(&p.claude_json, "{}").unwrap();
-        assert!(plan(&q, Cli::Claude, true, false)
+        assert!(plan(&q, Cli::Claude, true, false, false)
             .unwrap_err()
             .contains("claude mcp add -s user waitscape --"));
         // CLI 실패면 settings.json은 쓰지 않음
         let fail = |_: &Path, _: &[String]| Err("boom".to_string());
         let before = std::fs::read(&p.claude_settings).unwrap();
-        assert!(apply(p, plan(p, Cli::Claude, true, true).unwrap(), &fail, "c").is_err());
+        assert!(apply(p, plan(p, Cli::Claude, true, true, false).unwrap(), &fail, "c").is_err());
         assert_eq!(std::fs::read(&p.claude_settings).unwrap(), before);
     }
 
@@ -1558,21 +1642,21 @@ mod tests {
         let p = &t.p;
         let none: Runner = &|_, _| unreachable!();
         std::fs::write(&p.codex_config, "model = \"o4\"\n").unwrap();
-        apply(p, plan(p, Cli::Codex, true, false).unwrap(), none, "a").unwrap();
+        apply(p, plan(p, Cli::Codex, true, false, false).unwrap(), none, "a").unwrap();
         let user = "model = \"o4\"\n\n[mcp_servers.github]\ncommand = \"gh\"\n";
         std::fs::write(&p.codex_config, user).unwrap();
-        assert_eq!(status(p)["clis"][1]["state"], "detected");
-        apply(p, plan(p, Cli::Codex, true, false).unwrap(), none, "b").unwrap();
-        let pl = plan(p, Cli::Codex, false, false).unwrap();
+        assert_eq!(status(p, false)["clis"][1]["state"], "detected");
+        apply(p, plan(p, Cli::Codex, true, false, false).unwrap(), none, "b").unwrap();
+        let pl = plan(p, Cli::Codex, false, false, false).unwrap();
         apply(p, pl, none, "c").unwrap();
         assert_eq!(std::fs::read_to_string(&p.codex_config).unwrap(), user, "github 서버가 남아야 함");
         // Antigravity도 같은 규칙
         std::fs::write(&p.antigravity_config, "{\"mcpServers\": {}}\n").unwrap();
-        apply(p, plan(p, Cli::Antigravity, true, false).unwrap(), none, "d").unwrap();
+        apply(p, plan(p, Cli::Antigravity, true, false, false).unwrap(), none, "d").unwrap();
         let user = "{\"mcpServers\": {\"gh\": {\"command\": \"gh\"}}}\n";
         std::fs::write(&p.antigravity_config, user).unwrap();
-        apply(p, plan(p, Cli::Antigravity, true, false).unwrap(), none, "e").unwrap();
-        apply(p, plan(p, Cli::Antigravity, false, false).unwrap(), none, "f").unwrap();
+        apply(p, plan(p, Cli::Antigravity, true, false, false).unwrap(), none, "e").unwrap();
+        apply(p, plan(p, Cli::Antigravity, false, false, false).unwrap(), none, "f").unwrap();
         assert_eq!(std::fs::read_to_string(&p.antigravity_config).unwrap(), user);
     }
 
@@ -1594,7 +1678,7 @@ mod tests {
             format!("{{\"mcpServers\":{{\"github\":{{\"command\":\"gh\",\"env\":{{\"GITHUB_TOKEN\":\"{V}\"}}}}}}}}"),
         )
         .unwrap();
-        check(&plan(p, Cli::Antigravity, true, false).unwrap(), "a");
+        check(&plan(p, Cli::Antigravity, true, false, false).unwrap(), "a");
         // (b) 여러 줄이지만 서버 객체를 한 줄로 씀 → 다시 직렬화돼도 화면엔 우리 항목만
         std::fs::write(
             &p.antigravity_config,
@@ -1603,20 +1687,20 @@ mod tests {
             ),
         )
         .unwrap();
-        let pl = plan(p, Cli::Antigravity, true, false).unwrap();
+        let pl = plan(p, Cli::Antigravity, true, false, false).unwrap();
         check(&pl, "b");
         assert!(pl.notes.contains(&"reformat".to_string()));
         // (d) 한 줄짜리 settings.json의 env
         std::fs::write(&p.claude_json, "{}").unwrap();
         std::fs::write(&p.claude_settings, format!("{{\"env\":{{\"ANTHROPIC_API_KEY\":\"{V}\"}}}}")).unwrap();
-        check(&plan(p, Cli::Claude, true, true).unwrap(), "d");
+        check(&plan(p, Cli::Claude, true, true, false).unwrap(), "d");
         // (e) pretty settings.json, env가 마지막 키 (문맥 줄로 새던 경우)
         std::fs::write(
             &p.claude_settings,
             format!("{{\n  \"permissions\": {{\n    \"allow\": []\n  }},\n  \"env\": {{\n    \"ANTHROPIC_API_KEY\": \"{V}\"\n  }}\n}}\n"),
         )
         .unwrap();
-        let pl = plan(p, Cli::Claude, true, true).unwrap();
+        let pl = plan(p, Cli::Claude, true, true, false).unwrap();
         check(&pl, "e");
         assert!(pl.notes.contains(&"rest-same".to_string()));
         // (f) Codex: [mcp_servers.github.env]가 마지막 표
@@ -1625,7 +1709,7 @@ mod tests {
             format!("[mcp_servers.github]\ncommand = \"gh\"\n\n[mcp_servers.github.env]\nGITHUB_TOKEN = \"{V}\"\n"),
         )
         .unwrap();
-        check(&plan(p, Cli::Codex, true, false).unwrap(), "f");
+        check(&plan(p, Cli::Codex, true, false, false).unwrap(), "f");
         // 우리 항목 줄이 혹시 시크릿 모양이면 가린다 (report.rs 마스킹)
         assert!(!shown(&format!("+ x = \"ghp_{}\"", "a".repeat(36))).contains(&"a".repeat(36)));
     }
@@ -1645,7 +1729,7 @@ mod tests {
             f.set_modified(SystemTime::UNIX_EPOCH + Duration::from_secs(1)).unwrap();
             Ok(String::new())
         };
-        let e = apply(p, plan(p, Cli::Claude, true, true).unwrap(), &run, "a").unwrap_err();
+        let e = apply(p, plan(p, Cli::Claude, true, true, false).unwrap(), &run, "a").unwrap_err();
         assert!(e.contains("서버는 등록됐어요"), "{e}");
         let rec = Record::load(&p.record);
         assert!(rec.clis["claude"].server_added && rec.clis["claude"].allow.is_none());
@@ -1655,8 +1739,8 @@ mod tests {
             p.rep()
         );
         std::fs::write(&p.claude_json, cj).unwrap();
-        assert_eq!(status(p)["clis"][0]["managed"], true);
-        assert_eq!(plan(p, Cli::Claude, false, false).unwrap().cmds.len(), 1, "해제 가능");
+        assert_eq!(status(p, false)["clis"][0]["managed"], true);
+        assert_eq!(plan(p, Cli::Claude, false, false, false).unwrap().cmds.len(), 1, "해제 가능");
     }
 
     /// 🟡-2: 옛 경로 등록을 고치다 remove는 되고 add가 실패하면 원래 등록을 되돌린다
@@ -1675,7 +1759,7 @@ mod tests {
                 Ok(String::new())
             }
         };
-        let e = apply(p, plan(p, Cli::Claude, true, false).unwrap(), &run, "a").unwrap_err();
+        let e = apply(p, plan(p, Cli::Claude, true, false, false).unwrap(), &run, "a").unwrap_err();
         assert!(e.contains("원래 등록은 되돌렸어요"), "{e}");
         let c = calls.borrow();
         assert_eq!(c.len(), 3);
@@ -1690,7 +1774,7 @@ mod tests {
         let p = &t.p;
         std::fs::write(&p.claude_json, "{}").unwrap();
         let ok = |_: &Path, _: &[String]| Ok(String::new());
-        let pl = plan(p, Cli::Claude, true, true).unwrap();
+        let pl = plan(p, Cli::Claude, true, true, false).unwrap();
         assert!(pl.notes.contains(&"new-file".to_string()) && pl.diff.iter().any(|l| l.contains("(새 파일)")));
         let r = apply(p, pl, &ok, "a").unwrap();
         assert_eq!(r.backups.len(), 1, "~/.claude.json 사본만 (settings.json은 백업할 원본 없음)");
@@ -1707,7 +1791,7 @@ mod tests {
             p.rep()
         );
         std::fs::write(&p.claude_json, cj).unwrap();
-        apply(p, plan(p, Cli::Claude, false, false).unwrap(), &ok, "b").unwrap();
+        apply(p, plan(p, Cli::Claude, false, false, false).unwrap(), &ok, "b").unwrap();
         assert!(!p.claude_settings.exists(), "앱이 만든 빈 파일은 지움");
     }
 
@@ -1719,20 +1803,20 @@ mod tests {
         let none: Runner = &|_, _| unreachable!();
         let orig = "model = \"o4\"\r\n\r\n[mcp_servers.github]\r\ncommand = \"gh\"\r\n";
         std::fs::write(&p.codex_config, orig).unwrap();
-        apply(p, plan(p, Cli::Codex, true, false).unwrap(), none, "a").unwrap();
+        apply(p, plan(p, Cli::Codex, true, false, false).unwrap(), none, "a").unwrap();
         let text = std::fs::read_to_string(&p.codex_config).unwrap();
         assert!(!text.replace("\r\n", "").contains('\n'), "LF만 있는 줄 없음: {text:?}");
         let edited = text.replace("o4", "o5");
         std::fs::write(&p.codex_config, &edited).unwrap();
-        apply(p, plan(p, Cli::Codex, false, false).unwrap(), none, "b").unwrap();
+        apply(p, plan(p, Cli::Codex, false, false, false).unwrap(), none, "b").unwrap();
         assert_eq!(std::fs::read_to_string(&p.codex_config).unwrap(), orig.replace("o4", "o5"));
         let j = "{\r\n  \"mcpServers\": {\r\n    \"gh\": {\r\n      \"command\": \"gh\"\r\n    }\r\n  },\r\n  \"x\": 1\r\n}\r\n";
         std::fs::write(&p.antigravity_config, j).unwrap();
-        apply(p, plan(p, Cli::Antigravity, true, false).unwrap(), none, "c").unwrap();
+        apply(p, plan(p, Cli::Antigravity, true, false, false).unwrap(), none, "c").unwrap();
         let text = std::fs::read_to_string(&p.antigravity_config).unwrap();
         assert!(!text.replace("\r\n", "").contains('\n'));
         std::fs::write(&p.antigravity_config, text.replace("\"x\": 1", "\"x\": 2")).unwrap();
-        apply(p, plan(p, Cli::Antigravity, false, false).unwrap(), none, "d").unwrap();
+        apply(p, plan(p, Cli::Antigravity, false, false, false).unwrap(), none, "d").unwrap();
         assert_eq!(
             std::fs::read_to_string(&p.antigravity_config).unwrap(),
             j.replace("\"x\": 1", "\"x\": 2")

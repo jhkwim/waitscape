@@ -99,7 +99,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
   오후에 마지막 활동 뒤 45분 동안 모든 세션이 조용하면 그날 일보가 "준비됨"(다시 활동하면 풀리고 갱신), 못 본 일보는 다음 날 `prev.unseen`으로. API는 아래 `/daylog`
   화면(🏢 스튜디오): 준비되면 사장님이 종이를 들고 "일보 나왔어요!"(화면을 가로채지 않음) → 누르면 1층 발표 연출 → 공유 카드(PNG 저장·이름 숨김·텍스트 복사).
   HUD 🏃 퇴근(바로 연출) · 📋 일보(지금까지), 고급 옵션 퇴근 시각, 다음 날 "☀️ 어제 일보", 미니 보기 알림 한 줄. 자세한 규칙은 MODES.md 「퇴근 일보」
-- 테스트: `python3 scripts/test_limits_merge.py`, `python3 scripts/test_stale_agents.py`, `python3 scripts/test_daylog.py`, `node scripts/test_core_hide.js`, `node scripts/test_nunchi.js`, `node scripts/test_inbox.js`, `node scripts/test_studio_hire.js`, `node scripts/test_studio_gacha.js`, `node scripts/test_studio_events.js`, `node scripts/test_studio_nap.js`, `node scripts/test_studio_weather.js`, `node scripts/test_studio_spot.js`, `node scripts/test_studio_earn.js`, `cargo test --workspace`, `sh scripts/rust_parity.sh`
+- 테스트: `python3 scripts/test_limits_merge.py`, `python3 scripts/test_stale_agents.py`, `python3 scripts/test_daylog.py`, `node scripts/test_core_hide.js`, `node scripts/test_nunchi.js`, `node scripts/test_inbox.js`, `node scripts/test_i18n_msg.js`, `node scripts/test_studio_hire.js`, `node scripts/test_studio_gacha.js`, `node scripts/test_studio_events.js`, `node scripts/test_studio_nap.js`, `node scripts/test_studio_weather.js`, `node scripts/test_studio_spot.js`, `node scripts/test_studio_earn.js`, `cargo test --workspace`, `sh scripts/rust_parity.sh`
 
 ## 구조
 - `hook.py` — Claude Code hook. 이벤트를 요약해 `~/.claude/waiting-room/events.jsonl`에 추가 (쓰는 쪽은 회전하지 않음 — 앱 리더가 5MB에서 `events.1.jsonl`로 넘기고, server.py는 둘을 이어 최근 5000줄을 본다 #122)
@@ -208,6 +208,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
     src/nunchi.rs             🙈 눈치 모드: 전역 단축키(tauri-plugin-global-shortcut, Rust에서만 등록·실패 상태 `nunchi_status`)·창 제목 Agent Sessions
     src/winpos.rs             창 위치·크기 저장/복원(논리 좌표, 설정 폴더 window-pos.json): main 위치·크기, widget 위치만, 화면 밖·엉망인 값은 기본 모니터로
     src/protocol.rs           wrmode://localhost/_sdk/·/_modes/<id>/ 서빙 + CSP·Permissions-Policy
+    src/lang.rs               화면에 돌려주는 문구의 언어 고르기 `l!(en, "한국어", "English")` — 설정 언어(`settings.lang`)가 en이면 영어 (#76)
     src/mode_install.rs       폴더·zip 설치(스테이징·zip-slip·링크·확장자·20MB/500개 제한·SHA-256 기록), 삭제
     src/hooks.rs, settings.rs, terminal.rs   훅 sidecar 복사·설치 / 앱 settings.json / 세션 cwd에서 터미널 열기·멀티플렉서(cmux 패널·Orca 터미널)로 이동(인자 배열·타임아웃, feature `terminal-jump`)
     src/orca_find.rs          Orca 앱·CLI 찾기(#54, 맥·윈도우): 실행 중 프로세스 → 레지스트리·Spotlight → 고정 후보, 설치 폴더 안인지 검증, 찾은 경로·실패 이유 로그

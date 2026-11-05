@@ -282,8 +282,36 @@ const detect = () => {
   const l = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
   return /^ko\b/i.test(l) ? "ko" : "en";
 };
+/* 영어 화면에 그대로 보이던 한국어 고정 문구(#76) — 공용 엔진(wr-core·server.py, 동등성 때문에 문구를 못 바꿈)과
+   코어 validate()가 만드는 문구를 화면에 그릴 때만 영어로 옮긴다. 모르는 문구는 그대로 */
+const KO_EN = [
+  [/^mode\.json이 없어요$/, () => "mode.json is missing"],
+  [/^mode\.json이 너무 크거나 링크예요$/, () => "mode.json is too large or is a link"],
+  [/^mode\.json을 읽을 수 없어요(?: \((\w+)\))?$/, (_, e) => "Can't read mode.json" + (e ? ` (${e})` : "")],
+  [/^폴더 이름은 모드 id 형식이어야 하고 링크가 아니어야 해요$/, () => "The folder name must be a mode id and not a link"],
+  [/^id 형식이 잘못됐어요 (\(.*\))$/, (_, r) => `Invalid id format ${r}`],
+  [/^폴더 이름\((.*)\)과 id\((.*)\)가 달라요$/, (_, d, i) => `Folder name (${d}) and id (${i}) differ`],
+  [/^내장 모드와 id가 겹쳐요: (.*)$/, (_, i) => `Same id as a built-in mode: ${i}`],
+  [/^name이 필요해요 \(문자열 또는 \{ ko, en \}\)$/, () => "name is required (a string or { ko, en })"],
+  [/^version은 semver\(예: 1\.0\.0\)여야 해요$/, () => "version must be semver (e.g. 1.0.0)"],
+  [/^entry 경로가 잘못됐어요$/, () => "Invalid entry path"],
+  [/^styles 경로가 잘못됐어요$/, () => "Invalid styles path"],
+  [/^알 수 없는 권한이 있어요 \(가능: (.*)\)$/, (_, p) => `Unknown permission (allowed: ${p})`],
+  [/^id가 겹쳐요: (.*)$/, (_, i) => `Duplicate id: ${i}`],
+  [/^settings\.json을 해석할 수 없어 건드리지 않았어요$/, () => "Couldn't parse settings.json, so it was left untouched"],
+  [/^settings\.json 최상위가 객체가 아니라 건드리지 않았어요$/, () => "settings.json isn't a JSON object at the top level, so it was left untouched"],
+  [/^그 사이 settings\.json이 바뀌었어요\. 다시 시도해 주세요$/, () => "settings.json changed in the meantime. Please try again"],
+  [/^파일 오류: (.*)$/, (_, e) => `File error: ${e}`],
+];
 window.CoreI18n = {
   strings: S,
+  /** 엔진·검증이 만든 한국어 고정 문구를 지금 언어로(#76). en이 아니거나 모르는 문구면 그대로 */
+  msg(lang, m) {
+    m = String(m == null ? "" : m);
+    if (lang !== "en") return m;
+    for (const [re, f] of KO_EN) { const x = re.exec(m); if (x) return f(...x); }
+    return m;
+  },
   detect,
   resolve: pref => pref === "ko" || pref === "en" ? pref : detect(),
   t(lang, key, p = {}) {

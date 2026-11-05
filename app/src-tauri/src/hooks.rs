@@ -52,31 +52,33 @@ pub fn sidecar_ok(p: &HookPaths) -> bool {
 }
 
 /// sidecar → 고정 경로 (내용이 다를 때만), 실행 권한, `--version`으로 동작 확인
-pub fn ensure_bin(p: &HookPaths) -> Result<(), String> {
-    let src = p
-        .sidecar
-        .as_deref()
-        .filter(|_| sidecar_ok(p))
-        .ok_or("앱에 wr-hook이 들어 있지 않아요 (개발 빌드라면 sh scripts/build_sidecar.sh 후 다시 빌드하세요)")?;
-    let new = std::fs::read(src).map_err(|e| format!("wr-hook 읽기 실패: {}", e.kind()))?;
+pub fn ensure_bin(p: &HookPaths, en: bool) -> Result<(), String> {
+    let src = p.sidecar.as_deref().filter(|_| sidecar_ok(p)).ok_or_else(|| {
+        l!(
+            en,
+            "앱에 wr-hook이 들어 있지 않아요 (개발 빌드라면 sh scripts/build_sidecar.sh 후 다시 빌드하세요)",
+            "This app doesn't include wr-hook (for a dev build, run sh scripts/build_sidecar.sh and rebuild)"
+        )
+    })?;
+    let new = std::fs::read(src).map_err(|e| l!(en, "wr-hook 읽기 실패: {}", "Couldn't read wr-hook: {}", e.kind()))?;
     if std::fs::read(&p.bin).ok().as_deref() != Some(&new[..]) {
         let dir = p.bin.parent().unwrap();
-        std::fs::create_dir_all(dir).map_err(|e| format!("폴더 만들기 실패: {}", e.kind()))?;
+        std::fs::create_dir_all(dir).map_err(|e| l!(en, "폴더 만들기 실패: {}", "Couldn't create folder: {}", e.kind()))?;
         let tmp = dir.join(".wr-hook.tmp");
-        std::fs::write(&tmp, &new).map_err(|e| format!("복사 실패: {}", e.kind()))?;
+        std::fs::write(&tmp, &new).map_err(|e| l!(en, "복사 실패: {}", "Copy failed: {}", e.kind()))?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o755)).map_err(|e| e.kind().to_string())?;
         }
-        wr_core::binswap::swap_in(&tmp, &p.bin).map_err(|e| format!("복사 실패: {}", e.kind()))?;
+        wr_core::binswap::swap_in(&tmp, &p.bin).map_err(|e| l!(en, "복사 실패: {}", "Copy failed: {}", e.kind()))?;
     }
     let out = std::process::Command::new(&p.bin)
         .arg("--version")
         .output()
-        .map_err(|e| format!("wr-hook 실행 실패: {}", e.kind()))?;
+        .map_err(|e| l!(en, "wr-hook 실행 실패: {}", "Couldn't run wr-hook: {}", e.kind()))?;
     if !out.status.success() || !String::from_utf8_lossy(&out.stdout).starts_with("wr-hook ") {
-        return Err("wr-hook이 올바르게 실행되지 않아요".into());
+        return Err(l!(en, "wr-hook이 올바르게 실행되지 않아요", "wr-hook isn't running correctly"));
     }
     Ok(())
 }
@@ -126,9 +128,9 @@ pub fn plan(p: &HookPaths, install: bool) -> Result<(hc::Loaded, Value, Vec<Stri
     Ok((l, next, d))
 }
 
-pub fn apply(p: &HookPaths, l: &hc::Loaded, next: &Value, install: bool) -> Result<hc::Report, String> {
+pub fn apply(p: &HookPaths, l: &hc::Loaded, next: &Value, install: bool, en: bool) -> Result<hc::Report, String> {
     if install {
-        ensure_bin(p)?;
+        ensure_bin(p, en)?;
         set_refresh_err(None);
     }
     let tag = chrono_tag();
@@ -170,7 +172,7 @@ fn set_refresh_err(e: Option<String>) {
 }
 
 /// 이미 훅을 켠 사용자의 wr-hook을 앱에 든 sidecar로 맞춘다. settings.json은 읽기만 한다
-pub fn refresh_bin(p: &HookPaths) -> Result<Refresh, String> {
+pub fn refresh_bin(p: &HookPaths, en: bool) -> Result<Refresh, String> {
     if !sidecar_ok(p) {
         return Ok(Refresh::NoSidecar);
     }
@@ -179,17 +181,17 @@ pub fn refresh_bin(p: &HookPaths) -> Result<Refresh, String> {
         return Ok(Refresh::NotInstalled);
     }
     let src = p.sidecar.as_deref().unwrap();
-    let new = std::fs::read(src).map_err(|e| format!("wr-hook 읽기 실패: {}", e.kind()))?;
+    let new = std::fs::read(src).map_err(|e| l!(en, "wr-hook 읽기 실패: {}", "Couldn't read wr-hook: {}", e.kind()))?;
     if std::fs::read(&p.bin).ok().as_deref() == Some(&new[..]) {
         return Ok(Refresh::Same);
     }
-    ensure_bin(p)?;
+    ensure_bin(p, en)?;
     Ok(Refresh::Updated)
 }
 
 /// 앱 시작: 별도 스레드에서 갱신(메인 스레드·시작을 막지 않음). 실패는 로그 + 설정 화면 안내
-pub fn refresh_on_start(p: HookPaths) {
-    std::thread::spawn(move || match refresh_bin(&p) {
+pub fn refresh_on_start(p: HookPaths, en: bool) {
+    std::thread::spawn(move || match refresh_bin(&p, en) {
         Ok(Refresh::Updated) => {
             set_refresh_err(None);
             wlog!("hooks", "wr-hook 갱신: {}", p.bin.display());
@@ -234,7 +236,7 @@ mod tests {
         p.sidecar = Some(side.clone());
         let (l, next, diff) = plan(&p, true).unwrap();
         assert_eq!(diff.len(), 10);
-        let r = apply(&p, &l, &next, true).unwrap();
+        let r = apply(&p, &l, &next, true, false).unwrap();
         assert!(r.changed && r.backup.as_ref().unwrap().exists());
         assert!(p.bin.is_file());
         let st = status(&p, &root);
@@ -243,14 +245,14 @@ mod tests {
         let v: Value = serde_json::from_str(&std::fs::read_to_string(&settings).unwrap()).unwrap();
         assert_eq!(v["hooks"]["Stop"][0]["hooks"][0]["command"], "say hi", "기존 훅 보존");
         let (l, next, _) = plan(&p, false).unwrap();
-        apply(&p, &l, &next, false).unwrap();
+        apply(&p, &l, &next, false, false).unwrap();
         let back: Value = serde_json::from_str(&std::fs::read_to_string(&settings).unwrap()).unwrap();
         assert_eq!(back, serde_json::from_str::<Value>(orig).unwrap(), "제거하면 원래대로");
         // 자리표시 sidecar는 거부
         std::fs::write(&side, "#!/bin/sh\n# WAITSCAPE_SIDECAR_STUB\nexit 0\n").unwrap();
         std::fs::remove_file(&p.bin).unwrap();
         let (l, next, _) = plan(&p, true).unwrap();
-        assert!(apply(&p, &l, &next, true).is_err());
+        assert!(apply(&p, &l, &next, true, false).is_err());
         std::fs::remove_dir_all(&root).ok();
     }
 
@@ -294,7 +296,7 @@ mod tests {
         assert_eq!(st["claudeDir"], true);
 
         // 항목 없음: 바이너리를 만들지 않는다
-        assert_eq!(refresh_bin(&p).unwrap(), Refresh::NotInstalled);
+        assert_eq!(refresh_bin(&p, false).unwrap(), Refresh::NotInstalled);
         assert!(!p.bin.exists());
 
         // 항목 있음 + 설치본이 옛 버전 → 바이너리만 교체, settings.json은 그대로
@@ -303,26 +305,26 @@ mod tests {
         let before = std::fs::read(&settings).unwrap();
         std::fs::create_dir_all(p.bin.parent().unwrap()).unwrap();
         script(&p.bin, "1.0.0");
-        assert_eq!(refresh_bin(&p).unwrap(), Refresh::Updated);
+        assert_eq!(refresh_bin(&p, false).unwrap(), Refresh::Updated);
         assert_eq!(std::fs::read(&p.bin).unwrap(), std::fs::read(&side).unwrap());
         assert_eq!(std::fs::read(&settings).unwrap(), before, "settings.json은 건드리지 않음");
 
         // 같음 → 아무것도 안 함
-        assert_eq!(refresh_bin(&p).unwrap(), Refresh::Same);
+        assert_eq!(refresh_bin(&p, false).unwrap(), Refresh::Same);
 
         // 항목 있음 + 설치본 없음 → 다시 넣는다
         std::fs::remove_file(&p.bin).unwrap();
-        assert_eq!(refresh_bin(&p).unwrap(), Refresh::Updated);
+        assert_eq!(refresh_bin(&p, false).unwrap(), Refresh::Updated);
         assert!(p.bin.is_file());
 
         // 스텁 sidecar(개발 빌드) → 설치본을 건드리지 않는다
         let installed = std::fs::read(&p.bin).unwrap();
         std::fs::write(&side, "#!/bin/sh\n# WAITSCAPE_SIDECAR_STUB\nexit 0\n").unwrap();
-        assert_eq!(refresh_bin(&p).unwrap(), Refresh::NoSidecar);
+        assert_eq!(refresh_bin(&p, false).unwrap(), Refresh::NoSidecar);
         assert_eq!(std::fs::read(&p.bin).unwrap(), installed);
         // sidecar 자체가 없음
         p.sidecar = None;
-        assert_eq!(refresh_bin(&p).unwrap(), Refresh::NoSidecar);
+        assert_eq!(refresh_bin(&p, false).unwrap(), Refresh::NoSidecar);
 
         // Claude Code 설정 폴더가 없으면 claudeDir=false (온보딩은 안내만)
         let gone = HookPaths::new(&home.join("nope"), &home.join("nope/settings.json"));

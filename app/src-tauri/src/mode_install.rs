@@ -69,13 +69,19 @@ fn skip_name(rel: &str) -> bool {
 struct Budget {
     files: usize,
     bytes: u64,
+    /// 오류 문구 언어 (#76)
+    en: bool,
 }
 
 impl Budget {
     fn add(&mut self, n: u64) -> Result<(), String> {
         self.files += 1;
         if self.files > MAX_FILES {
-            return err(format!("파일이 너무 많아요 (최대 {MAX_FILES}개)"));
+            return err(l!(
+                self.en,
+                "파일이 너무 많아요 (최대 {MAX_FILES}개)",
+                "Too many files (max {MAX_FILES})"
+            ));
         }
         // zip 선언 크기는 믿을 수 없다: 릴리스 빌드에서 덧셈이 넘쳐 한도를 우회하지 않게 checked_add
         match self.bytes.checked_add(n) {
@@ -83,32 +89,43 @@ impl Budget {
                 self.bytes = b;
                 Ok(())
             }
-            _ => err("패키지가 너무 커요 (최대 20MB)"),
+            _ => err(l!(self.en, "패키지가 너무 커요 (최대 20MB)", "Package is too large (max 20MB)")),
         }
     }
 }
 
 fn copy_dir(src: &Path, dst: &Path, rel: &Path, b: &mut Budget) -> Result<(), String> {
-    let rd = std::fs::read_dir(src.join(rel)).map_err(|_| "폴더를 읽을 수 없어요".to_string())?;
+    let en = b.en;
+    let rd = std::fs::read_dir(src.join(rel)).map_err(|_| l!(en, "폴더를 읽을 수 없어요", "Couldn't read the folder"))?;
     for e in rd.flatten() {
         let name = e.file_name().to_string_lossy().to_string();
         let r = rel.join(&name);
         if skip_name(&name) {
             continue;
         }
-        let md = std::fs::symlink_metadata(e.path()).map_err(|_| "파일 정보를 읽을 수 없어요".to_string())?;
+        let md = std::fs::symlink_metadata(e.path()).map_err(|_| l!(en, "파일 정보를 읽을 수 없어요", "Couldn't read file info"))?;
         if md.file_type().is_symlink() {
-            return err(format!("심볼릭 링크는 설치할 수 없어요: {}", r.display()));
+            return err(l!(
+                en,
+                "심볼릭 링크는 설치할 수 없어요: {}",
+                "Symbolic links can't be installed: {}",
+                r.display()
+            ));
         }
         if !rel_ok(&r) {
-            return err(format!("허용되지 않는 경로예요: {}", r.display()));
+            return err(l!(en, "허용되지 않는 경로예요: {}", "Path not allowed: {}", r.display()));
         }
         if md.is_dir() {
             std::fs::create_dir_all(dst.join(&r)).map_err(|e| e.to_string())?;
             copy_dir(src, dst, &r, b)?;
         } else if md.is_file() {
             if !ext_ok(&name) {
-                return err(format!("허용되지 않는 파일 형식이에요: {}", r.display()));
+                return err(l!(
+                    en,
+                    "허용되지 않는 파일 형식이에요: {}",
+                    "File type not allowed: {}",
+                    r.display()
+                ));
             }
             b.add(md.len())?;
             std::fs::copy(e.path(), dst.join(&r)).map_err(|e| e.to_string())?;
@@ -117,39 +134,45 @@ fn copy_dir(src: &Path, dst: &Path, rel: &Path, b: &mut Budget) -> Result<(), St
     Ok(())
 }
 
-fn unzip(src: &Path, dst: &Path) -> Result<(), String> {
-    let f = std::fs::File::open(src).map_err(|_| "zip 파일을 열 수 없어요".to_string())?;
-    let mut z = zip::ZipArchive::new(f).map_err(|_| "zip 형식이 아니에요".to_string())?;
-    let mut b = Budget { files: 0, bytes: 0 };
+fn unzip(src: &Path, dst: &Path, en: bool) -> Result<(), String> {
+    let f = std::fs::File::open(src).map_err(|_| l!(en, "zip 파일을 열 수 없어요", "Couldn't open the zip file"))?;
+    let mut z = zip::ZipArchive::new(f).map_err(|_| l!(en, "zip 형식이 아니에요", "Not a zip file"))?;
+    let mut b = Budget { files: 0, bytes: 0, en };
     for i in 0..z.len() {
-        let mut e = z.by_index(i).map_err(|_| "zip 항목을 읽을 수 없어요".to_string())?;
+        let mut e = z
+            .by_index(i)
+            .map_err(|_| l!(en, "zip 항목을 읽을 수 없어요", "Couldn't read a zip entry"))?;
         let raw = e
             .name()
-            .map_err(|_| "zip 항목 이름을 읽을 수 없어요".to_string())?
+            .map_err(|_| l!(en, "zip 항목 이름을 읽을 수 없어요", "Couldn't read a zip entry name"))?
             .replace('\\', "/");
         // `..`는 점으로 시작해 skip_name에 숨김 파일로 걸러지므로, 그 전에 경로 탈출로 거부한다
         if raw.starts_with('/') || raw.split('/').any(|p| p == "..") {
-            return err(format!("허용되지 않는 경로예요: {raw}"));
+            return err(l!(en, "허용되지 않는 경로예요: {raw}", "Path not allowed: {raw}"));
         }
         if skip_name(&raw) {
             continue;
         }
         if e.is_symlink() {
-            return err(format!("심볼릭 링크는 설치할 수 없어요: {raw}"));
+            return err(l!(
+                en,
+                "심볼릭 링크는 설치할 수 없어요: {raw}",
+                "Symbolic links can't be installed: {raw}"
+            ));
         }
         // enclosed_name: 절대 경로·`..`·드라이브 접두사를 거른다. 그 위에 우리 규칙을 한 번 더
         let Some(rel) = e.enclosed_name() else {
-            return err(format!("경로 탈출 시도: {raw}"));
+            return err(l!(en, "경로 탈출 시도: {raw}", "Path escapes the package: {raw}"));
         };
         if raw.starts_with('/') || raw.split('/').any(|p| p == "..") || !rel_ok(&rel) {
-            return err(format!("허용되지 않는 경로예요: {raw}"));
+            return err(l!(en, "허용되지 않는 경로예요: {raw}", "Path not allowed: {raw}"));
         }
         if e.is_dir() {
             std::fs::create_dir_all(dst.join(&rel)).map_err(|e| e.to_string())?;
             continue;
         }
         if !ext_ok(&raw) {
-            return err(format!("허용되지 않는 파일 형식이에요: {raw}"));
+            return err(l!(en, "허용되지 않는 파일 형식이에요: {raw}", "File type not allowed: {raw}"));
         }
         b.add(e.size())?;
         let out = dst.join(&rel);
@@ -161,9 +184,13 @@ fn unzip(src: &Path, dst: &Path) -> Result<(), String> {
         (&mut e)
             .take(MAX_BYTES + 1)
             .read_to_end(&mut buf)
-            .map_err(|_| "zip 압축 해제 실패".to_string())?;
+            .map_err(|_| l!(en, "zip 압축 해제 실패", "Couldn't extract the zip"))?;
         if buf.len() as u64 > e.size() || buf.len() as u64 > MAX_BYTES {
-            return err("압축 해제 크기가 선언과 달라요");
+            return err(l!(
+                en,
+                "압축 해제 크기가 선언과 달라요",
+                "Extracted size doesn't match the declared size"
+            ));
         }
         std::fs::write(&out, buf).map_err(|e| e.to_string())?;
     }
@@ -215,31 +242,50 @@ fn pick<'a>(v: &'a Value, lang: &str) -> &'a str {
 pub fn prepare(src: &Path, stage_dir: &Path, builtin: &[String], user_modes: &Path, lang: &str) -> Result<Staged, String> {
     std::fs::remove_dir_all(stage_dir).ok();
     std::fs::create_dir_all(stage_dir).map_err(|e| e.to_string())?;
+    let en = lang == "en";
     let r = (|| {
-        let md = std::fs::symlink_metadata(src).map_err(|_| "선택한 항목을 찾을 수 없어요".to_string())?;
+        let md = std::fs::symlink_metadata(src).map_err(|_| l!(en, "선택한 항목을 찾을 수 없어요", "Couldn't find the selected item"))?;
         if md.file_type().is_symlink() {
-            return err("심볼릭 링크는 설치할 수 없어요");
+            return err(l!(en, "심볼릭 링크는 설치할 수 없어요", "Symbolic links can't be installed"));
         }
         if md.is_dir() {
-            copy_dir(src, stage_dir, Path::new(""), &mut Budget { files: 0, bytes: 0 })?;
+            copy_dir(src, stage_dir, Path::new(""), &mut Budget { files: 0, bytes: 0, en })?;
         } else if src
             .extension()
             .and_then(|e| e.to_str())
             .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
         {
-            unzip(src, stage_dir)?;
+            unzip(src, stage_dir, en)?;
         } else {
-            return err("폴더나 .zip 파일만 설치할 수 있어요");
+            return err(l!(
+                en,
+                "폴더나 .zip 파일만 설치할 수 있어요",
+                "Only a folder or a .zip file can be installed"
+            ));
         }
-        let root = package_root(stage_dir).ok_or("mode.json을 찾을 수 없어요 (패키지 맨 위나 하나뿐인 폴더 안에 있어야 해요)")?;
+        let root = package_root(stage_dir).ok_or_else(|| {
+            l!(
+                en,
+                "mode.json을 찾을 수 없어요 (패키지 맨 위나 하나뿐인 폴더 안에 있어야 해요)",
+                "Couldn't find mode.json (it must be at the top of the package or inside its only folder)"
+            )
+        })?;
         let (m, e) = wr_core::modes::read_manifest(&root.join("mode.json"));
-        let m = m.ok_or(e.unwrap_or_else(|| "mode.json을 읽을 수 없어요".into()))?;
+        let m = m.ok_or_else(|| e.unwrap_or_else(|| l!(en, "mode.json을 읽을 수 없어요", "Couldn't read mode.json")))?;
         let id = m.get("id").and_then(|x| x.as_str()).unwrap_or("").to_string();
         if !id_ok(&id) {
-            return err("mode.json의 id 형식이 잘못됐어요 (^[a-z0-9][a-z0-9-]{0,31}$)");
+            return err(l!(
+                en,
+                "mode.json의 id 형식이 잘못됐어요 (^[a-z0-9][a-z0-9-]{{0,31}}$)",
+                "Invalid id format in mode.json (^[a-z0-9][a-z0-9-]{{0,31}}$)"
+            ));
         }
         if builtin.contains(&id) {
-            return err(format!("내장 모드와 id가 겹쳐요: {id}"));
+            return err(l!(
+                en,
+                "내장 모드와 id가 겹쳐요: {id}",
+                "The id is already used by a built-in mode: {id}"
+            ));
         }
         let version = m.get("version").and_then(|x| x.as_str()).unwrap_or("");
         let semver = version.split(['-', '+']).next().unwrap_or("").split('.').count() == 3
@@ -250,27 +296,31 @@ pub fn prepare(src: &Path, stage_dir: &Path, builtin: &[String], user_modes: &Pa
                 .split('.')
                 .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()));
         if !semver {
-            return err("version은 semver(예: 1.0.0)여야 해요");
+            return err(l!(
+                en,
+                "version은 semver(예: 1.0.0)여야 해요",
+                "version must be semver (e.g. 1.0.0)"
+            ));
         }
         let needs: Vec<String> = match m.get("needs") {
             None | Some(Value::Null) => vec![],
             Some(Value::Array(a)) => a.iter().map(|x| x.as_str().unwrap_or("?").to_string()).collect(),
-            _ => return err("needs는 배열이어야 해요"),
+            _ => return err(l!(en, "needs는 배열이어야 해요", "needs must be an array")),
         };
         if let Some(bad) = needs.iter().find(|n| !PERMS.contains(&n.as_str())) {
-            return err(format!("알 수 없는 권한이에요: {bad}"));
+            return err(l!(en, "알 수 없는 권한이에요: {bad}", "Unknown permission: {bad}"));
         }
         // 설치 뒤 코어(core.js SAFE_PATH)·서빙(modes::rel_ok)이 거부할 경로는 처음부터 받지 않는다
         let entry = match m.get("entry") {
             None | Some(Value::Null) => "mode.js",
             Some(Value::String(s)) => s.as_str(),
-            _ => return err("entry 경로가 잘못됐어요"),
+            _ => return err(l!(en, "entry 경로가 잘못됐어요", "Invalid entry path")),
         };
         if !wr_core::modes::rel_ok(entry) || !entry.ends_with(".js") {
-            return err("entry 경로가 잘못됐어요");
+            return err(l!(en, "entry 경로가 잘못됐어요", "Invalid entry path"));
         }
         if !root.join(entry).is_file() {
-            return err(format!("entry 파일이 없어요: {entry}"));
+            return err(l!(en, "entry 파일이 없어요: {entry}", "Entry file is missing: {entry}"));
         }
         match m.get("styles") {
             None | Some(Value::Null) => {}
@@ -279,14 +329,14 @@ pub fn prepare(src: &Path, stage_dir: &Path, builtin: &[String], user_modes: &Pa
                     match x.as_str() {
                         Some(s) if wr_core::modes::rel_ok(s) && s.ends_with(".css") => {
                             if !root.join(s).is_file() {
-                                return err(format!("styles 파일이 없어요: {s}"));
+                                return err(l!(en, "styles 파일이 없어요: {s}", "Styles file is missing: {s}"));
                             }
                         }
-                        _ => return err("styles 경로가 잘못됐어요"),
+                        _ => return err(l!(en, "styles 경로가 잘못됐어요", "Invalid styles path")),
                     }
                 }
             }
-            _ => return err("styles 경로가 잘못됐어요"),
+            _ => return err(l!(en, "styles 경로가 잘못됐어요", "Invalid styles path")),
         }
         let mut files = vec![];
         walk_files(&root, Path::new(""), &mut files);
@@ -336,11 +386,11 @@ pub fn prepare(src: &Path, stage_dir: &Path, builtin: &[String], user_modes: &Pa
 /// 2. 기존 `<id>`를 `.<id>.old-*`로 비켜 둔다(같은 폴더 안 rename). Windows에서 파일이 열려 있어 실패하면 그대로 중단.
 /// 3. `.new-*` → `<id>`. 실패하면 `.old-*`를 `<id>`로 되돌린다.
 /// 4. 성공하면 `.old-*`를 지운다(실패해도 다음 `recover`가 지움).
-pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
+pub fn commit(st: &Staged, user_modes: &Path, en: bool) -> Result<(), String> {
     let _g = install_lock();
     std::fs::create_dir_all(user_modes).map_err(|e| e.to_string())?;
     if !id_ok(&st.id) {
-        return err("잘못된 모드 id");
+        return err(l!(en, "잘못된 모드 id", "Invalid mode id"));
     }
     recover_id(user_modes, &st.id);
     let dst = user_modes.join(&st.id);
@@ -359,7 +409,13 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
     let record = json!({ "id": st.id, "version": st.info["version"], "installedAt": chrono_now(), "sha256": hashes });
     std::fs::write(st.dir.join(".install.json"), serde_json::to_vec_pretty(&record).unwrap()).map_err(|e| e.to_string())?;
     let existing = match std::fs::symlink_metadata(&dst) {
-        Ok(md) if md.file_type().is_symlink() || !md.is_dir() => return err("같은 이름의 항목이 폴더가 아니라 설치하지 않았어요"),
+        Ok(md) if md.file_type().is_symlink() || !md.is_dir() => {
+            return err(l!(
+                en,
+                "같은 이름의 항목이 폴더가 아니라 설치하지 않았어요",
+                "Not installed: an item with the same name exists and isn't a folder"
+            ))
+        }
         Ok(_) => true,
         Err(_) => false,
     };
@@ -371,7 +427,7 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
         std::fs::remove_dir_all(&new).ok();
         if let Err(e) = copy_tree(&st.dir, &new) {
             std::fs::remove_dir_all(&new).ok();
-            return err(format!("설치 파일을 옮기지 못했어요: {e}"));
+            return err(l!(en, "설치 파일을 옮기지 못했어요: {e}", "Couldn't move the install files: {e}"));
         }
     }
     // 2. 기존 판을 비켜 둔다
@@ -379,8 +435,10 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
     if existing {
         if let Err(e) = step("backup", || rename_retry(&dst, &old)) {
             std::fs::remove_dir_all(&new).ok();
-            return err(format!(
-                "기존 모드를 옮기지 못해 업데이트하지 않았어요 (사용 중인 파일이 있으면 닫고 다시 시도해 주세요): {e}"
+            return err(l!(
+                en,
+                "기존 모드를 옮기지 못해 업데이트하지 않았어요 (사용 중인 파일이 있으면 닫고 다시 시도해 주세요): {e}",
+                "Not updated: couldn't move the existing mode (close any files in use and try again): {e}"
             ));
         }
     }
@@ -390,13 +448,19 @@ pub fn commit(st: &Staged, user_modes: &Path) -> Result<(), String> {
         if existing {
             if let Err(e2) = rename_retry(&old, &dst) {
                 // 되돌리기마저 실패: 기존 판은 .old-* 이름으로 남아 있고 다음 실행 때 recover가 되돌린다
-                return err(format!(
-                    "업데이트에 실패했어요: {e} (기존 모드 복구도 실패: {e2}. 앱을 다시 켜면 복구를 다시 시도해요)"
+                return err(l!(
+                    en,
+                    "업데이트에 실패했어요: {e} (기존 모드 복구도 실패: {e2}. 앱을 다시 켜면 복구를 다시 시도해요)",
+                    "Update failed: {e} (restoring the existing mode also failed: {e2}. It will retry when the app restarts)"
                 ));
             }
-            return err(format!("업데이트에 실패해 기존 모드를 그대로 두었어요: {e}"));
+            return err(l!(
+                en,
+                "업데이트에 실패해 기존 모드를 그대로 두었어요: {e}",
+                "Update failed; the existing mode was kept: {e}"
+            ));
         }
-        return err(format!("설치에 실패했어요: {e}"));
+        return err(l!(en, "설치에 실패했어요: {e}", "Install failed: {e}"));
     }
     // 4. 비켜 둔 기존 판 정리 (실패해도 설치는 성공. 다음 recover가 지운다)
     if existing {
@@ -539,20 +603,20 @@ fn chrono_now() -> f64 {
         .unwrap_or(0.0)
 }
 
-pub fn remove(user_modes: &Path, id: &str) -> Result<(), String> {
+pub fn remove(user_modes: &Path, id: &str, en: bool) -> Result<(), String> {
     let _g = install_lock();
     if !id_ok(id) {
-        return err("잘못된 모드 id");
+        return err(l!(en, "잘못된 모드 id", "Invalid mode id"));
     }
     let p = user_modes.join(id);
-    let md = std::fs::symlink_metadata(&p).map_err(|_| "설치된 모드가 아니에요".to_string())?;
+    let md = std::fs::symlink_metadata(&p).map_err(|_| l!(en, "설치된 모드가 아니에요", "Not an installed mode"))?;
     if md.file_type().is_symlink() || !md.is_dir() {
-        return err("폴더가 아니라 지우지 않았어요");
+        return err(l!(en, "폴더가 아니라 지우지 않았어요", "Not deleted: it isn't a folder"));
     }
     let base = std::fs::canonicalize(user_modes).map_err(|e| e.to_string())?;
     let full = std::fs::canonicalize(&p).map_err(|e| e.to_string())?;
     if full.parent() != Some(base.as_path()) {
-        return err("사용자 모드 폴더 밖이에요");
+        return err(l!(en, "사용자 모드 폴더 밖이에요", "It's outside the user modes folder"));
     }
     std::fs::remove_dir_all(&full).map_err(|e| e.to_string())
 }
@@ -601,7 +665,7 @@ mod tests {
         assert_eq!(st.id, "demo");
         assert_eq!(st.info["files"], 3);
         assert_eq!(st.info["addedNeeds"], json!(["memo"]));
-        commit(&st, &modes).unwrap();
+        commit(&st, &modes, false).unwrap();
         assert!(modes.join("demo/mode.js").is_file() && modes.join("demo/.install.json").is_file());
         // 설치 기록의 SHA-256은 소문자 16진 64자 (sha2 0.11에서 출력 방식을 바꿔도 예전 기록과 같은 값)
         let rec: Value = serde_json::from_slice(&std::fs::read(modes.join("demo/.install.json")).unwrap()).unwrap();
@@ -613,10 +677,10 @@ mod tests {
         let st2 = prepare(&src, &t.join("stage"), &[], &modes, "ko").unwrap();
         assert_eq!(st2.info["replaces"], "1.0.0");
         assert_eq!(st2.info["addedNeeds"], json!([]));
-        commit(&st2, &modes).unwrap();
-        remove(&modes, "demo").unwrap();
+        commit(&st2, &modes, false).unwrap();
+        remove(&modes, "demo", false).unwrap();
         assert!(!modes.join("demo").exists());
-        assert!(remove(&modes, "../x").is_err());
+        assert!(remove(&modes, "../x", false).is_err());
         // 내장 id 충돌
         write_pkg(&t.join("h"), "hamster");
         assert!(prepare(&t.join("h"), &t.join("stage"), &["hamster".into()], &modes, "ko")
@@ -683,7 +747,7 @@ mod tests {
         ] {
             let p = t.join(format!("{name}.zip"));
             zip_of(&p, &entries);
-            let e = prepare(&p, &t.join("stage"), &[], &modes, "en").expect_err(name);
+            let e = prepare(&p, &t.join("stage"), &[], &modes, "ko").expect_err(name);
             // 경로 탈출은 진입 파일이 있어도 경로 규칙으로 거부돼야 한다
             assert!(!matches!(name, "slip" | "abs") || e.contains("경로"), "{name}: {e}");
             assert!(!t.join("evil.js").exists() && !Path::new("/tmp/evil.js").exists());
@@ -699,14 +763,14 @@ mod tests {
             }
             z.add_symlink("assets/h.txt", "/etc/hosts", o).unwrap();
             z.finish().unwrap();
-            assert!(prepare(&p, &t.join("stage"), &[], &modes, "en").unwrap_err().contains("링크"));
+            assert!(prepare(&p, &t.join("stage"), &[], &modes, "ko").unwrap_err().contains("링크"));
         }
         #[cfg(unix)]
         {
             let src = t.join("ln");
             write_pkg(&src, "ln");
             std::os::unix::fs::symlink("/etc/hosts", src.join("assets/h.txt")).unwrap();
-            assert!(prepare(&src, &t.join("stage"), &[], &modes, "en").unwrap_err().contains("링크"));
+            assert!(prepare(&src, &t.join("stage"), &[], &modes, "ko").unwrap_err().contains("링크"));
         }
         std::fs::remove_dir_all(t).ok();
     }
@@ -737,7 +801,7 @@ mod tests {
         let modes = t.join("modes");
         let v1 = t.join("v1");
         write_pkg(&v1, "demo");
-        commit(&prepare(&v1, &t.join("stage"), &[], &modes, "ko").unwrap(), &modes).unwrap();
+        commit(&prepare(&v1, &t.join("stage"), &[], &modes, "ko").unwrap(), &modes, false).unwrap();
         let v2 = t.join("v2");
         write_pkg(&v2, "demo");
         std::fs::write(v2.join("mode.json"), r#"{"id":"demo","name":"Demo","version":"2.0.0","needs":[]}"#).unwrap();
@@ -746,7 +810,7 @@ mod tests {
         for s in ["swap", "backup"] {
             let st = prepare(&v2, &t.join("stage"), &[], &modes, "ko").unwrap();
             fail(&[s]);
-            let e = commit(&st, &modes).unwrap_err();
+            let e = commit(&st, &modes, false).unwrap_err();
             fail(&[]);
             assert!(e.contains("기존 모드"), "{s}: {e}");
             assert_eq!(version_of(&modes.join("demo")), "1.0.0", "{s}");
@@ -760,14 +824,14 @@ mod tests {
         write_pkg(&n, "fresh");
         let st = prepare(&n, &t.join("stage"), &[], &modes, "ko").unwrap();
         fail(&["swap"]);
-        assert!(commit(&st, &modes).is_err());
+        assert!(commit(&st, &modes, false).is_err());
         fail(&[]);
         assert!(!modes.join("fresh").exists() && leftovers(&modes).is_empty());
 
         // 스테이징 rename 실패(다른 볼륨 흉내) → 복사로 대신해 업데이트 성공, 기존 판 백업은 지워진다
         let st = prepare(&v2, &t.join("stage"), &[], &modes, "ko").unwrap();
         fail(&["stage"]);
-        commit(&st, &modes).unwrap();
+        commit(&st, &modes, false).unwrap();
         fail(&[]);
         assert_eq!(version_of(&modes.join("demo")), "2.0.0");
         assert!(modes.join("demo/assets/a.svg").is_file() && modes.join("demo/.install.json").is_file());
@@ -844,8 +908,27 @@ mod tests {
     }
 
     #[test]
+    fn errors_follow_ui_language() {
+        // #76: 영어 화면이면 영어, 그 밖에는 한국어
+        let t = tmp("lang");
+        let modes = t.join("modes");
+        let p = t.join("x.txt");
+        std::fs::write(&p, "x").unwrap();
+        let e = prepare(&p, &t.join("stage"), &[], &modes, "en").unwrap_err();
+        assert_eq!(e, "Only a folder or a .zip file can be installed");
+        let e = prepare(&p, &t.join("stage"), &[], &modes, "ko").unwrap_err();
+        assert_eq!(e, "폴더나 .zip 파일만 설치할 수 있어요");
+        assert_eq!(remove(&modes, "../x", true).unwrap_err(), "Invalid mode id");
+        std::fs::remove_dir_all(t).ok();
+    }
+
+    #[test]
     fn budget_rejects_overflow() {
-        let mut b = Budget { files: 0, bytes: 0 };
+        let mut b = Budget {
+            files: 0,
+            bytes: 0,
+            en: false,
+        };
         b.add(10).unwrap();
         // 릴리스 빌드(overflow-checks 꺼짐)였다면 10 + u64::MAX - 5 = 4로 감겨 통과했을 크기
         assert!(b.add(u64::MAX - 5).is_err());
@@ -856,8 +939,11 @@ mod tests {
         let mut f = Budget {
             files: MAX_FILES,
             bytes: 0,
+            en: false,
         };
         assert!(f.add(0).unwrap_err().contains("파일"));
+        f.en = true;
+        assert!(f.add(0).unwrap_err().contains("Too many files"));
     }
 
     #[test]
@@ -873,7 +959,7 @@ mod tests {
         std::fs::write(src.join("assets/DESKTOP.INI"), "x").unwrap();
         let st = prepare(&src, &t.join("stage"), &[], &modes, "ko").unwrap();
         assert_eq!(st.info["files"], 3);
-        commit(&st, &modes).unwrap();
+        commit(&st, &modes, false).unwrap();
         assert!(!modes.join("wj/desktop.ini").exists() && !modes.join("wj/assets/Thumbs.db").exists());
         let z = t.join("wj.zip");
         let mj = br#"{"id":"wz","name":"Z","version":"0.1.0","needs":[]}"#;

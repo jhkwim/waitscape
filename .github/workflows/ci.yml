@@ -54,6 +54,9 @@ jobs:
       - name: 🧪 테스트 배지 판정 동등성 (server.py ↔ scan.rs 정규식·판정 표, 파일만 읽음)
         run: python scripts/test_test_badge.py
 
+      - name: 웹 코어·모드 순수 함수 테스트 (node scripts/test_*.js — 인박스·눈치·i18n·스튜디오, 파일만 읽음)
+        run: for t in scripts/test_*.js; do echo "== $t"; node "$t" || exit 1; done
+
       - name: 트랜스크립트 전용 규칙 검사기 자체 점검
         # 실제 엔진 결과 검사(python scripts/check_transcript_only.py <state.json>)는 P1 Rust 잡에서
         run: python scripts/selftest_transcript_only.py

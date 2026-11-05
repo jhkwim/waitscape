@@ -91,6 +91,7 @@
 .nx-stats b.bump { animation: nx-bump .6s ease-out; }
 @keyframes nx-bump { 0% { transform: translateY(-2px); } 100% { transform: none; } }
 .nx-lims { margin-left: auto; display: flex; flex-direction: column; gap: 9px; min-width: 500px; }
+.nx-lim .n { white-space: nowrap; }   /* 영어 "Weekly limit"이 82px 칸에서 두 줄이 되지 않게(#76) */
 .nx-lim { display: grid; grid-template-columns: 82px minmax(100px, 1fr) 44px 140px 76px; align-items: center; gap: 10px; font-size: 13px; color: var(--mute); }
 .nx-lim .bar { position: relative; height: 6px; border-radius: 3px; background: var(--bar); }
 .nx-lim .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--ok); transition: width .6s; }
@@ -231,7 +232,7 @@
   .nx-tbl .pg { margin-right: 0; } .nx-tbl tr.sub td:first-child { padding-left: 26px; } .nx-tbl tr.sub .st { font-size: 0; gap: 0; padding: 5px; }
   .nx-tbl .pg-step, .nx-tbl .pg-todo, .nx-tbl .pg i { display: none; } .nx-foot .cap { display: none; }
   .nx-tbl td, .nx-tbl th { padding-left: 10px; padding-right: 10px; } .nx-tbl td { height: 60px; } .nx-tbl .p { font-size: 14.5px; }
-  .nx-sum { flex-wrap: wrap; gap: 16px; } .nx-lims { margin-left: 0; min-width: 0; width: 100%; } .nx-lim { grid-template-columns: 70px 1fr 40px auto auto; gap: 8px; }
+  .nx-sum { flex-wrap: wrap; gap: 16px; } .nx-lims { margin-left: 0; min-width: 0; width: 100%; } .nx-lim { grid-template-columns: 82px 1fr 40px auto auto; gap: 8px; }
   .nx-stats { gap: 10px; flex-wrap: wrap; } .nx-stats > div { min-width: 0; flex: 1; padding: 8px 12px; } .nx-stats b { font-size: 26px; line-height: 32px; }
   .nx-gear .lb, .nx-gear kbd { display: none; } .nx-gear { padding: 0 8px; } .nx-upd { display: none; }
   .nx-tabs { margin-left: 0; } .nx-tabs button { padding: 0 8px; } .nx-top { gap: 10px; padding: 0 14px; } .nx-brand b { font-size: 15px; }

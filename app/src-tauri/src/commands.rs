@@ -44,7 +44,9 @@ pub fn save_patch_with(app: &AppHandle, be: &Backend, make: impl FnOnce(&AppSett
         *s = next.clone();
         (before, next)
     };
-    after.save(&be.settings_path).map_err(|e| format!("설정 저장 실패: {}", e.kind()))?;
+    after
+        .save(&be.settings_path)
+        .map_err(|e| l!(after.lang == "en", "설정 저장 실패: {}", "Couldn't save settings: {}", e.kind()))?;
     if before.usage_lookup != after.usage_lookup {
         be.engine.lock().unwrap().set_poll_on(after.usage_lookup);
         be.kick();
@@ -222,6 +224,7 @@ pub fn list_modes(app: AppHandle, w: WebviewWindow, be: B) -> Value {
     let res = app.asset_resolver();
     let read = |p: &str| res.get(p.to_string()).map(|a| a.bytes);
     let rules = wr_core::modes::rules();
+    let en = be.settings().lang == "en";
     let builtin: Vec<String> = read("modes/index.json")
         .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
         .and_then(|v| v.get("builtin").and_then(|b| b.as_array()).cloned())
@@ -235,7 +238,7 @@ pub fn list_modes(app: AppHandle, w: WebviewWindow, be: B) -> Value {
         .map(
             |d| match read(&format!("modes/{d}/mode.json")).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) {
                 Some(m) => json!({"dir": d, "source": "builtin", "manifest": m}),
-                None => json!({"dir": d, "source": "builtin", "manifest": null, "error": "mode.json을 읽을 수 없어요"}),
+                None => json!({"dir": d, "source": "builtin", "manifest": null, "error": l!(en, "mode.json을 읽을 수 없어요", "Couldn't read mode.json")}),
             },
         )
         .collect();
@@ -272,14 +275,18 @@ pub fn notify(app: AppHandle, w: WebviewWindow, be: B, title: String, body: Stri
 /// 미니 보기로 전환: 위젯 창을 띄우고 큰 창은 숨긴다 (메인 창의 📌 미니 보기·포켓 위에 띄우기)
 /// async: Windows(WebView2)에서는 동기 명령 안에서 창을 만들면 메인 스레드가 막혀 멈춘다(Tauri 문서 'Create windows in async commands')
 #[tauri::command]
-pub async fn open_widget(app: AppHandle, mode_id: Option<String>) -> Result<bool, String> {
+pub async fn open_widget(app: AppHandle, be: B<'_>, mode_id: Option<String>) -> Result<bool, String> {
     wlog!(
         "widget",
         "open_widget 명령 진입 (모드 {mode_id:?}, 스레드 {})",
         crate::applog::thread()
     );
     if mode_id.as_deref().is_some_and(|m| !windows::WIDGET_MODES.contains(&m)) {
-        return Err("v1: 위젯은 포켓·스튜디오 모드만".into());
+        return Err(l!(
+            be.settings().lang == "en",
+            "v1: 위젯은 포켓·스튜디오 모드만",
+            "v1: the widget supports only Pocket and Studio modes"
+        ));
     }
     // Ok(false) = 직전 전환 직후라 무시함(연타 가드, windows::SETTLE)
     windows::to_mini(&app, mode_id.as_deref()).map_err(|e| {
@@ -496,7 +503,7 @@ fn hooks_write(
     next: &Value,
     install: bool,
 ) -> Result<Value, String> {
-    let r = hooks::apply(p, loaded, next, install)?;
+    let r = hooks::apply(p, loaded, next, install, be.settings().lang == "en")?;
     be.kick();
     Ok(json!({
         "changed": r.changed,
@@ -527,14 +534,14 @@ fn mcp_paths(be: &Backend) -> mcpc::McpPaths {
     mcpc::McpPaths::new(&be.home, &be.claude.root, &be.claude.settings, &hook_paths(be).bin, &reports).find_clis()
 }
 
-fn mcp_cli(cli: &str) -> Result<Cli, String> {
-    Cli::parse(cli).ok_or_else(|| "알 수 없는 CLI".to_string())
+fn mcp_cli(cli: &str, en: bool) -> Result<Cli, String> {
+    Cli::parse(cli).ok_or_else(|| l!(en, "알 수 없는 CLI", "Unknown CLI"))
 }
 
 #[tauri::command]
 pub async fn mcp_status(w: WebviewWindow, be: B<'_>) -> Result<Value, String> {
     main_only(&w)?;
-    let mut v = mcpc::status(&mcp_paths(&be));
+    let mut v = mcpc::status(&mcp_paths(&be), be.settings().lang == "en");
     v["sidecar"] = json!(hooks::sidecar_ok(&hook_paths(&be)));
     Ok(v)
 }
@@ -544,20 +551,21 @@ pub async fn mcp_status(w: WebviewWindow, be: B<'_>) -> Result<Value, String> {
 pub async fn mcp_plan(w: WebviewWindow, be: B<'_>, cli: String, connect: bool, auto_allow: bool) -> Result<Value, String> {
     main_only(&w)?;
     let p = mcp_paths(&be);
-    Ok(mcpc::plan(&p, mcp_cli(&cli)?, connect, auto_allow)?.to_json(&p.home))
+    let en = be.settings().lang == "en";
+    Ok(mcpc::plan(&p, mcp_cli(&cli, en)?, connect, auto_allow, en)?.to_json(&p.home))
 }
 
 /// 연결/해제: 계획을 다시 계산해 **네이티브 확인 창**으로 보여 주고 동의를 받은 뒤에만 쓴다(웹 쪽 미리보기는 안내용, 우회 불가)
 #[tauri::command]
 pub async fn mcp_apply(app: AppHandle, w: WebviewWindow, be: B<'_>, cli: String, connect: bool, auto_allow: bool) -> Result<Value, String> {
     main_only(&w)?;
-    if connect && !be.settings().mcp_reports {
-        return Err("MCP 보고를 먼저 켜 주세요".into());
-    }
-    let cli = mcp_cli(&cli)?;
-    let p = mcp_paths(&be);
-    let plan = mcpc::plan(&p, cli, connect, auto_allow)?;
     let en = be.settings().lang == "en";
+    if connect && !be.settings().mcp_reports {
+        return Err(l!(en, "MCP 보고를 먼저 켜 주세요", "Turn on MCP reports first"));
+    }
+    let cli = mcp_cli(&cli, en)?;
+    let p = mcp_paths(&be);
+    let plan = mcpc::plan(&p, cli, connect, auto_allow, en)?;
     let short = |s: &str| tilde(s, &be.home.to_string_lossy());
     if !plan.is_empty() {
         // 우리 항목 줄만(문맥 줄 없음, 마스킹됨) + 그 외 내용 안내
@@ -612,10 +620,10 @@ pub async fn mcp_apply(app: AppHandle, w: WebviewWindow, be: B<'_>, cli: String,
             ))
             .blocking_show();
         if !ok {
-            return Ok(json!({"changed": false, "cancelled": true, "status": mcpc::status(&p)}));
+            return Ok(json!({"changed": false, "cancelled": true, "status": mcpc::status(&p, en)}));
         }
         if connect {
-            hooks::ensure_bin(&hook_paths(&be))?;
+            hooks::ensure_bin(&hook_paths(&be), en)?;
         }
     }
     let notes = plan.notes.clone();
@@ -630,7 +638,7 @@ pub async fn mcp_apply(app: AppHandle, w: WebviewWindow, be: B<'_>, cli: String,
         "changed": r.changed,
         "backups": r.backups.iter().map(|b| short(b)).collect::<Vec<_>>(),
         "notes": notes,
-        "status": mcpc::status(&p),
+        "status": mcpc::status(&p, en),
     }))
 }
 
@@ -646,7 +654,11 @@ pub fn usage_status(be: B) -> Value {
 pub async fn usage_keychain(w: WebviewWindow, be: B<'_>) -> Result<Value, String> {
     main_only(&w)?;
     if !be.settings().usage_lookup {
-        return Err("사용 한도 조회를 먼저 켜 주세요".into());
+        return Err(l!(
+            be.settings().lang == "en",
+            "사용 한도 조회를 먼저 켜 주세요",
+            "Turn on usage lookup first"
+        ));
     }
     let now = be.engine.lock().unwrap().now();
     let r = be.usage.lock().unwrap().load_keychain(now);
@@ -700,14 +712,16 @@ pub async fn prepare_mode_install(app: AppHandle, w: WebviewWindow, be: B<'_>, p
 #[tauri::command]
 pub async fn commit_mode_install(w: WebviewWindow, be: B<'_>, stage: String) -> Result<Value, String> {
     main_only(&w)?;
-    let st = be
-        .stages
-        .lock()
-        .unwrap()
-        .remove(&stage)
-        .ok_or("설치 준비가 만료됐어요. 다시 선택해 주세요")?;
+    let en = be.settings().lang == "en";
+    let st = be.stages.lock().unwrap().remove(&stage).ok_or_else(|| {
+        l!(
+            en,
+            "설치 준비가 만료됐어요. 다시 선택해 주세요",
+            "Install preparation expired. Please select it again"
+        )
+    })?;
     // 실패해도 commit이 기존 판을 되돌려 두므로 스테이징은 지워도 된다
-    let r = mode_install::commit(&st, &be.user_modes);
+    let r = mode_install::commit(&st, &be.user_modes, en);
     std::fs::remove_dir_all(&st.dir).ok();
     r?;
     Ok(json!({"id": st.id}))
@@ -740,7 +754,7 @@ pub async fn delete_mode(app: AppHandle, w: WebviewWindow, be: B<'_>, id: String
     if !ok {
         return Ok(false);
     }
-    mode_install::remove(&be.user_modes, &id)?;
+    mode_install::remove(&be.user_modes, &id, en)?;
     Ok(true)
 }
 
@@ -752,23 +766,33 @@ pub fn open_modes_dir(w: WebviewWindow, be: B) -> Result<(), String> {
 
 /// 앱 로그 폴더 열기 (설정 → 일반 → 앱 정보). 문제가 생기면 이 폴더의 waitscape.log를 보내 달라고 안내한다
 #[tauri::command]
-pub fn open_log_dir(w: WebviewWindow) -> Result<(), String> {
+pub fn open_log_dir(w: WebviewWindow, be: B) -> Result<(), String> {
     main_only(&w)?;
-    let dir = crate::applog::dir().ok_or("로그 폴더를 알 수 없어요")?;
+    let dir = crate::applog::dir().ok_or_else(|| {
+        l!(
+            be.settings().lang == "en",
+            "로그 폴더를 알 수 없어요",
+            "Couldn't find the log folder"
+        )
+    })?;
     open_dir(&dir)
 }
 
 /// 오픈소스 라이선스 고지(설정 → 일반 → 앱 정보, #9). 릴리스 빌드가 넣은 THIRD_PARTY_LICENSES.html을 기본 브라우저로 연다.
 /// 개발 빌드에는 build.rs가 만든 자리표시 파일이 들어 있다
 #[tauri::command]
-pub fn open_licenses(app: AppHandle, w: WebviewWindow) -> Result<(), String> {
+pub fn open_licenses(app: AppHandle, w: WebviewWindow, be: B) -> Result<(), String> {
     main_only(&w)?;
     let p = app
         .path()
         .resolve(LICENSES_FILE, tauri::path::BaseDirectory::Resource)
         .map_err(|e| e.to_string())?;
     if !p.is_file() {
-        return Err("이 빌드에는 라이선스 목록이 없어요".into());
+        return Err(l!(
+            be.settings().lang == "en",
+            "이 빌드에는 라이선스 목록이 없어요",
+            "This build doesn't include the license list"
+        ));
     }
     open_dir_or_file(&p)
 }
