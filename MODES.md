@@ -120,7 +120,7 @@ C.registerMode({
 
 - 포맷: `fmt(sec)` "7:01"/"1시간 3분", `dur(sec)` "7m 04s", `fmtTok(n)` "125k", `hms(ts)`, `clockText(epoch, now)` "내일 02:31", `untilText`, `spanText`, `esc(html)`, `hash(str)`, `pick(arr)` — 문구는 UI 언어(ko/en)를 따른다
 - 세션: `sessionStatus(s, now)`(완료 5분 뒤 idle), `isActive(s)`, `summary(state, now)` → `{ sessions, working, calling, waited }`, `stalls(state)`
-- 관제 인박스: `inboxQueue(sessions, now, seen)` → `[{ sid, project, kind, since, line }]`(🔑 → ❓ → 💤 → ✉️, 같은 종류는 오래 기다린 순), `INBOX_KINDS` (1.8)
+- 관제 인박스: `inboxQueue(sessions, now, seen)` → `[{ sid, project, kind, since, line, test? }]`(🔑 → ❓ → 💤 → ✉️, 같은 종류는 오래 기다린 순), `INBOX_KINDS` (1.8)
 - 사용 한도: `limits(state, now)` → `{ five, week, extra, low }`, `limitNote(state, now, { poll, stale })`
 - 프로바이더: `provider(state, s)`, `can(state, s, cap)`, `providerBadge(state, s)` (§6)
 - 버전: `apiVersion`, `apiCompat(v)`
