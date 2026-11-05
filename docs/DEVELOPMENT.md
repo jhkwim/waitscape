@@ -277,7 +277,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
   LICENSE             MIT
   ```
   모드 전환: 각 모드 화면의 전환기(드롭다운), 숫자 **1~9**(켜진 모드 순서. 기본 1 스튜디오 · 2 햄찌 · 3 업무 · 4 포켓 · 5 전광판 · 6 궤도 · 7 흐름 — `web/modes/index.json` 순서),
-  **B**·**⌘1**(윈도우 Ctrl+1) = 🙈 눈치 모드 켜고 끄기(예전 업무 모드 전환을 대체), **⌘2**(Ctrl+2) = 미니 보기 ↔ 큰 화면(앱), **,**·**⌘,** = 설정, URL `/#<id>`(`/#daily` = 햄찌 모드 + 오늘의 햄찌 카드). 선택은 localStorage `mode`에 기억
+  **B**·**⌘1**(윈도우 Ctrl+1) = 🙈 눈치 모드 켜고 끄기(예전 업무 모드 전환을 대체), **⌘2**(Ctrl+2) = 미니 보기 ↔ 큰 화면(앱), **,**·**⌘,** = 설정, **N** = 📥 다음에 볼 것 맨 앞으로 · **Shift+N** = 건너뛰기, URL `/#<id>`(`/#daily` = 햄찌 모드 + 오늘의 햄찌 카드). 선택은 localStorage `mode`에 기억
 
 ## API
 응답의 공식 타입은 [`types/state.d.ts`](../types/state.d.ts), [`types/trace.d.ts`](../types/trace.d.ts), 모드 쪽은 [`types/ctx.d.ts`](../types/ctx.d.ts) (Mode API v1).
