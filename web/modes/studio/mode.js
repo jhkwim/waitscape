@@ -220,6 +220,11 @@ const ymd = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).p
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, k) => a + (b - a) * clamp(k, 0, 1);
 const ease = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
+/* ⏱ 기다린 시간 색(관제 인박스 B3): 5분 넘으면 주황 · 15분 넘으면 빨강 테두리(질문 말풍선 · 미니 말풍선 · HUD 칩) */
+const AGE5 = 300, AGE15 = 900;
+const ageCls = sec => sec >= AGE15 ? "w15" : sec >= AGE5 ? "w5" : "";
+const setAge = (e, c) => { if (e && e._ag !== c) { e._ag = c; e.classList.remove("w5", "w15"); if (c) e.classList.add(c); } };
+const IB_ICO = { permission: "🔑", question: "❓", stall: "💤", done: "✉️" };
 const mmss = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
 /* 글자 = 그래핌(사용자가 보는 한 글자): 결합 기호·국기·피부톤·ZWJ 이모지를 쪼개지 않는다. Intl.Segmenter가 없으면 정규식으로 비슷하게 */
 const GSEG = typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
@@ -1473,7 +1478,6 @@ function mountLobby(root, ctx) {
   function endLook() { if (look) { look = null; kick(); } }
   /* 다음 칩 항목 = 코어 관제 인박스(#126: 🔑 권한 → ❓ 질문 → 💤 멈춤 → ✉️ 확인 안 한 완료, 오래 기다린 순 — 눈치·업무 모드와 같은 순서).
      지금 카메라가 담고 있는 질문·둘러보는 층은 뺀다. 첫 항목 = 칩을 누르면 갈 층(누르면 봄 처리) */
-  const IB_ICO = { permission: "🔑", question: "❓", stall: "💤", done: "✉️" };
   function pending() {
     const fl = sid => { const f = model.bySid.get(sid); return f ? f.floor + "F" : ""; };
     const list = ctx.core.inbox ? ctx.core.inbox.list() : ctx.core.inboxQueue((ctx.state && ctx.state.sessions) || [], ctx.now());
@@ -1629,7 +1633,7 @@ function mountLobby(root, ctx) {
       const f = model.bySid.get(R.key) || R.f;
       const o = { seated: 1, eyes: blink ? "c" : "o" };
       let dy = 0, bub = null, typing = (f.kind === "work" || f.kind === "agents") && !pwM.dead(), sp = false;
-      if (f.kind === "stall" || f.kind === "idle") { o.eyes = "c"; typing = false; }
+      if (f.kind === "stall" || f.kind === "idle") { if (f.kind === "idle") o.eyes = "c"; typing = false; }   // 💤 멈춤 의심은 눈 뜬 채 멈춘 화면만 봄
       if (f.kind === "done") typing = false;
       const solved = (shot.k === "ask" || shot.k === "askalt") && shot.ask.sid === f.sid && shot.solved != null;
       if (f.kind === "ask" && !solved) { typing = false; o.arms = "r"; dy = -Math.round(Math.abs(Math.sin(T * 4)) * 2) * U * mot; sp = true;
@@ -1648,6 +1652,7 @@ function mountLobby(root, ctx) {
       R.lns.forEach((l, k) => { const s = Math.floor(T * 2 * fast * fast) * mot * (typing ? 1 : 0) + k * 7; sty(l, "display", f.kind === "idle" ? "none" : "block"); sty(l, "width", (9 + (s * 37 % 27)) + "px"); sty(l, "left", (3 + ((s * 13) % 3) * 3) + "px"); sty(l, "background", ["#7dff9c", "#ffd23f", "#5aa8ff", "#ff9ad0", "#7dff9c"][(k + s) % 5]); });
       if (bub) { bubble(R.bub, bub[0], bub[1], bub[2], R.x - bub[1] - 9); sty(R.bub, "maxWidth", (W - 6 - bub[1]) + "px"); } else sty(R.bub, "display", "none");
       const hot = f.kind === "ask" && pkM.askHot(R.key); if (R.bub.classList.contains("hot") !== hot) R.bub.classList.toggle("hot", hot);   // 질문 중 직원을 누르면 말풍선 강조
+      setAge(R.bub, f.kind === "ask" && bub ? ageCls(ctx.now() - (f.since || ctx.now())) : "");   // ⏱ 오래 기다린 질문은 테두리 주황 → 빨강
       sty(R.tag, "display", bub && bub[2] < 30 ? "none" : "");   // 큰 말풍선이 뜨면 방 이름표는 숨김(자막이 대신 설명)
       R.spk.forEach((e, i) => { const on = f.shiny && sp; sty(e, "display", on ? "block" : "none"); if (on) { const P = [[-36, -66], [27, -72], [33, -45]][i]; sty(e, "left", (R.x + P[0]) + "px"); sty(e, "top", (FY + P[1]) + "px"); } });
       if (R.leds) R.leds.forEach((e, q) => sty(e, "background", (Math.floor(T * 1.5 * mot) + q) % 2 ? "#7dff9c" : "#ffd23f"));
@@ -2358,7 +2363,7 @@ function pkState(ctx) {
     const pick = (arr, x) => { const v = PK.pickV(s, arr.length); set(arr[v], Object.assign({ v }, x || {})); };
     const P2 = (ko, en) => L([ko, en]);
     if (obj === "a" && I.kind !== "boss") {
-      if (I.away || I.stall) Object.assign(R, { m: "away", t: I.stall ? P2("💤 …zZ (응답 없음)", "💤 …zZ (no reply)") : P2("(자리 비움)", "(away)"), name: I.stall ? P2("멈춤 의심 → 쿨쿨", "Stalled → snoozing") : P2("자리 비움", "Away"), s: "", dur: 1.4 });
+      if (I.away || I.stall) Object.assign(R, { m: "away", t: I.stall ? P2("💤 톡톡… (응답 없음)", "💤 tap tap… (no reply)") : P2("(자리 비움)", "(away)"), name: I.stall ? P2("멈춤 의심 → 톡톡", "Stalled → tap tap") : P2("자리 비움", "Away"), s: "", dur: 1.4 });
       else if (s.streak >= 4) Object.assign(R, { m: "angry", t: L(PK.ANGRY[(s.n + fnv(I.fk)) % 3]), name: P2("연타 → 짜증", "Spam → grumpy"), s: P2("흥", "hmph"), snd: "huff", dur: 1.7 });
       else pick(PK.AR[I.an] || PK.AR.ham, { dur: 1.5 });
       if (I.ask) { R.ask = 1; R.dur = Math.max(R.dur, 2.4); }
@@ -6298,7 +6303,7 @@ C.registerMode({
       redex: () => { if (dexEl && dexEl.classList.contains("on")) renderDex(); } });
     const pwWins = [];
 
-    let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
+    let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, tkHead, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
     const OY = 6;
     const box = (p, x, y, w, h, bg, o) => mkEl("div", "b", p, Object.assign({ left: x + "px", top: y + "px", width: w + "px", height: h + "px", background: bg, zIndex: 2 }, o || {}));
     const bx = (p, x, y, w, h, bg, bd, z) => box(p, x, y, w, h, bg, { border: "3px solid " + (bd || "#4a3560"), zIndex: z || 1 });
@@ -6363,6 +6368,57 @@ C.registerMode({
       const u = tc - NX.bellT, a = anim && u < 1.2 ? Math.sin(u * 22) * 26 * Math.exp(-u * 3.4) : 0;   // 종: 딸랑 흔들리다 멎음
       sty(d.bell, "transform", `rotate(${a.toFixed(1)}deg)`);
     }
+    /* ---------- 🎫 관제 인박스 연출(B3): 사장님 모니터 = 번호표 전광판 · 지금 차례 직원 머리 위 번호표 · 📥 결재 서류함(안 본 완료 = 봉투) · 봄 처리하면 "결재" 도장 ----------
+       번호표 = 큐에 새로 들어온 순서로 1, 2, 3…(앱을 켤 때 처음부터 · 999 다음 1). 같은 세션이라도 종류나 since가 바뀌면 새 번호.
+       동작 줄이기면 깜빡임·도장 튐 없이 숫자·봉투만. 큐는 0.5초마다 다시 읽음(봄 기록은 localStorage) */
+    let ibC = { t: -9, q: [] }, ibCnt = 0, ibFront = "", ibFlash = -9, ibStamp = -9, ibDone = null;
+    const ibNum = new Map();   // sid → { kind, since, n }
+    function ibList(tc, anim) {
+      if (anim && tc >= ibC.t && tc - ibC.t < .5) return ibC.q;
+      const ss = (ctx.state && ctx.state.sessions) || [], q = ctx.core.inbox ? ctx.core.inbox.list() : ctx.core.inboxQueue(ss, ctx.now());
+      const live = new Set(q.map(it => it.sid));
+      for (const k of [...ibNum.keys()]) if (!live.has(k)) ibNum.delete(k);
+      for (const it of q) { const o = ibNum.get(it.sid); if (!o || o.kind !== it.kind || Math.abs(o.since - it.since) > (it.kind === "stall" ? 5 : 0)) ibNum.set(it.sid, { kind: it.kind, since: it.since, n: ibCnt = ibCnt % 999 + 1 }); }
+      const dn = new Set(q.filter(it => it.kind === "done").map(it => it.sid));   // 안 본 완료가 큐에서 빠졌는데 세션은 그대로 완료 = 봄 처리 → 쾅
+      if (ibDone) for (const sid of ibDone) if (!dn.has(sid)) { const s = ss.find(x => x.sid === sid); if (s && s.status === "done") ibStamp = tc; }
+      ibDone = dn; ibC = { t: tc, q };
+      return q;
+    }
+    const ibNo = sid => String((ibNum.get(sid) || { n: 0 }).n).padStart(3, "0");
+    function ibDraw(bf, tc, anim, n) {
+      if (!bf.tk) return;
+      const off = drB.active() || !!(NX.hidden || NX.mode), q = off ? [] : ibList(tc, anim), top = q[0];
+      sty(bf.tk, "display", top ? "flex" : "none");
+      if (top) {
+        const fi = floorIdx.get(top.sid), where = fi != null && fi < n ? (n + 1 - fi) + "F" : cut(top.project, 4), no = ibNo(top.sid);
+        const sig = no + where + top.kind + q.length + ctx.lang, c = bf.tk.children;
+        if (bf.tk._ib !== sig) { bf.tk._ib = sig; txt(c[0], X("지금 차례", "NOW")); txt(c[1], no); txt(c[2], `${IB_ICO[top.kind]}${where}${q.length > 1 ? " +" + (q.length - 1) : ""}`);
+          bf.tk.title = X(`지금 차례 ${no}번 · ${top.project} · 대기 ${q.length} (N 키로 이동)`, `Now serving ${no} · ${top.project} · ${q.length} waiting (press N)`); }
+        if (ibFront !== top.sid + no) { if (ibFront) ibFlash = tc; ibFront = top.sid + no; }   // 차례가 바뀌면 딩동(두 번 깜빡)
+        const ding = anim && tc - ibFlash < 1.2 && Math.floor((tc - ibFlash) * 5) % 2 === 0;
+        if (bf.tk.classList.contains("ding") !== ding) bf.tk.classList.toggle("ding", ding);
+      } else ibFront = "";
+      /* 머리 위 번호표(지금 차례 직원이 보일 때만) */
+      const a = top && actors.get(top.sid), vis = a && a.par && a.loc !== "out" && a.loc !== "door" && a.el.style.display !== "none";
+      if (vis) {
+        const r = a.img.getBoundingClientRect(), br = bld.getBoundingClientRect(), k = scaleK || 1;
+        if (r.width) { sty(tkHead, "display", "block"); txt(tkHead, "🎫" + ibNo(top.sid));
+          sty(tkHead, "left", Math.round((r.right - br.left) / k - 8) + "px"); sty(tkHead, "top", Math.round((r.top - br.top) / k - 10 - (anim ? Math.round(Math.abs(Math.sin(tc * 3)) * 2) : 0)) + "px"); }
+        else sty(tkHead, "display", "none");
+      } else sty(tkHead, "display", "none");
+      /* 📥 결재 서류함: 봉투 최대 4장(오래 걸린 일 = 두꺼운 봉투) · 넘치면 +n */
+      const ss = (ctx.state && ctx.state.sessions) || [], dq = q.filter(it => it.kind === "done");
+      const th = dq.slice(0, 4).map(it => { const s = ss.find(x => x.sid === it.sid); return s && (s.run || 0) >= 600 ? 1 : 0; });
+      const tsig = th.join("") + "|" + dq.length + ctx.lang;
+      if (bf.tray._ib !== tsig) { bf.tray._ib = tsig; let y = 2, h = "";
+        th.forEach((t, j) => { h += `<i class="ev${t ? " th" : ""}" style="bottom:${y}px;height:${t ? 12 : 9}px;left:${[3, 6, 1, 5][j]}px"></i>`; y += t ? 7 : 5; });   // 엇갈려 쌓인 봉투   // 아래 봉투일수록 받침에 가려짐
+        html(bf.tray, h + `<b class="tb"></b>${dq.length > 4 ? `<u>+${dq.length - 4}</u>` : ""}`);
+        bf.tray.title = dq.length ? X(`결재 서류함 · 확인 안 한 완료 ${dq.length}`, `Inbox tray · ${dq.length} unseen done`) : X("결재 서류함(비어 있음)", "Inbox tray (empty)"); }
+      /* "결재" 도장 쾅(1.6초) — 동작 줄이기면 튐 없이 */
+      const su = tc - ibStamp, on = !off && su >= 0 && su < 1.6;
+      sty(bf.stamp, "display", on ? "flex" : "none");
+      if (on) sty(bf.stamp, "transform", `rotate(-14deg) scale(${anim && su < .18 ? (2.2 - su / .18 * 1.2).toFixed(2) : 1})`);
+    }
     function mkSign(F, x) { const s = mkEl("div", "sign", F, { left: x + "px", top: "40px", transition: "none" }); s.fresh = true; s.t = mkEl("div", "", s); s.p = mkEl("div", "pips", s); for (let k = 0; k < 5; k++) mkEl("i", "", s.p); return s; }   // 새로 지은 표지판은 첫 프레임에 접힌 채로 바로(전환 없이)
 
     function build() {
@@ -6392,6 +6448,9 @@ C.registerMode({
           bx(F, 36, B - 26, 264, 10, T.deskTop, "#4a3560", 9); bx(F, 42, B - 17, 252, 17, T.desk, "#4a3560", 9);
           r.mon = bx(F, 200, B - 98, 76, 56, "#2e2a40", "#4a3560", 8); box(F, 206, B - 92, 64, 44, "#16213a", { zIndex: 9 });
           for (let k = 0; k < 4; k++) box(F, 212, B - 86 + k * 9, [30, 44, 22, 36][k], 3, "#7dff9c", { zIndex: 10 });
+          r.tk = mkEl("div", "b tkb", F, { left: "206px", top: (B - 92) + "px", display: "none" }); r.tk.innerHTML = "<i></i><b></b><em></em>";   // 🎫 번호표 전광판 = 사장님 모니터(정전 덮개 z11 아래)
+          r.tray = mkEl("div", "b tray", F, { left: "270px", top: (B - 54) + "px" });   // 📥 결재 서류함(책상 오른쪽 끝, 모니터 앞) — 안 본 완료 = 봉투
+          r.stamp = mkEl("div", "b stamp", F, { left: "268px", top: (B - 74) + "px", display: "none" }, X("결재", "OK"));
           bx(F, 72, B - 58, 52, 32, "#5a5a78", "#2e2040", 4);
           r.cart = bx(F, 790, B - 62, 52, 62, "#ff6b8a", "#4a3560", 4); emo(F, 796, B - 52, 28, "🛒", 5);
           r.chx = 98;
@@ -6417,7 +6476,7 @@ C.registerMode({
             r.tint = box(F, 0, 0, 860, h, "rgba(70,80,130,.18)", { zIndex: 15, pointerEvents: "none", display: "none" });
             r.zs = [0, 1, 2].map(() => mkEl("div", "z", F, { display: "none" }, "Z"));
             r.sweat = mkEl("div", "z", F, { fontSize: "22px", display: "none" }, "💧");
-            r.gb = mkEl("div", "bub r", F, { left: "322px", top: (B - 104) + "px", width: "150px", display: "none" });
+            r.gb = mkEl("div", "bub r gl", F, { left: "176px", top: (B - 82) + "px", width: "150px", display: "none" });   // 💤 멈춤 안내(앉은 직원 왼쪽 · 꼬리는 오른쪽)
           }
           if (!f) mkEl("div", "empty", F, null, X("아직 출근한 직원이 없어요 🌙<br>Claude Code 등을 켜면 동물 직원이 출근해요", "No staff yet 🌙<br>Start an AI coding session and an animal clocks in"));
         }
@@ -6433,6 +6492,7 @@ C.registerMode({
       quickEl = mkEl("div", "fx", bld, { fontWeight: 900, fontSize: "calc(15px*var(--inv))", color: "#7fe0ff", textShadow: "2px 2px 0 #2e2040", display: "none", whiteSpace: "nowrap", transform: "translateX(-50%)", zIndex: "62", pointerEvents: "none" });   // ⚡ 빠른 답장(자기 층에서 받을 때)
       confs = []; for (let i = 0; i < 24; i++) confs.push(mkEl("div", "fx", bld, { width: "8px", height: "8px", background: ["#ff6b8a", "#ffd23f", "#5aa8ff", "#6adf8a", "#b48aff"][i % 5], display: "none" }));
       askb = mkEl("div", "bub side ask", bld, { display: "none", zIndex: 70, pointerEvents: "auto" });
+      tkHead = mkEl("div", "b tkh", bld, { display: "none" });   // 🎫 지금 차례인 직원 머리 위 번호표
       fragEls.forEach(e => e.parentNode && e.parentNode.removeChild(e)); fragEls.length = 0; frags.length = 0;
       pwB.build({ bld, FL, FT, BASE, n, sceneH, wins: pwWins, roofY: 18 + OY });
       pkB.build({ bld, FL, FT, BASE, FH, n, carEl, wins: pwWins });   // 👆 누를 자리·효과 층
@@ -6797,15 +6857,16 @@ C.registerMode({
       const askL = asker && !DRon ? Math.round(asker.x + 6 - asker.w / 2 - 14 - 290) : null;   // 질문 말풍선 왼쪽 끝(폭 290)
       if (asker && !DRon) {
         const f = model.floors[floorIdx.get(asker.sid)], s = f && f.s;
-        const perm = s && s.ask === "permission";
+        const perm = s && s.ask === "permission", wait = s && s.since ? Math.max(0, ctx.now() - s.since) : 0;   // ⏱ 기다린 시간(관제 인박스와 같은 기준)
         const pm = perm && /permission to use (\S+)/i.exec(s.note || "");   // 알림 원문(훅이 일부만 등록된 경우)이면 도구 이름만
         const q = s && s.note ? (pm ? X(`${pm[1]} 써도 될까요?`, `May I use ${pm[1]}?`) : perm ? X(`해도 될까요? — ${s.note}`, `May I? — ${s.note}`) : s.note) : X("확인이 필요해요", "Needs your input");   // 🔑 권한이면 무엇을 허락받는지 (#120)
         const h = `<span class="hd" style="background:${PROV[f.pk].c}">${f.shiny ? "✨" : ""}${EMO[f.animal]} ${esc(aName(f.animal))} · ${esc(f.pname)} ${askIco(s && s.ask)}${perm ? " " + X("권한", "permission") : ""}${s && s.confidence === "guess" ? " " + X("(추정)", "(guess)") : ""}</span>` +
           `<span class="q">${esc(q)}</span>${canTerm ? `<button class="btn" type="button" data-act="term" data-sid="${esc(asker.sid)}">🖥️ ${muxOf(s) ? X(`${muxOf(s)}로 이동`, `Go to ${muxOf(s)}`) : X("터미널로 이동", "Go to terminal")}</button>` : ""}` +
-          `<span class="hint">${perm ? (muxOf(s) ? X(`${muxOf(s)}에서 허락해 주세요`, `Please approve in ${muxOf(s)}`) : X("터미널에서 허락해 주세요", "Please approve in the terminal")) : muxOf(s) ? X(`${muxOf(s)}에서 답해 주세요`, `Please answer in ${muxOf(s)}`) : X("터미널에서 답해 주세요", "Please answer in the terminal")}</span>`;
-        html(askb, h); sty(askb, "display", "block"); askb.dataset.sid = asker.sid;   // 👆 POKE: 그 층을 누르면 이 말풍선 강조(터미널 버튼이 없는 브라우저도) sty(askb, "width", "290px");
+          `<span class="hint">${perm ? (muxOf(s) ? X(`${muxOf(s)}에서 허락해 주세요`, `Please approve in ${muxOf(s)}`) : X("터미널에서 허락해 주세요", "Please approve in the terminal")) : muxOf(s) ? X(`${muxOf(s)}에서 답해 주세요`, `Please answer in ${muxOf(s)}`) : X("터미널에서 답해 주세요", "Please answer in the terminal")}${wait >= 60 ? ` · ⏱ ${X(`${Math.floor(wait / 60)}분째`, `${Math.floor(wait / 60)}m`)}` : ""}</span>`;
+        setAge(askb, ageCls(wait)); html(askb, h); sty(askb, "display", "block"); askb.dataset.sid = asker.sid;   // 👆 POKE: 그 층을 누르면 이 말풍선 강조(터미널 버튼이 없는 브라우저도) sty(askb, "width", "290px");
         sty(askb, "left", askL + "px"); sty(askb, "top", (FT[n] - 34) + "px");
       } else sty(askb, "display", "none");
+      ibDraw(bf, tc, anim, n);   // 🎫 번호표 전광판 · 머리 위 번호표 · 📥 결재함 · 도장
       tagZone(boss, bf.F); ftagFit(bf, [boss], 170, 666, askL != null ? askL - 6 - 4 : 1e4);   // 1층 이름표 줄이 "사장님 (나)"를 덮지 않게 (#64). 옮길 땐 천장 등(x 135~165) 뒤로, 질문 말풍선이 있으면 그 왼쪽 끝 앞까지(칩이 말풍선 밑에 숨지 않게 · 6 = 층 왼쪽 테두리, 말풍선은 건물 좌표)
       ftagFlush();
       /* 완료 연출 (배너·+자금, 큰 완료면 색종이까지) */
@@ -6915,15 +6976,13 @@ C.registerMode({
       /* 자기 층에서 */
       sty(a.el, "zIndex", "8");
       let sx = deskx;
-      if (k === "stall") {
+      if (k === "stall") {   // 💤 멈춤 의심: 눈 뜬 채 멈춘 모니터를 톡톡(예전엔 바닥에 누워 잠 — 자는 게 아니라 응답이 없는 것, 관제 인박스 B3)
         const h = f.s.health || { secs: 0 }, secs = h.secs + stateAge(), m = Math.max(1, Math.floor(secs / 60));
-        const lx = 270;
-        setP(a, { view: "front", legs: "s", eyes: "c" }); tagOn(a, false);
-        put(a, F, lx, B - 2, { lying: true, sc: 1 + Math.sin(T * 1.4) * .015 });
-        html(fl.gb, `<span style="color:${PROV_COLOR[f.pk]}">${esc(aName(f.animal))} · ${esc(f.pname)}</span><br>💤 ${X("멍", "Zzz")} ${mmss(secs)}<br>${esc(h.tool ? X(`${cut(h.tool, 10)} ${m}분째`, `${cut(h.tool, 10)} ${m}m`) : X("응답 없음", "no reply"))}`); sty(fl.gb, "display", "block"); bubble(a, "", false);
-        sty(fl.tint, "display", "block"); setScreen("off"); hands(false, 0);
-        fl.zs.forEach((z, j) => { const p = ((T * .5 + j / 3) % 1); sty(z, "display", "block"); sty(z, "left", (lx - 48 - p * 10 + j * 6) + "px"); sty(z, "top", (B - 70 - p * 26) + "px"); sty(z, "opacity", String(1 - p)); sty(z, "fontSize", `calc(${14 + p * 10}px * var(--inv))`); });
-        sty(fl.sweat, "display", "block"); txt(fl.sweat, "💧"); sty(fl.sweat, "left", (lx - 34) + "px"); sty(fl.sweat, "top", Math.round(B - 92 + ((T * 2) % 1) * 6) + "px"); sty(fl.sweat, "opacity", Math.floor(T * 2) % 2 ? "1" : ".5");
+        const bt = anim ? Math.floor(T * 2.5) % 4 : 3, tap = bt === 0 || bt === 1;   // 톡 · 톡 · (쉼) · (쉼)
+        setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: tap ? "r" : "" }); put(a, F, sx, B - 6, { dy: tap ? -1 : 0 }); tagOn(a, true);
+        html(fl.gb, `<span style="color:${PROV_COLOR[f.pk]}">${esc(aName(f.animal))} · ${esc(f.pname)}</span><br>💤 ${X("톡톡", "tap tap")} ${mmss(secs)}<br>${esc(h.tool ? X(`${cut(h.tool, 10)} ${m}분째`, `${cut(h.tool, 10)} ${m}m`) : X("응답 없음", "no reply"))}`); sty(fl.gb, "display", "block"); bubble(a, "", false);
+        sty(fl.tint, "display", "block"); setScreen("on"); hands(false, 0);   // 화면은 켜진 채 멈춤(코드 줄이 안 움직임)
+        cup(tap || !anim, anim ? X("톡", "tap") : X("톡톡", "tap")); sty(fl.sweat, "left", (sx + 116 + (bt === 1 ? 8 : 0)) + "px"); sty(fl.sweat, "top", (B - 104 - (bt === 1 ? 6 : 0)) + "px");   // 모니터 오른쪽 위 sty(fl.sweat, "opacity", "1");
         return res;
       }
       bubble(a, "", false);
@@ -7372,8 +7431,11 @@ C.registerMode({
       } else { gauge({ used: null }, now, HUDQ.pwI, HUDQ.pwU, HUDQ.pwV); html(HUDQ.pwH, X(`<span class="t" title="전력 · 5시간 한도">전력 · 5시간 한도</span><span class="r">정보 없음</span>`, `<span class="t" title="Power · 5h limit">Power · 5h limit</span><span class="r">no data</span>`)); }
       pwB.hud(HUDQ);   // 단계 무늬·배지 · 정전이면 "리셋까지"
       gauge(lim.week, now, HUDQ.wkI, null, HUDQ.wkV); txt($(".t-wk"), X("주간 한도", "Weekly limit") + pwB.wxIcon());
-      const calling = st ? st.sessions.filter(s => s.status === "needs_input").length : 0;
-      HUDQ.chip.hidden = !calling; html(HUDQ.chip, `<span style="font-size:18px">❓</span>${X(`입력 대기 ${calling}`, `Waiting ${calling}`)}`);
+      const callers = st ? st.sessions.filter(s => s.status === "needs_input") : [], calling = callers.length;
+      const longest = callers.reduce((m, s) => Math.max(m, s.since ? now - s.since : 0), 0), lm = Math.floor(longest / 60);   // ⏱ 가장 오래 기다린 질문
+      HUDQ.chip.hidden = !calling; setAge(HUDQ.chip, ageCls(longest));
+      html(HUDQ.chip, `<span style="font-size:18px">❓</span>${calling} · ${lm >= 1 ? X(`최장 ${lm}분`, `longest ${lm}m`) : X("방금", "just now")}`);
+      HUDQ.chip.title = X(`입력 대기 ${calling} · 가장 오래 기다린 질문 ${lm}분`, `${calling} waiting for input · longest ${lm}m`);
       const sb = $('[data-act="sound"]'), qb = $('[data-act="quiet"]'), db = $('[data-act="dex"]');
       txt(sb, cfg.sound ? "🔊" : "🔈"); sb.classList.toggle("on", cfg.sound); sb.title = X("키보드 타자 소리 켜기/끄기", "Toggle keyboard typing sound");
       txt(qb, "🔇"); qb.classList.toggle("on", ctx.settings.quiet); qb.title = X("움직임과 소리를 꺼요", "Stop motion and sound");
