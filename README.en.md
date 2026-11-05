@@ -97,13 +97,31 @@ Look closer at Studio and small things keep showing up. Empty coffee cups pile u
 | Go mini | Studio's **📌 Mini view** button · **⌘2** (Windows **Ctrl+2**) · menu bar (tray) · window right-click |
 | Back to the big window | **⤢** (shows on hover) · **⌘2** (Windows **Ctrl+2**) · right-click menu · Dock icon (macOS) · menu bar (tray) "Full Window" |
 | Look around the floors | Wheel or trackpad (one floor at a time) · ▲▼ (on hover) · **↑↓** keys · status dots at the top · the "Next" chip |
+| Go to the next session | **N** (skip with **Shift+N**) — see 📥 Up next below |
 | Back to the auto camera | **Esc**, or leave it alone for 10 seconds |
 
 - You see either the big window or the mini view, never both. If you quit in the mini view, the next launch starts there too.
-- While you look around, new questions and completions pile up on the "Next" chip, and the auto camera shows them once it takes over again.
+- The "Next" chip uses the same order as 📥 Up next (🔑 permission → ❓ question → 💤 stall → ✉️ unseen done). Click it to go to that floor; it counts as seen.
 - The **🎥Cut / 🎥Pan** button (on hover) picks how the camera moves between floors (cut = quick jump, pan = glide up and down).
 - Click a floor's name tag chip to jump straight to that session's terminal (app).
 - In 📌 Pocket mode, the pin button that floats it on top is the mini view (app; a PiP window in the browser). The widget expands by itself when input is needed.
+
+### 📥 Up next
+
+With several sessions open, Waitscape lines up the sessions that need your hands right now: 🔑 permission → ❓ question → 💤 stalled? → ✉️ done but not seen yet. Within each kind, the one that has waited longest comes first.
+
+| To do this | Use |
+|---|---|
+| Go to the first session | **N** in a Waitscape window — sessions opened in cmux or Orca jump straight to that terminal. For others it tells you which session it is |
+| While using another app | **⌃⇧N** (Windows **Alt+Shift+N**) — works even when the window is hidden. Sessions it can't jump to show up as an OS notification. Change or turn it off in Settings → General → 📥 Up next |
+| Skip | **Shift+N** — it comes back with a new question or the next time it finishes. A permission or question you can't jump to stays first until you answer or skip it |
+| See the list | "Up next" at the top of 🙈 Low-profile mode and 💼 Work mode, and the "Next" chip in Studio's mini view |
+| In Studio's big window | 🎫 The boss's monitor turns into a ticket board ("NOW 001 · 🔑5F +3") and the staff member gets a ticket over their head. ✉️ Unseen done work piles up as envelopes in the 📥 inbox tray on the boss's desk (thicker for long jobs). Check it and a red approval stamp lands |
+
+- Guesses (like a permission request that might be approved right away) are left out.
+- A question alert for the same session rings at most once every 10 minutes (the question itself still shows).
+- Questions that wait long get an orange speech-bubble border after 5 minutes and red after 15. The top chip shows the longest wait, like "❓2 · longest 14m".
+- A 💤 stalled staff member doesn't nap: they sit with eyes open, tapping a frozen monitor (so you can tell them apart from resting staff).
 
 ## And more
 
