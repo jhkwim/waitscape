@@ -6394,7 +6394,7 @@ C.registerMode({
         const fi = floorIdx.get(top.sid), where = fi != null && fi < n ? (n + 1 - fi) + "F" : cfg.hideText ? "🤫" : cut(top.project, 4), no = ibNo(top.sid);
         const sig = no + where + top.kind + q.length + ctx.lang + cfg.hideText, c = bf.tk.children;
         if (bf.tk._ib !== sig) { bf.tk._ib = sig; txt(c[0], X("지금 차례", "NOW")); txt(c[1], no); txt(c[2], `${IB_ICO[top.kind]}${where}${q.length > 1 ? " +" + (q.length - 1) : ""}`);
-          const pj = cfg.hideText ? "🤫" : top.project; bf.tk.title = X(`지금 차례 ${no}번 · ${pj} · 대기 ${q.length} (N 키로 이동)`, `Now serving ${no} · ${pj} · ${q.length} waiting (press N)`); }
+          }
         if (ibFront !== top.sid + no) { if (ibFront) ibFlash = tc; ibFront = top.sid + no; }   // 차례가 바뀌면 딩동(두 번 깜빡)
         const ding = anim && tc - ibFlash < 1.2 && Math.floor((tc - ibFlash) * 5) % 2 === 0;
         if (bf.tk.classList.contains("ding") !== ding) bf.tk.classList.toggle("ding", ding);
@@ -6413,8 +6413,7 @@ C.registerMode({
       const tsig = th.join("") + "|" + dq.length + ctx.lang;
       if (bf.tray._ib !== tsig) { bf.tray._ib = tsig; let y = 2, h = "";
         th.forEach((t, j) => { h += `<i class="ev${t ? " th" : ""}" style="bottom:${y}px;height:${t ? 12 : 9}px;left:${[3, 6, 1, 5][j]}px"></i>`; y += t ? 7 : 5; });   // 엇갈려 쌓인 봉투   // 아래 봉투일수록 받침에 가려짐
-        html(bf.tray, h + `<b class="tb"></b>${dq.length > 4 ? `<u>+${dq.length - 4}</u>` : ""}`);
-        bf.tray.title = dq.length ? X(`결재 서류함 · 확인 안 한 완료 ${dq.length}`, `Inbox tray · ${dq.length} unseen done`) : X("결재 서류함(비어 있음)", "Inbox tray (empty)"); }
+        html(bf.tray, h + `<b class="tb"></b>${dq.length > 4 ? `<u>+${dq.length - 4}</u>` : ""}`); }   // 툴팁 없음: 모니터·화분 👆 누를 자리(z60)가 덮음
       /* "결재" 도장 쾅(1.6초) — 동작 줄이기면 튐 없이 */
       const su = tc - ibStamp, on = !off && su >= 0 && su < 1.6;
       sty(bf.stamp, "display", on ? "flex" : "none");
