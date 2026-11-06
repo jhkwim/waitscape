@@ -99,7 +99,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
   오후에 마지막 활동 뒤 45분 동안 모든 세션이 조용하면 그날 일보가 "준비됨"(다시 활동하면 풀리고 갱신), 못 본 일보는 다음 날 `prev.unseen`으로. API는 아래 `/daylog`
   화면(🏢 스튜디오): 준비되면 사장님이 종이를 들고 "일보 나왔어요!"(화면을 가로채지 않음) → 누르면 1층 발표 연출 → 공유 카드(PNG 저장·이름 숨김·텍스트 복사).
   HUD 🏃 퇴근(바로 연출) · 📋 일보(지금까지), 고급 옵션 퇴근 시각, 다음 날 "☀️ 어제 일보", 미니 보기 알림 한 줄. 자세한 규칙은 MODES.md 「퇴근 일보」
-- 테스트: `python3 scripts/test_limits_merge.py`, `python3 scripts/test_stale_agents.py`, `python3 scripts/test_daylog.py`, `node scripts/test_core_hide.js`, `node scripts/test_nunchi.js`, `node scripts/test_inbox.js`, `node scripts/test_i18n_msg.js`, `node scripts/test_studio_hire.js`, `node scripts/test_studio_gacha.js`, `node scripts/test_studio_events.js`, `node scripts/test_studio_nap.js`, `node scripts/test_studio_weather.js`, `node scripts/test_studio_spot.js`, `node scripts/test_studio_earn.js`, `cargo test --workspace`, `sh scripts/rust_parity.sh`
+- 테스트: `python3 scripts/test_limits_merge.py`, `python3 scripts/test_stale_agents.py`, `python3 scripts/test_daylog.py`, `python3 scripts/test_test_badge.py`, `node scripts/test_core_hide.js`, `node scripts/test_nunchi.js`, `node scripts/test_inbox.js`, `node scripts/test_i18n_msg.js`, `node scripts/test_studio_hire.js`, `node scripts/test_studio_gacha.js`, `node scripts/test_studio_events.js`, `node scripts/test_studio_nap.js`, `node scripts/test_studio_weather.js`, `node scripts/test_studio_spot.js`, `node scripts/test_studio_earn.js`, `cargo test --workspace`, `sh scripts/rust_parity.sh`
 
 ## 구조
 - `hook.py` — Claude Code hook. 이벤트를 요약해 `~/.claude/waiting-room/events.jsonl`에 추가 (쓰는 쪽은 회전하지 않음 — 앱 리더가 5MB에서 `events.1.jsonl`로 넘기고, server.py는 둘을 이어 최근 5000줄을 본다 #122)
@@ -173,7 +173,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
       src/mcp_config.rs       MCP 보고 연결의 순수 변환: `claude mcp add` 인자, 권한 규칙(도구 2개만·넣은 것만 되돌리기), mcpServers 항목(Antigravity)
       src/binswap.rs          실행 파일 교체(Windows: 실행 중인 wr-hook.exe를 비켜 놓기) — 앱이 쓰고 Windows CI에서 테스트
       src/clock.rs, paths.rs, jsonl.rs, py.rs   시계·시간대, 홈·CLAUDE_CONFIG_DIR, JSONL 증분 읽기, 파이썬 호환 문자열 도우미
-      src/providers/claude/   Claude 전용: config(환경변수) · hooks(events.jsonl 상태 기계, 유령 에이전트 필터 · Stop 누락 에이전트 6시간 후 정리) · scan(토큰·발화) ·
+      src/providers/claude/   Claude 전용: config(환경변수) · hooks(events.jsonl 상태 기계, 유령 에이전트 필터 · Stop 누락 에이전트 6시간 후 정리) · scan(토큰·발화 · 🧪 테스트 배지 판정) ·
                               tonly(훅 없는 트랜스크립트 전용 판정) · trace(흐름 단계) · describe(도구 요약, wr-hook과 공유) · usage(oauth usage API)
       src/providers/mcp.rs    MCP 보고 리더: reports.jsonl 증분 읽기·key별 상태·pid 생존 확인·1MB 회전 → Codex·Antigravity 등 세션(source "mcp"),
                               Claude 사이드카 보고는 엔진이 같은 cwd의 활성 세션 하나에만 붙임
@@ -283,7 +283,7 @@ cargo build --release -p wr-hook            # 훅 바이너리 (따로 빌드해
 
 ## API
 응답의 공식 타입은 [`types/state.d.ts`](../types/state.d.ts), [`types/trace.d.ts`](../types/trace.d.ts), 모드 쪽은 [`types/ctx.d.ts`](../types/ctx.d.ts) (Mode API v1).
-- `GET /state` — 모든 모드가 쓰는 세션 상태 (코어의 `Core.api`가 1초마다 폴링). 프롬프트·발화·도구 설명·알림·할 일·에이전트 설명은 `/trace`와 같은 규칙으로 마스킹
+- `GET /state` — 모든 모드가 쓰는 세션 상태 (코어의 `Core.api`가 1초마다 폴링). 프롬프트·발화·도구 설명·알림·할 일·에이전트 설명은 `/trace`와 같은 규칙으로 마스킹. 세션의 `test`("pass" | "fail" | "ran", Mode API 1.9)는 그 턴의 🧪 테스트 결과 기호뿐(명령·출력 원문 없음)
 - `GET /trace?session=<세션ID>&prompt=<번호|last>&since=<커서>` — 🌊 흐름 모드 전용. **흐름 모드가 켜져 있을 때만** 2초마다 호출되고
   (탭이 숨겨지면 멈춤) 다른 모드에선 호출 0회·서버 비용 0.
   - 세션 트랜스크립트와 `subagents/agent-<id>.jsonl`을 줄 단위로 이어 읽어 캐시(새로 붙은 줄만 파싱). `since`에 이전 응답의 `cursor`를
