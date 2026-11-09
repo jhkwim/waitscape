@@ -135,7 +135,7 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 - **📔 Sightings**: the first time you spot a tiny detail, it gets stamped and you earn 💰+5. The 📖 dex shows the 29 scenes you've seen and hints for the rest.
 - **😴 Naps & 🍱 lunch**: staff who've been idle a while start nodding off, then sleep on the desk, and jump awake ❗ when work comes back. At noon, idle staff eat a bento, ramen, onigiri or sandwich at their desks, then doze off after lunch.
 - **🎲 Random events**: every now and then someone drops by unannounced: a 🍕 pizza courier, a 📦 mystery box, a 🐈 lost kitten, a 🖨️ jammed printer, a 🎈 balloon, or (rarely, at night) a 🌠 shooting star. Click them for a small bonus in funds (up to 5 a day).
-- **Subagent meetings**: subagents show up as baby animals in the meeting room, writing tasks on the whiteboard and checking them off.
+- **Subagent meetings**: subagents show up as baby animals in the meeting room, writing tasks on the whiteboard and checking them off. A baby that finishes carries a result envelope over to its parent.
 - **🔕 Meeting mode**: no sound, no flashing. It also follows your OS "reduce motion" setting.
 - **In-app updates**: you get a notice when a new version is out. It downloads only when you click, and verifies the signature before installing.
 - **Korean and English**: follows your OS language, changeable in Settings.

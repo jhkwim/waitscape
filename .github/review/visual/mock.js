@@ -22,6 +22,12 @@
     add("4ddee2", "api-server", "codex", "working", { started: T0 - 760, since: T0 - 760, ctx: 54, activity: [{ icon: "⚡", text: "cargo test --workspace", ts: now - 2 }] });
     add("1000e2", "docs", "gemini", "done", { started: T0 - 562, since: T0 - 150, run: 412 });
     if (q.has("answer")) { const x = S.find(x => x.sid === "8bbce2"), qa = T0 + 2, an = qa + +q.get("answer"); Object.assign(x, now < qa ? { status: "working", since: T0 - 30 } : now < an ? { status: "needs_input", since: qa } : { status: "working", since: an }); }   // ?answer=N: 일하다 2초 뒤 질문 → N초 뒤 답함(N ≤ 60이면 ⚡ 빠른 답장)
+    if (q.has("team")) {   // ?team=N: 1d18e2가 서브에이전트 3명과 회의 → #1이 N초 뒤 끝남(✉️ 결과 봉투 전달) · &all=1이면 셋 다 N초 간격으로 끝남(만세까지)
+      const x = S.find(x => x.sid === "1d18e2"), n = +q.get("team") || 3, all = q.has("all");
+      const ag = (j, desc, end) => { const done = end != null && now >= end; return { aid: "a" + j, type: j ? "Explore" : "general-purpose", desc, bg: false, status: done ? "done" : "running", since: T0 - 40, ...(done ? { ended: end } : {}), tools: 5 + j, now: done ? null : { icon: "🔎", text: "Grep scan.rs", kind: "read" }, recent: [], last: now - 1 }; };
+      x.agents = [ag(0, "스튜디오 봉투 연출 찾기", T0 + n), ag(1, "목업 장면 확인", all ? T0 + 2 * n : null), ag(2, "문서 갱신 위치", all ? T0 + 3 * n : null)];
+      x.status = x.agents.some(a => a.status === "running") ? "agents" : "done";
+    }
     if (q.has("askkind")) { const x = S.find(x => x.sid === "8bbce2"), k = q.get("askkind"); x.ask = k; x.source = "hook"; if (k === "permission") x.note = "DB 마이그레이션 실행"; }   // #120 질문 종류
     if (q.has("guess")) Object.assign(S.find(x => x.sid === "8bbce2"), { confidence: "guess" });
     if (q.has("ask2")) Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", since: T0 - 30, note: "테스트 먼저 돌려도 될까요?" });   // ?ask2=1: 질문 두 명(뒷사람은 자기 층에서 순서 대기)
