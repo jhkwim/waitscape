@@ -1927,7 +1927,9 @@ function mountLobby(root, ctx) {
 /* ================= 🧑‍🏫 회의실 화이트보드 (큰 화면 층 보드 · 로비 2F 회의실 보드 공용) =================
    서브에이전트(아기)가 모이면 보드에 팀 이름과 할 일(에이전트당 한 줄)을 적고, 끝나면 ✓, 팀이 다 끝나면 부모가 만세 → 지우개로 지운다.
    - 줄 문구 = agents[].desc(서버 마스킹 · 50자). 비면 type 이름 + 번호("#1 일반 작업"). now.text(지금 도구)는 보드에 안 쓰고 테이블 위 말풍선에만.
-   - ✓ = agents[].status "done". 끝낸 아기는 팀이 끝날 때까지 도넛을 들고 쉬고, 팀이 끝나면 만세 → 지우기("정리 시간") 뒤 원래 배치로.
+   - ✓ = agents[].status "done". 끝낸 아기는 ✉️ 결과 봉투를 들고 부모(보드 앞)에게 종종걸음 → 건네면 테이블 말풍선이 "🐱 📨 오, 고마워!" → 자리로 돌아와
+     팀이 끝날 때까지 도넛을 들고 쉬고, 팀이 끝나면(마지막 봉투를 건넨 뒤) 만세 → 지우기("정리 시간") 뒤 원래 배치로.
+     봉투는 이 창이 끝나는 것을 본 아기만(처음 열 때 이미 끝난 아기는 바로 도넛). 움직임 줄이기·회의 모드면 걷지 않고 부모 옆에 봉투만 잠깐.
    - cfg.hideText(🤫 프로젝트·작업 문구 숨김)면 머리줄 "🤫 비밀 회의", 줄은 물결 낙서(✓는 그대로).
    - 시각은 이 창이 상태 변화를 처음 본 시각(clockT 초). 처음 열 때 이미 회의 중이던 팀은 다 써진 상태로 시작.
    - 정적(회의 모드·움직임 줄이기·숨김)이면 쓰기·지우기 애니메이션 없이 결과만.
@@ -1947,6 +1949,7 @@ const WB = (() => {
     er: { r: ["KKKKKKKKKK", "KYYYYYYYYK", "KYYYYYYYYK", "KBBBBBBBBK", "KBBBBBBBBK", "KKKKKKKKKK"], p: { K: "#2e2040", Y: "#e9b377", B: "#5a7ad8" } },
     cap: { r: ["KKK", "KCK", "KKK"], p: { K: "#2e2040", C: "#e04050" } },
     dn: { r: [".KKK.", "KPWPK", "KW.WK", "KPWPK", ".KKK."], p: { K: "#7a4a2a", P: "#ff8ab0", W: "#ffd0e0" } },
+    env: { r: ["KKKKKKKK", "KKWWWWKK", "KWKWWKWK", "KWWKKWWK", "KWWWRWWK", "KKKKKKKK"], p: { K: "#5a4a78", W: "#fff6e0", R: "#d23a4a" } },   // ✉️ 결과 봉투(빨간 봉인)
     heart: { r: [".KK.KK.", "KRRKRRK", "KRRRRRK", ".KRRRK.", "..KRK..", "...K..."], p: { K: "#2e2040", R: "#ff6b8a" } },
     star: { r: ["...K...", "..KYK..", "KKKYKKK", ".KYYYK.", ".KYKYK.", "KK...KK"], p: { K: "#2e2040", Y: "#ffd23f" } },
     wave: { r: [".C..", "C.C.", "...C"], p: { C: "#2a62c9" } },   // 🤫 문구 숨김: 물결 낙서 한 칸(가로 반복)
@@ -1987,7 +1990,7 @@ const WB = (() => {
   const marker = (ink, dy) => { const s = pix(ART.mk, 1, ink); return `<span class="mkr"><img alt="" src="${s.url}" style="top:${-6 + dy}px;width:${s.w}px;height:${s.h}px"></span>`; };
 
   /* ---------- 팀 추적: 세션별 { t0, mem[{aid,j,a,wt,doneAt}], end, es, ee, leave, gone, off } ---------- */
-  const TM = { cheer: 1.2, erase: 1.6, off: .6, walk: 1.4, dood: 7 };
+  const TM = { cheer: 1.2, erase: 1.6, off: .6, walk: 1.4, dood: 7, just: .9, dlv: 2.8 };   // just = ✓ 깡충 · dlv = ✉️ 결과 봉투 전달(가기 1 · 건네기 .8 · 돌아오기 1)
   const isDone = (m, t) => m.doneAt != null && t >= m.doneAt;
   const doneN = (T, t) => T.mem.filter(m => isDone(m, t)).length;
   function tracker() {
@@ -2013,7 +2016,10 @@ const WB = (() => {
         agAll = (agAll || []).filter(a => a && a.aid);
         const run = agAll.filter(a => a.status === "running");
         let T = teams.get(sid);
-        if (T && T.end != null && run.length) { teams.delete(sid); T = null; }   // 정리 중에 새 출동 → 새 보드
+        if (T && T.end != null && run.length) {
+          if (tc < T.end) { T.end = T.es = T.ee = T.leave = T.gone = T.off = T.dood = null; T.offDone = 0; }   // 봉투 전달 중(만세 전) 새 출동 → 같은 팀에 합류
+          else { teams.delete(sid); T = null; }   // 정리 중에 새 출동 → 새 보드
+        }
         if (!T) {
           if (!run.length) return;
           const s0 = Math.min(...run.map(a => a.since || 0));
@@ -2026,7 +2032,7 @@ const WB = (() => {
         if (T.end != null) return;
         const byAid = new Map(agAll.map(a => [a.aid, a]));
         T.mem.forEach(m => { const a = byAid.get(m.aid); if (a) m.a = a; if ((!a || a.status !== "running") && m.doneAt == null) m.doneAt = tc; });
-        if (T.mem.every(m => m.doneAt != null)) end(T, first ? tc - 60 : tc);
+        if (T.mem.every(m => m.doneAt != null)) end(T, first ? tc - 60 : tc + TM.just + TM.dlv);   // 마지막 아기가 봉투를 건넨 뒤 만세
       },
       sweep(tc) {   // 이번 sync에 안 보인 세션의 팀 · 다 끝난 팀 정리
         for (const [sid, T] of teams) if (!seen.has(sid) || (T.dood != null && tc > Math.max(T.dood, T.gone))) teams.delete(sid);
@@ -2116,7 +2122,7 @@ const WB = (() => {
     const ev = [];
     teams.forEach((T, i) => { const L = lab(T), nm = X(`${L.fl} ${L.name} 팀`, `${L.fl} ${L.name} team`);
       if (t >= T.t0 && t < T.t0 + 2.6) ev.push([T.t0, i && teams.length > 1 ? X(`🤖 ${nm} ${T.mem.length}명 합류 · 보드 나눔`, `🤖 ${nm} +${T.mem.length} · board split`) : X(`🤖 ${nm} ${T.mem.length}명이 회의하러 와요`, `🤖 ${nm}: ${T.mem.length} coming to meet`)]);
-      T.mem.forEach(m => { if (m.doneAt > 0 && t >= m.doneAt && t < m.doneAt + 1.6 && (T.end == null || m.doneAt < T.end)) ev.push([m.doneAt, X(`✓ ${nm} #${m.j + 1} 끝 · 도넛 하나 가져가요`, `✓ ${nm} #${m.j + 1} done · grabs a donut`)]); });
+      T.mem.forEach(m => { if (m.doneAt > 0 && t >= m.doneAt && t < m.doneAt + 1.6 && (T.end == null || m.doneAt < T.end)) ev.push([m.doneAt, X(`✓ ${nm} #${m.j + 1} 끝 · 📨 결과를 건네요`, `✓ ${nm} #${m.j + 1} done · 📨 hands in the result`)]); });
       if (T.end != null && t >= T.end && t < T.ee + .4) ev.push([T.end, t < T.es ? X(`👏 ${nm} 회의 끝!`, `👏 ${nm} meeting done!`) : X(`🧽 ${nm} 보드를 지워요`, `🧽 ${nm} wipes the board`)]);
       if (yawn(T, t)) ev.push([t - 1, X(`🥱 회의가 길어져요 · ${nm} ${doneN(T, t)}/${T.mem.length}`, `🥱 Long meeting · ${nm} ${doneN(T, t)}/${T.mem.length}`)]); });
     if (ev.length) return ev.sort((a, b) => b[0] - a[0])[0][1];
@@ -6918,6 +6924,7 @@ C.registerMode({
       sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.img, "filter", "");
       if (a.loc === "out" || (a.goal === "out" && a.nx && tc >= a.nx.at) || (a.nx && a.nx.carry === "cup")) {   // 아기(서브에이전트)는 본체와 함께 자리를 비움
         res.babies = false; a.babies.forEach(b => { if (b.el.parentNode) b.el.parentNode.removeChild(b.el); b.par = null; });
+        if (fl.wbd) { fl.wbd.env.forEach(e => sty(e, "display", "none")); fl.wbd.dn.forEach(e => sty(e, "display", "none")); sty(fl.wbd.yawn, "display", "none"); }   // 봉투·도넛·하품 글자도 함께 걷음
         if (fl.mb) sty(fl.mb, "display", "none");
       }
       if (a.loc === "out") { tagOn(a, false); bubble(a, "", false); nxCarry(a, null); setScreen("off"); hands(false, 0); return res; }
@@ -7141,13 +7148,17 @@ C.registerMode({
       const B = fl.B, Tm = wbT.team(f.sid), w = fl.wbd, en = ctx.lang === "en";
       const mem = Tm ? Tm.mem : f.ag.map((x, j) => ({ aid: x.aid, j, a: x, wt: -1e9, doneAt: null }));
       const dn = m => WB.isDone(m, tc);
-      const show = mem.slice().sort((p, q) => dn(p) - dn(q) || p.j - q.j).slice(0, 3).sort((p, q) => p.j - q.j);   // 일하는 아기 먼저 자리에
+      const par = a.loc === "home" && !a.lift && !a.moving;   // 부모가 보드 앞에 있을 때만 봉투를 건네러 감(질문하러 가는 중 등이면 바로 도넛)
+      const dlvOf = m => par && dn(m) && m.doneAt > 0 && tc < m.doneAt + WB.TM.just + WB.TM.dlv;
+      const rest = m => dn(m) && !dlvOf(m);   // 자리: 일하는 아기·봉투 전달 중인 아기 먼저(4명+에서도 끝낸 아기가 건네기 전에 밀려나지 않게)
+      const show = mem.slice().sort((p, q) => rest(p) - rest(q) || p.j - q.j).slice(0, 3).sort((p, q) => p.j - q.j);   // 일하는 아기 먼저 자리에
       const nB = show.length;
       while (a.babies.length < nB) a.babies.push(Object.assign(mkActor(BYID[f.animal], { prov: f.pk, baby: 1, scale: SB, label: "#" + (a.babies.length + 1), color: "#ff8a3d" }), { psid: f.sid }));   // psid: 🎰 부모 액세서리
       const live = show.filter(m => !dn(m)), sp = live.length ? live[Math.floor(T / 3) % live.length] : null, talk = anim && (T % 3) < 2.6;
       const yw = Tm && anim ? WB.yawn(Tm, tc) : null;
       let top = B - 60, stallN = 0;
-      if (w) { w.dn.forEach(e => sty(e, "display", "none")); sty(w.yawn, "display", "none"); }
+      if (w) { w.dn.forEach(e => sty(e, "display", "none")); w.env.forEach(e => sty(e, "display", "none")); sty(w.yawn, "display", "none"); }
+      let thank = false;
       a.babies.forEach((b, k) => {
         const m = show[k], gone = !m || (Tm && Tm.leave != null && tc >= Tm.leave + m.j * .2);
         const pop = !gone && Tm && anim ? clamp((tc - Tm.t0 - .2 - m.j * .25) / .3, 0, 1) : 1;   // 하나씩 와서 앉음
@@ -7158,10 +7169,27 @@ C.registerMode({
         setP(b, { view: "front", seated: 1, eyes: stall || yawning || (d && !just) ? "c" : ph.blink ? "c" : "o", mouth: just || speaking || yawning ? "o" : "", arms: just ? "u" : speaking ? "r" : "" });
         tagOn(b, true); txt(b.tag, stall ? "💤" : d ? "✓" : "#" + (m.j + 1)); sty(b.tag, "background", d ? "#1f9a5a" : "#ff8a3d");
         const x = 430 + k * 88;
+        /* ✉️ 결과 봉투: 이 창이 끝나는 걸 본 아기(doneAt > 0)만 — ✓ 깡충 뒤 보드 앞 부모에게 가서 건네고 돌아옴 */
+        const u = dlvOf(m) ? tc - m.doneAt - WB.TM.just : -9, dlv = u >= (anim ? 0 : -WB.TM.just) && u < WB.TM.dlv;   // 정적이면 깡충이 없으니 끝나자마자 봉투(도넛이 먼저 깜빡이지 않게)
+        sty(b.el, "zIndex", dlv && anim ? "11" : "");   // 걸을 땐 테이블 앞으로
+        if (dlv && anim) {
+          const px = BOARD_X + 58 + k * 22, out = u < 1, hand = u >= 1 && u < 1.8, wl = Math.floor(tc * 8) % 2;
+          const bx = out ? x + (px - x) * ease(u) : hand ? px : px + (x - px) * ease(clamp(u - 1.8, 0, 1));
+          setP(b, { view: "front", seated: 0, legs: hand ? "s" : wl ? "a" : "b", eyes: "o", mouth: hand ? "o" : "", arms: hand ? "r" : "" });
+          put(b, fl.F, bx, B - 2, { dy: !hand && wl ? -2 : 0, flip: !(u >= 1.8) });
+          sty(b.el, "opacity", "1");
+          if (w && u < 1.8) {   // 들고 감 → 건넬 때 부모 손으로 스르륵
+            const e = w.env[k], hx = bx - 14, gx = hand ? hx + (BOARD_X + 6 - hx) * ease((u - 1) / .8) : hx;
+            sty(e, "display", "block"); sty(e, "left", Math.round(gx) + "px"); sty(e, "top", Math.round(B - 2 - b.h * .55 - (hand ? Math.sin((u - 1) / .8 * Math.PI) * 6 : 0)) + "px");
+          }
+          if (u >= 1.2) thank = true;
+          bubble(b, "", false); top = Math.min(top, B - 8 - b.h - (nSess >= 6 ? 30 : 56)); return;   // 말풍선 높이는 앉은 자리 기준 그대로
+        }
+        if (dlv && w) { const e = w.env[k]; sty(e, "display", "block"); sty(e, "left", (BOARD_X + 22 + k * 14) + "px"); sty(e, "top", (B - 40) + "px"); thank = true; }   // 정적: 부모 옆에 봉투만
         put(b, fl.F, x, B - 8, { dy: just ? -Math.round(ph.hop * 3) * 3 : speaking ? -Math.abs(Math.sin(T * 6)) * 5 : pop < 1 ? Math.round((1 - pop) * -14) : ((Math.floor(T * 3) + k) % 3 === 0 && anim && !stall && !d ? -3 : 0) });
         sty(b.el, "opacity", String(pop));
         bubble(b, "", false); top = Math.min(top, B - 8 - b.h - (nSess >= 6 ? 30 : 56));
-        if (w && d && !just) { const e = w.dn[k], s2 = WB.pix(WB.ART.dn, 3); if (e._u !== s2.url) { e._u = s2.url; e.src = s2.url; } sty(e, "width", s2.w + "px"); sty(e, "height", s2.h + "px"); sty(e, "display", "block"); sty(e, "left", (x + 8) + "px"); sty(e, "top", (B - 34) + "px"); }
+        if (w && d && !just && !dlv) { const e = w.dn[k], s2 = WB.pix(WB.ART.dn, 3); if (e._u !== s2.url) { e._u = s2.url; e.src = s2.url; } sty(e, "width", s2.w + "px"); sty(e, "height", s2.h + "px"); sty(e, "display", "block"); sty(e, "left", (x + 8) + "px"); sty(e, "top", (B - 34) + "px"); }
         if (w && yawning) { sty(w.yawn, "display", "block"); sty(w.yawn, "left", (x + 16) + "px"); sty(w.yawn, "top", (B - 74 - Math.round(((tc - Tm.t0) % 20) * 4)) + "px"); }
         if (anim && cfg.frags && !stall && !d && tc >= (b.fragAt || 0)) { b.fragAt = tc + 1 + Math.random() * 1.2; spawnFrag(bld, x + 2 + Math.random() * 20, FT[i] + B - 8 - b.h - 4, (ag.now && ag.now.kind) || "agent", ag.now && ag.now.text); }
       });
@@ -7177,7 +7205,8 @@ C.registerMode({
         fl.mbFit = room >= 120 * inv ? 2 : room >= 40 * inv ? 1 : 0; sty(fl.mb, "left", L + "px"); sty(fl.mb, "maxWidth", Math.max(0, room) + "px");
       }
       const full = `🤝 ${X("회의", "Meeting")} ${dnN}/${tot}${say ? " · " + (sp && !cfg.hideText ? "#" + (sp.j + 1) + " " : "") + esc(cut(say, 18)) : ""}`;
-      html(fl.mb, `<span class="ell">${fl.mbFit === 2 ? full : `🤝 ${dnN}/${tot}`}</span>`);
+      const ty = `${EMO[f.animal]} 📨 ${X("오, 고마워!", "Oh, thanks!")}`;   // 부모가 봉투를 받는 동안은 테이블 말풍선이 부모 한마디(층 이름표 칩을 가리지 않는 자리)
+      html(fl.mb, `<span class="ell">${thank ? (fl.mbFit === 2 ? ty : "📨") : fl.mbFit === 2 ? full : `🤝 ${dnN}/${tot}`}</span>`);
       sty(fl.mb, "top", Math.max(2, top) + "px"); sty(fl.mb, "display", fl.mbFit ? "block" : "none");
       if (fl.more) { fl.more.hidden = tot <= 3; txt(fl.more, "+" + (tot - 3)); }
     }
@@ -7197,6 +7226,7 @@ C.registerMode({
       w.pb = mkEl("div", "bub", F, { left: "392px", top: "8px", zIndex: 30 });   // 부모 한마디("어, 잉크가…" · "회의 끝! 👏") — 층 위로 잘리지 않게 머리 오른쪽 위
       const cs = WB.pix(WB.ART.cap, 3); w.cap = mkEl("img", "b", F, { zIndex: 12, display: "none", width: cs.w + "px", height: cs.h + "px" }); w.cap.alt = ""; w.cap.src = cs.url;
       w.dn = [0, 1, 2].map(() => { const e = mkEl("img", "b", F, { zIndex: 13, display: "none" }); e.alt = ""; return e; });
+      const es = WB.pix(WB.ART.env, 2); w.env = [0, 1, 2].map(() => { const e = mkEl("img", "b", F, { zIndex: 14, display: "none", width: es.w + "px", height: es.h + "px" }); e.alt = ""; e.src = es.url; return e; });
       w.yawn = mkEl("div", "b wbt", F, { display: "none", zIndex: 30, color: "#6a5a88", fontWeight: 700, textShadow: "1px 1px 0 #fff" }, X("하암~", "yawn~"));
       return w;
     }
