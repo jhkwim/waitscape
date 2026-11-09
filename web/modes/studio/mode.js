@@ -7170,7 +7170,7 @@ C.registerMode({
         tagOn(b, true); txt(b.tag, stall ? "💤" : d ? "✓" : "#" + (m.j + 1)); sty(b.tag, "background", d ? "#1f9a5a" : "#ff8a3d");
         const x = 430 + k * 88;
         /* ✉️ 결과 봉투: 이 창이 끝나는 걸 본 아기(doneAt > 0)만 — ✓ 깡충 뒤 보드 앞 부모에게 가서 건네고 돌아옴 */
-        const u = dlvOf(m) ? tc - m.doneAt - WB.TM.just : -1, dlv = u >= 0 && u < WB.TM.dlv;
+        const u = dlvOf(m) ? tc - m.doneAt - WB.TM.just : -9, dlv = u >= (anim ? 0 : -WB.TM.just) && u < WB.TM.dlv;   // 정적이면 깡충이 없으니 끝나자마자 봉투(도넛이 먼저 깜빡이지 않게)
         sty(b.el, "zIndex", dlv && anim ? "11" : "");   // 걸을 땐 테이블 앞으로
         if (dlv && anim) {
           const px = BOARD_X + 58 + k * 22, out = u < 1, hand = u >= 1 && u < 1.8, wl = Math.floor(tc * 8) % 2;
