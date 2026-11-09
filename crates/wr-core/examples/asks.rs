@@ -89,6 +89,8 @@ fn main() {
     let field = |e: &Value, k: &str| e.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
     let mut seen: HashMap<(String, String, String, String), (f64, usize)> = HashMap::new();
     let mut dup = 0;
+    // 마지막으로 "계속" 겹친 때: 10분 안에 겹침이 또 있었던 것만(동시에 끝난 서브에이전트 등 우연히 한 번 겹친 줄은 빼고)
+    let (mut last_dup, mut prev_dup) = (f64::MIN, f64::MIN);
     let mut kept: Vec<Value> = Vec::with_capacity(evs.len());
     for e in evs {
         let Some(t) = ts_of(&e) else { continue };
@@ -97,6 +99,10 @@ fn main() {
         match seen.get(&key) {
             Some(&(p, at)) if (t - p).abs() < 0.5 => {
                 dup += 1;
+                if (t - prev_dup).abs() < 600.0 {
+                    last_dup = last_dup.max(t);
+                }
+                prev_dup = t;
                 if dedupe {
                     if width(&e) > width(&kept[at]) {
                         kept[at] = e;
@@ -138,14 +144,21 @@ fn main() {
         hm(last)
     );
     if dup * 5 > evs.len() + dup * usize::from(dedupe) {
-        println!(
-            "⚠️ 같은 이벤트가 두 번씩 기록되고 있어요({dup}줄) — 훅이 두 번 등록됐을 수 있어요(옛 hook.py 등). {}",
-            if dedupe {
-                "겹친 줄을 하나로 줄여 셌어요(--dedupe)"
-            } else {
-                "이 상태의 숫자는 부풀려져요. --dedupe로 겹친 줄을 하나로 줄여 잴 수 있어요"
-            }
-        );
+        // 마지막 겹침이 로그 끝보다 1시간 넘게 앞서면 중복 등록은 이미 풀렸다(예: 옛 hook.py를 지움) — 그 전 숫자만 부풀려진다
+        let last_dup = if last_dup == f64::MIN { prev_dup } else { last_dup };
+        let when = format!("{} {}", day(last_dup), hm(last_dup));
+        let fix = if dedupe {
+            "겹친 줄은 하나로 줄여 셌어요(--dedupe)"
+        } else {
+            "겹친 기간의 숫자는 부풀려져요. --dedupe로 겹친 줄을 하나로 줄여 잴 수 있어요"
+        };
+        if last - last_dup > 3600.0 {
+            println!("⚠️ {when}까지 같은 이벤트가 두 번씩 기록됐어요({dup}줄) — 그 뒤로는 겹치지 않아요(중복 등록이 풀림). {fix}");
+        } else {
+            println!(
+                "⚠️ 같은 이벤트가 두 번씩 기록되고 있어요({dup}줄, 마지막 {when}) — 훅이 두 번 등록됐을 수 있어요(옛 hook.py 등). {fix}"
+            );
+        }
     }
     match new_hook {
         Some(n) => println!("새 훅(알림 종류를 남김) 첫 기록: {} {} — 그 전은 옛 훅 기간", day(n), hm(n)),
