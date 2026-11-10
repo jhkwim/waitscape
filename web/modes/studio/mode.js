@@ -907,11 +907,11 @@ function powerMini(h) {
     }
     const boss = R.type === "boss", meet = R.type === "meet";
     /* 창: 하늘·해·달·비 */
-    P.win = box(p, 129, 15, 63, 33, "transparent", { zIndex: 2, overflow: "hidden" });
+    P.win = box(p, 117, 15, 63, 33, "transparent", { zIndex: 2, overflow: "hidden" });
     P.sun = mk("img", "b", P.win, { width: "21px", height: "21px" }); P.sun.alt = "";
     P.moon = mk("img", "b", P.win, { width: "15px", height: "15px", left: "39px", top: "3px", display: "none" }); P.moon.alt = ""; P.moon.src = moonU;
     P.rain = mk("canvas", "b pw-rain", P.win, { left: "0", top: "0", width: "63px", height: "33px" }); P.rain.width = 21; P.rain.height = 11;
-    P.lp = box(p, 126, FY - 6, 69, 6, "rgba(255,240,180,.55)", { zIndex: 2, display: "none" });
+    P.lp = box(p, 114, FY - 6, 69, 6, "rgba(255,240,180,.55)", { zIndex: 2, display: "none" });
     /* 조명 */
     const lx = boss ? 117 : 150;
     box(p, lx - 1, 0, 2, 3, "var(--ln)", { zIndex: 7 }); box(p, lx - 9, 3, 18, 6, "#6a5a88", { border: "2px solid var(--ln)", zIndex: 7 });
@@ -1013,7 +1013,7 @@ function powerMini(h) {
         show(P.moon, E.night > 0); sty(P.moon, "opacity", String(E.night));
         const rs = E.wk >= 80 ? (E.still ? "s" : "a" + T) : "0"; if (P._rs !== rs) { P._rs = rs; pwRain(P.rain, E.wk, T * .35, E.still, null); }
         const Lk = E.sky < 40 ? 0 : E.sky < 78 ? ease((E.sky - 40) / 38) : 0, lpOn = E.sky < 78 && E.D < .5;
-        show(P.lp, lpOn); if (lpOn) { const hh = Lk > .5 ? 3 : 6; sty(P.lp, "width", Math.round((69 + Lk * 54) / 3) * 3 + "px"); sty(P.lp, "left", Math.round((126 - Lk * 45) / 3) * 3 + "px"); sty(P.lp, "height", hh + "px"); sty(P.lp, "top", (FY - hh) + "px"); sty(P.lp, "background", E.sky < 50 ? "rgba(255,240,180,.55)" : "rgba(255,170,100,.5)"); }
+        show(P.lp, lpOn); if (lpOn) { const hh = Lk > .5 ? 3 : 6; sty(P.lp, "width", Math.round((69 + Lk * 54) / 3) * 3 + "px"); sty(P.lp, "left", Math.round((114 - Lk * 45) / 3) * 3 + "px"); sty(P.lp, "height", hh + "px"); sty(P.lp, "top", (FY - hh) + "px"); sty(P.lp, "background", E.sky < 50 ? "rgba(255,240,180,.55)" : "rgba(255,170,100,.5)"); }
         /* 조명 */
         const lv = E.lit(fb, half);
         sty(P.bulb, "background", lv > 0 ? "#fff3a8" : "#8a8098"); sty(P.bulb, "zIndex", lv > 0 ? "23" : "7");
@@ -1247,7 +1247,7 @@ function mountLobby(root, ctx) {
   }
   function desk(R, DX, hc, boss) {
     const p = R.p;
-    R.winEl = bx(p, 126, 12, 69, 39, "var(--glass)", 3, { zIndex: 2 }); box(p, 159, 12, 3, 39, "var(--ln)", { zIndex: 3 }); box(p, 132, 18, 15, 6, "rgba(255,255,255,.75)", { zIndex: 3 });
+    R.winEl = bx(p, 114, 12, 69, 39, "var(--glass)", 3, { zIndex: 2 }); box(p, 147, 12, 3, 39, "var(--ln)", { zIndex: 3 }); box(p, 120, 18, 15, 6, "rgba(255,255,255,.75)", { zIndex: 3 });
     R.monEl = bx(p, 78 + DX, FY - 78, 45, 48, "#2e2a40", 3, { zIndex: 8 }); box(p, 96 + DX, FY - 30, 9, 6, "var(--ln)", { zIndex: 8 });
     R.scr = box(p, 81 + DX, FY - 75, 39, 39, "var(--mon)", { zIndex: 9, overflow: "hidden" }); R.lns = [0, 1, 2, 3, 4].map(k => box(R.scr, 3, 3 + k * 6, 18, 3, "#7dff9c"));
     bx(p, 9 + DX, FY - 30, 114, 9, "var(--deskTop)", 3, { zIndex: 9 }); bx(p, 12 + DX, FY - 21, 108, 21, "var(--desk)", 3, { zIndex: 9 });
@@ -1275,7 +1275,7 @@ function mountLobby(root, ctx) {
     /* ☕🧥🚩🔋🍩 책상 소품(#157): 큰 화면 TINY·TREAT 규칙과 저장을 읽기만 · 빈 잔은 모니터 앞 오른쪽·책상 왼끝·직원 앞, 겉옷은 창문 오른쪽 벽 옷걸이, 깃발은 모니터 오른쪽 옆, 간식은 직원 앞 */
     const img = (pp, x, y, z) => { const e = mk("img", "b", p, { left: x + "px", top: y + "px", width: pp.w + "px", height: pp.h + "px", zIndex: z, display: "none", pointerEvents: "none" }); e.alt = ""; e.draggable = false; e.src = pp.url; return e; };
     R.cups = [147, 57, 105, 159].map((x, j) => { const pp = WB.pix(TINY.ART.cup, 2, TINY.MUG[j]); return img(pp, x, FY - 30 - pp.h, 10); });
-    { const pp = WB.pix(TINY.ART.coat, 2, TINY.COAT[f.animal] || "#7a7f8c"), hx = 207, hy = FY - 66;   // 🧥 창문 오른쪽 벽 옷걸이(#162) — 벽 2 꾸미기 칸(y 30~, 포스터 32px) 아래 · 출근 1시간 전엔 빈 옷걸이
+    { const pp = WB.pix(TINY.ART.coat, 2, TINY.COAT[f.animal] || "#7a7f8c"), hx = 201, hy = FY - 66;   // 🧥 창문 오른쪽 벽 옷걸이(#162 · #165 창문 114~183과 엘리베이터 219 사이 양옆 6px) — 벽 2 꾸미기 칸(y 30~, 포스터 32px) 아래 · 출근 1시간 전엔 빈 옷걸이
       box(p, hx - 6, hy, 12, 3, "#8a6a4a", { border: "2px solid var(--ln)", zIndex: 5 }); box(p, hx - 1, hy + 5, 3, 3, "var(--ln)", { zIndex: 5 }); R.coat = img(pp, hx - pp.w / 2, hy + 6, 6); }
     R.flag = mk("div", "b", p, { left: "171px", top: (FY - 71) + "px", width: "24px", height: "16px", zIndex: 9, display: "none", pointerEvents: "none" },
       '<i style="position:absolute;left:0;top:0;width:2px;height:16px;background:#4a3560"></i><b style="position:absolute;left:2px;top:0;padding:0 2px;height:10px;border:1px solid #4a3560;font-size:7px;line-height:8px;font-weight:900;color:#2e2040;white-space:nowrap"></b>');
@@ -2856,12 +2856,12 @@ function pokeBig(h) {
         r.mon = { el: d.mon, x: 444, y: B - 92, w: 68, h: 52, ov: mkEl("div", "b", d.sc, { left: "0", top: "0", right: "0", bottom: "0", zIndex: "4", pointerEvents: "none" }) };
         r.mug = { el: pimg(F, PK.ART.mug, 3, 508, B - 47, 10), x: 508, y: B - 47 }; r.mugBub = 1;
         const sh = fl.shelf;   // ✍️ AI 보드가 있는 층은 책장·왼쪽 창 자리를 보드가 덮음(누를 자리도 없음)
-        if (sh) { r.shelf = Object.assign({ deco: sh.deco, bx: j => 8 + (j % 5) * 10, by: j => Math.floor(j / 5) * 27 }, sh); wn("win", 150, 34, 90, 56); }
+        if (sh) { r.shelf = Object.assign({ deco: sh.deco, bx: j => 8 + (j % 5) * 10, by: j => Math.floor(j / 5) * 27 }, sh); wn("win", 132, 34, 90, 56); }
         wn("win2", 782, 38, 58, 50);
         if (topDesk < 0 && sh) topDesk = i;
         r.els = Object.assign(r.els, { mon: [d.mon], mug: [r.mug.el] }, sh ? { shelf: [sh.el] } : {});
         hit(F, fk, "a", 343, B - 88 - SEAT_UP, 84, 86 + SEAT_UP); hit(F, fk, "mon", 444, B - 92, 68, 58); if (sh) hit(F, fk, "shelf", 24, 26, 78, 98); hit(F, fk, "mug", 503, B - 52, 32, 30);
-        if (sh) hit(F, fk, "win", 150, 34, 90, 56); hit(F, fk, "win2", 792, 38, 48, 50);
+        if (sh) hit(F, fk, "win", 132, 34, 90, 56); hit(F, fk, "win2", 792, 38, 48, 50);
       }
       /* 화분(시안의 도트 화분 · 상점 화분을 사면 한 단계 큰 화분). 회의 배치는 아기 자리를 비켜 작은 화분. 🎨 바닥 2 칸에 소품이 있으면 그 층은 화분 없음 */
       if (boss || !(h.noPlant && h.noPlant(f))) { const big = h.owned("plant") && !meet, sc = meet ? 2 : big ? 4 : 3, x = boss ? (big ? 296 : 300) : meet ? 638 : big ? 606 : 614, y = B - 12 * sc;
@@ -3108,7 +3108,7 @@ function pokeMini(h) {
     R.pk = r; if (R.type === "roof") return;
     r.fx = mk("div", "b", p, { left: "0", top: "0", zIndex: "40", pointerEvents: "none" });
     r.bub = mk("div", "bub pk", p, { display: "none", zIndex: "33" });
-    const wn = (gl) => { const sky = box(p, 129, 15, 63, 33, "transparent", { zIndex: "3", overflow: "hidden", pointerEvents: "none" }); const q = { obj: "win", x: 129, y: 15, w: 63, h: 33, sky, gl }; r.wins.push(q); r.els.win = [gl]; hit(p, key, "win", 126, 12, 69, 39); return q; };
+    const wn = (gl) => { const sky = box(p, 117, 15, 63, 33, "transparent", { zIndex: "3", overflow: "hidden", pointerEvents: "none" }); const q = { obj: "win", x: 117, y: 15, w: 63, h: 33, sky, gl }; r.wins.push(q); r.els.win = [gl]; hit(p, key, "win", 114, 12, 69, 39); return q; };
     if (R.type === "staff") {
       const v = fnv(key) % 3;
       r.an = R.f.animal;
@@ -3118,7 +3118,7 @@ function pokeMini(h) {
         : v === 1 ? { deco: 1, el: R.shelfEl, x: 6, y: 36, w: 42, h: 96, leds: R.leds, ledC: R.leds.map((_, q) => q % 2 ? "#7dff9c" : "#ffd23f") }
         : { deco: 3, el: R.shelfEl, x: 6, y: 96, w: 36, h: 36 };
       /* ✍️ AI 보드가 창을 덮은 층은 창 반응 없음 */
-      const q = R.aiB ? {} : wn(R.winEl); if (topStaff && !R.aiB) { q.bird = 1; q.birdEl = pimg(p, PK.ART.birdS, 2, 129 + 63 - 12, 15 + 33 - pkAh(PK.ART.birdS, 2) + 2, 5); q.birdEl.style.display = "none"; }
+      const q = R.aiB ? {} : wn(R.winEl); if (topStaff && !R.aiB) { q.bird = 1; q.birdEl = pimg(p, PK.ART.birdS, 2, 117 + 63 - 12, 15 + 33 - pkAh(PK.ART.birdS, 2) + 2, 5); q.birdEl.style.display = "none"; }
       if (!R.noPlant) { r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 180, y: FY - 30, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 }; r.els.plant = [R.plantEl]; }   // 🎨 바닥 2 소품이 화분 자리를 씀
       Object.assign(r.els, { mon: [R.monEl], mug: [R.mug], shelf: [R.shelfEl] });
       hit(p, key, "a", 66, 58 - MS_UP, 54, 62 + MS_UP); hit(p, key, "mon", 126, 54, 45, 48); hit(p, key, "mug", 126, FY - 52, 24, 22);
@@ -4529,7 +4529,7 @@ const TINY = (() => {
   const CUP_SEC = 1200, CUP_MAX = 4, KEEP = 14, VER = 1, P_MAX = 60, S_MAX = 100, S_AWAY = 2 * 86400;
   const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 414;   // 서 있는 자리(가운데 x): 🎰 뽑기 기계(346~388) 오른쪽 · 현관문(438~) 앞, 창 누를 자리(~B−30)보다 아래
   const COAT = { ham: "#e85050", peng: "#3a6ad8", bvr: "#5f8a3a", otr: "#c8783a", oct: "#8a5ac8", bot: "#5a6078", cat: "#d9668a", fox: "#2a8a8a", panda: "#3fa35a", owl: "#7a4a8a", hog: "#e8a23c" };
-  const PILE_X = 537, FLAG_X = 497, COAT_X = 259, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(창문과 의자 사이 벽 옷걸이) · 콘센트(커피머신 ~316과 책상 330 사이)
+  const PILE_X = 537, FLAG_X = 497, COAT_X = 250, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(창문과 의자 사이 벽 옷걸이) · 콘센트(커피머신 ~316과 책상 330 사이)
   const FLAGS = [[1000, "1K", "#ffd23f"], [500, "500", "#5aa8ff"], [100, "100", "#6adf8a"]];
   const sheets = c => c >= 90 ? 4 : c >= 85 ? 3 : c >= 80 ? 2 : 0;
   const flagOf = n => FLAGS.find(f => n >= f[0]) || null;
@@ -6470,7 +6470,7 @@ C.registerMode({
       return r;   // 커피 잔은 👆 POKE가 도트 머그로 그림(누르면 김·하트·카페인)
     }
     function leftDecor(F, v, B) {   // 반환: 👆 POKE가 쓰는 책장·서버랙 참조(책 15권 · LED 8개)
-      win_(F, 150, 34, 90, 56);
+      win_(F, 132, 34, 90, 56);   // 창 132~222(#165: 옷걸이 250 양옆 10px)
       const r = { deco: v, books: [], leds: [], ledC: [] };
       if (v === 0) { Object.assign(r, { el: bx(F, 24, 30, 70, 92, "#b8794b"), x: 24, y: 30, w: 76, h: 98 }); for (let k = 0; k < 3; k++) { box(F, 30, 44 + k * 27, 58, 3, "#4a3560"); for (let j = 0; j < 5; j++) r.books.push(box(F, 32 + j * 10, 30 + k * 27, 7, 14, ["#ff6b8a", "#5aa8ff", "#ffd23f", "#6adf8a", "#b48aff"][(j + k) % 5], { border: "2px solid #4a3560" })); } }
       else if (v === 1) { Object.assign(r, { el: bx(F, 24, 26, 76, 96, "#5a6078"), x: 24, y: 26, w: 82, h: 102 }); for (let k = 0; k < 4; k++) { box(F, 30, 34 + k * 21, 64, 13, "#2e3248", { border: "2px solid #1a1a28" }); r.ledC.push(k % 2 ? "#6adf8a" : "#ff6b6b", "#6adf8a"); r.leds.push(box(F, 34, 38 + k * 21, 5, 5, k % 2 ? "#6adf8a" : "#ff6b6b"), box(F, 44, 38 + k * 21, 5, 5, "#6adf8a")); } }
