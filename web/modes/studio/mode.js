@@ -1251,9 +1251,9 @@ function mountLobby(root, ctx) {
     R.hands = [0, 1].map(k => box(p, 24 + DX + k * 27, FY - 33, 15, 9, hc, { border: "3px solid var(--ln)", zIndex: 12 }));
     const cx = 45 + DX;   // 🪑 의자(#153): 큰 화면 의자(#148·#151)를 ¾로 줄인 크기·위치. 사장 = 빨간 등받이·금색 윗테, 직원 = 파란 사무용 의자. 팔걸이는 등받이 바깥에 서서 책상 위로
     if (boss) { bx(p, cx - 30, FY - 83, 60, 62, "#a8384e", 3, { zIndex: 4 }); [cx - 24, cx + 18].forEach(x => box(p, x, FY - 77, 6, 45, "#c8506a", { zIndex: 4 })); box(p, cx - 33, FY - 86, 66, 6, "#ffd23f", { border: "2px solid var(--ln)", zIndex: 4 });
-      [cx - 39, cx + 33].forEach(x => bx(p, x, FY - 44, 9, 18, "#a8384e", 2, { zIndex: 5 })); }
-    else { bx(p, cx - 27, FY - 75, 54, 51, "#4a6aa8", 3, { zIndex: 4 }); [cx - 21, cx + 13].forEach(x => box(p, x, FY - 70, 6, 39, "#6a8ac8", { zIndex: 4 })); box(p, cx - 3, FY - 70, 6, 39, "#3a5590", { zIndex: 4 });
-      [cx - 36, cx + 30].forEach(x => bx(p, x, FY - 42, 9, 15, "#4a6aa8", 2, { zIndex: 5 })); }
+      [cx - 42, cx + 33].forEach(x => bx(p, x, FY - 44, 9, 18, "#a8384e", 2, { zIndex: 5 })); }
+    else { bx(p, cx - 27, FY - 75, 54, 51, "#4a6aa8", 3, { zIndex: 4 }); [cx - 21, cx + 15].forEach(x => box(p, x, FY - 70, 6, 39, "#6a8ac8", { zIndex: 4 })); box(p, cx - 3, FY - 70, 6, 39, "#3a5590", { zIndex: 4 });
+      [cx - 39, cx + 30].forEach(x => bx(p, x, FY - 42, 9, 15, "#4a6aa8", 2, { zIndex: 5 })); }
     R.mug = mk("div", "b emo", p, { left: (72 + DX) + "px", top: (FY - 52) + "px", fontSize: "18px", zIndex: 13 }, "☕");
     R.x = 45 + DX; R.actor = actor(p, 8);
     R.spk = [0, 1, 2].map(() => mk("i", "spk", p, { zIndex: 31, display: "none" }, "✦"));
@@ -6333,8 +6333,8 @@ C.registerMode({
     function deskFront(f, B, cx, who) {
       const chx = cx - 35, r = { chx, B };
       /* 🪑 사무용 의자: 파란 등받이(가운데 줄무늬) · 팔걸이 — 앉은 직원은 SEAT_UP만큼 올라앉음(사장 의자는 빨강·금테) */
-      bx(f, chx - 38, B - 92, 70, 66, "#4a6aa8", "#2e2040", 4); [chx - 30, chx + 16].forEach(x => box(f, x, B - 86, 8, 52, "#6a8ac8", { zIndex: 4 })); box(f, chx - 7, B - 86, 8, 52, "#3a5590", { zIndex: 4 });
-      [chx - 50, chx + 36].forEach(x => bx(f, x, B - 46, 12, 20, "#4a6aa8", "#2e2040", 5));
+      bx(f, chx - 35, B - 92, 70, 66, "#4a6aa8", "#2e2040", 4); [chx - 27, chx + 19].forEach(x => box(f, x, B - 86, 8, 52, "#6a8ac8", { zIndex: 4 })); box(f, chx - 4, B - 86, 8, 52, "#3a5590", { zIndex: 4 });
+      [chx - 49, chx + 37].forEach(x => bx(f, x, B - 46, 12, 20, "#4a6aa8", "#2e2040", 5));
       bx(f, cx - 95, B - 26, 200, 10, T.deskTop, "#4a3560", 9); bx(f, cx - 90, B - 17, 190, 17, T.desk, "#4a3560", 9); box(f, cx + 50, B - 14, 30, 10, "#b07848", { border: "2px solid #4a3560", zIndex: 10 });
       box(f, chx - 26, B - 32, 52, 7, "#5a5a78", { border: "2px solid #2e2040", zIndex: 10 });
       r.mon = bx(f, cx + 24, B - 92, 68, 52, "#2e2a40", "#4a3560", 8); box(f, cx + 52, B - 40, 12, 14, "#4a3560", { zIndex: 8 });
@@ -6473,8 +6473,8 @@ C.registerMode({
           r.tray = mkEl("div", "b tray", F, { left: "270px", top: (B - 54) + "px" });   // 📥 결재 서류함(책상 오른쪽 끝, 모니터 앞) — 안 본 완료 = 봉투
           r.stamp = mkEl("div", "b stamp", F, { left: "268px", top: (B - 74) + "px", display: "none" }, X("결재", "OK"));
           /* 🪑 사장 의자: 등받이 높은 빨간 의자(금테) · 팔걸이 — 앉은 사장님은 BOSS_UP만큼 올라앉음 */
-          bx(F, 54, B - 100, 82, 74, "#a8384e", "#2e2040", 4); [61, 127].forEach(x => box(F, x, B - 92, 10, 60, "#c8506a", { zIndex: 4 })); box(F, 54, B - 103, 88, 5, "#ffd23f", { border: "2px solid #2e2040", zIndex: 4 });
-          [42, 140].forEach(x => bx(F, x, B - 48, 14, 22, "#a8384e", "#2e2040", 5));
+          bx(F, 57, B - 100, 82, 74, "#a8384e", "#2e2040", 4); [64, 122].forEach(x => box(F, x, B - 92, 10, 60, "#c8506a", { zIndex: 4 })); box(F, 54, B - 103, 88, 5, "#ffd23f", { border: "2px solid #2e2040", zIndex: 4 });
+          [41, 141].forEach(x => bx(F, x, B - 48, 14, 22, "#a8384e", "#2e2040", 5));   // 의자 가운데 = 사장 chx 98(#153: 좌우 대칭)
           r.cart = bx(F, 790, B - 62, 52, 62, "#ff6b8a", "#4a3560", 4); emo(F, 796, B - 52, 28, "🛒", 5);
           r.chx = 98;
           r.door = nxDoorBuild(F, B);   // 🙈 현관문(눈치 모드 퇴장·출근)
