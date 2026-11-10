@@ -1265,17 +1265,18 @@ function mountLobby(root, ctx) {
   function staffRoom(R, f) {   // 직원 책상은 가운데(말풍선 꼬리가 창 안에 들어오게)
     const p = R.p, v = fnv(f.sid) % 3;
     wallRoom(R); desk(R, 48, BYID[f.animal].hands.c);
-    R.plantEl = mk("div", "b emo", p, { left: "180px", top: (FY - 45) + "px", fontSize: "27px", zIndex: 5 }, ["🪴", "🌵", "🌿"][v]);
+    R.plantEl = mk("div", "b emo", p, { left: "180px", top: (FY - 30) + "px", fontSize: "27px", zIndex: 5 }, ["🪴", "🌵", "🌿"][v]);
     if (dcM.noPlant(f)) { R.noPlant = 1; R.plantEl.style.display = "none"; }   // 🎨 바닥 2 소품이 화분 자리를 씀
     dcM.room(R);
     if (v === 0) { R.shelfEl = bx(p, 6, FY - 96, 45, 96, "#a9744c", 3, { zIndex: 3 }); R.books = []; [0, 1, 2].forEach(q => { box(p, 9, FY - 90 + q * 30, 39, 3, "var(--ln)", { zIndex: 4 }); for (let i = 0; i < 4; i++) R.books.push(box(p, 12 + i * 9, FY - 84 + q * 30, 6, 18, ["#ff6b8a", "#5aa8ff", "#ffd23f", "#6adf8a"][(i + q) % 4], { zIndex: 4 })); }); }
     if (v === 1) { R.shelfEl = bx(p, 6, FY - 96, 42, 96, "#5a5a78", 3, { zIndex: 3 }); R.leds = [0, 1, 2, 3].map(q => { box(p, 12, FY - 87 + q * 21, 30, 12, "#2e2a40", { zIndex: 4 }); return box(p, 15, FY - 84 + q * 21, 6, 3, q % 2 ? "#7dff9c" : "#ffd23f", { zIndex: 5 }); }); }
     if (v === 2) { R.shelfEl = mk("div", "b emo", p, { left: "9px", top: (FY - 36) + "px", fontSize: "30px", zIndex: 5 }, "📦"); bx(p, 6, 30, 45, 30, "#fff", 3, { zIndex: 3 }); ["#ff6b8a", "#5aa8ff", "#6adf8a"].forEach((cl, k) => box(p, 12, 36 + k * 6, [27, 18, 24][k], 3, cl, { zIndex: 4 })); }
     R.z = [0, 1, 2].map(() => mk("div", "z", p, { display: "none", zIndex: 25 }, "Z"));   // 😴 쉬는 단계(#155)
-    /* ☕🧥🚩🔋🍩 책상 소품(#157): 큰 화면 TINY·TREAT 규칙과 저장을 읽기만 · 빈 잔은 모니터 앞 오른쪽·책상 왼끝·직원 앞, 겉옷은 의자 왼쪽, 깃발은 모니터 오른쪽 옆, 간식은 직원 앞 */
+    /* ☕🧥🚩🔋🍩 책상 소품(#157): 큰 화면 TINY·TREAT 규칙과 저장을 읽기만 · 빈 잔은 모니터 앞 오른쪽·책상 왼끝·직원 앞, 겉옷은 창문 오른쪽 벽 옷걸이, 깃발은 모니터 오른쪽 옆, 간식은 직원 앞 */
     const img = (pp, x, y, z) => { const e = mk("img", "b", p, { left: x + "px", top: y + "px", width: pp.w + "px", height: pp.h + "px", zIndex: z, display: "none", pointerEvents: "none" }); e.alt = ""; e.draggable = false; e.src = pp.url; return e; };
     R.cups = [147, 57, 105, 159].map((x, j) => { const pp = WB.pix(TINY.ART.cup, 2, TINY.MUG[j]); return img(pp, x, FY - 30 - pp.h, 10); });
-    { const pp = WB.pix(TINY.ART.coat, 2, TINY.COAT[f.animal] || "#7a7f8c"); R.coat = img(pp, R.x - 33 - pp.w / 2, FY - 57, 6); }
+    { const pp = WB.pix(TINY.ART.coat, 2, TINY.COAT[f.animal] || "#7a7f8c"), hx = 207, hy = FY - 66;   // 🧥 창문 오른쪽 벽 옷걸이(#162) — 벽 2 꾸미기 칸(y 30~, 포스터 32px) 아래 · 출근 1시간 전엔 빈 옷걸이
+      box(p, hx - 6, hy, 12, 3, "#8a6a4a", { border: "2px solid var(--ln)", zIndex: 5 }); box(p, hx - 1, hy + 5, 3, 3, "var(--ln)", { zIndex: 5 }); R.coat = img(pp, hx - pp.w / 2, hy + 6, 6); }
     R.flag = mk("div", "b", p, { left: "171px", top: (FY - 71) + "px", width: "24px", height: "16px", zIndex: 9, display: "none", pointerEvents: "none" },
       '<i style="position:absolute;left:0;top:0;width:2px;height:16px;background:#4a3560"></i><b style="position:absolute;left:2px;top:0;padding:0 2px;height:10px;border:1px solid #4a3560;font-size:7px;line-height:8px;font-weight:900;color:#2e2040;white-space:nowrap"></b>');
     R.snk = [0, 1].map(() => mk("img", "b", p, { zIndex: 10, display: "none", pointerEvents: "none" }));
@@ -1302,7 +1303,7 @@ function mountLobby(root, ctx) {
     R.wbEl = bx(p, 6, 6, 207, 72, "var(--wb)", 3, { zIndex: 2 }); box(p, 9, 75, 201, 3, "#b8c4d4", { zIndex: 3 });
     R.wb = mk("div", "b wbx", p, { left: "9px", top: "9px", width: "201px", height: "66px", zIndex: 4, overflow: "hidden" });
     bx(p, 72, FY - 30, 141, 9, "var(--deskTop)", 3, { zIndex: 9 }); bx(p, 78, FY - 21, 129, 21, "var(--desk)", 3, { zIndex: 9 });
-    R.plantEl = mk("div", "b emo", p, { left: "24px", top: (FY - 45) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
+    R.plantEl = mk("div", "b emo", p, { left: "24px", top: (FY - 30) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
     R.mugEl = mk("div", "b emo", p, { left: "80px", top: (FY - 42) + "px", fontSize: "12px", zIndex: 10 }, "☕");
     R.dbox = mk("div", "b", p, { left: "186px", top: (FY - 36) + "px", zIndex: 10 });
     R.seat = [0, 1, 2, 3].map(() => { const d = mk("img", "b", p, { zIndex: 11, display: "none" }); d.alt = ""; const ev = WB.pix(WB.ART.env, 2), e = mk("img", "b", p, { zIndex: 12, display: "none", width: ev.w + "px", height: ev.h + "px", pointerEvents: "none" }); e.alt = ""; e.src = ev.url;   // ✉️ 결과 봉투(#157)
@@ -1317,7 +1318,7 @@ function mountLobby(root, ctx) {
   function bossRoom(R) {   // 1F 사장실 (예전 미니 보기 그대로)
     const p = R.p; wallRoom(R); desk(R, 0, "#b87a4a", 1);
     box(p, 111, FY - 6, 108, 6, "var(--rug)", { opacity: .55, zIndex: 2 });
-    R.plantEl = mk("div", "b emo", p, { left: "126px", top: (FY - 45) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
+    R.plantEl = mk("div", "b emo", p, { left: "126px", top: (FY - 30) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
     R.z = [0, 1, 2].map(() => mk("div", "z", p, { display: "none", zIndex: 25 }, "Z"));
     R.nod = mk("div", "b emo", p, { left: "72px", top: (FY - 78) + "px", fontSize: "15px", zIndex: 25, display: "none" }, "👍");
     R.vis = actor(p, 20); R.vbub = mk("div", "bub", p, { display: "none", zIndex: 30 });
@@ -3118,11 +3119,11 @@ function pokeMini(h) {
         : { deco: 3, el: R.shelfEl, x: 6, y: 96, w: 36, h: 36 };
       /* ✍️ AI 보드가 창을 덮은 층은 창 반응 없음 */
       const q = R.aiB ? {} : wn(R.winEl); if (topStaff && !R.aiB) { q.bird = 1; q.birdEl = pimg(p, PK.ART.birdS, 2, 129 + 63 - 12, 15 + 33 - pkAh(PK.ART.birdS, 2) + 2, 5); q.birdEl.style.display = "none"; }
-      if (!R.noPlant) { r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 180, y: FY - 45, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 }; r.els.plant = [R.plantEl]; }   // 🎨 바닥 2 소품이 화분 자리를 씀
+      if (!R.noPlant) { r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 180, y: FY - 30, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 }; r.els.plant = [R.plantEl]; }   // 🎨 바닥 2 소품이 화분 자리를 씀
       Object.assign(r.els, { mon: [R.monEl], mug: [R.mug], shelf: [R.shelfEl] });
       hit(p, key, "a", 66, 58 - MS_UP, 54, 62 + MS_UP); hit(p, key, "mon", 126, 54, 45, 48); hit(p, key, "mug", 126, FY - 52, 24, 22);
       if (v === 2) hit(p, key, "shelf", 6, 92, 40, 40); else hit(p, key, "shelf", 6, 36, 45, 96);
-      if (!R.noPlant) hit(p, key, "plant", 178, FY - 48, 34, 36);
+      if (!R.noPlant) hit(p, key, "plant", 178, FY - 33, 34, 36);
     } else if (R.type === "boss") {
       r.an = "boss";
       r.mon = { el: R.monEl, x: 78, y: 54, w: 45, h: 48, ov: mk("div", "b", R.scr, { left: "0", top: "0", right: "0", bottom: "0", zIndex: "4", pointerEvents: "none" }) };
@@ -3132,16 +3133,16 @@ function pokeMini(h) {
       r.clock = { el: ce, hm: box(ce, 9, 4, 2, 6, "#2e2040", { transformOrigin: "50% 100%", zIndex: "2" }), hh: box(ce, 9, 6, 2, 4, "#d23a4a", { transformOrigin: "50% 100%", zIndex: "2" }), x: 198, y: 13, w: 20,
         secs: () => { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); } };
       r.vend = { el: R.pw && R.pw.vend, x: 186, y: FY - 60, w: 34, h: 64, lx: 191, ly: FY - 27 };
-      r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 126, y: FY - 45, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 };
+      r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 126, y: FY - 30, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 };
       Object.assign(r.els, { mon: [R.monEl], mug: [R.mug], clock: [ce], vend: [r.vend.el], plant: [R.plantEl] });
-      hit(p, key, "a", 18, 58 - MB_UP, 54, 62 + MB_UP); hit(p, key, "mon", 78, 54, 45, 48); hit(p, key, "mug", 78, FY - 54, 24, 22); hit(p, key, "vend", 184, FY - 62, 36, 62); hit(p, key, "clock", 196, 11, 24, 24); hit(p, key, "plant", 124, FY - 48, 34, 36);
+      hit(p, key, "a", 18, 58 - MB_UP, 54, 62 + MB_UP); hit(p, key, "mon", 78, 54, 45, 48); hit(p, key, "mug", 78, FY - 54, 24, 22); hit(p, key, "vend", 184, FY - 62, 36, 62); hit(p, key, "clock", 196, 11, 24, 24); hit(p, key, "plant", 124, FY - 33, 34, 36);
       r.zz = null;
     } else if (R.type === "meet") {
       r.wb = { x: 9, y: 9, w: 201, h: 66, layer: mk("div", "b", p, { left: "9px", top: "9px", width: "201px", height: "66px", zIndex: "6", overflow: "hidden", pointerEvents: "none" }) };
-      r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 24, y: FY - 45, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 };
+      r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 24, y: FY - 30, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 };
       r.mug = { el: R.mugEl, x: 80, y: FY - 40 };
       Object.assign(r.els, { wb: [R.wbEl], plant: [R.plantEl], mug: [R.mugEl] });
-      hit(p, key, "wb", 6, 6, 207, 72); hit(p, key, "plant", 22, FY - 48, 34, 36); hit(p, key, "mug", 76, FY - 44, 20, 18);
+      hit(p, key, "wb", 6, 6, 207, 72); hit(p, key, "plant", 22, FY - 33, 34, 36); hit(p, key, "mug", 76, FY - 44, 20, 18);
     }
     r.els.elev = [hit(p, key, "elev", 219, 51, 54, 81)];
     rooms.push(r); dirty = true;
