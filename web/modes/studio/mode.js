@@ -363,7 +363,7 @@ const ASK_X = 598;       // 사장님 앞에서 질문하는 자리
    통로(shaft) 칸에는 차가 서서 문이 열린 뒤에만 들어간다(E_X에서 탐) */
 const LIFT_STAFF = 566, LIFT_MEET = 318, LIFT_1F = E_X - 87, LIFT_GAP = 76;
 const DESK_X = 385, BOARD_X = 278;   // 직원 자리: 책상 층 의자 · 회의 배치 화이트보드 앞
-const BOSS_UP = 15;   // 🪑 사장 의자: 앉은 사장님을 책상 위로 올리는 높이(서 있거나 걸을 땐 바닥 그대로)
+const BOSS_UP = 15, SEAT_UP = 8;   // SEAT_UP: 직원 사무용 의자(책상 층에 앉을 때만)   // 🪑 사장 의자: 앉은 사장님을 책상 위로 올리는 높이(서 있거나 걸을 땐 바닥 그대로)
 const SIGN_X = 522;   // 책상 층 작업 표지판 왼쪽 끝(오른쪽은 통로 앞까지). 직원이 이 아래로 오면 표지판을 위로 접음(얼굴이 보이게, #62)
 const DOOR_X = 438, DOOR_W = 54, DOOR_CX = DOOR_X + DOOR_W / 2;   // 🙈 1층 현관문(창과 자판기 사이: 꾸미기 칸·👆 누를 자리와 안 겹침)
 const FHS = 134, FHB = 140;
@@ -3508,7 +3508,7 @@ function dayrepBig(h) {
       const F = G.FL[fi], meet = f && f.layout === "meet", gr = u >= m.g && u < m.g + 1.7;
       if (F.desk) F.desk.hands.forEach(e => sty(e, "display", "none"));
       h.setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", eyes: gr ? "o" : ph.blink ? "c" : "o", mouth: gr ? "o" : "", arms: gr ? (Math.floor((u - m.g) * 6) % 2 ? "u" : "r") : "" });
-      h.put(a, F.F, meet ? 278 : 385, B[fi] - (meet ? 2 : 6), { dy: gr ? dyHop(u - m.g, 6) : 0 }); sty(a.el, "display", ""); sty(a.el, "zIndex", "8"); h.tagOn(a, !gr);
+      h.put(a, F.F, meet ? 278 : 385, B[fi] - (meet ? 2 : 6 + SEAT_UP), { dy: gr ? dyHop(u - m.g, 6) : 0 }); sty(a.el, "display", ""); sty(a.el, "zIndex", "8"); h.tagOn(a, !gr);
       h.bubble(a, gr ? X("좋은 아침! ☕", "Morning! ☕") : "", gr); return;
     }
     if (m.fi >= 0 && u < m.L + 1.5) {
@@ -3520,7 +3520,7 @@ function dayrepBig(h) {
       if (u >= m.L && F.mb) sty(F.mb, "display", "none");
       if (u < m.L) {   // 아직 자리: "모여~"에 고개 듦
         h.setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", eyes: ph.blink ? "c" : "o", mouth: u < 1.6 && S.v === "gather" ? "o" : "" });
-        h.put(a, F.F, dx, B[fi] - (meet ? 2 : 6)); h.tagOn(a, true); h.bubble(a, "", false); return;
+        h.put(a, F.F, dx, B[fi] - (meet ? 2 : 6 + SEAT_UP)); h.tagOn(a, true); h.bubble(a, "", false); return;
       }
       const k = u - m.L;
       if (k < .6) { h.setP(a, { view: "front", legs: "s", eyes: "o", mouth: "o", arms: Math.floor(k * 6) % 2 ? "u" : "r" }); h.put(a, F.F, dx, B[fi] - 2); h.tagOn(a, false); h.bubble(a, X("퇴근 👋", "Bye 👋"), true); return; }
@@ -5247,7 +5247,7 @@ function treatBig(h) {
     if (Rc) {   // 🎁 받은 순간: 만세 + 한마디(좋아하는 간식이면 ♥ · 두 번째면 감동)
       const fav = R.FAV[f.animal] === Rc.id, n = nm(Rc.id);
       const say = Rc.n > 1 ? X("또요?! 감동이에요 🥹", "Another one?! 🥹") : f.animal === "bot" && Rc.id === "coffee" ? X("카페인 충전! ⚡ ♥", "Caffeine charge! ⚡ ♥") : fav ? X(`${n}${josa(n, "이다", "다")}! 제일 좋아해요 ♥`, `${n}! My favorite ♥`) : X("고마워요! 잘 먹을게요 😋", "Thank you! Looks yummy 😋");
-      h.setP(a, { view: "front", seated: 1, arms: "u", mouth: "o", eyes: "o" }); h.put(a, fl.F, DESK_X, fl.B - 6, { dy: anim && ru < 1.4 ? -Math.round(Math.abs(Math.sin(ru * 7)) * (fav ? 5 : 3)) * 2 : 0 });
+      h.setP(a, { view: "front", seated: 1, arms: "u", mouth: "o", eyes: "o" }); h.put(a, fl.F, DESK_X, fl.B - 6 - SEAT_UP, { dy: anim && ru < 1.4 ? -Math.round(Math.abs(Math.sin(ru * 7)) * (fav ? 5 : 3)) * 2 : 0 });
       h.tagOn(a, false); h.bubble(a, esc(say), true); hideHands(); return off();
     }
     /* 🍩 한 입: 마지막 한 입 시각에서 1.6초(.5초 입 벌림 → 오물오물 + "냠") · 평소 자세일 때만 */
@@ -5347,7 +5347,7 @@ function treatBig(h) {
     if (u >= m.L + 1.8) { if (a.par !== G.roof) sty(a.el, "display", "none"); return; }   // 엘리베이터로 올라가는 중 · 옥상(옥상 겹이 그림)
     const B = fl.B;
     sty(a.el, "display", ""); sty(a.el, "zIndex", "8");
-    if (u < m.L) { h.setP(a, { view: "front", seated: 1, legs: "s", eyes: blink(T) ? "c" : "o", mouth: u > .3 ? "o" : "" }); h.put(a, fl.F, a.x == null ? DESK_X : a.x, B - 6); h.tagOn(a, true); h.bubble(a, "", false); return; }
+    if (u < m.L) { h.setP(a, { view: "front", seated: 1, legs: "s", eyes: blink(T) ? "c" : "o", mouth: u > .3 ? "o" : "" }); h.put(a, fl.F, a.x == null ? DESK_X : a.x, B - 6 - SEAT_UP); h.tagOn(a, true); h.bubble(a, "", false); return; }
     const k = u - m.L;
     if (k < .7) { h.setP(a, { view: "front", legs: "s", eyes: "o", mouth: "o", arms: Math.floor(k * 6) % 2 ? "u" : "r" }); h.put(a, fl.F, a.x == null ? DESK_X : a.x, B - 2); h.tagOn(a, false); h.bubble(a, esc(X("회식이다! 🍖", "Dinner time! 🍖")), true); return; }
     const q = (k - .7) / 1.1, x = lerp(a.x == null ? DESK_X : a.x, DOOR, q), tg = h.parentFor(i, x, B - 2);
@@ -5578,7 +5578,7 @@ function napBig(h) {
     const sx = DESK_X, B = fl.B;
     const zs = big => fl.zs.forEach((z, j) => {
       const p = anim ? (T * (big ? .3 : .4) + j / 3) % 1 : j / 3;
-      sty(z, "display", "block"); sty(z, "left", (sx + (big ? 40 : 24) + p * 12 + j * 8) + "px"); sty(z, "top", (B - (big ? 92 : 104) - p * 26) + "px"); sty(z, "opacity", String(1 - p)); sty(z, "fontSize", `calc(${(big ? 18 : 14) + p * 10}px * var(--inv))`); });
+      sty(z, "display", "block"); sty(z, "left", (sx + (big ? 40 : 24) + p * 12 + j * 8) + "px"); sty(z, "top", (B - SEAT_UP - (big ? 92 : 104) - p * 26) + "px"); sty(z, "opacity", String(1 - p)); sty(z, "fontSize", `calc(${(big ? 18 : 14) + p * 10}px * var(--inv))`); });
     const cupOff = () => sty(fl.sweat, "display", "none");
     let full = false;   // 🍱 다 먹음 → 식곤증
     if (lunch) {
@@ -5601,7 +5601,7 @@ function napBig(h) {
     cupOff();
     if (st === 2 && !full) {   // 💤 엎드려 쿨쿨
       h.setP(a, Object.assign(pose, { eyes: "c", mouth: "", arms: "" }));
-      sty(a.el, "top", (parseFloat(a.el.style.top) + 6) + "px"); zs(true);
+      sty(a.el, "top", (parseFloat(a.el.style.top) + 6 + SEAT_UP) + "px"); zs(true);   // 엎드림: 의자에서 책상으로 푹
       const b = anim ? (Math.sin(tc * 1.6 + fnv(f.sid)) + 1) / 2 : .5;
       h.spot("deep"); txt(E.lab, "🫧"); sty(E.lab, "left", (a.w / 2 + 6) + "px"); sty(E.lab, "top", "30px"); sty(E.lab, "fontSize", Math.round(8 + b * 8) + "px"); sty(E.lab, "display", "block");   // 입·코 높이
       E.set = a.pose;
@@ -6326,7 +6326,9 @@ C.registerMode({
 
     function deskFront(f, B, cx, who) {
       const chx = cx - 35, r = { chx, B };
-      bx(f, chx - 26, B - 58, 52, 58, T.chair, "#4a3560", 4);
+      /* 🪑 사무용 의자: 파란 등받이(가운데 줄무늬) · 팔걸이 — 앉은 직원은 SEAT_UP만큼 올라앉음(사장 의자는 빨강·금테) */
+      bx(f, chx - 38, B - 92, 70, 66, "#4a6aa8", "#2e2040", 4); [chx - 30, chx + 16].forEach(x => box(f, x, B - 86, 8, 52, "#6a8ac8", { zIndex: 4 })); box(f, chx - 7, B - 86, 8, 52, "#3a5590", { zIndex: 4 });
+      [chx - 50, chx + 36].forEach(x => bx(f, x, B - 46, 12, 20, "#4a6aa8", "#2e2040", 5));
       bx(f, cx - 95, B - 26, 200, 10, T.deskTop, "#4a3560", 9); bx(f, cx - 90, B - 17, 190, 17, T.desk, "#4a3560", 9); box(f, cx + 50, B - 14, 30, 10, "#b07848", { border: "2px solid #4a3560", zIndex: 10 });
       box(f, chx - 26, B - 32, 52, 7, "#5a5a78", { border: "2px solid #2e2040", zIndex: 10 });
       r.mon = bx(f, cx + 24, B - 92, 68, 52, "#2e2a40", "#4a3560", 8); box(f, cx + 52, B - 40, 12, 14, "#4a3560", { zIndex: 8 });
@@ -6334,7 +6336,7 @@ C.registerMode({
       s.lines = []; for (let k = 0; k < 5; k++) s.lines.push(box(s, 3, 3 + k * 7, 20, 3, "#7dff9c"));
       r.sc = s;
       const h = BYID[who || "ham"].hands;
-      r.hands = [0, 1].map(k => box(f, chx - 24 + k * 26, B - 40, h.w > 16 ? 20 : 16, 12, h.c, { border: "3px solid #4a3560", zIndex: 12 }));
+      r.hands = [0, 1].map(k => box(f, chx - 24 + k * 26, B - 36, h.w > 16 ? 20 : 16, 12, h.c, { border: "3px solid #4a3560", zIndex: 12 }));
       box(f, chx - 18, B - 29, 36, 5, "#3a3a52", { border: "1px solid #1e1830", zIndex: 11 });
       return r;   // 커피 잔은 👆 POKE가 도트 머그로 그림(누르면 김·하트·카페인)
     }
@@ -6999,7 +7001,7 @@ C.registerMode({
       if (k === "stall") {   // 💤 멈춤 의심: 눈 뜬 채 멈춘 모니터를 톡톡(예전엔 바닥에 누워 잠 — 자는 게 아니라 응답이 없는 것, 관제 인박스 B3)
         const h = f.s.health || { secs: 0 }, secs = h.secs + stateAge(), m = Math.max(1, Math.floor(secs / 60));
         const bt = anim ? Math.floor(T * 2.5) % 4 : 3, tap = !meet && (bt === 0 || bt === 1);   // 톡 · 톡 · (쉼) · (쉼) — 회의 배치(모니터 없음)는 화이트보드 앞에 멍하니 섬
-        setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", eyes: ph.blink ? "c" : "o", arms: tap ? "r" : "" }); put(a, F, sx, B - (meet ? 2 : 6), { dy: tap ? -1 : 0 }); tagOn(a, true);
+        setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", eyes: ph.blink ? "c" : "o", arms: tap ? "r" : "" }); put(a, F, sx, B - (meet ? 2 : 6 + SEAT_UP), { dy: tap ? -1 : 0 }); tagOn(a, true);
         html(fl.gb, `<span style="color:${PROV_COLOR[f.pk]}">${esc(aName(f.animal))} · ${esc(f.pname)}</span><br>💤 ${X("톡톡", "tap tap")} ${mmss(secs)}<br>${esc(h.tool ? X(`${cut(h.tool, 10)} ${m}분째`, `${cut(h.tool, 10)} ${m}m`) : X("응답 없음", "no reply"))}`); sty(fl.gb, "display", "block"); bubble(a, "", false);
         sty(fl.gb, "left", (meet ? sx + 44 : sx - 209) + "px"); if (fl.gb.classList.contains("gl") === meet) fl.gb.classList.toggle("gl", !meet);   // 책상: 직원 왼쪽(꼬리 오른쪽) · 회의: 직원 오른쪽
         sty(fl.tint, "display", "block"); setScreen("on"); hands(false, 0);   // 화면은 켜진 채 멈춤(코드 줄이 안 움직임)
@@ -7011,7 +7013,7 @@ C.registerMode({
       if (lau) {
         const lt = tc - a.launchStart;
         setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", arms: "u", mouth: "o", eyes: "o" });
-        put(a, F, sx, B - (meet ? 2 : 6), { dy: -Math.abs(Math.sin(lt * 7)) * 26 }); tagOn(a, false); setScreen("on"); hands(false, 0);
+        put(a, F, sx, B - (meet ? 2 : 6 + SEAT_UP), { dy: -Math.abs(Math.sin(lt * 7)) * 26 }); tagOn(a, false); setScreen("on"); hands(false, 0);
         return res;
       }
       if (meet) {   // 서브에이전트 회의: 본체는 화이트보드 앞에서 쓰고 · 설명하고 · 끝나면 만세 → 지우기
@@ -7029,14 +7031,14 @@ C.registerMode({
         return res;
       }
       const dr = dcB.pose(f, a, tc, anim, ph);   // 🎨 새 소품 도착: 좋아하는 거면 만세 + "러그다! ♥", 아니면 "오~"
-      if (dr) { setP(a, dr.p); put(a, F, sx, B - 6, { dy: dr.dy }); tagOn(a, false); bubble(a, esc(dr.say), true); setScreen("on"); hands(false, 0); return res; }
+      if (dr) { setP(a, dr.p); put(a, F, sx, B - 6 - SEAT_UP, { dy: dr.dy }); tagOn(a, false); bubble(a, esc(dr.say), true); setScreen("on"); hands(false, 0); return res; }
       const hp = pwB.hold(i, f, a);   // 정전·리셋: 가만히 앉기 · 기지개 · 한마디
-      if (hp && hp.p) { setP(a, hp.p); put(a, F, sx, B - 6); tagOn(a, true); bubble(a, hp.say || "", !!hp.say); setScreen(hp.scr === "off" ? "off" : "on"); hands(false, 0); return res; }
+      if (hp && hp.p) { setP(a, hp.p); put(a, F, sx, B - 6 - SEAT_UP); tagOn(a, true); bubble(a, hp.say || "", !!hp.say); setScreen(hp.scr === "off" ? "off" : "on"); hands(false, 0); return res; }
       if (hp && hp.say) bubble(a, hp.say, true);
       /* ✍️ 보드의 마지막 줄에 ✓가 찍히면 잠깐 기지개(움직임이 켜져 있을 때만) */
       if (fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim)) {
         const u = tc - aiT.get(f.sid).allAt;
-        setP(a, { view: "front", seated: 1, arms: "u", eyes: "c", mouth: u > .5 && u < 1.2 ? "o" : "" }); put(a, F, sx, B - 6, { dy: -Math.round(Math.sin(clamp(u / 1.6, 0, 1) * Math.PI) * 3) }); tagOn(a, true);
+        setP(a, { view: "front", seated: 1, arms: "u", eyes: "c", mouth: u > .5 && u < 1.2 ? "o" : "" }); put(a, F, sx, B - 6 - SEAT_UP, { dy: -Math.round(Math.sin(clamp(u / 1.6, 0, 1) * Math.PI) * 3) }); tagOn(a, true);
         setScreen("on"); hands(false, 0);
         return res;
       }
@@ -7051,29 +7053,29 @@ C.registerMode({
         }
         {   // ☕ 커피 한 모금 — 쉰 지 오래되면 😴 napBig이 꾸벅·엎드림·🍱 점심으로 덮어씀(#106)
           const sip = Math.floor((T + variant) / 2) % 2 === 1;
-          setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: sip ? "r" : "" }); put(a, F, sx, B - 6, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
-          cup(true, "☕"); sty(fl.sweat, "left", (sx + (sip ? 30 : 36)) + "px"); sty(fl.sweat, "top", (B - (sip ? 76 : 60)) + "px"); sty(fl.sweat, "opacity", "1");
+          setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: sip ? "r" : "" }); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
+          cup(true, "☕"); sty(fl.sweat, "left", (sx + (sip ? 30 : 36)) + "px"); sty(fl.sweat, "top", (B - SEAT_UP - (sip ? 76 : 60)) + "px"); sty(fl.sweat, "opacity", "1");
         }
         setScreen("off"); hands(false, 0);
         return res;
       }
       if (k === "done") {
-        setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", mouth: "o" }); put(a, F, sx, B - 6, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
+        setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", mouth: "o" }); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
         setScreen("on"); hands(false, 0);
         return res;
       }
       /* 작업 중: 타이핑 + 코드 조각 + 소리 */
       const slow = f.s.health && f.s.health.level === "slow";
-      setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }); put(a, F, sx, B - 6, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
+      setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
       const owlN = f.animal === "owl" && HABIT.night && anim;   // 🦉 밤엔 타자가 빨라짐(#85)
       setScreen("type", owlN ? T * 1.8 : T); hands(true, owlN ? Math.floor(T * 14) % 2 : ph.ty);
-      if (slow) { cup(true, "💧"); sty(fl.sweat, "left", (sx + 26) + "px"); sty(fl.sweat, "top", Math.round(B - 6 - a.h + 6 + ((T * 2) % 1) * 4) + "px"); sty(fl.sweat, "opacity", Math.floor(T * 2) % 2 ? "1" : ".5"); }
+      if (slow) { cup(true, "💧"); sty(fl.sweat, "left", (sx + 26) + "px"); sty(fl.sweat, "top", Math.round(B - 6 - SEAT_UP - a.h + 6 + ((T * 2) % 1) * 4) + "px"); sty(fl.sweat, "opacity", Math.floor(T * 2) % 2 ? "1" : ".5"); }
       if (anim) {
         keyTick(a, tc);
         if (cfg.frags && tc >= a.fragAt) {
           a.fragAt = tc + .35 + Math.random() * .5;
           const kind = kindOf(f.s), ac = lastAct(f.s);
-          spawnFrag(bld, sx - 2 + Math.random() * 30, FT[i] + B - 6 - a.h - 6, kind, ac && ac.text);
+          spawnFrag(bld, sx - 2 + Math.random() * 30, FT[i] + B - 6 - SEAT_UP - a.h - 6, kind, ac && ac.text);
         }
       }
       return res;
