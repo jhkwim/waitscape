@@ -1249,10 +1249,11 @@ function mountLobby(root, ctx) {
     bx(p, 9 + DX, FY - 30, 114, 9, "var(--deskTop)", 3, { zIndex: 9 }); bx(p, 12 + DX, FY - 21, 108, 21, "var(--desk)", 3, { zIndex: 9 });
     box(p, 24 + DX, FY - 33, 42, 3, "#3a3a52", { border: "1px solid #1e1830", zIndex: 11 });
     R.hands = [0, 1].map(k => box(p, 24 + DX + k * 27, FY - 33, 15, 9, hc, { border: "3px solid var(--ln)", zIndex: 12 }));
-    const cx = 45 + DX;   // 🪑 의자(#153): 사장 = 빨간 등받이·금색 윗테, 직원 = 파란 사무용 의자. 팔걸이는 책상 위로 살짝
-    if (boss) { bx(p, cx - 30, FY - 75, 60, 54, "#a8384e", 3, { zIndex: 4 }); [cx - 24, cx + 15].forEach(x => box(p, x, FY - 69, 9, 39, "#c8506a", { zIndex: 4 })); box(p, cx - 33, FY - 78, 66, 6, "#ffd23f", { border: "2px solid var(--ln)", zIndex: 4 }); }
-    else { bx(p, cx - 27, FY - 69, 54, 48, "#4a6aa8", 3, { zIndex: 4 }); [cx - 21, cx + 12].forEach(x => box(p, x, FY - 63, 6, 33, "#6a8ac8", { zIndex: 4 })); box(p, cx - 3, FY - 63, 6, 33, "#3a5590", { zIndex: 4 }); }
-    [cx - 36, cx + 24].forEach(x => bx(p, x, FY - 42, 12, 15, boss ? "#a8384e" : "#4a6aa8", 3, { zIndex: 5 }));
+    const cx = 45 + DX;   // 🪑 의자(#153): 큰 화면 의자(#148·#151)를 ¾로 줄인 크기·위치. 사장 = 빨간 등받이·금색 윗테, 직원 = 파란 사무용 의자. 팔걸이는 등받이 바깥에 서서 책상 위로
+    if (boss) { bx(p, cx - 30, FY - 83, 60, 62, "#a8384e", 3, { zIndex: 4 }); [cx - 24, cx + 18].forEach(x => box(p, x, FY - 77, 6, 45, "#c8506a", { zIndex: 4 })); box(p, cx - 33, FY - 86, 66, 6, "#ffd23f", { border: "2px solid var(--ln)", zIndex: 4 });
+      [cx - 39, cx + 33].forEach(x => bx(p, x, FY - 44, 9, 18, "#a8384e", 2, { zIndex: 5 })); }
+    else { bx(p, cx - 27, FY - 75, 54, 51, "#4a6aa8", 3, { zIndex: 4 }); [cx - 21, cx + 13].forEach(x => box(p, x, FY - 70, 6, 39, "#6a8ac8", { zIndex: 4 })); box(p, cx - 3, FY - 70, 6, 39, "#3a5590", { zIndex: 4 });
+      [cx - 36, cx + 30].forEach(x => bx(p, x, FY - 42, 9, 15, "#4a6aa8", 2, { zIndex: 5 })); }
     R.mug = mk("div", "b emo", p, { left: (72 + DX) + "px", top: (FY - 52) + "px", fontSize: "18px", zIndex: 13 }, "☕");
     R.x = 45 + DX; R.actor = actor(p, 8);
     R.spk = [0, 1, 2].map(() => mk("i", "spk", p, { zIndex: 31, display: "none" }, "✦"));
