@@ -371,6 +371,7 @@ const WALLS = ["#ffeec2", "#ffe3b0", "#f9efc8", "#fbe2c0", "#fff1cc"], WALL_LO =
 const T = { desk: "#c98d5a", deskTop: "#e9b377", roof: "#f6a43c", chair: "#d0905a" };
 /* 🪑 미니 보기 의자 높이(#153): 사장은 사장 의자로 MB_UP, 직원은 사무용 의자로 MS_UP만큼 책상 위로(3px 격자) */
 const MB_UP = 12, MS_UP = 6;
+const TEST_MARK = { pass: " 🧪✓", fail: " 🧪✗", ran: " 🧪" };   // 🧪 그 턴의 테스트(#138) — 미니 보기 완료 보고·정보 줄(#155)
 const SHOP = [
   { id: "plant", e: "🪴", n: ["화분", "Plant"], p: 300, lv: 1 },
   { id: "coffee", e: "☕", n: ["커피머신", "Coffee"], p: 800, lv: 1 },
@@ -1267,6 +1268,8 @@ function mountLobby(root, ctx) {
     if (v === 0) { R.shelfEl = bx(p, 6, FY - 96, 45, 96, "#a9744c", 3, { zIndex: 3 }); R.books = []; [0, 1, 2].forEach(q => { box(p, 9, FY - 90 + q * 30, 39, 3, "var(--ln)", { zIndex: 4 }); for (let i = 0; i < 4; i++) R.books.push(box(p, 12 + i * 9, FY - 84 + q * 30, 6, 18, ["#ff6b8a", "#5aa8ff", "#ffd23f", "#6adf8a"][(i + q) % 4], { zIndex: 4 })); }); }
     if (v === 1) { R.shelfEl = bx(p, 6, FY - 96, 42, 96, "#5a5a78", 3, { zIndex: 3 }); R.leds = [0, 1, 2, 3].map(q => { box(p, 12, FY - 87 + q * 21, 30, 12, "#2e2a40", { zIndex: 4 }); return box(p, 15, FY - 84 + q * 21, 6, 3, q % 2 ? "#7dff9c" : "#ffd23f", { zIndex: 5 }); }); }
     if (v === 2) { R.shelfEl = mk("div", "b emo", p, { left: "9px", top: (FY - 36) + "px", fontSize: "30px", zIndex: 5 }, "📦"); bx(p, 6, 30, 45, 30, "#fff", 3, { zIndex: 3 }); ["#ff6b8a", "#5aa8ff", "#6adf8a"].forEach((cl, k) => box(p, 12, 36 + k * 6, [27, 18, 24][k], 3, cl, { zIndex: 4 })); }
+    R.z = [0, 1, 2].map(() => mk("div", "z", p, { display: "none", zIndex: 25 }, "Z"));   // 😴 쉬는 단계(#155)
+    R.nlab = mk("div", "b nlab", p, { display: "none", zIndex: 30, fontSize: "12px", color: "#6a5a88", fontWeight: "bold", whiteSpace: "nowrap" });   // 쿵 · 🫧 · ❗ · 톡
     R.tag.style.background = PROV[f.pk].tag; txt(R.tag, `${f.shiny ? "✨" : ""}${EMO[f.animal]} ${f.floor}F · ${cfg.hideText ? "🤫" : cut(f.project, 14)}`);
     if (ctx.api.openTerminal) { R.tag.dataset.act = "jump"; R.tag.dataset.sid = f.sid; }   // 🖥️ 이름표 칩을 누르면 그 세션으로(일하는 중에도). 하단 자막에 "🖥️ Orca로 이동" 등
     /* ✍️ 단계 칩(이름표 옆 "3/5" — 마우스를 올리면 하단 자막에 AI가 쓴 제목) · AI 보드(창 자리, 이름표 아래) */
@@ -1493,7 +1496,7 @@ function mountLobby(root, ctx) {
   const KLBL = { work: ["⌨️ 작업 중", "⌨️ Working"], agents: ["🤖 서브 출동", "🤖 Sub-agents"], ask: ["❓ 답 대기", "❓ Waiting"], stall: ["💤 멈춤 의심", "💤 Stalled?"], done: ["✅ 완료", "✅ Done"], idle: ["☕ 쉬는 중", "☕ Idle"] };
   function stLabel(f) {
     const l = KLBL[f.kind][en() ? 1 : 0];
-    return f.kind === "ask" ? `${l} ${mss(ctx.now() - f.since)}` : f.kind === "agents" && f.ag.length ? `${l} ${f.ag.length}` : l;
+    return f.kind === "ask" ? `${l} ${mss(ctx.now() - f.since)}` : f.kind === "agents" && f.ag.length ? `${l} ${f.ag.length}` : f.kind === "done" ? l + (TEST_MARK[f.s.test] || "") : l;
   }
   function infoText(R) {   // 둘러볼 때 방 이름표 아래 한 줄
     if (R.type === "staff") { const f = model.bySid.get(R.key) || R.f; return `${aName(f.animal)} · ${f.pname} · ${stLabel(f)}`; }
@@ -1636,20 +1639,44 @@ function mountLobby(root, ctx) {
     const dU = D ? tc - D.t0 - dTimes(D).a : null;
     /* 직원 층 */
     rooms.forEach(R => {
-      if (R.type !== "staff" || !vis(R)) return;
+      if (R.type !== "staff") return;
       const f = model.bySid.get(R.key) || R.f;
+      /* 😴 쉼 깊이·상태 전환은 화면 밖 층도 따라감 — 깨어난 순간을 본 경우에만 ❗(카메라가 돌아왔을 때 늦은 화들짝 없게, 큰 화면 napBig.off와 같은 뜻) */
+      if (R.napK !== f.kind) { if (R.napK === "idle" && R.deep && f.kind !== "stall" && vis(R)) R.wake = tc; R.napK = f.kind; }
+      if (f.kind === "idle") { const now = ctx.now(); R.napSt = NAP.stage(Math.max(0, now - (f.s.status === "done" ? (f.s.since || now) + 300 : f.s.since || now))); R.deep = R.napSt > 0; } else R.deep = false;
+      if (!vis(R)) return;
       const o = { seated: 1, eyes: blink ? "c" : "o" };
       let dy = 0, bub = null, typing = (f.kind === "work" || f.kind === "agents") && !pwM.dead(), sp = false;
-      if (f.kind === "stall" || f.kind === "idle") { if (f.kind === "idle") o.eyes = "c"; typing = false; }   // 💤 멈춤 의심은 눈 뜬 채 멈춘 화면만 봄
+      if (f.kind === "stall" || f.kind === "idle") typing = false;   // 💤 멈춤 의심 톡톡 · 😴 쉬는 단계는 아래(말풍선이 없을 때)
       if (f.kind === "done") typing = false;
       const solved = (shot.k === "ask" || shot.k === "askalt") && shot.ask.sid === f.sid && shot.solved != null;
       if (f.kind === "ask" && !solved) { typing = false; o.arms = "r"; dy = -Math.round(Math.abs(Math.sin(T * 4)) * 2) * U * mot; sp = true;
         bub = look ? [`${askIco(f.ask)} ${esc(cut(f.note || X("확인이 필요해요", "Needs your input"), 17))}`, 6, 42] : [`${askIco(f.ask)} ${esc(cut(f.note || X("확인이 필요해요", "Needs your input"), 17))}${f.guess ? " " + X("(추정)", "(guess)") : ""}<span class="f">⌨️ ${f.ask === "permission" ? X("터미널에서 허락해 주세요", "Please approve in the terminal") : X("터미널에서 답해 주세요", "Please answer in the terminal")}</span>`, 6, 22]; }
       if (solved) { typing = false; o.arms = "u"; o.mouth = "o"; dy = -Math.round(hop * 4) * U; sp = true; bub = [X("고마워요! 바로 실행할게요 🚀", "Thanks! On it 🚀"), 24, 30]; }
-      if (shot.k === "launch" && shot.ev.big && shot.ev.info.sid === f.sid && el < L_ROOF) { typing = false; o.arms = "u"; o.mouth = "o"; dy = -Math.round(hop * 4) * U; sp = true; bub = [X("🎉 다 했어요!", "🎉 All done!"), 84, 36]; }
+      if (shot.k === "launch" && shot.ev.big && shot.ev.info.sid === f.sid && el < L_ROOF) { typing = false; o.arms = "u"; o.mouth = "o"; dy = -Math.round(hop * 4) * U; sp = true; bub = [X("🎉 다 했어요!", "🎉 All done!") + (TEST_MARK[f.s.test] || ""), 84, 36]; }
       if (D && D.sid === f.sid && dU >= -.2 && dU < 2.4) { typing = false; o.arms = "r"; bub = [X(`🤖 서브 ${D.n}명 출동!`, `🤖 ${D.n} subs, go!`), 6, 36]; }
-      if (!bub && f.kind !== "ask" && f.kind !== "stall") { const pq = pwM.staff(R, f); if (pq) { Object.assign(o, pq.o); if (pq.say) bub = [pq.say, 6, 42]; } }   // 정전·리셋
-      const rx = f.kind === "idle" && !bub ? dcM.restX(f) : null;   // 🎨 쉴 때는 좋아하는 소품 앞에 서서(하트)
+      const pq = !bub && f.kind !== "ask" && f.kind !== "stall" ? pwM.staff(R, f) : null; if (pq) { Object.assign(o, pq.o); if (pq.say) bub = [pq.say, 6, 42]; }   // 정전·리셋
+      const rx = f.kind === "idle" && !bub ? dcM.restX(f) : null;
+      /* 😴 쉬는 단계(#155, 큰 화면 NAP과 같은 규칙): ☕ 한 모금 → 꾸벅(Z·쿵) → 엎드려 쿨쿨(🫧) · 깊이 쉬다 일하면 ❗ 화들짝 · 💤 멈춤 의심은 모니터 톡톡 */
+      let lab = null, zOn = 0, sip = false;
+      const uw = tc - (R.wake || -9), free = !bub && !pq && rx == null && !(V && V.info.sid === f.sid);   // 정전 놀람·리셋 기지개가 먼저
+      if (free && uw < 1.2) { typing = false; Object.assign(o, { eyes: "o", mouth: "o", arms: "u" }); dy = -Math.round(Math.sin(clamp(uw / .5, 0, 1) * Math.PI) * 2) * U * mot; lab = ["❗", R.x - 42, FY - 66]; }
+      else if (free && f.kind === "stall") {
+        const bt = anim ? Math.floor(T * 2.5) % 4 : 3, tap = bt < 2; o.arms = tap ? "r" : "";
+        if (tap || !anim) lab = [anim ? X("톡", "tap") : X("톡톡", "tap"), R.x + 81 + (bt === 1 ? 3 : 0), FY - 69 - (bt === 1 ? 3 : 0)];   // 모니터 오른쪽 옆(위는 AI 보드)
+      } else if (free && f.kind === "idle") {
+        const st = R.napSt;
+        if (st === 0) { const v = anim ? (tc + fnv(f.sid) % 9) % 9 : 9; sip = v < 1.7; o.eyes = sip ? "c" : o.eyes; }   // ☕ 가끔 한 모금
+        else if (st === 2) { Object.assign(o, { eyes: "c", mouth: "", arms: "" }); dy = 6 + MS_UP; zOn = 2; const b = anim ? (Math.sin(tc * 1.6 + fnv(f.sid)) + 1) / 2 : .5; lab = ["🫧", R.x + 15, FY - 39, Math.round(8 + b * 6)]; }   // 엎드림: 의자에서 책상으로 푹
+        else { const v = anim ? (tc + fnv(f.sid) % 8) % 8 : 0, drop = v >= 6 && v < 6.3, jerk = v >= 6.3 && v < 7;
+          Object.assign(o, { eyes: jerk ? "o" : "c", mouth: jerk ? "o" : "", arms: "" }); dy = drop ? 2 * U : !jerk && anim && Math.floor(tc * 1.2) % 2 ? U : 0; zOn = jerk ? 0 : 1;
+          if (drop) lab = [X("쿵", "bonk"), R.x - 39, FY - 54]; }
+      }
+      R.z.forEach((z, i) => { if (!zOn) { sty(z, "display", "none"); return; } const big = zOn === 2, p = anim ? ((T * (big ? .3 : .45) + i / 3) % 1) : i * .3;
+        sty(z, "display", "block"); sty(z, "left", Math.round(R.x + (big ? 27 : 21) + p * 12 + i * 6) + "px"); sty(z, "top", Math.round(FY - (big ? 60 : 66) - MS_UP - p * 21) + "px"); sty(z, "opacity", String(1 - p * .8)); sty(z, "fontSize", Math.round((big ? 14 : 12) + p * 8) + "px"); });
+      sty(R.nlab, "display", lab ? "block" : "none"); if (lab) { txt(R.nlab, lab[0]); sty(R.nlab, "left", lab[1] + "px"); sty(R.nlab, "top", lab[2] + "px"); sty(R.nlab, "fontSize", (lab[3] || 12) + "px"); }
+      { const ml = sip ? Math.round(Math.sin(Math.min(1, ((tc + fnv(f.sid) % 9) % 9) / .5) * Math.PI / 2) * (4 + MS_UP / U)) * U : 0;   // 잔을 입까지
+        sty(R.mug, "top", (FY - 52 - ml) + "px"); sty(R.mug, "left", (sip ? R.x + 15 : R.x + 27) + "px"); }   // 🎨 쉴 때는 좋아하는 소품 앞에 서서(하트)
       if (V && V.info.sid === f.sid && !["fetch", "home"].includes(V.ph)) hide(R.actor);   // 1층에 보고하러 가 있음
       else if (rx != null) show(R.actor, sprOf(f, { eyes: "c", mouth: anim && Math.floor(T / 2) % 3 === 0 ? "o" : "" }), rx, FY - 3, { z: 11 });
       else { const pz = pkM.pose(R.key, o, anim, R.r - 1), s = sprOf(f, o); show(R.actor, s, R.x + Math.round(pz.dx), FY - 12 - MS_UP, { dy: dy + Math.round(pz.dy), rot: pz.rot ? Math.round(pz.rot) : 0, z: 8 }); pkM.after(R, R.actor, s, BYID[f.animal], Object.assign({ prov: f.pk, shiny: f.shiny }, o), pz, anim); }   // 👆 클릭 반응 몸짓
@@ -1683,7 +1710,6 @@ function mountLobby(root, ctx) {
       const cofK = (tc % 28) - 20, cof = anim && !sv && !doze && !alt && !drn && shot.k === "idle" && cofK >= 0 && cofK < 1.7;
       const typing = !clap && !doze && !cof && !alt && !drn && model.working > 0 && !pwM.dead();
       const ty = anim ? Math.floor(T * 2) % 2 : 0;
-      BR.hands.forEach((h, j) => { sty(h, "display", typing ? "block" : "none"); sty(h, "marginTop", (typing && (ty + j) % 2 ? -U : 0) + "px"); });
       const sd0 = anim && typing ? Math.floor(T) : 0;
       BR.lns.forEach((l, j) => { const sd = sd0 + j * 7, on = typing || cof || alt; sty(l, "display", on || doze ? "block" : "none"); sty(l, "width", (doze ? 6 : 9 + (sd * 37 % 27)) + "px"); sty(l, "left", (3 + ((sd * 13) % 3) * 3) + "px");
         sty(l, "background", doze ? "#3a4a6a" : ["#7dff9c", "#ffd23f", "#5aa8ff", "#ff9ad0", "#7dff9c"][(j + sd) % 5]); });
@@ -1700,7 +1726,12 @@ function mountLobby(root, ctx) {
       if (drn && !pq) { bp = { seated: 1, arms: "r", specs: 1, eyes: blink ? "c" : "o" }; bdy = 0; }
       sty(BR.paper, "display", drn && !pq ? "block" : "none"); if (drn) sty(BR.paper, "top", (FY - 70 - MB_UP + (anim && Math.floor(T * 2) % 2 ? U : 0)) + "px");
       bossNow = doze ? "doze" : cof ? "coffee" : "work";
-      { const bz = pkM.pose("boss", bp, anim, NR - 2), bsp = bossSpr(bp); show(BR.actor, bsp, 45 + (pq ? pq.dx : 0) + Math.round(bz.dx), FY - 12 - MB_UP, { dy: bdy + Math.round(bz.dy), z: 8, rot: bz.rot ? Math.round(bz.rot) : 0 }); pkM.after(BR, BR.actor, bsp, BOSS, Object.assign({ boss: 1 }, bp), bz, anim); }   // 👆
+      { const bz = pkM.pose("boss", bp, anim, NR - 2), bsp = bossSpr(bp); show(BR.actor, bsp, 45 + (pq ? pq.dx : 0) + Math.round(bz.dx), FY - 12 - MB_UP, { dy: bdy + Math.round(bz.dy), z: 8, rot: bz.rot ? Math.round(bz.rot) : 0 }); pkM.after(BR, BR.actor, bsp, BOSS, Object.assign({ boss: 1 }, bp), bz, anim);
+      /* ⌨️ 타자 · 🐾 한가할 땐 두 손을 책상 위에 두고 7초마다 1.8초 꼼지락(톡톡 ↔ 비비기, 큰 화면 #148과 같은 박자) · 졸 땐 가만히 · 커피·보고·질문·일보·정전 땐 숨김(#155) */
+      const paw = !typing && !clap && !nod && !cof && !alt && !drn && !pq && !(bz.R && tc - bz.R.t0 < bz.R.dur) && bz.W2 == null, fid = anim && (typing || paw) && !doze && tc % 7 < 1.8 ? Math.floor(tc / 7) % 2 : -1;   // 타자 중에도 7초마다 잠깐 손을 쉬며 꼼지락
+      BR.hands.forEach((h, j) => { sty(h, "display", typing || paw ? "block" : "none"); if (!(typing || paw)) return;
+        const tap = fid === 0 && (Math.floor(tc * 6) + j) % 2, rub = fid === 1 && Math.floor(tc * 5) % 2 ? (j ? -U : U) : 0;
+        sty(h, "marginTop", ((typing && fid < 0 && (ty + j) % 2) || tap ? -U : 0) + "px"); sty(h, "marginLeft", rub + "px"); }); }   // 👆
       const lift = cof ? Math.round(Math.sin(Math.min(1, cofK / .5) * Math.PI / 2) * (4 + MB_UP / U)) * U : 0;   // 의자로 올라간 입까지
       sty(BR.mug, "top", (FY - 52 - lift) + "px"); sty(BR.mug, "left", (cof ? 60 : 72) + "px");
       BR.z.forEach((z, i) => { if (!doze) { sty(z, "display", "none"); return; } const p = anim ? ((T * .45 + i / 3) % 1) : i * .3;
@@ -1724,7 +1755,7 @@ function mountLobby(root, ctx) {
         show(BR.vis, sprOf(c, o), hx, FY - 3, { dy: vdy, rot: walk && anim ? (wk ? 3 : -3) : 0, z: 20 });
         if (ph === "stay") {
           bubOn = true; BR.vbub.className = "bub rep"; sty(BR.vbub, "top", "12px"); sty(BR.vbub, "background", "#fff6d0");
-          html(BR.vbub, `<span class="chip" style="background:${sv.big ? "#ff6b8a" : "#3fa35a"}">${sv.big ? "🎉 " + X("큰 일 완료!", "Big one done!") : "✅ " + X("완료 보고", "Done")} ${esc(cut(c.project, 14))}</span><span class="ft2">${c.run ? "⏱ " + esc(C.fmt(c.run)) + " · " : ""}${esc(aName(c.animal))} · ${esc(c.pname)} · ${c.floor}F</span>${goMux(c) ? `<span class="ft2 go">↗ ${X(`${goMux(c)}로 이동`, `Go to ${goMux(c)}`)}</span>` : ""}`);
+          html(BR.vbub, `<span class="chip" style="background:${sv.big ? "#ff6b8a" : "#3fa35a"}">${sv.big ? "🎉 " + X("큰 일 완료!", "Big one done!") : "✅ " + X("완료 보고", "Done")}${TEST_MARK[c.s && c.s.test] || ""} ${esc(cut(c.project, 14))}</span><span class="ft2">${c.run ? "⏱ " + esc(C.fmt(c.run)) + " · " : ""}${esc(aName(c.animal))} · ${esc(c.pname)} · ${c.floor}F</span>${goMux(c) ? `<span class="ft2 go">↗ ${X(`${goMux(c)}로 이동`, `Go to ${goMux(c)}`)}</span>` : ""}`);
           if (goMux(c)) { BR.vbub.dataset.act = "go"; BR.vbub.dataset.sid = c.sid; } else delete BR.vbub.dataset.act;   // 👆 보고 말풍선을 누르면 그 cmux 세션으로
           sty(BR.vbub, "display", "block");   // 글이 길면(영어 등) 창 안에 들어오게 왼쪽으로 당김
           const bl = sn(Math.max(6, Math.min(78, W - 3 - BR.vbub.offsetWidth)));
@@ -2992,7 +3023,7 @@ function pokeMini(h) {
       const v = fnv(key) % 3;
       r.an = R.f.animal;
       r.mon = { el: R.monEl, x: 126, y: 54, w: 45, h: 48, ov: mk("div", "b", R.scr, { left: "0", top: "0", right: "0", bottom: "0", zIndex: "4", pointerEvents: "none" }) };
-      r.mug = { el: R.mug, x: 120, y: FY - 48 }; r.mugBub = 1;
+      r.mug = { el: R.mug, get x() { return parseFloat(R.mug.style.left) || 120; }, get y() { return (parseFloat(R.mug.style.top) || FY - 52) + 4; } }; r.mugBub = 1;   // 😴 한 모금 땐 잔이 입까지(#155)
       r.shelf = v === 0 ? { deco: 0, el: R.shelfEl, x: 6, y: 36, w: 45, h: 96, books: R.books, bx: j => 6 + (j % 4) * 9, by: j => 12 + Math.floor(j / 4) * 30 }
         : v === 1 ? { deco: 1, el: R.shelfEl, x: 6, y: 36, w: 42, h: 96, leds: R.leds, ledC: R.leds.map((_, q) => q % 2 ? "#7dff9c" : "#ffd23f") }
         : { deco: 3, el: R.shelfEl, x: 6, y: 96, w: 36, h: 36 };
