@@ -7059,7 +7059,7 @@ C.registerMode({
       sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.img, "filter", "");
       if (a.loc === "out" || (a.goal === "out" && a.nx && tc >= a.nx.at) || (a.nx && a.nx.carry === "cup")) {   // 아기(서브에이전트)는 본체와 함께 자리를 비움
         res.babies = false; a.babies.forEach(b => { if (b.el.parentNode) b.el.parentNode.removeChild(b.el); b.par = null; });
-        if (fl.wbd) { fl.wbd.env.forEach(e => sty(e, "display", "none")); fl.wbd.dn.forEach(e => sty(e, "display", "none")); sty(fl.wbd.yawn, "display", "none"); }   // 봉투·도넛·하품 글자도 함께 걷음
+        if (fl.wbd) { fl.wbd.env.forEach(e => sty(e, "display", "none")); fl.wbd.ch.forEach(e => sty(e, "display", "none")); fl.wbd.dn.forEach(e => sty(e, "display", "none")); sty(fl.wbd.yawn, "display", "none"); }   // 봉투·도넛·하품 글자도 함께 걷음
         if (fl.mb) sty(fl.mb, "display", "none");
       }
       if (a.loc === "out") { tagOn(a, false); bubble(a, "", false); nxCarry(a, null); setScreen("off"); hands(false, 0); return res; }
@@ -7307,6 +7307,12 @@ C.registerMode({
         /* ✉️ 결과 봉투: 이 창이 끝나는 걸 본 아기(doneAt > 0)만 — ✓ 깡충 뒤 보드 앞 부모에게 가서 건네고 돌아옴 */
         const u = dlvOf(m) ? tc - m.doneAt - WB.TM.just : -9, dlv = u >= (anim ? 0 : -WB.TM.just) && u < WB.TM.dlv;   // 정적이면 깡충이 없으니 끝나자마자 봉투(도넛이 먼저 깜빡이지 않게)
         sty(b.el, "zIndex", dlv && anim ? "11" : "");   // 걸을 땐 테이블 앞으로
+        const chair = () => { if (!w) return; const c = w.ch[k], ct = Math.round(B - 8 - BABY_UP - b.h + 6), hh = B - 20 - ct, bw = Math.round(b.w * .7 / 2) * 2 + 8, ck = ct + "|" + bw;   // 🪑 자리마다(봉투를 건네러 일어나도 빈 의자로 남음) · 등받이 = 귀 높이, 폭 = 아기 폭에 맞춤(팔걸이는 바깥)
+          sty(c, "display", "block"); sty(c, "left", (x - bw / 2 - 8) + "px");
+          if (c._k !== ck) { c._k = ck; sty(c, "top", ct + "px"); sty(c, "height", hh + "px"); sty(c, "width", (bw + 16) + "px"); sty(c.back, "left", "8px"); sty(c.back, "width", bw + "px"); sty(c.back, "height", hh + "px");
+            [14, bw - 4, bw / 2 + 5].forEach((xx, j) => { sty(c.st[j], "left", xx + "px"); sty(c.st[j], "height", (hh - 14) + "px"); });
+            sty(c.arm[0], "left", "0px"); sty(c.arm[1], "left", (bw + 8) + "px"); c.arm.forEach(e => sty(e, "top", (B - 36 - ct) + "px")); } };
+        chair();
         if (dlv && anim) {
           const px = BOARD_X + 58 + k * 22, out = u < 1, hand = u >= 1 && u < 1.8, wl = Math.floor(tc * 8) % 2;
           const bx = out ? x + (px - x) * ease(u) : hand ? px : px + (x - px) * ease(clamp(u - 1.8, 0, 1));
@@ -7321,11 +7327,6 @@ C.registerMode({
           bubble(b, "", false); top = Math.min(top, B - 8 - BABY_UP - b.h - (nSess >= 6 ? 30 : 56)); return;   // 말풍선 높이는 앉은 자리 기준 그대로
         }
         if (dlv && w) { const e = w.env[k]; sty(e, "display", "block"); sty(e, "left", (BOARD_X + 22 + k * 14) + "px"); sty(e, "top", (B - 40) + "px"); thank = true; }   // 정적: 부모 옆에 봉투만
-        if (w) { const c = w.ch[k], ct = Math.round(B - 8 - BABY_UP - b.h + 6), hh = B - 20 - ct, bw = Math.round(b.w * .7 / 2) * 2 + 8, ck = ct + "|" + bw;   // 🪑 앉은 자리에만 · 등받이 = 귀 높이, 폭 = 아기 폭에 맞춤(팔걸이는 바깥)
-          sty(c, "display", "block"); sty(c, "left", (x - bw / 2 - 8) + "px");
-          if (c._k !== ck) { c._k = ck; sty(c, "top", ct + "px"); sty(c, "height", hh + "px"); sty(c, "width", (bw + 16) + "px"); sty(c.back, "left", "8px"); sty(c.back, "width", bw + "px"); sty(c.back, "height", hh + "px");
-            [14, bw - 4, bw / 2 + 5].forEach((xx, j) => { sty(c.st[j], "left", xx + "px"); sty(c.st[j], "height", (hh - 14) + "px"); });
-            sty(c.arm[0], "left", "0px"); sty(c.arm[1], "left", (bw + 8) + "px"); c.arm.forEach(e => sty(e, "top", (B - 36 - ct) + "px")); } }
         put(b, fl.F, x, B - 8 - BABY_UP, { dy: just ? -Math.round(ph.hop * 3) * 3 : speaking ? -Math.abs(Math.sin(T * 6)) * 5 : pop < 1 ? Math.round((1 - pop) * -14) : ((Math.floor(T * 3) + k) % 3 === 0 && anim && !stall && !d ? -3 : 0) });
         sty(b.el, "opacity", String(pop));
         bubble(b, "", false); top = Math.min(top, B - 8 - BABY_UP - b.h - (nSess >= 6 ? 30 : 56));
