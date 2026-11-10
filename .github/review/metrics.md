@@ -83,3 +83,4 @@
 | 2026-11-06 | #142 | 첫 커밋 | auto (security tier) + 릴리스 전 점검 검증 | 16 | Gemini 0/0/0 | - | - | - | 0% | 해당 없음 | - | 릴리스 점검 🟡1 🔵3 모두 맞음(/state test 필드·테스트 목록·inboxQueue 요약·scan 설명) + CHANGELOG #82 누락 |
 | 2026-11-09 | #145 | 첫 커밋 | auto (security tier: Argon) — 측정 example만 | 34 | Gemini 0/0/0 | - | - | - | 0% | 해당 없음 | - | 측정 도구 경고 문구만, Claude 전문가·visual 생략 |
 | 2026-11-10 | #147 | 첫 커밋 | auto (Flash+렌즈 5) + visual quick(추가 장면 2) + Claude 전문가 | 600 | Gemini 0/2/0 · visual 0 · Claude 0/3/4 | 100% | 100% | 100% | 0% | 전부 반영 | - | Gemini·Claude 둘 다: 4명+ 자리 밀림. Gemini만: 정적 모드 도넛 깜빡임. Claude만: 부모 부재·만세 전 새 출동·말풍선 높이·남는 봉투·자막·겹침 |
+| 2026-11-10 | #149 | 첫 커밋 | auto (Flash+렌즈 5) + visual quick(추가 장면 3) | 22 | Gemini 0/0/0 · visual 0 | - | - | - | 0% | 해당 없음 | - | 사장 의자 그리기·앉은 높이만, Claude 전문가 생략 |
