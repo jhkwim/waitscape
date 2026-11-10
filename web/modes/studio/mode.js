@@ -363,7 +363,7 @@ const ASK_X = 598;       // 사장님 앞에서 질문하는 자리
    통로(shaft) 칸에는 차가 서서 문이 열린 뒤에만 들어간다(E_X에서 탐) */
 const LIFT_STAFF = 566, LIFT_MEET = 318, LIFT_1F = E_X - 87, LIFT_GAP = 76;
 const DESK_X = 385, BOARD_X = 278;   // 직원 자리: 책상 층 의자 · 회의 배치 화이트보드 앞
-const BOSS_UP = 15, SEAT_UP = 8;   // SEAT_UP: 직원 사무용 의자(책상 층에 앉을 때만)   // 🪑 사장 의자: 앉은 사장님을 책상 위로 올리는 높이(서 있거나 걸을 땐 바닥 그대로)
+const BOSS_UP = 15, SEAT_UP = 8, BABY_UP = 6;   // BABY_UP: 회의 테이블 아기 의자(#159)   // SEAT_UP: 직원 사무용 의자(책상 층에 앉을 때만)   // 🪑 사장 의자: 앉은 사장님을 책상 위로 올리는 높이(서 있거나 걸을 땐 바닥 그대로)
 const SIGN_X = 522;   // 책상 층 작업 표지판 왼쪽 끝(오른쪽은 통로 앞까지). 직원이 이 아래로 오면 표지판을 위로 접음(얼굴이 보이게, #62)
 const DOOR_X = 438, DOOR_W = 54, DOOR_CX = DOOR_X + DOOR_W / 2;   // 🙈 1층 현관문(창과 자판기 사이: 꾸미기 칸·👆 누를 자리와 안 겹침)
 const FHS = 134, FHB = 140;
@@ -7292,7 +7292,7 @@ C.registerMode({
       const live = show.filter(m => !dn(m)), sp = live.length ? live[Math.floor(T / 3) % live.length] : null, talk = anim && (T % 3) < 2.6;
       const yw = Tm && anim ? WB.yawn(Tm, tc) : null;
       let top = B - 60, stallN = 0;
-      if (w) { w.dn.forEach(e => sty(e, "display", "none")); w.env.forEach(e => sty(e, "display", "none")); sty(w.yawn, "display", "none"); }
+      if (w) { w.dn.forEach(e => sty(e, "display", "none")); w.env.forEach(e => sty(e, "display", "none")); w.ch.forEach(e => sty(e, "display", "none")); sty(w.yawn, "display", "none"); }
       let thank = false;
       a.babies.forEach((b, k) => {
         const m = show[k], gone = !m || (Tm && Tm.leave != null && tc >= Tm.leave + m.j * .2);
@@ -7318,15 +7318,20 @@ C.registerMode({
             sty(e, "display", "block"); sty(e, "left", Math.round(gx) + "px"); sty(e, "top", Math.round(B - 2 - b.h * .55 - (hand ? Math.sin((u - 1) / .8 * Math.PI) * 6 : 0)) + "px");
           }
           if (u >= 1.2) thank = true;
-          bubble(b, "", false); top = Math.min(top, B - 8 - b.h - (nSess >= 6 ? 30 : 56)); return;   // 말풍선 높이는 앉은 자리 기준 그대로
+          bubble(b, "", false); top = Math.min(top, B - 8 - BABY_UP - b.h - (nSess >= 6 ? 30 : 56)); return;   // 말풍선 높이는 앉은 자리 기준 그대로
         }
         if (dlv && w) { const e = w.env[k]; sty(e, "display", "block"); sty(e, "left", (BOARD_X + 22 + k * 14) + "px"); sty(e, "top", (B - 40) + "px"); thank = true; }   // 정적: 부모 옆에 봉투만
-        put(b, fl.F, x, B - 8, { dy: just ? -Math.round(ph.hop * 3) * 3 : speaking ? -Math.abs(Math.sin(T * 6)) * 5 : pop < 1 ? Math.round((1 - pop) * -14) : ((Math.floor(T * 3) + k) % 3 === 0 && anim && !stall && !d ? -3 : 0) });
+        if (w) { const c = w.ch[k], ct = Math.round(B - 8 - BABY_UP - b.h + 6), hh = B - 20 - ct, bw = Math.round(b.w * .7 / 2) * 2 + 8, ck = ct + "|" + bw;   // 🪑 앉은 자리에만 · 등받이 = 귀 높이, 폭 = 아기 폭에 맞춤(팔걸이는 바깥)
+          sty(c, "display", "block"); sty(c, "left", (x - bw / 2 - 8) + "px");
+          if (c._k !== ck) { c._k = ck; sty(c, "top", ct + "px"); sty(c, "height", hh + "px"); sty(c, "width", (bw + 16) + "px"); sty(c.back, "left", "8px"); sty(c.back, "width", bw + "px"); sty(c.back, "height", hh + "px");
+            [14, bw - 4, bw / 2 + 5].forEach((xx, j) => { sty(c.st[j], "left", xx + "px"); sty(c.st[j], "height", (hh - 14) + "px"); });
+            sty(c.arm[0], "left", "0px"); sty(c.arm[1], "left", (bw + 8) + "px"); c.arm.forEach(e => sty(e, "top", (B - 36 - ct) + "px")); } }
+        put(b, fl.F, x, B - 8 - BABY_UP, { dy: just ? -Math.round(ph.hop * 3) * 3 : speaking ? -Math.abs(Math.sin(T * 6)) * 5 : pop < 1 ? Math.round((1 - pop) * -14) : ((Math.floor(T * 3) + k) % 3 === 0 && anim && !stall && !d ? -3 : 0) });
         sty(b.el, "opacity", String(pop));
-        bubble(b, "", false); top = Math.min(top, B - 8 - b.h - (nSess >= 6 ? 30 : 56));
-        if (w && d && !just && !dlv) { const e = w.dn[k], s2 = WB.pix(WB.ART.dn, 3); if (e._u !== s2.url) { e._u = s2.url; e.src = s2.url; } sty(e, "width", s2.w + "px"); sty(e, "height", s2.h + "px"); sty(e, "display", "block"); sty(e, "left", (x + 8) + "px"); sty(e, "top", (B - 34) + "px"); }
-        if (w && yawning) { sty(w.yawn, "display", "block"); sty(w.yawn, "left", (x + 16) + "px"); sty(w.yawn, "top", (B - 74 - Math.round(((tc - Tm.t0) % 20) * 4)) + "px"); }
-        if (anim && cfg.frags && !stall && !d && tc >= (b.fragAt || 0)) { b.fragAt = tc + 1 + Math.random() * 1.2; spawnFrag(bld, x + 2 + Math.random() * 20, FT[i] + B - 8 - b.h - 4, (ag.now && ag.now.kind) || "agent", ag.now && ag.now.text); }
+        bubble(b, "", false); top = Math.min(top, B - 8 - BABY_UP - b.h - (nSess >= 6 ? 30 : 56));
+        if (w && d && !just && !dlv) { const e = w.dn[k], s2 = WB.pix(WB.ART.dn, 3); if (e._u !== s2.url) { e._u = s2.url; e.src = s2.url; } sty(e, "width", s2.w + "px"); sty(e, "height", s2.h + "px"); sty(e, "display", "block"); sty(e, "left", (x + 8) + "px"); sty(e, "top", (B - 34 - BABY_UP) + "px"); }
+        if (w && yawning) { sty(w.yawn, "display", "block"); sty(w.yawn, "left", (x + 16) + "px"); sty(w.yawn, "top", (B - 74 - BABY_UP - Math.round(((tc - Tm.t0) % 20) * 4)) + "px"); }
+        if (anim && cfg.frags && !stall && !d && tc >= (b.fragAt || 0)) { b.fragAt = tc + 1 + Math.random() * 1.2; spawnFrag(bld, x + 2 + Math.random() * 20, FT[i] + B - 8 - BABY_UP - b.h - 4, (ag.now && ag.now.kind) || "agent", ag.now && ag.now.text); }
       });
       /* 말풍선은 테이블 위 하나만: 회의 n/총 · 지금 말하는 아기의 도구(now.text — 보드엔 안 씀) */
       const tot = mem.length, dnN = mem.filter(dn).length;
@@ -7361,6 +7366,10 @@ C.registerMode({
       w.pb = mkEl("div", "bub", F, { left: "392px", top: "8px", zIndex: 30 });   // 부모 한마디("어, 잉크가…" · "회의 끝! 👏") — 층 위로 잘리지 않게 머리 오른쪽 위
       const cs = WB.pix(WB.ART.cap, 3); w.cap = mkEl("img", "b", F, { zIndex: 12, display: "none", width: cs.w + "px", height: cs.h + "px" }); w.cap.alt = ""; w.cap.src = cs.url;
       w.dn = [0, 1, 2].map(() => { const e = mkEl("img", "b", F, { zIndex: 13, display: "none" }); e.alt = ""; return e; });
+      /* 🪑 아기 의자(#159): 직원 의자(#151)를 아기 크기로 — 자리(x)는 placeBabies가 아기마다 옮김 */
+      w.ch = [0, 1, 2].map(() => { const c = mkEl("div", "b", F, { width: "60px", zIndex: 4, display: "none", pointerEvents: "none" });   // 높이·top은 아기 키에 맞춰 placeBabies가 정함(등받이가 머리 위로)
+        c.back = bx(c, 6, 0, 48, 10, "#4a6aa8", "#2e2040", 4); c.st = [12, 42, 27].map(x => box(c, x, 5, 6, 10, x === 27 ? "#3a5590" : "#6a8ac8", { zIndex: 4 }));
+        c.arm = [-2, 54].map(x => bx(c, x, 0, 8, 16, "#4a6aa8", "#2e2040", 5)); return c; });
       const es = WB.pix(WB.ART.env, 2); w.env = [0, 1, 2].map(() => { const e = mkEl("img", "b", F, { zIndex: 14, display: "none", width: es.w + "px", height: es.h + "px" }); e.alt = ""; e.src = es.url; return e; });
       w.yawn = mkEl("div", "b wbt", F, { display: "none", zIndex: 30, color: "#6a5a88", fontWeight: 700, textShadow: "1px 1px 0 #fff" }, X("하암~", "yawn~"));
       return w;
