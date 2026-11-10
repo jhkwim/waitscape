@@ -363,6 +363,7 @@ const ASK_X = 598;       // 사장님 앞에서 질문하는 자리
    통로(shaft) 칸에는 차가 서서 문이 열린 뒤에만 들어간다(E_X에서 탐) */
 const LIFT_STAFF = 566, LIFT_MEET = 318, LIFT_1F = E_X - 87, LIFT_GAP = 76;
 const DESK_X = 385, BOARD_X = 278;   // 직원 자리: 책상 층 의자 · 회의 배치 화이트보드 앞
+const BOSS_UP = 15;   // 🪑 사장 의자: 앉은 사장님을 책상 위로 올리는 높이(서 있거나 걸을 땐 바닥 그대로)
 const SIGN_X = 522;   // 책상 층 작업 표지판 왼쪽 끝(오른쪽은 통로 앞까지). 직원이 이 아래로 오면 표지판을 위로 접음(얼굴이 보이게, #62)
 const DOOR_X = 438, DOOR_W = 54, DOOR_CX = DOOR_X + DOOR_W / 2;   // 🙈 1층 현관문(창과 자판기 사이: 꾸미기 칸·👆 누를 자리와 안 겹침)
 const FHS = 134, FHB = 140;
@@ -3545,14 +3546,14 @@ function dayrepBig(h) {
   function boss(b, bf, T, tc, ph) {
     const u = tc - S.t0, n = h.n(), B = G.BASE[n], tB = S.tB, al = S.v === "alone";
     if (S.v === "morning") {
-      h.setP(b, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: "r", specs: 1, mouth: Math.floor(tc * 4) % 2 ? "o" : "" }); h.put(b, bf.F, bf.chx, B - 6, { dy: ph.bob ? -1 : 0 }); h.tagOn(b, false);
+      h.setP(b, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: "r", specs: 1, mouth: Math.floor(tc * 4) % 2 ? "o" : "" }); h.put(b, bf.F, bf.chx, B - 6 - BOSS_UP, { dy: ph.bob ? -1 : 0 }); h.tagOn(b, false);
       sty(b.el, "zIndex", "40"); sty(b.el, "pointerEvents", ""); b.bub.classList.add("updb", "drsay"); h.bubble(b, esc(S.say[0][2]), u < S.tC);
       G.ptr.forEach(p => show(p, false)); paper(b, bf, tc, true, true); return;
     }
     const up = al ? S.tA : 0, wk0 = up + (al ? .3 : .4), wk1 = up + 2.0;
     sty(bf.tag, "display", u >= (al ? S.tA : .2) ? "none" : "");
     let x, o, feet, dy = 0, z = "40";
-    if (u < up) { o = { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", mouth: u > .4 ? "o" : "", specs: 0 }; x = bf.chx; feet = B - 6; z = ""; }
+    if (u < up) { o = { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", mouth: u > .4 ? "o" : "", specs: 0 }; x = bf.chx; feet = B - 6 - BOSS_UP; z = ""; }
     else if (u < wk1) { const k = (u - wk0) / (wk1 - wk0); x = lerp(bf.chx, BX, ease(k)); o = { view: "front", legs: k > 0 && k < 1 ? (ph.wk ? "a" : "b") : "s", eyes: "o", specs: 1 }; feet = B - 2; dy = k > 0 && k < 1 && ph.wk ? -4 : 0; }
     else {
       x = BX; feet = B - 2;
@@ -6457,7 +6458,9 @@ C.registerMode({
           r.tk = mkEl("div", "b tkb", F, { left: "206px", top: (B - 92) + "px", display: "none" }); r.tk.innerHTML = "<i></i><b></b><em></em>";   // 🎫 번호표 전광판 = 사장님 모니터(정전 덮개 z11 아래)
           r.tray = mkEl("div", "b tray", F, { left: "270px", top: (B - 54) + "px" });   // 📥 결재 서류함(책상 오른쪽 끝, 모니터 앞) — 안 본 완료 = 봉투
           r.stamp = mkEl("div", "b stamp", F, { left: "268px", top: (B - 74) + "px", display: "none" }, X("결재", "OK"));
-          bx(F, 72, B - 58, 52, 32, "#5a5a78", "#2e2040", 4);
+          /* 🪑 사장 의자: 등받이 높은 빨간 의자(금테) · 팔걸이 — 앉은 사장님은 BOSS_UP만큼 올라앉음 */
+          bx(F, 54, B - 100, 82, 74, "#a8384e", "#2e2040", 4); [61, 127].forEach(x => box(F, x, B - 92, 10, 60, "#c8506a", { zIndex: 4 })); box(F, 54, B - 103, 88, 5, "#ffd23f", { border: "2px solid #2e2040", zIndex: 4 });
+          [42, 140].forEach(x => bx(F, x, B - 48, 14, 22, "#a8384e", "#2e2040", 5));
           r.cart = bx(F, 790, B - 62, 52, 62, "#ff6b8a", "#4a3560", 4); emo(F, 796, B - 52, 28, "🛒", 5);
           r.chx = 98;
           r.door = nxDoorBuild(F, B);   // 🙈 현관문(눈치 모드 퇴장·출근)
@@ -6833,27 +6836,27 @@ C.registerMode({
       if (DRon) drB.boss(boss, bf, T, tc, ph);
       else if (bAway) trB.boss(boss, bf, T, tc, ph, n);
       else if (nb) {
-        setP(boss, Object.assign({ view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }, nb.p)); put(boss, bf.F, bf.chx, BASE[n] - 6, { dy: nb.dy }); tagOn(boss, false);
+        setP(boss, Object.assign({ view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }, nb.p)); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: nb.dy }); tagOn(boss, false);
         boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); sty(boss.el, "pointerEvents", ""); bubble(boss, esc(nb.say), true);
       }
       else if (ch) {   // 🎉 칭찬 한마디: 질문 감사 다음 · 전력 말풍선보다 먼저(5.5초짜리라 정전·리셋 안내를 잠깐만 가림)
         setP(boss, { view: "front", seated: 1, legs: "s", eyes: ph.blink ? "c" : "o", mouth: "o", arms: anim && Math.floor((tc - ch.t0) * 3) % 2 ? "u" : "r" });
-        put(boss, bf.F, bf.chx, BASE[n] - 6, { dy: anim && tc - ch.t0 < 1.2 ? -Math.round(ph.hop * 2) * 3 : 0 }); tagOn(boss, false);
+        put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: anim && tc - ch.t0 < 1.2 ? -Math.round(ph.hop * 2) * 3 : 0 }); tagOn(boss, false);
         boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none");   // 사장님 오른쪽 옆(층 이름표·왼쪽 벽에 안 잘리게)
         const who = `${ch.shiny ? "✨" : ""}${EMO[ch.animal]} ${aName(ch.animal)}(${ch.pname})`;
         bubble(boss, `<span class="cheer">🎉 ${esc(who)} ${X("큰 일 끝! 수고했어요", "big one done! Nice work")}</span>${ch.text && !cfg.hideText ? `<small class="cheer2">“${esc(cut(ch.text, 30))}”</small>` : ""}`, true);
       }
       else if (!thanker && trB.bossSay(tc)) {   // 🍖 "오늘 회식은 옥상 바베큐!"(처음 3.5초)
-        setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: anim && Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6); tagOn(boss, false);
+        setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: anim && Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
         boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(trB.bossSay(tc)), true);
       }
-      else if (thanker) { setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: "u" }); put(boss, bf.F, bf.chx, BASE[n] - 6, { dy: -ph.hop * 10 }); tagOn(boss, false); boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); bubble(boss, "✅ " + X("확인!", "Got it!"), true); }
+      else if (thanker) { setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: "u" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: -ph.hop * 10 }); tagOn(boss, false); boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); bubble(boss, "✅ " + X("확인!", "Got it!"), true); }
       else {
         // 전력·날씨 연출(정전·리셋 말풍선)이 먼저, 없을 때 새 버전 알림(앱) → 누르면 업데이트 대화상자 (설치는 거기서 누를 때만)
         // 📋 퇴근 일보 알림은 그 아래: 사장님이 종이를 들고 "일보 나왔어요!"(누르면 발표) — 화면을 가로채지 않음
         const pq = pqB = pwB.boss(ph), upd = !(pq && pq.say) && ctx.core.update && ctx.core.update.available, dn = !(pq && pq.say) && !upd ? drB.notice() : null; updB = !!upd || !!dn;
         setP(boss, pq ? pq.p : dn ? { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: "r", specs: 1 } : { view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }); tagOn(boss, !(pq && pq.say) && !dn);
-        put(boss, bf.F, bf.chx + (pq ? pq.dx : 0), BASE[n] - 6, { dy: !pq && ph.bob ? -1 : 0 });
+        put(boss, bf.F, bf.chx + (pq ? pq.dx : 0), BASE[n] - 6 - BOSS_UP, { dy: !pq && ph.bob ? -1 : 0 });
         boss.bub.classList.toggle("updb", !!upd || !!dn);   // 사장님 오른쪽 옆 (층 이름표와 겹치지 않게), 모니터보다 위
         sty(boss.el, "zIndex", upd || dn ? "61" : ""); sty(boss.el, "pointerEvents", upd || dn ? "none" : "");   // 👆 누를 자리(z60) 위로 — 말풍선 버튼만 눌리고 사장님 몸은 아래 누를 자리로 통과
         if (upd) bubble(boss, `<button type="button" class="upd" data-act="update" title="v${esc(upd.version)}">🎁 ${X("새 버전 나왔어요!", "New version is out!")}</button>`, true);
