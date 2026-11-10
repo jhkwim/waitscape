@@ -844,7 +844,7 @@ function powerBig(h) {
             if (an === "bot") L.push({ x: x0 + 60, y: y0 + 28, r: 34, i: .7 });
           }
           if (r.i === torchI && E.o >= 2) {
-            const tx = 396, ty = r.T0 + r.B - 46; show(G.torch, true); sty(G.torch, "left", tx + "px"); sty(G.torch, "top", ty + "px");
+            const tx = 396, ty = r.T0 + r.B - 46 - SEAT_UP; show(G.torch, true); sty(G.torch, "left", tx + "px"); sty(G.torch, "top", ty + "px");
             L.push({ x: tx + 18, y: ty + 4, r: 190, i: 1.3, cone: .32, dir: -.75, r0: 14 });
           }
         }
@@ -2733,7 +2733,7 @@ function pokeBig(h) {
         wn("win2", 782, 38, 58, 50);
         if (topDesk < 0 && sh) topDesk = i;
         r.els = Object.assign(r.els, { mon: [d.mon], mug: [r.mug.el] }, sh ? { shelf: [sh.el] } : {});
-        hit(F, fk, "a", 343, B - 88, 84, 86); hit(F, fk, "mon", 444, B - 92, 68, 58); if (sh) hit(F, fk, "shelf", 24, 26, 78, 98); hit(F, fk, "mug", 503, B - 52, 32, 30);
+        hit(F, fk, "a", 343, B - 88 - SEAT_UP, 84, 86 + SEAT_UP); hit(F, fk, "mon", 444, B - 92, 68, 58); if (sh) hit(F, fk, "shelf", 24, 26, 78, 98); hit(F, fk, "mug", 503, B - 52, 32, 30);
         if (sh) hit(F, fk, "win", 150, 34, 90, 56); hit(F, fk, "win2", 792, 38, 48, 50);
       }
       /* 화분(시안의 도트 화분 · 상점 화분을 사면 한 단계 큰 화분). 회의 배치는 아기 자리를 비켜 작은 화분. 🎨 바닥 2 칸에 소품이 있으면 그 층은 화분 없음 */
@@ -4509,7 +4509,7 @@ function tinyBig(h) {
           r.out = mkEl("div", "b tn-out", fl.F, { left: T_.OUT_X + "px", top: (fl.B - 16) + "px", display: "none" }); r.out.title = X("충전하며 일하는 중 ⚡", "Working while charging ⚡");
           r.cab = mkEl("div", "b tn-cab", fl.F, { left: "0", top: "0", width: "1px", height: "1px", display: "none" }); }
       }
-      if (fl.desk && f.animal === "oct") { fl.desk.hands.forEach(e => e.classList.add("tn-tent")); fl.desk.tent = mkEl("div", "b tn-tent", fl.F, { left: (DESK_X - 11) + "px", top: (fl.B - 43) + "px", width: "16px", height: "12px", background: "#b57be0", border: "3px solid #4a3560", zIndex: "11", display: "none" }); G.tents.push(fl.desk.tent); }   // 🐙 손 = 다리 끝 + 가운데 하나 더
+      if (fl.desk && f.animal === "oct") { fl.desk.hands.forEach(e => e.classList.add("tn-tent")); fl.desk.tent = mkEl("div", "b tn-tent", fl.F, { left: (DESK_X - 11) + "px", top: (fl.B - 39) + "px", width: "16px", height: "12px", background: "#b57be0", border: "3px solid #4a3560", zIndex: "11", display: "none" }); G.tents.push(fl.desk.tent); }   // 🐙 손 = 다리 끝 + 가운데 하나 더
       if (!r.meet) r.cups = T_.CUP_X.map((x, j) => { const p = WB.pix(T_.ART.cup, 2, T_.MUG[j]), e = mkEl("img", "b tn-cup", fl.F, { left: x + "px", top: (fl.B - 26 - p.h) + "px", width: p.w + "px", height: p.h + "px", display: "none" }); e.alt = ""; e.src = p.url; e.draggable = false; return e; });
       r.cal = mkEl("div", "b tn-cal", fl.F, { left: (r.meet || f.aib ? 253 : 243) + "px", top: "42px", display: "none" });   // 왼쪽 창(보드)과 🎨 벽 1 사이
       G.fl.push(r);
@@ -4659,7 +4659,7 @@ function tinyBig(h) {
     if (r.bk !== lv) { r.bk = lv; r.bat.className = "b tn-bat l" + lv; }
     sty(r.bolt, "opacity", chg && anim && Math.floor(tc * 2) % 2 ? ".35" : "1");
     if (chg) {   // 케이블: 로봇 왼쪽 등 → 책상 뒤로 내려가 콘센트(SVG 곡선, 누르기 막지 않음)
-      const x0 = Math.round(a.x - 24), y0 = r.B - 40, x1 = T_.OUT_X + 4, y1 = r.B - 11, L = Math.min(x0, x1) - 4, Tp = y0 - 4, ck = [x0, y0].join();
+      const x0 = Math.round(a.x - 24), y0 = r.B - 40 - SEAT_UP, x1 = T_.OUT_X + 4, y1 = r.B - 11, L = Math.min(x0, x1) - 4, Tp = y0 - 4, ck = [x0, y0].join();
       if (r.ck !== ck) { r.ck = ck; sty(r.cab, "left", L + "px"); sty(r.cab, "top", Tp + "px"); sty(r.cab, "width", (Math.abs(x0 - x1) + 8) + "px"); sty(r.cab, "height", (y1 - Tp + 4) + "px");
         html(r.cab, `<svg width="${Math.abs(x0 - x1) + 8}" height="${y1 - Tp + 4}" style="display:block;overflow:visible"><path d="M${x0 - L} ${y0 - Tp} C ${x0 - L - 18} ${y0 - Tp + 2}, ${x1 - L + 2} ${y1 - Tp - 26}, ${x1 - L} ${y1 - Tp}" fill="none" stroke="#2e2040" stroke-width="3" stroke-linecap="round"/><path d="M${x0 - L} ${y0 - Tp} C ${x0 - L - 18} ${y0 - Tp + 2}, ${x1 - L + 2} ${y1 - Tp - 26}, ${x1 - L} ${y1 - Tp}" fill="none" stroke="#ffd23f" stroke-width="1"/></svg>`); }
     }
