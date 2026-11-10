@@ -2856,12 +2856,12 @@ function pokeBig(h) {
         r.mon = { el: d.mon, x: 444, y: B - 92, w: 68, h: 52, ov: mkEl("div", "b", d.sc, { left: "0", top: "0", right: "0", bottom: "0", zIndex: "4", pointerEvents: "none" }) };
         r.mug = { el: pimg(F, PK.ART.mug, 3, 508, B - 47, 10), x: 508, y: B - 47 }; r.mugBub = 1;
         const sh = fl.shelf;   // ✍️ AI 보드가 있는 층은 책장·왼쪽 창 자리를 보드가 덮음(누를 자리도 없음)
-        if (sh) { r.shelf = Object.assign({ deco: sh.deco, bx: j => 8 + (j % 5) * 10, by: j => Math.floor(j / 5) * 27 }, sh); wn("win", 132, 34, 90, 56); }
+        if (sh) { r.shelf = Object.assign({ deco: sh.deco, bx: j => 8 + (j % 5) * 10, by: j => Math.floor(j / 5) * 27 }, sh); wn("win", 140, 34, 90, 56); }
         wn("win2", 782, 38, 58, 50);
         if (topDesk < 0 && sh) topDesk = i;
         r.els = Object.assign(r.els, { mon: [d.mon], mug: [r.mug.el] }, sh ? { shelf: [sh.el] } : {});
         hit(F, fk, "a", 343, B - 88 - SEAT_UP, 84, 86 + SEAT_UP); hit(F, fk, "mon", 444, B - 92, 68, 58); if (sh) hit(F, fk, "shelf", 24, 26, 78, 98); hit(F, fk, "mug", 503, B - 52, 32, 30);
-        if (sh) hit(F, fk, "win", 132, 34, 90, 56); hit(F, fk, "win2", 792, 38, 48, 50);
+        if (sh) hit(F, fk, "win", 140, 34, 90, 56); hit(F, fk, "win2", 792, 38, 48, 50);
       }
       /* 화분(시안의 도트 화분 · 상점 화분을 사면 한 단계 큰 화분). 회의 배치는 아기 자리를 비켜 작은 화분. 🎨 바닥 2 칸에 소품이 있으면 그 층은 화분 없음 */
       if (boss || !(h.noPlant && h.noPlant(f))) { const big = h.owned("plant") && !meet, sc = meet ? 2 : big ? 4 : 3, x = boss ? (big ? 296 : 300) : meet ? 638 : big ? 606 : 614, y = B - 12 * sc;
@@ -4529,7 +4529,7 @@ const TINY = (() => {
   const CUP_SEC = 1200, CUP_MAX = 4, KEEP = 14, VER = 1, P_MAX = 60, S_MAX = 100, S_AWAY = 2 * 86400;
   const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 414;   // 서 있는 자리(가운데 x): 🎰 뽑기 기계(346~388) 오른쪽 · 현관문(438~) 앞, 창 누를 자리(~B−30)보다 아래
   const COAT = { ham: "#e85050", peng: "#3a6ad8", bvr: "#5f8a3a", otr: "#c8783a", oct: "#8a5ac8", bot: "#5a6078", cat: "#d9668a", fox: "#2a8a8a", panda: "#3fa35a", owl: "#7a4a8a", hog: "#e8a23c" };
-  const PILE_X = 537, FLAG_X = 497, COAT_X = 250, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(창문과 의자 사이 벽 옷걸이) · 콘센트(커피머신 ~316과 책상 330 사이)
+  const PILE_X = 537, FLAG_X = 497, COAT_X = 254, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(창문과 의자 사이 벽 옷걸이) · 콘센트(커피머신 ~316과 책상 330 사이)
   const FLAGS = [[1000, "1K", "#ffd23f"], [500, "500", "#5aa8ff"], [100, "100", "#6adf8a"]];
   const sheets = c => c >= 90 ? 4 : c >= 85 ? 3 : c >= 80 ? 2 : 0;
   const flagOf = n => FLAGS.find(f => n >= f[0]) || null;
@@ -4629,7 +4629,7 @@ function tinyBig(h) {
       const r = { f, F: fl.F, B: fl.B, meet: f.layout === "meet", cups: [] };
       if (!r.meet) {   // 🗂️ 책상 묶음: 서류 · 겉옷 · 깃발 · (로봇) 배터리·케이블·콘센트
         const cs = WB.pix(T_.ART.coat, 3, T_.COAT[f.animal] || "#7a7f8c");
-        { const hx = T_.COAT_X, hy = 48;   // 🧥 창문과 의자 사이 벽 옷걸이(#162) — 벽 1 꾸미기 칸(x 278~) 왼쪽 · 출근 1시간 전엔 빈 옷걸이
+        { const hx = T_.COAT_X, hy = 48;   // 🧥 창문과 의자 사이 벽 옷걸이(#162) — 창문(~230)과 벽 1 꾸미기 칸(x 278~) 사이 양옆 6px(#165) · 출근 1시간 전엔 빈 옷걸이
         mkEl("div", "b", fl.F, { left: (hx - 12) + "px", top: hy + "px", width: "20px", height: "5px", background: "#8a6a4a", border: "2px solid #2e2040", zIndex: 5 }); mkEl("div", "b", fl.F, { left: (hx - 3) + "px", top: (hy + 9) + "px", width: "5px", height: "5px", background: "#2e2040", zIndex: 5 });
         r.coat = mkEl("img", "b tn-coat", fl.F, { left: (hx - cs.w / 2) + "px", top: (hy + 5) + "px", width: cs.w + "px", height: cs.h + "px", display: "none" }); r.coat.alt = ""; r.coat.src = cs.url; r.coat.draggable = false; }
         r.pile = mkEl("div", "b tn-pile", fl.F, { left: T_.PILE_X + "px", top: (fl.B - 26) + "px", display: "none" });
@@ -4640,7 +4640,7 @@ function tinyBig(h) {
       }
       if (fl.desk && f.animal === "oct") { fl.desk.hands.forEach(e => e.classList.add("tn-tent")); fl.desk.tent = mkEl("div", "b tn-tent", fl.F, { left: (DESK_X - 11) + "px", top: (fl.B - 39) + "px", width: "16px", height: "12px", background: "#b57be0", border: "3px solid #4a3560", zIndex: "11", display: "none" }); G.tents.push(fl.desk.tent); }   // 🐙 손 = 다리 끝 + 가운데 하나 더
       if (!r.meet) r.cups = T_.CUP_X.map((x, j) => { const p = WB.pix(T_.ART.cup, 2, T_.MUG[j]), e = mkEl("img", "b tn-cup", fl.F, { left: x + "px", top: (fl.B - 26 - p.h) + "px", width: p.w + "px", height: p.h + "px", display: "none" }); e.alt = ""; e.src = p.url; e.draggable = false; return e; });
-      r.cal = mkEl("div", "b tn-cal", fl.F, { left: (r.meet || f.aib ? 253 : 243) + "px", top: "42px", display: "none" });   // 왼쪽 창(보드)과 🎨 벽 1 사이
+      r.cal = mkEl("div", "b tn-cal", fl.F, { left: (r.meet || f.aib ? 253 : 108) + "px", top: "42px", display: "none" });   // 📅 회의·AI 보드 층은 보드와 🎨 벽 1 사이, 책상 층은 겉옷 자리를 비켜 책장(~106)과 창문(140) 사이(#165)
       G.fl.push(r);
     });
   }
@@ -6470,7 +6470,7 @@ C.registerMode({
       return r;   // 커피 잔은 👆 POKE가 도트 머그로 그림(누르면 김·하트·카페인)
     }
     function leftDecor(F, v, B) {   // 반환: 👆 POKE가 쓰는 책장·서버랙 참조(책 15권 · LED 8개)
-      win_(F, 132, 34, 90, 56);   // 창 132~222(#165: 옷걸이 250 양옆 10px)
+      win_(F, 140, 34, 90, 56);   // 창 140~230(#165: 왼쪽은 📅 달력, 오른쪽은 옷걸이 254 양옆 6px)
       const r = { deco: v, books: [], leds: [], ledC: [] };
       if (v === 0) { Object.assign(r, { el: bx(F, 24, 30, 70, 92, "#b8794b"), x: 24, y: 30, w: 76, h: 98 }); for (let k = 0; k < 3; k++) { box(F, 30, 44 + k * 27, 58, 3, "#4a3560"); for (let j = 0; j < 5; j++) r.books.push(box(F, 32 + j * 10, 30 + k * 27, 7, 14, ["#ff6b8a", "#5aa8ff", "#ffd23f", "#6adf8a", "#b48aff"][(j + k) % 5], { border: "2px solid #4a3560" })); } }
       else if (v === 1) { Object.assign(r, { el: bx(F, 24, 26, 76, 96, "#5a6078"), x: 24, y: 26, w: 82, h: 102 }); for (let k = 0; k < 4; k++) { box(F, 30, 34 + k * 21, 64, 13, "#2e3248", { border: "2px solid #1a1a28" }); r.ledC.push(k % 2 ? "#6adf8a" : "#ff6b6b", "#6adf8a"); r.leds.push(box(F, 34, 38 + k * 21, 5, 5, k % 2 ? "#6adf8a" : "#ff6b6b"), box(F, 44, 38 + k * 21, 5, 5, "#6adf8a")); } }
