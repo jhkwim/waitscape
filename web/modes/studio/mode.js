@@ -2717,6 +2717,7 @@ function pokeBig(h) {
         r.zs = [0, 1, 2].map(() => mkEl("div", "b pk-z", F, { display: "none", zIndex: "26" }, "Z"));
         r.cup = pimg(F, PK.ART.cup, 3, 0, 0, 14); r.cup.style.display = "none";
         r.steam = [0, 1].map(() => box(F, 0, 0, 2, 4, "rgba(255,255,255,.9)", { zIndex: "14", display: "none" }));
+        r.paws = [0, 1].map(() => box(F, 0, B - 33, 14, 10, BOSS.pal.L, { border: "3px solid #4a3560", zIndex: "12", display: "none" }));   // 🐾 책상 위 사장님 손(꼼지락)
       } else if (meet) {
         r.wb = { x: 33, y: 31, w: 214, h: 78, layer: mkEl("div", "b", F, { left: "33px", top: "31px", width: "214px", height: "78px", zIndex: "6", overflow: "hidden", pointerEvents: "none" }) };
         r.mug = { el: pimg(F, PK.ART.mug, 3, 580, B - 43, 10), x: 580, y: B - 43 }; r.mugBub = 1;
@@ -2845,6 +2846,11 @@ function pokeBig(h) {
     r.cof = cof;   // ☕ TINY 사장님 머그: 실제로 커피를 드는 동안 책상 머그를 치움
     const L0 = parseFloat(boss.el.style.left), T0 = parseFloat(boss.el.style.top);
     r.zs.forEach((z, j) => { if (!doze || (R && ua < R.dur)) { sty(z, "display", "none"); return; } const ph = still ? j * .3 : (T * .6 + j / 3) % 1; sty(z, "display", "block"); sty(z, "left", pkR(L0 + boss.w / 2 + 14 + ph * 16) + "px"); sty(z, "top", pkR(T0 + 10 - ph * 24) + "px"); sty(z, "opacity", (1 - ph * .8).toFixed(2)); sty(z, "fontSize", pkR(12 + j * 3 + ph * 4) + "px"); });
+    /* 🐾 책상 위 두 손: 평소엔 올려 두고, 7초마다 1.8초 꼼지락(손가락 톡톡 ↔ 손 비비기 번갈아) · 커피 들 때·반응·말풍선 땐 숨김 · 졸 땐 가만히 */
+    const pawOn = !busy && !cof && !(R && ua < R.dur) && W2 == null, fid = anim && bs === "work" && tc % 7 < 1.8 ? Math.floor(tc / 7) % 2 : -1;
+    r.paws.forEach((e, k) => { sty(e, "display", pawOn ? "block" : "none"); if (!pawOn) return;
+      const tap = fid === 0 && (Math.floor(tc * 6) + k) % 2, rub = fid === 1 && Math.floor(tc * 5) % 2 ? (k ? -3 : 3) : 0;
+      sty(e, "left", Math.round(L0 + boss.w / 2 - 30 + k * 40 + rub) + "px"); sty(e, "top", (bf.B - 33 - (tap ? 4 : 0)) + "px"); });
     if (!R && !cof && !doze && W2 == null) { sty(r.cup, "display", "none"); r.steam.forEach(s => sty(s, "display", "none")); return; }
     const o = JSON.parse(boss.pose);
     if (doze && !R) o.eyes = "c";
@@ -2953,7 +2959,7 @@ function pokeBig(h) {
     return `<div class="pk-dex"><h4>🥚 ${X("이스터에그", "Easter eggs")} <span class="cnt">${n}/8</span><small>${X("찾은 것만 조건이 보여요 · 못 찾은 건 힌트만", "Conditions show once found · hints only for the rest")}</small></h4><div class="eg">${PK.EGGS.map(e => { const f = sv.eggs[e.id];
       return `<div class="${f ? "f" : ""}"><b>${f ? e.e + " " + esc(P.L(e.n)) : "❔ ???"}</b>${f ? esc(P.L(e.c)) + `<em>${esc(ymd(new Date(f)))}</em>` : X("힌트: ", "Hint: ") + esc(P.L(e.h))}</div>`; }).join("")}</div></div>`;
   }
-  return { build, tap, jump, actor, bossIdle, bossAfter, car, carBusy, frame,
+  return { build, tap, jump, actor, bossIdle, bossAfter, car, carBusy, frame, bossPaws: on => { const r = G && G.fl[G.n]; if (r && r.paws && !on) r.paws.forEach(e => sty(e, "display", "none")); },
     bossCof: () => !!(G && G.fl[G.n] && G.fl[G.n].cof), bossBub: () => !!(G && G.fl[G.n] && G.fl[G.n].bbub),   // ☕🎂 TINY 사장님 묶음: 커피 드는 중 · 👆 사장님 반응 말풍선
     dexHtml, eggN: () => (P.load(), P.eggN()), reload: () => { if (P.load()) dirty = true; }, busy: tc => P.busy(tc) || !!pkCar.cur };
 }
@@ -6863,7 +6869,8 @@ C.registerMode({
         else if (dn) bubble(boss, `<button type="button" class="upd" data-act="dr-open">${dn.kind === "morning" ? "☀️ " + X("좋은 아침! 어제 일보 왔어요", "Good morning! Yesterday's report") : dn.kind === "time" ? "⏰ " + X("퇴근 시간! 일보 나왔어요", "Time's up! Report's ready") : "📋 " + X("일보 나왔어요!", "Today's report is ready!")}</button>`, true);
         else bubble(boss, pq && pq.say || "", !!(pq && pq.say));
       }
-      if (!DRon && !bAway) pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc));   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
+      if (DRon || bAway) pkB.bossPaws(false);
+      else pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc));   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
       if (!bAway) drB.paper(boss, bf, T, anim);   // 📋 알림 중이면 종이를 흔듦
       /* 질문 말풍선 (층 위로 넘칠 수 있게 건물 위에 직접) */
       const askL = asker && !DRon ? Math.round(asker.x + 6 - asker.w / 2 - 14 - 290) : null;   // 질문 말풍선 왼쪽 끝(폭 290)
