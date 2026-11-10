@@ -369,6 +369,8 @@ const DOOR_X = 438, DOOR_W = 54, DOOR_CX = DOOR_X + DOOR_W / 2;   // 🙈 1층 �
 const FHS = 134, FHB = 140;
 const WALLS = ["#ffeec2", "#ffe3b0", "#f9efc8", "#fbe2c0", "#fff1cc"], WALL_LO = ["#f2d79a", "#f0c88c", "#ebdba6", "#eeca9c", "#f5de9f"];
 const T = { desk: "#c98d5a", deskTop: "#e9b377", roof: "#f6a43c", chair: "#d0905a" };
+/* 🪑 미니 보기 의자 높이(#153): 사장은 사장 의자로 MB_UP, 직원은 사무용 의자로 MS_UP만큼 책상 위로(3px 격자) */
+const MB_UP = 12, MS_UP = 6;
 const SHOP = [
   { id: "plant", e: "🪴", n: ["화분", "Plant"], p: 300, lv: 1 },
   { id: "coffee", e: "☕", n: ["커피머신", "Coffee"], p: 800, lv: 1 },
@@ -1037,7 +1039,7 @@ function powerMini(h) {
             if (an === "bot") L.push({ x: x0 + 24, y: y0 + 21, r: 26, i: .7 });
           }
           const torch = an === "peng" && E.o >= 2; show(P.torch, torch);
-          if (torch) { const tx = R.x + 6, ty = FY - 39; sty(P.torch, "left", tx + "px"); sty(P.torch, "top", ty + "px"); L.push({ x: tx + 11, y: ty + 2, r: 120, i: 1.3, cone: .34, dir: -.6, r0: 9 }); }
+          if (torch) { const tx = R.x + 6, ty = FY - 39 - MS_UP; sty(P.torch, "left", tx + "px"); sty(P.torch, "top", ty + "px"); L.push({ x: tx + 11, y: ty + 2, r: 120, i: 1.3, cone: .34, dir: -.6, r0: 9 }); }
         } else show(P.torch, false);
         while (ei < P.eyes.length) show(P.eyes[ei++], false);
         show(P.tint, !!E.tint && E.tint[1] > .005); if (E.tint) { sty(P.tint, "background", E.tint[0]); sty(P.tint, "opacity", E.tint[1].toFixed(3)); }
@@ -1239,7 +1241,7 @@ function mountLobby(root, ctx) {
     R.tag = mk("span", "chip rtag", p); R.info = mk("span", "rinfo", p, { display: "none" });
     R.bub = mk("div", "bub", p, { display: "none" });
   }
-  function desk(R, DX, hc) {
+  function desk(R, DX, hc, boss) {
     const p = R.p;
     R.winEl = bx(p, 126, 12, 69, 39, "var(--glass)", 3, { zIndex: 2 }); box(p, 159, 12, 3, 39, "var(--ln)", { zIndex: 3 }); box(p, 132, 18, 15, 6, "rgba(255,255,255,.75)", { zIndex: 3 });
     R.monEl = bx(p, 78 + DX, FY - 78, 45, 48, "#2e2a40", 3, { zIndex: 8 }); box(p, 96 + DX, FY - 30, 9, 6, "var(--ln)", { zIndex: 8 });
@@ -1247,7 +1249,11 @@ function mountLobby(root, ctx) {
     bx(p, 9 + DX, FY - 30, 114, 9, "var(--deskTop)", 3, { zIndex: 9 }); bx(p, 12 + DX, FY - 21, 108, 21, "var(--desk)", 3, { zIndex: 9 });
     box(p, 24 + DX, FY - 33, 42, 3, "#3a3a52", { border: "1px solid #1e1830", zIndex: 11 });
     R.hands = [0, 1].map(k => box(p, 24 + DX + k * 27, FY - 33, 15, 9, hc, { border: "3px solid var(--ln)", zIndex: 12 }));
-    bx(p, 18 + DX, FY - 60, 54, 39, "var(--chair)", 3, { zIndex: 4 });
+    const cx = 45 + DX;   // 🪑 의자(#153): 큰 화면 의자(#148·#151)를 ¾로 줄인 크기·위치. 사장 = 빨간 등받이·금색 윗테, 직원 = 파란 사무용 의자. 팔걸이는 등받이 바깥에 서서 책상 위로
+    if (boss) { bx(p, cx - 30, FY - 83, 60, 62, "#a8384e", 3, { zIndex: 4 }); [cx - 24, cx + 18].forEach(x => box(p, x, FY - 77, 6, 45, "#c8506a", { zIndex: 4 })); box(p, cx - 33, FY - 86, 66, 6, "#ffd23f", { border: "2px solid var(--ln)", zIndex: 4 });
+      [cx - 42, cx + 33].forEach(x => bx(p, x, FY - 44, 9, 18, "#a8384e", 2, { zIndex: 5 })); }
+    else { bx(p, cx - 27, FY - 75, 54, 51, "#4a6aa8", 3, { zIndex: 4 }); [cx - 21, cx + 15].forEach(x => box(p, x, FY - 70, 6, 39, "#6a8ac8", { zIndex: 4 })); box(p, cx - 3, FY - 70, 6, 39, "#3a5590", { zIndex: 4 });
+      [cx - 39, cx + 30].forEach(x => bx(p, x, FY - 42, 9, 15, "#4a6aa8", 2, { zIndex: 5 })); }
     R.mug = mk("div", "b emo", p, { left: (72 + DX) + "px", top: (FY - 52) + "px", fontSize: "18px", zIndex: 13 }, "☕");
     R.x = 45 + DX; R.actor = actor(p, 8);
     R.spk = [0, 1, 2].map(() => mk("i", "spk", p, { zIndex: 31, display: "none" }, "✦"));
@@ -1285,11 +1291,11 @@ function mountLobby(root, ctx) {
     R.tag.style.background = "#3a6fc8"; txt(R.tag, X("📋 2F · 회의실", "📋 2F · Meeting"));
   }
   function bossRoom(R) {   // 1F 사장실 (예전 미니 보기 그대로)
-    const p = R.p; wallRoom(R); desk(R, 0, "#b87a4a");
+    const p = R.p; wallRoom(R); desk(R, 0, "#b87a4a", 1);
     box(p, 111, FY - 6, 108, 6, "var(--rug)", { opacity: .55, zIndex: 2 });
     R.plantEl = mk("div", "b emo", p, { left: "126px", top: (FY - 45) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
     R.z = [0, 1, 2].map(() => mk("div", "z", p, { display: "none", zIndex: 25 }, "Z"));
-    R.nod = mk("div", "b emo", p, { left: "57px", top: (FY - 81) + "px", fontSize: "15px", zIndex: 25, display: "none" }, "👍");
+    R.nod = mk("div", "b emo", p, { left: "72px", top: (FY - 78) + "px", fontSize: "15px", zIndex: 25, display: "none" }, "👍");
     R.vis = actor(p, 20); R.vbub = mk("div", "bub", p, { display: "none", zIndex: 30 });
     R.cf = [...Array(18)].map((_, i) => box(p, 0, 0, 6, 6, ["#ff6b8a", "#ffd23f", "#5aa8ff", "#6adf8a", "#b48aff"][i % 5], { zIndex: 40, display: "none" }));
     R.paper = box(p, 63, FY - 70, 12, 15, "#fff", { zIndex: 9, border: "2px solid #2e2040", display: "none" }); [0, 1, 2].forEach(k => box(R.paper, 2, 2 + k * 3, 6, 1, "#7a6a8a"));   // 📋 일보 종이
@@ -1646,16 +1652,16 @@ function mountLobby(root, ctx) {
       const rx = f.kind === "idle" && !bub ? dcM.restX(f) : null;   // 🎨 쉴 때는 좋아하는 소품 앞에 서서(하트)
       if (V && V.info.sid === f.sid && !["fetch", "home"].includes(V.ph)) hide(R.actor);   // 1층에 보고하러 가 있음
       else if (rx != null) show(R.actor, sprOf(f, { eyes: "c", mouth: anim && Math.floor(T / 2) % 3 === 0 ? "o" : "" }), rx, FY - 3, { z: 11 });
-      else { const pz = pkM.pose(R.key, o, anim, R.r - 1), s = sprOf(f, o); show(R.actor, s, R.x + Math.round(pz.dx), FY - 12, { dy: dy + Math.round(pz.dy), rot: pz.rot ? Math.round(pz.rot) : 0, z: 8 }); pkM.after(R, R.actor, s, BYID[f.animal], Object.assign({ prov: f.pk, shiny: f.shiny }, o), pz, anim); }   // 👆 클릭 반응 몸짓
+      else { const pz = pkM.pose(R.key, o, anim, R.r - 1), s = sprOf(f, o); show(R.actor, s, R.x + Math.round(pz.dx), FY - 12 - MS_UP, { dy: dy + Math.round(pz.dy), rot: pz.rot ? Math.round(pz.rot) : 0, z: 8 }); pkM.after(R, R.actor, s, BYID[f.animal], Object.assign({ prov: f.pk, shiny: f.shiny }, o), pz, anim); }   // 👆 클릭 반응 몸짓
       dcM.draw(R, f, T, tc, anim, rx != null ? rx : R.x, rx != null);
       const fast = anim && pkM.fast(R.key) ? 3 : 1;   // 모니터 "타자 빨라짐" · 카페인
       R.hands.forEach((hd, k) => { sty(hd, "display", typing ? "block" : "none"); sty(hd, "marginTop", (mot && typing && (Math.floor(T * 4 * fast) + k) % 2 ? -U : 0) + "px"); });
       R.lns.forEach((l, k) => { const s = Math.floor(T * 2 * fast * fast) * mot * (typing ? 1 : 0) + k * 7; sty(l, "display", f.kind === "idle" ? "none" : "block"); sty(l, "width", (9 + (s * 37 % 27)) + "px"); sty(l, "left", (3 + ((s * 13) % 3) * 3) + "px"); sty(l, "background", ["#7dff9c", "#ffd23f", "#5aa8ff", "#ff9ad0", "#7dff9c"][(k + s) % 5]); });
-      if (bub) { bubble(R.bub, bub[0], bub[1], bub[2], R.x - bub[1] - 9); sty(R.bub, "maxWidth", (W - 6 - bub[1]) + "px"); } else sty(R.bub, "display", "none");
+      if (bub) { bubble(R.bub, bub[0], bub[1], bub[2] - MS_UP, R.x - bub[1] - 9); sty(R.bub, "maxWidth", (W - 6 - bub[1]) + "px"); } else sty(R.bub, "display", "none");
       const hot = f.kind === "ask" && pkM.askHot(R.key); if (R.bub.classList.contains("hot") !== hot) R.bub.classList.toggle("hot", hot);   // 질문 중 직원을 누르면 말풍선 강조
       setAge(R.bub, f.kind === "ask" && bub ? ageCls(ctx.now() - (f.since || ctx.now())) : "");   // ⏱ 오래 기다린 질문은 테두리 주황 → 빨강
       sty(R.tag, "display", bub && bub[2] < 30 ? "none" : "");   // 큰 말풍선이 뜨면 방 이름표는 숨김(자막이 대신 설명)
-      R.spk.forEach((e, i) => { const on = f.shiny && sp; sty(e, "display", on ? "block" : "none"); if (on) { const P = [[-36, -66], [27, -72], [33, -45]][i]; sty(e, "left", (R.x + P[0]) + "px"); sty(e, "top", (FY + P[1]) + "px"); } });
+      R.spk.forEach((e, i) => { const on = f.shiny && sp; sty(e, "display", on ? "block" : "none"); if (on) { const P = [[-36, -66], [27, -72], [33, -45]][i]; sty(e, "left", (R.x + P[0]) + "px"); sty(e, "top", (FY + P[1] - MS_UP) + "px"); } });
       if (R.leds) R.leds.forEach((e, q) => sty(e, "background", (Math.floor(T * 1.5 * mot) + q) % 2 ? "#7dff9c" : "#ffd23f"));
       /* ✍️ 단계 칩 · AI 보드(로비는 3줄: 4줄이면 지금 할 일 근처만) */
       const st_ = f.step && ["work", "agents", "ask"].includes(f.kind) ? f.step : null, tagOn_ = R.tag.style.display !== "none";
@@ -1665,7 +1671,7 @@ function mountLobby(root, ctx) {
         const lk = !!look;   // 둘러볼 때는 이름표 아래 정보 줄이 보드 윗줄을 덮으므로 2줄만 아래로
         html(R.aiW, Bd ? WB.aiRender(Bd, tc, { x: 1, w: 150, lh: 13, pt: lk ? 15 : 0, rows: lk ? 2 : 3, still, hide: !!cfg.hideText, an: f.animal, sc: 1, H: 40, erase: off != null && now >= off ? (now - off) / AIB_ERASE : null }) : "");
         if (Bd && WB.aiStretch(Bd, tc, still) && !bub && (f.kind === "work" || f.kind === "agents" || f.kind === "done")) {   // 마지막 ✓ → 기지개
-          const s2 = sprOf(f, { seated: 1, arms: "u", eyes: "c" }); show(R.actor, s2, R.x, FY - 12, { dy: -U });
+          const s2 = sprOf(f, { seated: 1, arms: "u", eyes: "c" }); show(R.actor, s2, R.x, FY - 12 - MS_UP, { dy: -U });
         } }
     });
     /* 사장님 (1F) */
@@ -1692,14 +1698,14 @@ function mountLobby(root, ctx) {
       const pq = !sv && !alt ? pwM.boss(T, anim) : null;   // 정전 당황 · 리셋 만세
       if (pq) { bp = pq.p; bdy = 0; }
       if (drn && !pq) { bp = { seated: 1, arms: "r", specs: 1, eyes: blink ? "c" : "o" }; bdy = 0; }
-      sty(BR.paper, "display", drn && !pq ? "block" : "none"); if (drn) sty(BR.paper, "top", (FY - 70 + (anim && Math.floor(T * 2) % 2 ? U : 0)) + "px");
+      sty(BR.paper, "display", drn && !pq ? "block" : "none"); if (drn) sty(BR.paper, "top", (FY - 70 - MB_UP + (anim && Math.floor(T * 2) % 2 ? U : 0)) + "px");
       bossNow = doze ? "doze" : cof ? "coffee" : "work";
-      { const bz = pkM.pose("boss", bp, anim, NR - 2), bsp = bossSpr(bp); show(BR.actor, bsp, 45 + (pq ? pq.dx : 0) + Math.round(bz.dx), FY - 12, { dy: bdy + Math.round(bz.dy), z: 8, rot: bz.rot ? Math.round(bz.rot) : 0 }); pkM.after(BR, BR.actor, bsp, BOSS, Object.assign({ boss: 1 }, bp), bz, anim); }   // 👆
-      const lift = cof ? Math.round(Math.sin(Math.min(1, cofK / .5) * Math.PI / 2) * 4) * U : 0;
+      { const bz = pkM.pose("boss", bp, anim, NR - 2), bsp = bossSpr(bp); show(BR.actor, bsp, 45 + (pq ? pq.dx : 0) + Math.round(bz.dx), FY - 12 - MB_UP, { dy: bdy + Math.round(bz.dy), z: 8, rot: bz.rot ? Math.round(bz.rot) : 0 }); pkM.after(BR, BR.actor, bsp, BOSS, Object.assign({ boss: 1 }, bp), bz, anim); }   // 👆
+      const lift = cof ? Math.round(Math.sin(Math.min(1, cofK / .5) * Math.PI / 2) * (4 + MB_UP / U)) * U : 0;   // 의자로 올라간 입까지
       sty(BR.mug, "top", (FY - 52 - lift) + "px"); sty(BR.mug, "left", (cof ? 60 : 72) + "px");
       BR.z.forEach((z, i) => { if (!doze) { sty(z, "display", "none"); return; } const p = anim ? ((T * .45 + i / 3) % 1) : i * .3;
-        sty(z, "display", "block"); sty(z, "left", Math.round(66 + p * 12 + i * 6) + "px"); sty(z, "top", Math.round(FY - 84 - p * 24) + "px"); sty(z, "opacity", String(1 - p * .8)); sty(z, "fontSize", Math.round(12 + p * 8) + "px"); });
-      if (alt) { const f = shot.ask, n = aName(f.animal); bubble(BR.bub, X(`❓ ${f.floor}F ${n}${josa(n, "이", "가")} 기다려요`, `❓ ${f.floor}F ${n} is waiting`), 12, 27, 24); }
+        sty(z, "display", "block"); sty(z, "left", Math.round(66 + p * 12 + i * 6) + "px"); sty(z, "top", Math.round(FY - 84 - MB_UP - p * 24) + "px"); sty(z, "opacity", String(1 - p * .8)); sty(z, "fontSize", Math.round(12 + p * 8) + "px"); });
+      if (alt) { const f = shot.ask, n = aName(f.animal); bubble(BR.bub, X(`❓ ${f.floor}F ${n}${josa(n, "이", "가")} 기다려요`, `❓ ${f.floor}F ${n} is waiting`), 12, 27 - MB_UP, 24); }
       else if (pq && pq.say) bubble(BR.bub, pq.say, 30, 27, 14);
       else if (drn && drM.age(tc) < 8) bubble(BR.bub, drn.kind === "morning" ? X("좋은 아침! ☀️", "Morning! ☀️") : X("일보 나왔어요!", "Report's ready!"), 84, 36, 10);
       else sty(BR.bub, "display", "none");
@@ -2994,7 +3000,7 @@ function pokeMini(h) {
       const q = R.aiB ? {} : wn(R.winEl); if (topStaff && !R.aiB) { q.bird = 1; q.birdEl = pimg(p, PK.ART.birdS, 2, 129 + 63 - 12, 15 + 33 - pkAh(PK.ART.birdS, 2) + 2, 5); q.birdEl.style.display = "none"; }
       if (!R.noPlant) { r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 180, y: FY - 45, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 }; r.els.plant = [R.plantEl]; }   // 🎨 바닥 2 소품이 화분 자리를 씀
       Object.assign(r.els, { mon: [R.monEl], mug: [R.mug], shelf: [R.shelfEl] });
-      hit(p, key, "a", 66, 58, 54, 62); hit(p, key, "mon", 126, 54, 45, 48); hit(p, key, "mug", 117, FY - 52, 24, 22);
+      hit(p, key, "a", 66, 58 - MS_UP, 54, 62 + MS_UP); hit(p, key, "mon", 126, 54, 45, 48); hit(p, key, "mug", 117, FY - 52, 24, 22);
       if (v === 2) hit(p, key, "shelf", 6, 92, 40, 40); else hit(p, key, "shelf", 6, 36, 45, 96);
       if (!R.noPlant) hit(p, key, "plant", 178, FY - 48, 34, 36);
     } else if (R.type === "boss") {
@@ -3008,7 +3014,7 @@ function pokeMini(h) {
       r.vend = { el: R.pw && R.pw.vend, x: 186, y: FY - 60, w: 34, h: 64, lx: 191, ly: FY - 27 };
       r.plant = { el: R.plantEl, fl: mk("div", "b", R.plantEl, { left: "0", top: "0" }), x: 126, y: FY - 45, w: 30, fs: 2, fx0: 8, fy0: -4, fx1: 16, fy1: -1 };
       Object.assign(r.els, { mon: [R.monEl], mug: [R.mug], clock: [ce], vend: [r.vend.el], plant: [R.plantEl] });
-      hit(p, key, "a", 18, 58, 54, 62); hit(p, key, "mon", 78, 54, 45, 48); hit(p, key, "mug", 66, FY - 54, 24, 22); hit(p, key, "vend", 184, FY - 62, 36, 62); hit(p, key, "clock", 196, 11, 24, 24); hit(p, key, "plant", 124, FY - 48, 34, 36);
+      hit(p, key, "a", 18, 58 - MB_UP, 54, 62 + MB_UP); hit(p, key, "mon", 78, 54, 45, 48); hit(p, key, "mug", 66, FY - 54, 24, 22); hit(p, key, "vend", 184, FY - 62, 36, 62); hit(p, key, "clock", 196, 11, 24, 24); hit(p, key, "plant", 124, FY - 48, 34, 36);
       r.zz = null;
     } else if (R.type === "meet") {
       r.wb = { x: 9, y: 9, w: 201, h: 66, layer: mk("div", "b", p, { left: "9px", top: "9px", width: "201px", height: "66px", zIndex: "6", overflow: "hidden", pointerEvents: "none" }) };
@@ -4327,7 +4333,7 @@ function decorMini(h) {
     const psl = D.SLOTS.find(sl => s[sl] === "plant");
     if (anim && psl && F.wat && now >= F.wat && now - F.wat < 1.6) fx += D.canHTML(D.MINI[psl], 2, now - F.wat);
     if (resting) fx += D.hearts(T, ax + 9, 72, 1, 0, still);
-    else if (D.likeSlot(F, f.animal) && anim && f.kind !== "idle") { const L = recent.find(x => x.p === keyOf(f) && (D.LIKES[f.animal] || []).includes(x.id) && tc - x.t0 >= 1.1); if (L && tc - L.t0 < 3.4) fx += D.hearts(T, ax, 66, 1, .2, false); }
+    else if (D.likeSlot(F, f.animal) && anim && f.kind !== "idle") { const L = recent.find(x => x.p === keyOf(f) && (D.LIKES[f.animal] || []).includes(x.id) && tc - x.t0 >= 1.1); if (L && tc - L.t0 < 3.4) fx += D.hearts(T, ax, 66 - MS_UP, 1, .2, false); }
     h.html(R.dc.fx, fx);
   }
   /* 택배 자막 */
@@ -6327,8 +6333,8 @@ C.registerMode({
     function deskFront(f, B, cx, who) {
       const chx = cx - 35, r = { chx, B };
       /* 🪑 사무용 의자: 파란 등받이(가운데 줄무늬) · 팔걸이 — 앉은 직원은 SEAT_UP만큼 올라앉음(사장 의자는 빨강·금테) */
-      bx(f, chx - 38, B - 92, 70, 66, "#4a6aa8", "#2e2040", 4); [chx - 30, chx + 16].forEach(x => box(f, x, B - 86, 8, 52, "#6a8ac8", { zIndex: 4 })); box(f, chx - 7, B - 86, 8, 52, "#3a5590", { zIndex: 4 });
-      [chx - 50, chx + 36].forEach(x => bx(f, x, B - 46, 12, 20, "#4a6aa8", "#2e2040", 5));
+      bx(f, chx - 35, B - 92, 70, 66, "#4a6aa8", "#2e2040", 4); [chx - 27, chx + 19].forEach(x => box(f, x, B - 86, 8, 52, "#6a8ac8", { zIndex: 4 })); box(f, chx - 4, B - 86, 8, 52, "#3a5590", { zIndex: 4 });
+      [chx - 49, chx + 37].forEach(x => bx(f, x, B - 46, 12, 20, "#4a6aa8", "#2e2040", 5));
       bx(f, cx - 95, B - 26, 200, 10, T.deskTop, "#4a3560", 9); bx(f, cx - 90, B - 17, 190, 17, T.desk, "#4a3560", 9); box(f, cx + 50, B - 14, 30, 10, "#b07848", { border: "2px solid #4a3560", zIndex: 10 });
       box(f, chx - 26, B - 32, 52, 7, "#5a5a78", { border: "2px solid #2e2040", zIndex: 10 });
       r.mon = bx(f, cx + 24, B - 92, 68, 52, "#2e2a40", "#4a3560", 8); box(f, cx + 52, B - 40, 12, 14, "#4a3560", { zIndex: 8 });
@@ -6467,8 +6473,8 @@ C.registerMode({
           r.tray = mkEl("div", "b tray", F, { left: "270px", top: (B - 54) + "px" });   // 📥 결재 서류함(책상 오른쪽 끝, 모니터 앞) — 안 본 완료 = 봉투
           r.stamp = mkEl("div", "b stamp", F, { left: "268px", top: (B - 74) + "px", display: "none" }, X("결재", "OK"));
           /* 🪑 사장 의자: 등받이 높은 빨간 의자(금테) · 팔걸이 — 앉은 사장님은 BOSS_UP만큼 올라앉음 */
-          bx(F, 54, B - 100, 82, 74, "#a8384e", "#2e2040", 4); [61, 127].forEach(x => box(F, x, B - 92, 10, 60, "#c8506a", { zIndex: 4 })); box(F, 54, B - 103, 88, 5, "#ffd23f", { border: "2px solid #2e2040", zIndex: 4 });
-          [42, 140].forEach(x => bx(F, x, B - 48, 14, 22, "#a8384e", "#2e2040", 5));
+          bx(F, 57, B - 100, 82, 74, "#a8384e", "#2e2040", 4); [64, 122].forEach(x => box(F, x, B - 92, 10, 60, "#c8506a", { zIndex: 4 })); box(F, 54, B - 103, 88, 5, "#ffd23f", { border: "2px solid #2e2040", zIndex: 4 });
+          [41, 141].forEach(x => bx(F, x, B - 48, 14, 22, "#a8384e", "#2e2040", 5));   // 의자 가운데 = 사장 chx 98(#153: 좌우 대칭)
           r.cart = bx(F, 790, B - 62, 52, 62, "#ff6b8a", "#4a3560", 4); emo(F, 796, B - 52, 28, "🛒", 5);
           r.chx = 98;
           r.door = nxDoorBuild(F, B);   // 🙈 현관문(눈치 모드 퇴장·출근)
