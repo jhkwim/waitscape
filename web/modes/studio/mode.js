@@ -1687,7 +1687,7 @@ function mountLobby(root, ctx) {
       if (dlv && anim) { seated = false; walk = du < 1 || du >= 1.8; x = du < 1 ? lerp(s.x, ex, du) : du < 1.8 ? ex : lerp(ex, s.x, (du - 1.8) / 1); env = du < 1.4; }
       const o = { baby: 1, eyes: yawning || (d && !just && seated) ? "c" : blink ? "c" : "o" }; if (just) { o.arms = "u"; o.mouth = "o"; } if (yawning) o.mouth = "o";
       if (env) { o.arms = "r"; sty(q.e, "display", "block"); sty(q.e, "left", Math.round(x + (du < 1 ? 6 : 9)) + "px"); sty(q.e, "top", (FY - 33 - (du >= 1 && Math.floor(tc * 6) % 2 ? 3 : 0)) + "px"); }
-      else if (dlv) { sty(q.e, "display", "block"); sty(q.e, "left", (s.x + 3) + "px"); sty(q.e, "top", (FY - 36 - MS_UP) + "px"); }
+      else if (dlv && !anim) { sty(q.e, "display", "block"); sty(q.e, "left", (s.x + 3) + "px"); sty(q.e, "top", (FY - 36 - MS_UP) + "px"); }
       if (seated) {
         o.seated = 1; sty(q.ch, "display", "block"); sty(q.ch, "left", (s.x - 21) + "px");
         show(q.a, sprOf(f, o, 2), s.x, FY - 12 - MS_UP, { dy: just ? -Math.round(hop * 2) * 2 : 0, z: 5, op: 1 });
