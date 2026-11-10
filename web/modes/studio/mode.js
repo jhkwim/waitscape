@@ -4529,7 +4529,7 @@ const TINY = (() => {
   const CUP_SEC = 1200, CUP_MAX = 4, KEEP = 14, VER = 1, P_MAX = 60, S_MAX = 100, S_AWAY = 2 * 86400;
   const PASS = 12, PERIOD = 210, X0 = 650, X1 = 16, STAND_X = 414;   // 서 있는 자리(가운데 x): 🎰 뽑기 기계(346~388) 오른쪽 · 현관문(438~) 앞, 창 누를 자리(~B−30)보다 아래
   const COAT = { ham: "#e85050", peng: "#3a6ad8", bvr: "#5f8a3a", otr: "#c8783a", oct: "#8a5ac8", bot: "#5a6078", cat: "#d9668a", fox: "#2a8a8a", panda: "#3fa35a", owl: "#7a4a8a", hog: "#e8a23c" };
-  const PILE_X = 537, FLAG_X = 497, COAT_X = 344, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(의자 왼쪽) · 콘센트(커피머신 ~316과 책상 330 사이)
+  const PILE_X = 537, FLAG_X = 497, COAT_X = 259, OUT_X = 317;   // 서류(책상 오른쪽 끝 531 · 👆 머그 누를 자리 ~535 다음) · 깃발(모니터 위 오른쪽, 표지판 522 앞) · 겉옷(창문과 의자 사이 벽 옷걸이) · 콘센트(커피머신 ~316과 책상 330 사이)
   const FLAGS = [[1000, "1K", "#ffd23f"], [500, "500", "#5aa8ff"], [100, "100", "#6adf8a"]];
   const sheets = c => c >= 90 ? 4 : c >= 85 ? 3 : c >= 80 ? 2 : 0;
   const flagOf = n => FLAGS.find(f => n >= f[0]) || null;
@@ -4628,8 +4628,10 @@ function tinyBig(h) {
       const f = fl.f; if (!f) return;
       const r = { f, F: fl.F, B: fl.B, meet: f.layout === "meet", cups: [] };
       if (!r.meet) {   // 🗂️ 책상 묶음: 서류 · 겉옷 · 깃발 · (로봇) 배터리·케이블·콘센트
-        const cs = WB.pix(T_.ART.coat, 2, T_.COAT[f.animal] || "#7a7f8c");
-        r.coat = mkEl("img", "b tn-coat", fl.F, { left: (T_.COAT_X - cs.w / 2) + "px", top: (fl.B - 60) + "px", width: cs.w + "px", height: cs.h + "px", display: "none" }); r.coat.alt = ""; r.coat.src = cs.url; r.coat.draggable = false;
+        const cs = WB.pix(T_.ART.coat, 3, T_.COAT[f.animal] || "#7a7f8c");
+        { const hx = T_.COAT_X, hy = 48;   // 🧥 창문과 의자 사이 벽 옷걸이(#162) — 벽 1 꾸미기 칸(x 278~) 왼쪽 · 출근 1시간 전엔 빈 옷걸이
+        mkEl("div", "b", fl.F, { left: (hx - 12) + "px", top: hy + "px", width: "20px", height: "5px", background: "#8a6a4a", border: "2px solid #2e2040", zIndex: 5 }); mkEl("div", "b", fl.F, { left: (hx - 3) + "px", top: (hy + 9) + "px", width: "5px", height: "5px", background: "#2e2040", zIndex: 5 });
+        r.coat = mkEl("img", "b tn-coat", fl.F, { left: (hx - cs.w / 2) + "px", top: (hy + 5) + "px", width: cs.w + "px", height: cs.h + "px", display: "none" }); r.coat.alt = ""; r.coat.src = cs.url; r.coat.draggable = false; }
         r.pile = mkEl("div", "b tn-pile", fl.F, { left: T_.PILE_X + "px", top: (fl.B - 26) + "px", display: "none" });
         r.flag = mkEl("div", "b tn-flag", fl.F, { left: T_.FLAG_X + "px", top: (fl.B - 110) + "px", display: "none" }, "<i></i><b></b>");
         if (f.animal === "bot") { r.bat = mkEl("div", "b tn-bat", fl.F, { display: "none" }, "<i></i><i></i><i></i><i></i><u>⚡</u>"); r.bolt = r.bat.querySelector("u");
@@ -6107,7 +6109,7 @@ const SPOT = (() => {
     L("power", "out", "🕯️", ["정전", "Blackout"], ["5시간 한도를 다 쓰면 촛불과 손전등", "5-hour limit used up: candles and flashlights"], ["전기를 너무 많이 쓰면…", "Use too much power…"]),
     L("power", "rooster", "🐓", ["꼬끼오", "Cock-a-doodle"], ["한도가 리셋되면 닭이 울고 해가 떠요", "The rooster crows when the limit resets"], ["정전이 끝나는 순간", "The moment a blackout ends"]),
     L("desk", "cups", "☕", ["빈 커피잔", "Empty cups"], ["20분 넘게 일하면 책상에 빈 잔이 쌓여요", "Work 20+ min: empty cups pile up"], ["오래 일하는 직원의 책상 위", "On the desk of someone working long"]),
-    L("desk", "coat", "🧥", ["의자 위 겉옷", "Coat on the chair"], ["1시간 넘게 일하면 의자에 겉옷을 걸어요", "Work 1+ hour: coat on the chair"], ["오래 일하면 더워져요", "Long work gets warm"]),
+    L("desk", "coat", "🧥", ["벽에 건 겉옷", "Coat on the hook"], ["1시간 넘게 일하면 벽 옷걸이에 겉옷을 걸어요", "Work 1+ hour: coat on the wall hook"], ["오래 일하면 더워져요", "Long work gets warm"]),
     L("desk", "pile", "📚", ["서류 더미", "Paper pile"], ["컨텍스트가 80% 넘게 차면 책상 옆에 서류", "Context 80%+: papers by the desk"], ["머릿속(컨텍스트)이 꽉 차면…", "When the head (context) is full…"]),
     L("desk", "flag100", "🚩", ["도구 100 깃발", "100-tool flag"], ["도구를 100번 넘게 쓰면 모니터 위 깃발", "100+ tool calls: a flag on the monitor"], ["도구를 아주 많이 쓰면…", "Use a lot of tools…"]),
     L("desk", "flag500", "🎌", ["도구 500 깃발", "500-tool flag"], ["도구를 500번 넘게 쓰면 깃발 색이 바뀌어요", "500+ tool calls: the flag changes color"], ["그보다 더 많이…", "Even more…"]),
