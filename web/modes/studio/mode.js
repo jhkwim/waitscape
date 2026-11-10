@@ -1294,7 +1294,7 @@ function mountLobby(root, ctx) {
     box(p, 111, FY - 6, 108, 6, "var(--rug)", { opacity: .55, zIndex: 2 });
     R.plantEl = mk("div", "b emo", p, { left: "126px", top: (FY - 45) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
     R.z = [0, 1, 2].map(() => mk("div", "z", p, { display: "none", zIndex: 25 }, "Z"));
-    R.nod = mk("div", "b emo", p, { left: "57px", top: (FY - 81 - MB_UP) + "px", fontSize: "15px", zIndex: 25, display: "none" }, "👍");
+    R.nod = mk("div", "b emo", p, { left: "72px", top: (FY - 78) + "px", fontSize: "15px", zIndex: 25, display: "none" }, "👍");
     R.vis = actor(p, 20); R.vbub = mk("div", "bub", p, { display: "none", zIndex: 30 });
     R.cf = [...Array(18)].map((_, i) => box(p, 0, 0, 6, 6, ["#ff6b8a", "#ffd23f", "#5aa8ff", "#6adf8a", "#b48aff"][i % 5], { zIndex: 40, display: "none" }));
     R.paper = box(p, 63, FY - 70, 12, 15, "#fff", { zIndex: 9, border: "2px solid #2e2040", display: "none" }); [0, 1, 2].forEach(k => box(R.paper, 2, 2 + k * 3, 6, 1, "#7a6a8a"));   // 📋 일보 종이
@@ -1656,7 +1656,7 @@ function mountLobby(root, ctx) {
       const fast = anim && pkM.fast(R.key) ? 3 : 1;   // 모니터 "타자 빨라짐" · 카페인
       R.hands.forEach((hd, k) => { sty(hd, "display", typing ? "block" : "none"); sty(hd, "marginTop", (mot && typing && (Math.floor(T * 4 * fast) + k) % 2 ? -U : 0) + "px"); });
       R.lns.forEach((l, k) => { const s = Math.floor(T * 2 * fast * fast) * mot * (typing ? 1 : 0) + k * 7; sty(l, "display", f.kind === "idle" ? "none" : "block"); sty(l, "width", (9 + (s * 37 % 27)) + "px"); sty(l, "left", (3 + ((s * 13) % 3) * 3) + "px"); sty(l, "background", ["#7dff9c", "#ffd23f", "#5aa8ff", "#ff9ad0", "#7dff9c"][(k + s) % 5]); });
-      if (bub) { bubble(R.bub, bub[0], bub[1], bub[2], R.x - bub[1] - 9); sty(R.bub, "maxWidth", (W - 6 - bub[1]) + "px"); } else sty(R.bub, "display", "none");
+      if (bub) { bubble(R.bub, bub[0], bub[1], bub[2] - MS_UP, R.x - bub[1] - 9); sty(R.bub, "maxWidth", (W - 6 - bub[1]) + "px"); } else sty(R.bub, "display", "none");
       const hot = f.kind === "ask" && pkM.askHot(R.key); if (R.bub.classList.contains("hot") !== hot) R.bub.classList.toggle("hot", hot);   // 질문 중 직원을 누르면 말풍선 강조
       setAge(R.bub, f.kind === "ask" && bub ? ageCls(ctx.now() - (f.since || ctx.now())) : "");   // ⏱ 오래 기다린 질문은 테두리 주황 → 빨강
       sty(R.tag, "display", bub && bub[2] < 30 ? "none" : "");   // 큰 말풍선이 뜨면 방 이름표는 숨김(자막이 대신 설명)
@@ -1704,7 +1704,7 @@ function mountLobby(root, ctx) {
       sty(BR.mug, "top", (FY - 52 - lift) + "px"); sty(BR.mug, "left", (cof ? 60 : 72) + "px");
       BR.z.forEach((z, i) => { if (!doze) { sty(z, "display", "none"); return; } const p = anim ? ((T * .45 + i / 3) % 1) : i * .3;
         sty(z, "display", "block"); sty(z, "left", Math.round(66 + p * 12 + i * 6) + "px"); sty(z, "top", Math.round(FY - 84 - MB_UP - p * 24) + "px"); sty(z, "opacity", String(1 - p * .8)); sty(z, "fontSize", Math.round(12 + p * 8) + "px"); });
-      if (alt) { const f = shot.ask, n = aName(f.animal); bubble(BR.bub, X(`❓ ${f.floor}F ${n}${josa(n, "이", "가")} 기다려요`, `❓ ${f.floor}F ${n} is waiting`), 12, 27, 24); }
+      if (alt) { const f = shot.ask, n = aName(f.animal); bubble(BR.bub, X(`❓ ${f.floor}F ${n}${josa(n, "이", "가")} 기다려요`, `❓ ${f.floor}F ${n} is waiting`), 12, 27 - MB_UP, 24); }
       else if (pq && pq.say) bubble(BR.bub, pq.say, 30, 27, 14);
       else if (drn && drM.age(tc) < 8) bubble(BR.bub, drn.kind === "morning" ? X("좋은 아침! ☀️", "Morning! ☀️") : X("일보 나왔어요!", "Report's ready!"), 84, 36, 10);
       else sty(BR.bub, "display", "none");
@@ -4332,7 +4332,7 @@ function decorMini(h) {
     const psl = D.SLOTS.find(sl => s[sl] === "plant");
     if (anim && psl && F.wat && now >= F.wat && now - F.wat < 1.6) fx += D.canHTML(D.MINI[psl], 2, now - F.wat);
     if (resting) fx += D.hearts(T, ax + 9, 72, 1, 0, still);
-    else if (D.likeSlot(F, f.animal) && anim && f.kind !== "idle") { const L = recent.find(x => x.p === keyOf(f) && (D.LIKES[f.animal] || []).includes(x.id) && tc - x.t0 >= 1.1); if (L && tc - L.t0 < 3.4) fx += D.hearts(T, ax, 66, 1, .2, false); }
+    else if (D.likeSlot(F, f.animal) && anim && f.kind !== "idle") { const L = recent.find(x => x.p === keyOf(f) && (D.LIKES[f.animal] || []).includes(x.id) && tc - x.t0 >= 1.1); if (L && tc - L.t0 < 3.4) fx += D.hearts(T, ax, 66 - MS_UP, 1, .2, false); }
     h.html(R.dc.fx, fx);
   }
   /* 택배 자막 */
