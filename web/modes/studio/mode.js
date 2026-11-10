@@ -942,6 +942,7 @@ function powerMini(h) {
     dead: () => !!E && E.dead,
     out: () => !!E && E.ph === "out",
     vOff: () => !!E && E.vOff,
+    wk: () => E ? E.wk || 0 : 0,   // ☂️ 우산 꽂이(#157): 주간 한도 날씨(비 80 · 눈 90)
     wxIcon: () => E && E.lim ? WX.ICON[E.wxK] + " " : "",
     /* 상단 바: 게이지 무늬 + 단계 아이콘 */
     hud(Q) {
@@ -1269,6 +1270,20 @@ function mountLobby(root, ctx) {
     if (v === 1) { R.shelfEl = bx(p, 6, FY - 96, 42, 96, "#5a5a78", 3, { zIndex: 3 }); R.leds = [0, 1, 2, 3].map(q => { box(p, 12, FY - 87 + q * 21, 30, 12, "#2e2a40", { zIndex: 4 }); return box(p, 15, FY - 84 + q * 21, 6, 3, q % 2 ? "#7dff9c" : "#ffd23f", { zIndex: 5 }); }); }
     if (v === 2) { R.shelfEl = mk("div", "b emo", p, { left: "9px", top: (FY - 36) + "px", fontSize: "30px", zIndex: 5 }, "📦"); bx(p, 6, 30, 45, 30, "#fff", 3, { zIndex: 3 }); ["#ff6b8a", "#5aa8ff", "#6adf8a"].forEach((cl, k) => box(p, 12, 36 + k * 6, [27, 18, 24][k], 3, cl, { zIndex: 4 })); }
     R.z = [0, 1, 2].map(() => mk("div", "z", p, { display: "none", zIndex: 25 }, "Z"));   // 😴 쉬는 단계(#155)
+    /* ☕🧥🚩🔋🍩 책상 소품(#157): 큰 화면 TINY·TREAT 규칙과 저장을 읽기만 · 빈 잔은 모니터 옆·책상 양끝·직원 앞, 겉옷은 의자 왼쪽, 깃발은 모니터 오른쪽 옆, 간식은 직원 앞 */
+    const img = (pp, x, y, z) => { const e = mk("img", "b", p, { left: x + "px", top: y + "px", width: pp.w + "px", height: pp.h + "px", zIndex: z, display: "none", pointerEvents: "none" }); e.alt = ""; e.draggable = false; e.src = pp.url; return e; };
+    R.cups = [154, 57, 105, 141].map((x, j) => { const pp = WB.pix(TINY.ART.cup, 2, TINY.MUG[j]); return img(pp, x, FY - 30 - pp.h, 10); });
+    { const pp = WB.pix(TINY.ART.coat, 2, TINY.COAT[f.animal] || "#7a7f8c"); R.coat = img(pp, R.x - 33 - pp.w / 2, FY - 57, 6); }
+    R.flag = mk("div", "b", p, { left: "171px", top: (FY - 71) + "px", width: "24px", height: "16px", zIndex: 9, display: "none", pointerEvents: "none" },
+      '<i style="position:absolute;left:0;top:0;width:2px;height:16px;background:#4a3560"></i><b style="position:absolute;left:2px;top:0;padding:0 2px;height:10px;border:1px solid #4a3560;font-size:7px;line-height:8px;font-weight:900;color:#2e2040;white-space:nowrap"></b>');
+    R.snk = [0, 1].map(() => mk("img", "b", p, { zIndex: 10, display: "none", pointerEvents: "none" }));
+    if (f.animal === "bot") {   // 🔋 머리 왼쪽 4칸 · 0칸이면 ⚡ + 바닥 콘센트까지 케이블
+      R.bat = mk("div", "b", p, { left: (R.x - 50) + "px", top: (FY - 75) + "px", width: "18px", height: "9px", padding: "1px", border: "2px solid #2e2040", background: "#fffaf0", display: "none", gap: "1px", zIndex: 9, boxSizing: "content-box" }, "<i></i><i></i><i></i><i></i>");
+      [...R.bat.children].forEach(e => Object.assign(e.style, { flex: "1", display: "block" }));
+      R.bolt = mk("div", "b", p, { left: (R.x - 47) + "px", top: (FY - 87) + "px", fontSize: "9px", zIndex: 9, display: "none" }, "⚡");
+      R.out = mk("div", "b", p, { left: "33px", top: (FY - 15) + "px", width: "9px", height: "10px", background: "#fffaf0", border: "2px solid #4a3560", zIndex: 7, display: "none", boxSizing: "border-box" });
+      R.cab = mk("div", "b", p, { left: "0", top: "0", zIndex: 7, display: "none", pointerEvents: "none" });
+    }
     R.nlab = mk("div", "b nlab", p, { display: "none", zIndex: 30, fontSize: "12px", color: "#6a5a88", fontWeight: "bold", whiteSpace: "nowrap" });   // 쿵 · 🫧 · ❗ · 톡
     R.tag.style.background = PROV[f.pk].tag; txt(R.tag, `${f.shiny ? "✨" : ""}${EMO[f.animal]} ${f.floor}F · ${cfg.hideText ? "🤫" : cut(f.project, 14)}`);
     if (ctx.api.openTerminal) { R.tag.dataset.act = "jump"; R.tag.dataset.sid = f.sid; }   // 🖥️ 이름표 칩을 누르면 그 세션으로(일하는 중에도). 하단 자막에 "🖥️ Orca로 이동" 등
@@ -1288,7 +1303,12 @@ function mountLobby(root, ctx) {
     R.plantEl = mk("div", "b emo", p, { left: "24px", top: (FY - 45) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
     R.mugEl = mk("div", "b emo", p, { left: "80px", top: (FY - 42) + "px", fontSize: "12px", zIndex: 10 }, "☕");
     R.dbox = mk("div", "b", p, { left: "186px", top: (FY - 36) + "px", zIndex: 10 });
-    R.seat = [0, 1, 2, 3].map(() => { const d = mk("img", "b", p, { zIndex: 11, display: "none" }); d.alt = ""; return { a: actor(p, 5), ch: bx(p, 0, FY - 48, 30, 24, "var(--chair)", 3, { zIndex: 3, display: "none" }), d }; });
+    R.seat = [0, 1, 2, 3].map(() => { const d = mk("img", "b", p, { zIndex: 11, display: "none" }); d.alt = ""; const ev = WB.pix(WB.ART.env, 2), e = mk("img", "b", p, { zIndex: 12, display: "none", width: ev.w + "px", height: ev.h + "px", pointerEvents: "none" }); e.alt = ""; e.src = ev.url;   // ✉️ 결과 봉투(#157)
+      /* 🪑 아기 의자(#157): 직원 의자(#151·#153)를 아기 크기로 — 파란 등받이·줄무늬·팔걸이, 앉으면 MS_UP만큼 테이블 위로 */
+      const ch = mk("div", "b", p, { top: (FY - 57) + "px", width: "42px", height: "33px", zIndex: 3, display: "none" });
+      bx(ch, 3, 3, 36, 30, "#4a6aa8", 2); [8, 30].forEach(x => box(ch, x, 7, 4, 22, "#6a8ac8")); box(ch, 19, 7, 4, 22, "#3a5590");
+      [0, 36].forEach(x => bx(ch, x, 18, 6, 12, "#4a6aa8", 2));
+      return { a: actor(p, 5), ch, d, e }; });
     R.yawn = mk("div", "b", p, { display: "none", zIndex: 30, fontSize: "12px", color: "#6a5a88" }, X("하암", "yawn"));
     R.dood = mk("div", "b", p, { zIndex: 5, display: "none" });
     R.tag.style.background = "#3a6fc8"; txt(R.tag, X("📋 2F · 회의실", "📋 2F · Meeting"));
@@ -1302,6 +1322,10 @@ function mountLobby(root, ctx) {
     R.vis = actor(p, 20); R.vbub = mk("div", "bub", p, { display: "none", zIndex: 30 });
     R.cf = [...Array(18)].map((_, i) => box(p, 0, 0, 6, 6, ["#ff6b8a", "#ffd23f", "#5aa8ff", "#6adf8a", "#b48aff"][i % 5], { zIndex: 40, display: "none" }));
     R.paper = box(p, 63, FY - 70, 12, 15, "#fff", { zIndex: 9, border: "2px solid #2e2040", display: "none" }); [0, 1, 2].forEach(k => box(R.paper, 2, 2 + k * 3, 6, 1, "#7a6a8a"));   // 📋 일보 종이
+    /* ☂️ 우산 꽂이 · 🔦 야간 경비 고양이(#157, 큰 화면 TINY와 같은 규칙) — 화분과 자판기 사이 바닥 · 고양이는 책상 뒤로 지나감 */
+    R.umb = mk("div", "b", p, { left: "162px", top: (FY - 30) + "px", width: "16px", height: "30px", zIndex: 6, pointerEvents: "none" });
+    R.cat = mk("img", "b", p, { display: "none", zIndex: 8, pointerEvents: "none" }); R.cat.alt = ""; R.cat.draggable = false;
+    R.beam = mk("div", "b", p, { display: "none", zIndex: 8, pointerEvents: "none", background: "linear-gradient(90deg, rgba(255, 236, 140, .85), rgba(255, 236, 140, 0))", clipPath: "polygon(0 42%, 100% 0, 100% 100%, 0 58%)" });
     R.tag.style.background = "#34457f"; txt(R.tag, X("🐹 사장실 · 1F", "🐹 Boss · 1F"));
   }
   function roofRoom(R) {
@@ -1584,6 +1608,59 @@ function mountLobby(root, ctx) {
     seats.forEach((s, i) => { s.x = sn(84 + (i + .5) * (120 / seats.length)); });
     return { present, seats };
   }
+  /* ---------- ☕🍩 책상·건물 소품(#157): 큰 화면 저장 TINY "tiny"(출근 시각·도구 수)·TREAT "treat"(간식)를 5초마다 읽기만 ---------- */
+  const shared = { t: -99, tiny: null, treat: null };
+  function sharedNow(tc) {
+    if (!shared.tiny || Math.abs(tc - shared.t) > 5) { shared.t = tc; shared.tiny = TINY.load(ctx.store.get("tiny", "")); shared.treat = TREAT.load(ctx.store.get("treat", "")); }
+    return shared;
+  }
+  function tinyDesk(R, f, tc, anim, away) {
+    const S = sharedNow(tc), now = ctx.now(), dev = TINY.dev, fake = dev.has("desk"), E = TINY.ownS(S.tiny.s, f.sid) && S.tiny.s[f.sid].day === TINY.dayKey(now) ? S.tiny.s[f.sid] : null;   // 큰 화면이 꺼져 있어 새벽 4시 뒤 다시 잡지 못한 어제 기록은 안 씀
+    const run = Math.max(E ? now - E.t0 : Math.max(0, now - (+f.s.started || now)), fake ? 4500 : 0), tools = fake ? 520 : (E ? E.acc : 0) + (+f.s.tools || 0);
+    const on = ["work", "agents", "ask", "stall"].includes(f.kind);
+    const n = TINY.cups(f, Math.max(run, dev.has("cups") ? 3000 : 0));
+    R.cups.forEach((e, j) => sty(e, "display", j < n ? "block" : "none"));
+    sty(R.coat, "display", on && !away && run >= 3600 ? "block" : "none");   // 자리를 비우면(보고하러 감) 겉옷도 챙겨 감
+    const fg = TINY.flagOf(tools); sty(R.flag, "display", fg && f.kind !== "stall" ? "block" : "none");   // 멈춤 의심 "톡"(#155) 자리와 겹쳐 그동안만 숨김
+    if (fg && R.flag._k !== fg[1]) { R.flag._k = fg[1]; const b = R.flag.lastChild; b.textContent = fg[1]; b.style.background = fg[2]; }
+    /* 🍩 간식: 오늘 산 것(먹은 만큼 줄어든 그림) · 한 입 몸짓은 큰 화면만 */
+    const T = S.treat, td = TINY.dayKey(now);
+    let L = T.d === td && Object.prototype.hasOwnProperty.call(T.s, f.sid) ? T.s[f.sid] : [];
+    if (TREAT.dev.treat) { const i = R.r || 0, t0 = now - ((now + i * 4.5) % TREAT.DEV_CYC), k = TREAT.KINDS[i % 4].id; L = i % 2 ? [{ k, t: t0 }] : [{ k, t: t0 }, { k: TREAT.KINDS[(i + 1) % 4].id, t: t0 }]; }
+    const P = TREAT.plan(L, now, TREAT.dev.treat ? TREAT.BITES_DEV : TREAT.BITES);
+    R.snk.forEach((e, j) => { const q = P[j]; sty(e, "display", q ? "block" : "none"); if (!q) return;
+      const pp = WB.pix(TREAT.art(q.id, q.st), 2); if (e._u !== pp.url) { e._u = pp.url; e.src = pp.url; sty(e, "width", pp.w + "px"); sty(e, "height", pp.h + "px"); }
+      sty(e, "left", [99, 75][j] + "px"); sty(e, "top", (FY - 33 - pp.h + 2) + "px"); });   // 키보드(FY-33) 위에 가리지 않게
+    /* 🔋 로봇 배터리 · 🔌 충전 */
+    if (!R.bat) return;
+    const home = on && !away && f.kind !== "stall", lv = fake ? 0 : TINY.battery(run), chg = home && lv === 0;
+    sty(R.bat, "display", home ? "flex" : "none"); sty(R.bolt, "display", chg ? "block" : "none"); sty(R.out, "display", chg ? "block" : "none"); sty(R.cab, "display", chg ? "block" : "none");
+    if (home && R.bk !== lv) { R.bk = lv; [...R.bat.children].forEach((e, j) => sty(e, "background", j < lv ? (lv >= 3 ? "#3fbf5f" : lv === 2 ? "#e8b020" : "#e85050") : "transparent")); }
+    if (chg) { sty(R.bolt, "opacity", anim && Math.floor(tc * 2) % 2 ? ".35" : "1");
+      if (!R.ck) { R.ck = 1; const x0 = R.x - 24, y0 = FY - 39 - MS_UP, x1 = 37, y1 = FY - 11, Lf = Math.min(x0, x1) - 4, Tp = y0 - 4, w = Math.abs(x0 - x1) + 8, hh = y1 - Tp + 4;   // 로봇 왼쪽 등 → 책상 뒤로 내려가 콘센트
+        sty(R.cab, "left", Lf + "px"); sty(R.cab, "top", Tp + "px");
+        html(R.cab, `<svg width="${w}" height="${hh}" style="display:block;overflow:visible"><path d="M${x0 - Lf} ${y0 - Tp} C ${x0 - Lf - 14} ${y0 - Tp + 2}, ${x1 - Lf + 2} ${y1 - Tp - 20}, ${x1 - Lf} ${y1 - Tp}" fill="none" stroke="#2e2040" stroke-width="3" stroke-linecap="round"/><path d="M${x0 - Lf} ${y0 - Tp} C ${x0 - Lf - 14} ${y0 - Tp + 2}, ${x1 - Lf + 2} ${y1 - Tp - 20}, ${x1 - Lf} ${y1 - Tp}" fill="none" stroke="#6a6a88" stroke-width="1" stroke-linecap="round"/></svg>`); } }
+  }
+  function tinyBoss(BR, tc, anim) {
+    const now = ctx.now(), dev = TINY.dev;
+    /* ☂️ 사장님 우산 + (비·눈이면) 직원 층 수만큼(최대 4, 동물마다 겉옷 색) */
+    const wk = dev.has("rain") ? 85 : pwM.wk(), ans = wk >= 80 ? model.staff.map(f => f.animal).slice(0, 4) : [], uk = (wk >= 80 ? "r" : "c") + ans.join();
+    if (BR.umb._k !== uk) { BR.umb._k = uk;
+      html(BR.umb, ["#34457f"].concat(ans.map(a => TINY.COAT[a] || "#7a7f8c")).map((c, j) => `<i style="position:absolute;left:${1 + j * 3}px;bottom:7px;width:3px;height:${12 + (j * 5) % 7}px;background:${c};border:1px solid #2e2040;border-bottom:0;border-radius:3px 3px 0 0"></i>`).join("")
+        + `<b style="position:absolute;left:0;bottom:0;width:16px;height:9px;background:#9a8ab8;border:2px solid #2e2040;box-sizing:border-box"></b>${wk >= 80 ? '<u style="position:absolute;left:-3px;bottom:-3px;width:22px;height:3px;background:#7ab8e8;opacity:.75"></u>' : ""}`); }
+    /* 🔦 22~6시, 3~4분마다 12초 동안 사장실 바닥을 지나감(책상 뒤) · 움직임 줄이기면 화분 옆에 서서 문 쪽을 비춤 · 질문 알림 중엔 숨음 */
+    const off = () => { sty(BR.cat, "display", "none"); sty(BR.beam, "display", "none"); };
+    if (!(dev.has("night") || TINY.night(new Date(now * 1000))) || shot.k === "askalt") return off();
+    const per = dev.has("night") ? 16 : TINY.PERIOD, cyc = Math.floor(now / per), u = (now % per) / TINY.PASS, walk = anim && u < 1, ltr = cyc % 2 === 1;
+    if (anim && !walk) return off();
+    let x = 201, left = false, art = TINY.ART.catA;   // 정지: 우산 꽂이 오른쪽 자판기 앞
+    if (walk) { x = ltr ? lerp(-24, 214, u) : lerp(214, -24, u); left = !ltr; art = Math.floor(u * TINY.PASS * 4) % 2 ? TINY.ART.catB : TINY.ART.catA; }
+    const pp = WB.pix(art, 2), top = FY - pp.h + 1, xl = Math.round(x - pp.w / 2);
+    if (BR.cat._u !== pp.url) { BR.cat._u = pp.url; BR.cat.src = pp.url; sty(BR.cat, "width", pp.w + "px"); sty(BR.cat, "height", pp.h + "px"); }
+    sty(BR.cat, "display", "block"); sty(BR.cat, "left", xl + "px"); sty(BR.cat, "top", top + "px"); sty(BR.cat, "transform", left ? "scaleX(-1)" : "");
+    const bw = walk ? 54 : 27, bh = 20, by = Math.round(top + 19 - bh / 2);
+    sty(BR.beam, "display", "block"); sty(BR.beam, "top", by + "px"); sty(BR.beam, "height", bh + "px"); sty(BR.beam, "width", bw + "px"); sty(BR.beam, "left", (left ? xl + 2 - bw : xl + pp.w - 2) + "px"); sty(BR.beam, "transform", left ? "scaleX(-1)" : "");
+  }
   function drawMeet(MR, tc, T, anim, ms, dTrans) {   // 반환: 움직이는 중(빠른 루프)
     const still = !anim, blink = anim && (T % 3.7) < .14, hop = anim ? Math.abs(Math.sin(T * 7)) : 0, wk = anim ? Math.floor(T * 4) % 2 : 0;
     html(MR.wb, WB.render(WB.cols(ms.present, tc, 0, 201), tc, { lh: 13, pt: 1, sc: 1, H: 66, still, hide: !!cfg.hideText, en: en(), lab: wbLab }));
@@ -1592,8 +1669,9 @@ function mountLobby(root, ctx) {
     if (er) { const a = fnv(er.sid) % 2 ? WB.ART.star : WB.ART.heart; html(MR.dood, WB.img(a, 1, 0, 0, `opacity:${(still ? 1 : clamp((tc - er.ee) / .4, 0, 1)).toFixed(2)}`));
       sty(MR.dood, "left", (196 - (fnv(er.sid) % 3) * 10) + "px"); sty(MR.dood, "top", "63px"); sty(MR.dood, "display", "block"); }
     else sty(MR.dood, "display", "none");
-    MR.seat.forEach(s => { hide(s.a); sty(s.ch, "display", "none"); sty(s.d, "display", "none"); });
+    MR.seat.forEach(s => { hide(s.a); sty(s.ch, "display", "none"); sty(s.d, "display", "none"); sty(s.e, "display", "none"); });
     sty(MR.yawn, "display", "none");
+    let nDlv = 0;   // ✉️ 봉투를 건네러 간 아기는 아직 도넛을 안 가져감
     ms.seats.forEach((s, i) => {
       const m = s.m, Tm = s.T, q = MR.seat[i], f = model.bySid.get(Tm.sid);
       if (!f || dTrans === Tm.sid) return;   // 엘리베이터를 타고 오는 중(출동 샷이 그림)
@@ -1603,16 +1681,22 @@ function mountLobby(root, ctx) {
       else if (v >= 0) { if (v < 1) { x = lerp(s.x, EX, v); walk = true; } else if (v < 1.3) { x = EX; op = 1 - (v - 1) / .3; } else return; }
       else if (u < 0) return; else if (u < .3) { x = EX; op = u / .3; } else if (u < 1.3) { x = lerp(EX, s.x, u - .3); walk = true; } else seated = true;
       const d = WB.isDone(m, tc), just = d && anim && tc - m.doneAt < .9, yawning = anim && WB.yawn(Tm, tc) === m;
+      /* ✉️ 결과 봉투(#157, 큰 화면 #147): 이 창이 끝나는 걸 본 아기만 — ✓ 깡충 뒤 봉투를 들고 엘리베이터 앞까지 가서(부모 층으로) 건네고 돌아옴 · 정적이면 자리에 봉투만 잠깐 */
+      const du = seated && m.doneAt > 0 ? tc - m.doneAt - WB.TM.just : -9, dlv = du >= (anim ? 0 : -WB.TM.just) && du < WB.TM.dlv, ex = EX - 18;
+      let env = false; if (dlv) nDlv++;
+      if (dlv && anim) { seated = false; walk = du < 1 || du >= 1.8; x = du < 1 ? lerp(s.x, ex, du) : du < 1.8 ? ex : lerp(ex, s.x, (du - 1.8) / 1); env = du < 1.4; }
       const o = { baby: 1, eyes: yawning || (d && !just && seated) ? "c" : blink ? "c" : "o" }; if (just) { o.arms = "u"; o.mouth = "o"; } if (yawning) o.mouth = "o";
+      if (env) { o.arms = "r"; sty(q.e, "display", "block"); sty(q.e, "left", Math.round(x + (du < 1 ? 6 : 9)) + "px"); sty(q.e, "top", (FY - 33 - (du >= 1 && Math.floor(tc * 6) % 2 ? 3 : 0)) + "px"); }
+      else if (dlv && !anim) { sty(q.e, "display", "block"); sty(q.e, "left", (s.x + 3) + "px"); sty(q.e, "top", (FY - 36 - MS_UP) + "px"); }
       if (seated) {
-        o.seated = 1; sty(q.ch, "display", "block"); sty(q.ch, "left", (s.x - 15) + "px");
-        show(q.a, sprOf(f, o, 2), s.x, FY - 12, { dy: just ? -Math.round(hop * 2) * 2 : 0, z: 5, op: 1 });
-        if (d && !just) { const ds = WB.pix(WB.ART.dn, 2); if (q.d._u !== ds.url) { q.d._u = ds.url; q.d.src = ds.url; } sty(q.d, "width", ds.w + "px"); sty(q.d, "height", ds.h + "px"); sty(q.d, "display", "block"); sty(q.d, "left", (s.x + 3) + "px"); sty(q.d, "top", (FY - 39) + "px"); }
-        if (yawning) { sty(MR.yawn, "display", "block"); sty(MR.yawn, "left", (s.x + 12) + "px"); sty(MR.yawn, "top", (FY - 54 - Math.round(((tc - Tm.t0) % 20) * 2)) + "px"); }
+        o.seated = 1; sty(q.ch, "display", "block"); sty(q.ch, "left", (s.x - 21) + "px");
+        show(q.a, sprOf(f, o, 2), s.x, FY - 12 - MS_UP, { dy: just ? -Math.round(hop * 2) * 2 : 0, z: 5, op: 1 });
+        if (d && !just && !dlv) { const ds = WB.pix(WB.ART.dn, 2); if (q.d._u !== ds.url) { q.d._u = ds.url; q.d.src = ds.url; } sty(q.d, "width", ds.w + "px"); sty(q.d, "height", ds.h + "px"); sty(q.d, "display", "block"); sty(q.d, "left", (s.x + 3) + "px"); sty(q.d, "top", (FY - 39 - MS_UP) + "px"); }
+        if (yawning) { sty(MR.yawn, "display", "block"); sty(MR.yawn, "left", (s.x + 12) + "px"); sty(MR.yawn, "top", (FY - 54 - MS_UP - Math.round(((tc - Tm.t0) % 20) * 2)) + "px"); }
       } else { o.legs = walk ? (wk ? "a" : "b") : "s"; show(q.a, sprOf(f, o, 2), x, FY - 3, { dy: walk && wk ? -2 : 0, op, z: 10 }); }
     });
     /* 도넛 상자: 끝낸 아기가 하나씩 가져감 */
-    const dl = Math.max(0, 3 - ms.present.reduce((n, t) => n + WB.doneN(t, tc), 0));
+    const dl = Math.min(3, Math.max(0, 3 - ms.present.reduce((n, t) => n + WB.doneN(t, tc), 0) + nDlv));
     html(MR.dbox, `<div style="position:relative;width:21px;height:6px;background:#ffb3c8;border:2px solid #4a3560">${[0, 1, 2].map(i => i < dl ? `<i style="position:absolute;left:${1 + i * 6}px;top:-4px;width:5px;height:4px;background:#ff8ab0;border:1px solid #7a4a2a;border-radius:2px"></i>` : "").join("")}</div>`);
     sty(MR.dbox, "display", ms.present.length ? "block" : "none");
     sty(MR.tag, "display", ms.present.length || er ? "none" : "");   // 회의 중엔 방 이름표를 숨겨 보드를 키움
@@ -1681,6 +1765,7 @@ function mountLobby(root, ctx) {
       else if (rx != null) show(R.actor, sprOf(f, { eyes: "c", mouth: anim && Math.floor(T / 2) % 3 === 0 ? "o" : "" }), rx, FY - 3, { z: 11 });
       else { const pz = pkM.pose(R.key, o, anim, R.r - 1), s = sprOf(f, o); show(R.actor, s, R.x + Math.round(pz.dx), FY - 12 - MS_UP, { dy: dy + Math.round(pz.dy), rot: pz.rot ? Math.round(pz.rot) : 0, z: 8 }); pkM.after(R, R.actor, s, BYID[f.animal], Object.assign({ prov: f.pk, shiny: f.shiny }, o), pz, anim); }   // 👆 클릭 반응 몸짓
       dcM.draw(R, f, T, tc, anim, rx != null ? rx : R.x, rx != null);
+      tinyDesk(R, f, tc, anim, !!(V && V.info.sid === f.sid && !["fetch", "home"].includes(V.ph)));   // ☕🧥🚩🔋🍩(#157)
       const fast = anim && pkM.fast(R.key) ? 3 : 1;   // 모니터 "타자 빨라짐" · 카페인
       R.hands.forEach((hd, k) => { sty(hd, "display", typing ? "block" : "none"); sty(hd, "marginTop", (mot && typing && (Math.floor(T * 4 * fast) + k) % 2 ? -U : 0) + "px"); });
       R.lns.forEach((l, k) => { const s = Math.floor(T * 2 * fast * fast) * mot * (typing ? 1 : 0) + k * 7; sty(l, "display", f.kind === "idle" ? "none" : "block"); sty(l, "width", (9 + (s * 37 % 27)) + "px"); sty(l, "left", (3 + ((s * 13) % 3) * 3) + "px"); sty(l, "background", ["#7dff9c", "#ffd23f", "#5aa8ff", "#ff9ad0", "#7dff9c"][(k + s) % 5]); });
@@ -1736,6 +1821,7 @@ function mountLobby(root, ctx) {
       sty(BR.mug, "top", (FY - 52 - lift) + "px"); sty(BR.mug, "left", (cof ? 60 : 72) + "px");
       BR.z.forEach((z, i) => { if (!doze) { sty(z, "display", "none"); return; } const p = anim ? ((T * .45 + i / 3) % 1) : i * .3;
         sty(z, "display", "block"); sty(z, "left", Math.round(66 + p * 12 + i * 6) + "px"); sty(z, "top", Math.round(FY - 84 - MB_UP - p * 24) + "px"); sty(z, "opacity", String(1 - p * .8)); sty(z, "fontSize", Math.round(12 + p * 8) + "px"); });
+      tinyBoss(BR, tc, anim);   // ☂️🔦(#157)
       if (alt) { const f = shot.ask, n = aName(f.animal); bubble(BR.bub, X(`❓ ${f.floor}F ${n}${josa(n, "이", "가")} 기다려요`, `❓ ${f.floor}F ${n} is waiting`), 12, 27 - MB_UP, 24); }
       else if (pq && pq.say) bubble(BR.bub, pq.say, 30, 27, 14);
       else if (drn && drM.age(tc) < 8) bubble(BR.bub, drn.kind === "morning" ? X("좋은 아침! ☀️", "Morning! ☀️") : X("일보 나왔어요!", "Report's ready!"), 84, 36, 10);
@@ -4381,7 +4467,7 @@ function decorMini(h) {
   return { read, sig, noPlant, room, restX, draw, sub, keyOf, take: () => evq.shift() || null, peek: () => evq[0] || null };
 }
 
-/* ================= ☕ 깨알 디테일 (TINY: 큰 화면 tinyBig만 · 미니 보기는 아직 없음. 본체에는 연결 줄만, #37) =================
+/* ================= ☕ 깨알 디테일 (TINY: 큰 화면 tinyBig · 미니 보기는 빈 잔·겉옷·깃발·로봇 배터리·야간 경비·우산 꽂이만 저장을 읽어 그림(mountLobby tinyDesk·tinyBoss, #157). 본체에는 연결 줄만, #37) =================
    - ⏱️ 출근 기준: session.started·tools는 턴(프롬프트)마다 다시 시작하므로, 세션(sid)을 처음 본 시각(t0)과 누적 도구 수를 따로 기억(아래 저장 s).
      새벽 4시가 지나면 t0는 그날 처음 본 시각으로 다시 · 도구 수가 줄면(새 턴) 지난 턴 값을 누적에 더함
    - ☕ 빈 커피잔: 책상 배치 층에서 일하는 중(work·agents·ask·stall)이면 출근(t0)부터 20분마다 책상에 빈 잔 하나(최대 4).
@@ -5084,7 +5170,7 @@ function gachaBig(h) {
   return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, busy: () => !!spin || !!ui.pop, spinning: () => !!spin, close };
 }
 
-/* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig만 — 미니 보기는 읽지 않음. 본체에는 연결 줄만, jhkwim/waitscape#79) =================
+/* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig — 미니 보기는 책상 위 간식 그림만 읽기(#157). 본체에는 연결 줄만, jhkwim/waitscape#79) =================
    모은 자금(💰)을 날마다 조금씩 쓰는 곳. 보기용(기능·보상 없음), 하루 = 새벽 4시 경계(TINY.dayKey — 퇴근 일보·달력과 같음).
    - 🍩 간식: 🎨 꾸미기 판에서 층(프로젝트)을 고르면 칸 안내 아래에 "🍩 간식" 줄 — 그 층 직원(세션 sid)에게 ☕ 커피 30 · 🍩 도넛 50 · 🍕 피자 80 · 🍰 케이크 100.
      직원마다 하루 2개까지. 책상 위 직원 앞(모니터·👆 머그·빈 잔·🎨 책상 칸 사이)에 그날이 끝날 때까지 놓임. 산 순간 한 번 만세 + 말풍선(좋아하는 간식이면 ♥),
