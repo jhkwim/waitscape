@@ -20,7 +20,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 
 <div align="center">
 <img src="docs/assets/en/studio.gif" width="860" alt="Studio mode — animal staff working from their chairs, a penguin taking the elevator to ask a question, a meeting-room baby handing over a result envelope, a robot finishing a big job">
-<br><sub>All sessions and projects shown are fake demo data. The UI in these captures is in Korean; English is built in.</sub>
+<br><sub>All sessions and projects shown are fake demo data. Korean is built in too.</sub>
 </div>
 
 ## Why
