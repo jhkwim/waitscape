@@ -19,7 +19,7 @@
 Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code, Codex and more) into a **pixel-art office**. Each session becomes a staff member working on their own floor. When one has a question, they ride the elevator down to the boss (you) on the first floor. When they finish, they come to report. You can see who is doing what, and who is waiting on you, without watching your terminals.
 
 <div align="center">
-<img src="docs/assets/studio.gif" width="860" alt="Studio mode — animal staff working on each floor, a penguin taking the elevator to ask a question, a robot finishing a big job">
+<img src="docs/assets/studio.gif" width="860" alt="Studio mode — animal staff working from their chairs, a penguin taking the elevator to ask a question, a meeting-room baby handing over a result envelope, a robot finishing a big job">
 <br><sub>All sessions and projects shown are fake demo data. The UI in these captures is in Korean; English is built in.</sub>
 </div>
 
@@ -42,7 +42,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 <td width="44%" align="center"><img src="docs/assets/mini.gif" width="300" alt="Mini view — question close-up, back to work, rooftop celebration, report to the boss"></td>
 <td width="56%" valign="middle">
 <h3>📌 Mini view</h3>
-A tiny always-on-top "lobby camera". The big window hides and only this small one stays above your other apps. It watches the boss's office, and when something happens it goes to that floor. Questions get a close-up and a caption; big wins get fireworks on the roof and a report to the boss. When subagents spin up, it follows the elevator to the meeting room. Scroll or press ↑↓ to look around the floors yourself.
+A tiny always-on-top "lobby camera". The big window hides and only this small one stays above your other apps. It watches the boss's office, and when something happens it goes to that floor. Questions get a close-up and a caption; big wins get fireworks on the roof and a report to the boss. When subagents spin up, it follows the elevator to the meeting room. Scroll or press ↑↓ to look around the floors yourself. Chairs and tiny details like naps, desk props and the night guard show up in the mini view too.
 </td>
 </tr>
 <tr>
@@ -69,8 +69,8 @@ Besides Studio there's 🐹 Hamster (one hamster per session), 🏟️ Scoreboar
 <tr>
 <td colspan="2" valign="middle">
 <h3>🔍 Tiny details</h3>
-Look closer at Studio and small things keep showing up. Empty coffee cups pile up during long sessions, a jacket lands on the chair, and papers stack up as the context fills. Hit 100, 500 and 1,000 tool calls and a flag pops up on the monitor; the robot plugs in a cable when its battery runs out. Staff waiting to ask a question start tapping their feet after a minute, and on Friday evenings everyone switches to Hawaiian shirts and a flower. Pigeons visit the window sills, a guard cat patrols at night, the boss's mug changes its slogan when you click it, and a cake appears on your install anniversary.
-<p align="center"><img src="docs/assets/details.png" width="860" alt="Tiny details — robot battery and charging cable, jacket on the chair, paper stacks, empty coffee cups, 500-tool flags, streak calendars, Friday hibiscus, anniversary cake and the boss's mug"></p>
+Look closer at Studio and small things keep showing up. The boss sits in a red executive chair, the staff in blue office chairs, and the meeting-room babies in mint meeting chairs. Empty coffee cups pile up during long sessions, a jacket goes up on the wall hook, and papers stack up as the context fills. Hit 100, 500 and 1,000 tool calls and a flag pops up on the monitor; the robot plugs in a cable when its battery runs out. Staff waiting to ask a question start tapping their feet after a minute, and on Friday evenings everyone switches to Hawaiian shirts and a flower. Pigeons visit the window sills, a guard cat patrols at night, the boss's mug changes its slogan when you click it, and a cake appears on your install anniversary.
+<p align="center"><img src="docs/assets/details.png" width="860" alt="Tiny details — staff in their chairs, robot battery and charging cable, jacket on the wall hook, paper stacks, empty coffee cups, 500-tool flags, streak calendars, Friday hibiscus, anniversary cake and the boss's mug"></p>
 </td>
 </tr>
 </table>
@@ -131,11 +131,13 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 - **📋 Daily report**: when everything has been quiet for about 45 minutes in the afternoon, the boss waves a sheet: "The report is in!" It announces today's finished work, hours and MVP, then makes a shareable card (PNG).
 - **⚡ Quick replies**: answer a staff question within a minute and they cheer "👍 Quick!" with bonus funds. Keep answering fast for a 🔗 combo.
 - **🎨 Decorate floors**: spend the funds you earn from finished work on props for each project's floor. Each animal has favorites. No real payments.
+- **🍩 Snacks & 🍖 team dinner**: pick a floor on the 🎨 decorate panel to buy its staff ☕ coffee, 🍩 a donut, 🍕 pizza or 🍰 cake (two per staff a day). The snack sits on the desk and gets eaten a few bites at a time. In the evening the 📋 daily report lets everyone go up for a rooftop barbecue, and the next day a dinner photo hangs on 1F.
 - **🎰 Capsule machine**: drop funds into the machine on 1F, turn the handle, and a capsule rolls out and pops open: staff accessories (hats, sunglasses…), desk toys, or a "job application" that unlocks a locked animal. Everything goes into a collection on the decorate panel, and duplicates refund part of the cost.
 - **📔 Sightings**: the first time you spot a tiny detail, it gets stamped and you earn 💰+5. The 📖 dex shows the 29 scenes you've seen and hints for the rest.
 - **😴 Naps & 🍱 lunch**: staff who've been idle a while start nodding off, then sleep on the desk, and jump awake ❗ when work comes back. At noon, idle staff eat a bento, ramen, onigiri or sandwich at their desks, then doze off after lunch.
 - **🎲 Random events**: every now and then someone drops by unannounced: a 🍕 pizza courier, a 📦 mystery box, a 🐈 lost kitten, a 🖨️ jammed printer, a 🎈 balloon, or (rarely, at night) a 🌠 shooting star. Click them for a small bonus in funds (up to 5 a day).
 - **Subagent meetings**: subagents show up as baby animals in the meeting room, writing tasks on the whiteboard and checking them off. A baby that finishes carries a result envelope over to its parent.
+- **✍️ AI-written boards**: turn on Settings → AI tools → MCP reports and the AI writes its plan on that floor's whiteboard, ticking off lines as it goes. The board is wiped a little after the work ends.
 - **🔕 Meeting mode**: no sound, no flashing. It also follows your OS "reduce motion" setting.
 - **In-app updates**: you get a notice when a new version is out. It downloads only when you click, and verifies the signature before installing.
 - **Korean and English**: follows your OS language, changeable in Settings.
