@@ -60,10 +60,10 @@ Looks too much like a game at the office? Press <b>⌃Q</b> (Windows <b>Alt+`</b
 </td>
 </tr>
 <tr>
-<td width="44%" align="center"><img src="docs/assets/en/modes.png" width="420" alt="Hamster · Scoreboard · Orbit · Work modes"></td>
-<td width="56%" valign="middle">
-<h3>🎨 More views</h3>
-Besides Studio there's 🐹 Hamster (one hamster per session), 🏟️ Scoreboard (sports broadcast), 🪐 Orbit (a limit sun with session planets), 💼 Work (an observability dashboard), 🌊 Flow (the AI's train of thought) and 📌 Pocket (a small widget). Switch with number keys, or <a href="MODES.md">build your own mode</a>. (Studio is fully in English; the other views still show Korean text.)
+<td colspan="2" valign="middle">
+<h3>🤝 Meeting room & result envelopes</h3>
+When the AI hands work to subagents, that floor turns into a meeting room. Baby staff take the mint meeting chairs and their tasks go up on the whiteboard. A baby who finishes carries a ✉️ result envelope to the parent at the whiteboard ("📨 Oh, thanks!"), then heads back to rest with a donut. Once the last envelope is in, everyone cheers.
+<p align="center"><img src="docs/assets/en/meeting.gif" width="690" alt="Meeting room — a subagent baby finishes and hands a result envelope to its parent"></p>
 </td>
 </tr>
 <tr>
@@ -74,6 +74,8 @@ Look closer at Studio and small things keep showing up. The boss sits in a red e
 </td>
 </tr>
 </table>
+
+Besides Studio there are 🐹 Hamster, 🏟️ Scoreboard, 🪐 Orbit, 💼 Work, 🌊 Flow and 📌 Pocket views (these still show Korean text). Switch with number keys, or <a href="MODES.md">build your own mode</a>.
 
 ## Using it
 
