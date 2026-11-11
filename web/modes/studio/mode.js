@@ -4629,7 +4629,7 @@ function tinyBig(h) {
       const r = { f, F: fl.F, B: fl.B, meet: f.layout === "meet", cups: [] };
       if (!r.meet) {   // 🗂️ 책상 묶음: 서류 · 겉옷 · 깃발 · (로봇) 배터리·케이블·콘센트
         const cs = WB.pix(T_.ART.coat, 3, T_.COAT[f.animal] || "#7a7f8c");
-        { const hx = T_.COAT_X, hy = 48;   // 🧥 창문과 의자 사이 벽 옷걸이(#162) — 창문(~230)과 벽 1 꾸미기 칸(x 278~) 사이 양옆 6px(#165) · 출근 1시간 전엔 빈 옷걸이
+        { const hx = f.aib ? 220 : T_.COAT_X, hy = 48;   // 🧥 창문과 의자 사이 벽 옷걸이(#162) — 창문(~230)과 벽 1 꾸미기 칸(x 278~) 사이 양옆 6px(#165) · ✍️ AI 보드 층은 보드(~196) 오른쪽 220 · 출근 1시간 전엔 빈 옷걸이
         mkEl("div", "b", fl.F, { left: (hx - 12) + "px", top: hy + "px", width: "20px", height: "5px", background: "#8a6a4a", border: "2px solid #2e2040", zIndex: 5 }); mkEl("div", "b", fl.F, { left: (hx - 3) + "px", top: (hy + 9) + "px", width: "5px", height: "5px", background: "#2e2040", zIndex: 5 });
         r.coat = mkEl("img", "b tn-coat", fl.F, { left: (hx - cs.w / 2) + "px", top: (hy + 5) + "px", width: cs.w + "px", height: cs.h + "px", display: "none" }); r.coat.alt = ""; r.coat.src = cs.url; r.coat.draggable = false; }
         r.pile = mkEl("div", "b tn-pile", fl.F, { left: T_.PILE_X + "px", top: (fl.B - 26) + "px", display: "none" });
@@ -4640,7 +4640,7 @@ function tinyBig(h) {
       }
       if (fl.desk && f.animal === "oct") { fl.desk.hands.forEach(e => e.classList.add("tn-tent")); fl.desk.tent = mkEl("div", "b tn-tent", fl.F, { left: (DESK_X - 11) + "px", top: (fl.B - 39) + "px", width: "16px", height: "12px", background: "#b57be0", border: "3px solid #4a3560", zIndex: "11", display: "none" }); G.tents.push(fl.desk.tent); }   // 🐙 손 = 다리 끝 + 가운데 하나 더
       if (!r.meet) r.cups = T_.CUP_X.map((x, j) => { const p = WB.pix(T_.ART.cup, 2, T_.MUG[j]), e = mkEl("img", "b tn-cup", fl.F, { left: x + "px", top: (fl.B - 26 - p.h) + "px", width: p.w + "px", height: p.h + "px", display: "none" }); e.alt = ""; e.src = p.url; e.draggable = false; return e; });
-      r.cal = mkEl("div", "b tn-cal", fl.F, { left: (r.meet || f.aib ? 253 : 108) + "px", top: "42px", display: "none" });   // 📅 회의·AI 보드 층은 보드와 🎨 벽 1 사이, 책상 층은 겉옷 자리를 비켜 책장(~106)과 창문(140) 사이(#165)
+      r.cal = mkEl("div", "b tn-cal", fl.F, { left: (r.meet ? 253 : f.aib ? 244 : 108) + "px", top: "42px", display: "none" });   // 📅 회의 층은 보드와 🎨 벽 1 사이, AI 보드 층은 겉옷 오른쪽, 책상 층은 겉옷 자리를 비켜 책장(~106)과 창문(140) 사이(#165)
       G.fl.push(r);
     });
   }
@@ -7404,12 +7404,12 @@ C.registerMode({
     /* ---------- ✍️ AI 보드(책상 층): 보드 · 마커 받침 · "✍️ AI가 씀" 딱지 (규칙은 WB 블록 aiTracker·aiRender) ---------- */
     function aiBoardBuild(F, B) {
       const w = {};
-      w.board = box(F, 30, 28, 220, 84, "var(--wb)", { border: "3px solid #4a3560", zIndex: 4 });
-      box(F, 27, 111, 226, 6, "#b8c4d4", { border: "2px solid #4a3560", zIndex: 5 });
-      w.mks = [0, 1].map(k => box(F, 196 + k * 18, 106, 12, 5, k ? "#2e2040" : "#2a62c9", { border: "1px solid #2e2040", zIndex: 6 }));   // 오른쪽 끝 받침: 쓰는 마커만 빠짐
-      w.el = mkEl("div", "b wbx", F, { left: "33px", top: "31px", width: "214px", height: "78px", zIndex: 5, overflow: "hidden" });
+      w.board = box(F, 6, 28, 184, 84, "var(--wb)", { border: "3px solid #4a3560", zIndex: 4 });   // 6~196(#165: 오른쪽에 🧥 겉옷 202~238 · 📅 달력 244~ · 🎨 벽 1 278~)
+      box(F, 3, 111, 190, 6, "#b8c4d4", { border: "2px solid #4a3560", zIndex: 5 });
+      w.mks = [0, 1].map(k => box(F, 142 + k * 18, 106, 12, 5, k ? "#2e2040" : "#2a62c9", { border: "1px solid #2e2040", zIndex: 6 }));   // 오른쪽 끝 받침: 쓰는 마커만 빠짐
+      w.el = mkEl("div", "b wbx", F, { left: "9px", top: "31px", width: "178px", height: "78px", zIndex: 5, overflow: "hidden" });
       w.el.dataset.aicap = "1";
-      w.tag = mkEl("div", "b aiw", F, { left: "36px", top: "103px", zIndex: 7 }, "✍️ " + X("AI가 씀", "AI wrote"));   // 보드 받침에 붙인 딱지
+      w.tag = mkEl("div", "b aiw", F, { left: "12px", top: "103px", zIndex: 7 }, "✍️ " + X("AI가 씀", "AI wrote"));   // 보드 받침에 붙인 딱지
       const cs = WB.pix(WB.ART.cap, 3); w.cap = mkEl("img", "b", F, { zIndex: 12, display: "none", width: cs.w + "px", height: cs.h + "px" }); w.cap.alt = ""; w.cap.src = cs.url;
       return w;
     }
@@ -7418,12 +7418,12 @@ C.registerMode({
       if (!Bd) { html(w.el, ""); return; }
       const erase = off != null && now >= off ? (now - off) / AIB_ERASE : null;
       w.el.dataset.aicap = f.sid;
-      html(w.el, WB.aiRender(Bd, tc, { x: 3, w: 208, lh: 18, pt: 3, rows: 4, still, hide: cfg.hideText, an: f.animal, sc: 3, H: 78, erase }));
+      html(w.el, WB.aiRender(Bd, tc, { x: 3, w: 172, lh: 18, pt: 3, rows: 4, still, hide: cfg.hideText, an: f.animal, sc: 3, H: 78, erase }));
       /* 받침대: 쓰는 동안 그 잉크 마커가 빠졌다가, 다 쓰면 돌아와 뚜껑이 딸깍(소리 없음) */
       const writing = !still && tc >= Bd.t0 && tc < Bd.end;
       sty(w.mks[0], "background", Bd.ink); sty(w.mks[0], "display", writing ? "none" : "block");
       const ck = WB.aiCap(Bd, tc, still);
-      if (ck != null) { const y = 106 - 9 + Math.round(ease(Math.min(1, ck / .7)) * 7); sty(w.cap, "display", "block"); sty(w.cap, "left", "198px"); sty(w.cap, "top", (ck > .7 ? 104 : y) + "px"); sty(w.cap, "transform", ck > .7 && ck < .85 ? "scaleY(.7)" : ""); }
+      if (ck != null) { const y = 106 - 9 + Math.round(ease(Math.min(1, ck / .7)) * 7); sty(w.cap, "display", "block"); sty(w.cap, "left", "144px"); sty(w.cap, "top", (ck > .7 ? 104 : y) + "px"); sty(w.cap, "transform", ck > .7 && ck < .85 ? "scaleY(.7)" : ""); }
       else sty(w.cap, "display", "none");
       sty(w.tag, "opacity", erase != null ? String(clamp(1 - erase, 0, 1)) : "1");
     }
