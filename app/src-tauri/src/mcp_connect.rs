@@ -1337,7 +1337,7 @@ mod tests {
         assert!(text.find("[mcp_servers.waitscape]") < text.find("[profiles.fast]"));
         assert!(text.contains("enabled_tools = [\"waitscape_status\", \"waitscape_board\"]"));
         assert!(
-            text.contains("env_vars = [\"ORCA_TERMINAL_HANDLE\", \"ORCA_WORKTREE_PATH\", \"CMUX_WORKSPACE_ID\", \"CMUX_SURFACE_ID\"]"),
+            text.contains("env_vars = [\"TERM_PROGRAM\", \"VSCODE_CRASH_REPORTER_PROCESS_TYPE\", \"__CFBundleIdentifier\", \"ORCA_TERMINAL_HANDLE\", \"ORCA_WORKTREE_PATH\", \"CMUX_WORKSPACE_ID\", \"CMUX_SURFACE_ID\"]"),
             "{text}"
         );
         assert!(text.contains("args = [\"mcp\", \"--reports\","));
@@ -1439,7 +1439,7 @@ mod tests {
         );
     }
 
-    /// #40: Orca 전(cmux 두 개만) 연결은 Stale → 다시 연결하면 Orca 두 이름만 더하고 사용자 항목은 그대로
+    /// #40·#176: Orca 전(cmux 두 개만) 연결은 Stale → 다시 연결하면 없는 이름(편집기 셋·Orca 둘)만 더하고 사용자 항목은 그대로
     #[test]
     fn codex_cmux_only_env_vars_is_stale() {
         let t = setup("codex-orca");
@@ -1456,7 +1456,7 @@ mod tests {
         let after = std::fs::read_to_string(&p.codex_config).unwrap();
         assert!(
             after.contains(
-                r#"env_vars = ["MY_PROXY", "CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID", "ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH"]"#
+                r#"env_vars = ["MY_PROXY", "CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID", "TERM_PROGRAM", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "__CFBundleIdentifier", "ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH"]"#
             ),
             "{after}"
         );
@@ -1464,7 +1464,13 @@ mod tests {
         assert_eq!(status(p, false)["clis"][1]["stale"], false);
         assert_eq!(
             Record::load(&p.record).clis["codex"].env_added,
-            ["ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH"]
+            [
+                "TERM_PROGRAM",
+                "VSCODE_CRASH_REPORTER_PROCESS_TYPE",
+                "__CFBundleIdentifier",
+                "ORCA_TERMINAL_HANDLE",
+                "ORCA_WORKTREE_PATH"
+            ]
         );
     }
 
@@ -1485,14 +1491,21 @@ mod tests {
         let after = std::fs::read_to_string(&p.codex_config).unwrap();
         assert!(
             after.contains(
-                r#"env_vars = ["MY_PROXY", { name = "CMUX_SURFACE_ID", source = "local" }, "ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID"]"#
+                r#"env_vars = ["MY_PROXY", { name = "CMUX_SURFACE_ID", source = "local" }, "TERM_PROGRAM", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "__CFBundleIdentifier", "ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID"]"#
             ),
             "원래 항목 순서·표 항목 보존 + 없는 이름만 더함:\n{after}"
         );
         let rec = Record::load(&p.record);
         assert_eq!(
             rec.clis["codex"].env_added,
-            ["ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID"],
+            [
+                "TERM_PROGRAM",
+                "VSCODE_CRASH_REPORTER_PROCESS_TYPE",
+                "__CFBundleIdentifier",
+                "ORCA_TERMINAL_HANDLE",
+                "ORCA_WORKTREE_PATH",
+                "CMUX_WORKSPACE_ID"
+            ],
             "우리가 더한 이름만 기록"
         );
         assert!(!rec.clis["codex"].env_created);

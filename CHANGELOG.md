@@ -7,6 +7,9 @@
 
 ## [Unreleased]
 
+### 추가
+- VS Code·Cursor·Windsurf에서 연 세션도 누르면 그 편집기 창으로 바로 가요(macOS). 통합 터미널과 Claude Code 확장 모두 되고, 하위 폴더에서 시작한 세션은 이미 열린 상위 폴더 창으로 가요. cmux에서 `code .`로 띄운 VS Code 세션이 cmux로 잘못 가던 것도 바로잡았어요. Codex는 연결을 한 번 다시 하면 돼요(jhkwim/waitscape#176)
+
 ## [0.9.1] - 2026-11-11
 
 ### 요약

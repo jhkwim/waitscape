@@ -1,9 +1,14 @@
 //! 멀티플렉서 이동 정보 (이슈 #37·#40) — 훅(wr-hook)·MCP 사이드카와 상태 엔진이 함께 쓴다 (Python: `mcp_report.py` `MUX`·`mux_term`·`mux_jump`).
 //!
 //! 멀티플렉서(세션이 도는 터미널 앱)마다 **어댑터 표**(`ADAPTERS`) 한 줄: 종류 이름, 읽을 env(허용 목록)와 필드, 필드별 형식 검증.
-//! 지금은 Orca·cmux 두 줄. 다른 앱은 공식 문서·실제 기기로 env와 ID 형식을 확인한 뒤 줄을 더한다.
+//! 지금은 편집기(VS Code 계열, #176)·Orca·cmux 세 줄. 다른 앱은 공식 문서·실제 기기로 env와 ID 형식을 확인한 뒤 줄을 더한다.
+//! - 편집기 줄은 `when`(이 env가 이 값일 때만)이 맞아야 쓰고, 맞으면 거기서 끝낸다(번들 id가 틀려도 아래 줄로 넘어가지 않음):
+//!   `TERM_PROGRAM=vscode`(통합 터미널) 또는 `VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost`(Claude Code 확장이 띄운 claude).
+//!   번들 id env가 아예 없으면(윈도우 등) 다음 줄로 넘어간다 — VS Code 터미널에서 띄운 Orca가 `TERM_PROGRAM`을 물려받아도 Orca 이동을 잃지 않게.
+//!   cmux·Orca에서 `code .`로 띄운 VS Code는 터미널에 `CMUX_*`·`ORCA_*`를 물려주므로 편집기 줄이 맨 앞이다.
+//!   기록하는 값은 `__CFBundleIdentifier`(macOS가 앱 실행 때 넣는 번들 id) 하나이고, 아는 편집기 번들 id만 받는다.
 //!
-//! - 읽는 환경 변수는 표에 적힌 것뿐 — Orca: `ORCA_TERMINAL_HANDLE`, `ORCA_WORKTREE_PATH` / cmux: `CMUX_WORKSPACE_ID`, `CMUX_SURFACE_ID`.
+//! - 읽는 환경 변수는 표에 적힌 것뿐 — 편집기: `TERM_PROGRAM`, `VSCODE_CRASH_REPORTER_PROCESS_TYPE`, `__CFBundleIdentifier` / Orca: `ORCA_TERMINAL_HANDLE`, `ORCA_WORKTREE_PATH` / cmux: `CMUX_WORKSPACE_ID`, `CMUX_SURFACE_ID`.
 //!   `ORCA_*TOKEN*`(에이전트 훅·실행 토큰), `CMUX_*TOKEN*`, `CMUX_SOCKET_PASSWORD`, 소켓 경로 같은 다른 값은 읽지도 기록하지도 않는다.
 //! - Orca 터미널 핸들은 `term_` + UUID(`8-4-4-4-12` 16진수) 또는 `term_` + 16진수 32자(원격 생성 핸들)만 받는다(Orca 1.4 소스에서 확인한 발급 형식).
 //!   런타임이 발급하는 값이라 Orca를 다시 켜면 바뀔 수 있다 → 앱이 worktree 경로로 다시 찾는다(`path`).
@@ -26,16 +31,24 @@ pub struct Adapter {
     pub kind: &'static str,
     /// 이 env만 읽는다
     pub fields: &'static [Field],
+    /// 비어 있지 않으면 이 (env, 값) 가운데 하나가 맞을 때만 이 줄을 쓰고, 맞으면 이 줄에서 끝낸다
+    pub when: &'static [(&'static str, &'static str)],
 }
 
 /// 어댑터 표 (위에서부터 먼저 맞는 것)
 pub const ADAPTERS: &[Adapter] = &[
+    Adapter {
+        kind: "vscode",
+        fields: &[("app", "__CFBundleIdentifier", true, editor_app_ok)],
+        when: &[("TERM_PROGRAM", "vscode"), ("VSCODE_CRASH_REPORTER_PROCESS_TYPE", "extensionHost")],
+    },
     Adapter {
         kind: "orca",
         fields: &[
             ("surface", "ORCA_TERMINAL_HANDLE", true, orca_handle_ok),
             ("path", "ORCA_WORKTREE_PATH", false, orca_path_ok),
         ],
+        when: &[],
     },
     Adapter {
         kind: "cmux",
@@ -43,12 +56,29 @@ pub const ADAPTERS: &[Adapter] = &[
             ("workspace", "CMUX_WORKSPACE_ID", true, cmux_id_ok),
             ("surface", "CMUX_SURFACE_ID", false, cmux_id_ok),
         ],
+        when: &[],
     },
 ];
 
+/// 아는 편집기 번들 id (macOS) → 표시 이름. VS Code · Insiders · Cursor · Windsurf
+pub const EDITORS: &[(&str, &str)] = &[
+    ("com.microsoft.VSCode", "VS Code"),
+    ("com.microsoft.VSCodeInsiders", "VS Code Insiders"),
+    ("com.todesktop.230313mzl4w4u92", "Cursor"),
+    ("com.exafunction.windsurf", "Windsurf"),
+];
+
+/// 편집기 번들 id로 받을 수 있는 값인가 (위 목록과 정확히 같을 때만)
+pub fn editor_app_ok(s: &str) -> bool {
+    EDITORS.iter().any(|(id, _)| *id == s)
+}
+
 /// 읽어도 되는 환경 변수 전부 (어댑터 표의 env 이름)
 pub fn env_allow() -> Vec<&'static str> {
-    ADAPTERS.iter().flat_map(|a| a.fields.iter().map(|f| f.1)).collect()
+    ADAPTERS
+        .iter()
+        .flat_map(|a| a.when.iter().map(|w| w.0).chain(a.fields.iter().map(|f| f.1)))
+        .collect()
 }
 
 fn uuid(s: &str) -> bool {
@@ -133,7 +163,17 @@ fn mux_value(a: &Adapter, get: impl Fn(&str, &str) -> Option<String>) -> Option<
 
 /// 환경 → 훅 이벤트의 `term` 값. `get`은 어댑터 표의 env 이름으로만 불린다
 pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Option<Value> {
-    ADAPTERS.iter().find_map(|a| mux_value(a, |_, env| get(env)))
+    for a in ADAPTERS {
+        if !a.when.is_empty() && !a.when.iter().any(|(env, want)| get(env).as_deref() == Some(*want)) {
+            continue;
+        }
+        let v = mux_value(a, |_, env| get(env));
+        // when이 맞았어도 필수 env가 아예 없으면(윈도우 등 번들 id가 없는 곳) 다음 줄로. 있는데 모르는 값이면 여기서 끝
+        if v.is_some() || (!a.when.is_empty() && a.fields.iter().all(|f| !f.2 || get(f.1).is_some_and(|v| !v.is_empty()))) {
+            return v;
+        }
+    }
+    None
 }
 
 /// 기록된 `term` 값 → 세션 `jump` 값 (표로 다시 검증, 모르는 종류·키는 버림)
@@ -177,7 +217,15 @@ mod tests {
     fn env_allowlist_only() {
         assert_eq!(
             env_allow(),
-            ["ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID"]
+            [
+                "TERM_PROGRAM",
+                "VSCODE_CRASH_REPORTER_PROCESS_TYPE",
+                "__CFBundleIdentifier",
+                "ORCA_TERMINAL_HANDLE",
+                "ORCA_WORKTREE_PATH",
+                "CMUX_WORKSPACE_ID",
+                "CMUX_SURFACE_ID"
+            ]
         );
         let asked = std::cell::RefCell::new(vec![]);
         let get = |k: &str| {
@@ -298,7 +346,15 @@ mod tests {
             from_env(get),
             Some(json!({"mux": {"kind": "orca", "surface": H, "path": "/Users/alex/dev/shop"}}))
         );
-        assert_eq!(*asked.borrow(), ["ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH"]);
+        assert_eq!(
+            *asked.borrow(),
+            [
+                "TERM_PROGRAM",
+                "VSCODE_CRASH_REPORTER_PROCESS_TYPE",
+                "ORCA_TERMINAL_HANDLE",
+                "ORCA_WORKTREE_PATH"
+            ]
+        );
         assert_eq!(
             from_env(|k| (k == "ORCA_TERMINAL_HANDLE").then(|| H.to_string())),
             Some(json!({"mux": {"kind": "orca", "surface": H}}))
@@ -334,6 +390,63 @@ mod tests {
         for c in cases {
             assert_eq!(jump_of(&c["term"]).unwrap_or(Value::Null), c["jump"], "{}", c["term"]);
         }
+    }
+
+    /// #176: VS Code 계열은 통합 터미널·확장 호스트 표시가 있을 때만, 번들 id 허용 목록만. 물려받은 cmux·Orca 값보다 먼저
+    #[test]
+    fn editor_first() {
+        let env = |pairs: &'static [(&'static str, &'static str)]| move |k: &str| pairs.iter().find(|p| p.0 == k).map(|p| p.1.to_string());
+        let vs = json!({"mux": {"kind": "vscode", "app": "com.microsoft.VSCode"}});
+        // 통합 터미널 (cmux에서 `code .`로 띄워 CMUX_* 를 물려받음)
+        assert_eq!(
+            from_env(env(&[
+                ("TERM_PROGRAM", "vscode"),
+                ("__CFBundleIdentifier", "com.microsoft.VSCode"),
+                ("CMUX_WORKSPACE_ID", "workspace:1")
+            ])),
+            Some(vs.clone())
+        );
+        // 확장 호스트: TERM_PROGRAM은 띄운 터미널 값(ghostty)이 물려옴
+        assert_eq!(
+            from_env(env(&[
+                ("TERM_PROGRAM", "ghostty"),
+                ("VSCODE_CRASH_REPORTER_PROCESS_TYPE", "extensionHost"),
+                ("__CFBundleIdentifier", "com.todesktop.230313mzl4w4u92"),
+                ("ORCA_TERMINAL_HANDLE", H),
+            ])),
+            Some(json!({"mux": {"kind": "vscode", "app": "com.todesktop.230313mzl4w4u92"}}))
+        );
+        // 편집기 안인데 번들 id를 모르면 아래 줄(물려받은 cmux)로 넘어가지 않고 없음
+        assert_eq!(
+            from_env(env(&[
+                ("TERM_PROGRAM", "vscode"),
+                ("__CFBundleIdentifier", "com.cmuxterm.app"),
+                ("CMUX_WORKSPACE_ID", "workspace:1")
+            ])),
+            None
+        );
+        // 편집기 표시는 있는데 번들 id가 아예 없으면(윈도우) 다음 줄 — VS Code 터미널에서 띄운 Orca
+        assert_eq!(
+            from_env(env(&[("TERM_PROGRAM", "vscode"), ("ORCA_TERMINAL_HANDLE", H)])),
+            Some(json!({"mux": {"kind": "orca", "surface": H}}))
+        );
+        // 편집기 표시가 없으면 번들 id가 있어도 편집기 아님
+        assert_eq!(
+            from_env(env(&[
+                ("TERM_PROGRAM", "ghostty"),
+                ("__CFBundleIdentifier", "com.microsoft.VSCode"),
+                ("CMUX_WORKSPACE_ID", "workspace:1")
+            ])),
+            Some(json!({"mux": {"kind": "cmux", "workspace": "workspace:1"}}))
+        );
+        for bad in ["", "com.microsoft.vscode", "com.microsoft.VSCode ", "com.apple.Terminal", "--app"] {
+            assert!(!editor_app_ok(bad), "{bad}");
+        }
+        assert_eq!(
+            jump_of(&json!({"mux": {"kind": "vscode", "app": "com.exafunction.windsurf", "x": 1}})),
+            Some(json!({"mux": {"kind": "vscode", "app": "com.exafunction.windsurf"}}))
+        );
+        assert_eq!(jump_of(&json!({"mux": {"kind": "vscode", "app": "com.apple.Terminal"}})), None);
     }
 
     #[test]

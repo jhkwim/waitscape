@@ -141,6 +141,12 @@ fn session_info(be: &Backend, sid: &str) -> Option<(String, Option<String>, bool
     let mux = s.pointer("/jump/mux/kind").and_then(Value::as_str).and_then(|k| match k {
         "cmux" => Some("cmux".to_string()),
         "orca" => Some("Orca".to_string()),
+        // 편집기(#176)는 macOS만 이동한다 — 번들 id로 이름(VS Code·Cursor 등)
+        "vscode" if cfg!(target_os = "macos") => s
+            .pointer("/jump/mux/app")
+            .and_then(Value::as_str)
+            .and_then(|a| wr_core::term::EDITORS.iter().find(|e| e.0 == a))
+            .map(|e| e.1.to_string()),
         _ => None,
     });
     let cwd = s.get("cwd").and_then(Value::as_str).is_some_and(|c| !c.is_empty());

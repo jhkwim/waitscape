@@ -61,6 +61,11 @@ new Function(fs.readFileSync(path.join(__dirname, "..", "web/core/core-lib.js"),
 const M = window.CoreLib.muxName;
 assert.strictEqual(M({ jump: { mux: { kind: "cmux" } } }), "cmux"); assert.strictEqual(M({ jump: { mux: { kind: "orca" } } }), "Orca");
 assert.strictEqual(M({ jump: { mux: { kind: "tmux" } } }), ""); assert.strictEqual(M({}), ""); assert.strictEqual(M(null), "");
+// 편집기(#176): 번들 id로 이름, 모르는 번들·번들 없음은 이동 버튼 없음
+assert.strictEqual(M({ jump: { mux: { kind: "vscode", app: "com.microsoft.VSCode" } } }), "VS Code");
+assert.strictEqual(M({ jump: { mux: { kind: "vscode", app: "com.todesktop.230313mzl4w4u92" } } }), "Cursor");
+assert.strictEqual(M({ jump: { mux: { kind: "vscode", app: "com.exafunction.windsurf" } } }), "Windsurf");
+assert.strictEqual(M({ jump: { mux: { kind: "vscode", app: "com.apple.Terminal" } } }), ""); assert.strictEqual(M({ jump: { mux: { kind: "vscode" } } }), "");
 // 창 안 단축키: ⌘1(맥)·Ctrl+1(그 밖) = 눈치 모드, 수식키 없는 1~9 = 모드 전환, B = 눈치 모드, 쉼표 = 설정, 입력란은 무시
 const k = (key, o = {}) => Object.assign({ key, code: /^[0-9]$/.test(key) ? "Digit" + key : "", metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, target: { tagName: "DIV" } }, o);
 assert.strictEqual(N.hotkey(k("1", { metaKey: true }), true), "nunchi");

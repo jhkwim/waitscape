@@ -66,8 +66,9 @@ def test_sanitize(srv):
 
 
 def no_cmux_env():
-    """이 테스트를 cmux·Orca 안에서 돌려도 골든이 바뀌지 않게 CMUX_*·ORCA_* 를 뺀 환경"""
-    return {k: v for k, v in os.environ.items() if not k.startswith(("CMUX_", "ORCA_"))}
+    """이 테스트를 cmux·Orca·VS Code 안에서 돌려도 골든이 바뀌지 않게 어댑터가 보는 env(CMUX_*·ORCA_*·편집기 표시·번들 id)를 뺀 환경"""
+    return {k: v for k, v in os.environ.items()
+            if not k.startswith(("CMUX_", "ORCA_")) and k not in ("TERM_PROGRAM", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "__CFBundleIdentifier")}
 
 
 def test_cmux():
@@ -105,7 +106,8 @@ def test_cmux():
 
     t = MR.mux_term(Spy(CMUX_WORKSPACE_ID="workspace:1", CMUX_SURFACE_ID="surface:2", CMUX_SOCKET_PASSWORD="pw"))
     check(t == {"mux": {"kind": "cmux", "workspace": "workspace:1", "surface": "surface:2"}}, "mux_term %r" % t)
-    check(MR.MUX_ENV == ("ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID"), "허용 목록 %r" % (MR.MUX_ENV,))
+    check(MR.MUX_ENV == ("TERM_PROGRAM", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "__CFBundleIdentifier", "ORCA_TERMINAL_HANDLE",
+                         "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID"), "허용 목록 %r" % (MR.MUX_ENV,))
     check(set(Spy.asked) <= set(MR.MUX_ENV), "허용 목록 밖 env를 조회함: %r" % Spy.asked)
     check(MR.mux_jump({"mux": {"kind": "cmux", "workspace": "workspace:1", "surface": "x y", "token": "t"}})
           == {"mux": {"kind": "cmux", "workspace": "workspace:1"}}, "mux_jump 재검증")
@@ -115,7 +117,18 @@ def test_cmux():
     t = MR.mux_term(Spy(ORCA_TERMINAL_HANDLE=H, ORCA_WORKTREE_PATH="/Users/alex/dev/shop", ORCA_AGENT_HOOK_TOKEN="tok",
                         ORCA_AGENT_LAUNCH_TOKEN="tok2", ORCA_TAB_ID="tab", ORCA_PANE_KEY="pane"))
     check(t == {"mux": {"kind": "orca", "surface": H, "path": "/Users/alex/dev/shop"}}, "orca mux_term %r" % t)
-    check(Spy.asked == ["ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH"], "orca 조회 %r" % Spy.asked)
+    check(Spy.asked == ["TERM_PROGRAM", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH"], "orca 조회 %r" % Spy.asked)
+    # 편집기(#176): 통합 터미널·확장 호스트 표시가 있을 때만, 아는 번들 id만. 물려받은 cmux·Orca보다 먼저, 모르는 번들 id면 아래로 넘어가지 않음
+    VS = {"mux": {"kind": "vscode", "app": "com.microsoft.VSCode"}}
+    check(MR.mux_term({"TERM_PROGRAM": "vscode", "__CFBundleIdentifier": "com.microsoft.VSCode", "CMUX_WORKSPACE_ID": "workspace:1"}) == VS, "vscode 터미널")
+    check(MR.mux_term({"TERM_PROGRAM": "ghostty", "VSCODE_CRASH_REPORTER_PROCESS_TYPE": "extensionHost",
+                       "__CFBundleIdentifier": "com.exafunction.windsurf", "ORCA_TERMINAL_HANDLE": H})
+          == {"mux": {"kind": "vscode", "app": "com.exafunction.windsurf"}}, "확장 호스트")
+    check(MR.mux_term({"TERM_PROGRAM": "vscode", "__CFBundleIdentifier": "com.cmuxterm.app", "CMUX_WORKSPACE_ID": "workspace:1"}) is None, "모르는 편집기")
+    check(MR.mux_term({"TERM_PROGRAM": "ghostty", "__CFBundleIdentifier": "com.microsoft.VSCode", "CMUX_WORKSPACE_ID": "workspace:1"})
+          == {"mux": {"kind": "cmux", "workspace": "workspace:1"}}, "편집기 표시 없음")
+    check(MR.mux_jump({"mux": {"kind": "vscode", "app": "com.apple.Terminal"}}) is None, "vscode 재검증")
+    check(MR.mux_term({"TERM_PROGRAM": "vscode", "ORCA_TERMINAL_HANDLE": H}) == {"mux": {"kind": "orca", "surface": H}}, "번들 id 없음 → 다음 줄")
     # 파이썬만 생기는 서로게이트(비 UTF-8 env)는 경로로 받지 않음 — Rust는 그런 env를 아예 읽지 못함
     check(MR.mux_term({"ORCA_TERMINAL_HANDLE": H, "ORCA_WORKTREE_PATH": "/a\udcffb"}) == {"mux": {"kind": "orca", "surface": H}}, "서로게이트 경로")
     for bad in (None, "mux", {"mux": "workspace:1"}, {"mux": {"kind": "cmux", "workspace": 3}}, {"mux": {"kind": "cmux", "workspace": "-x"}},

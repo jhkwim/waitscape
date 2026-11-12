@@ -222,22 +222,29 @@ interface CoreApi {
 |---|---|---|---|
 | macOS Terminal.app | AppleScript: tty가 일치하는 tab을 `selected`로 바꾸고 창을 앞으로 | 탭 단위 | [추정: Terminal 스크립팅 사전의 `tab.tty` 속성] |
 | iTerm2 | AppleScript: `ITERM_SESSION_ID`의 uuid와 같은 `session.id`를 select | 세션(분할 창) 단위 | [추정] |
-| VS Code / Cursor 내장 터미널 | `code -r <cwd>`(또는 `open -a … <cwd>`)로 그 폴더 창을 앞으로 | 창 단위(터미널 패널 선택 불가) | [추정] |
+| VS Code / Cursor / Windsurf (내장 터미널·Claude Code 확장) | 편집기 어댑터(#176, 아래): 열린 창 목록에서 고른 폴더를 `open -b <번들 id> <폴더>` | 창 단위(터미널 패널 선택 불가) | VS Code 1.146 실기기 |
 | Ghostty / WezTerm / 기타 | 앱 활성화만 | 앱 단위 | [추정] |
 | Windows Terminal | 창 활성화(`SetForegroundWindow`). 탭 지정은 공개 API가 없음 | 창 단위 | [추정] |
 | 훅 없음 | "이 폴더에서 새 터미널 열기" (mac `open -a Terminal <cwd>`, win `wt -d <cwd>`) | — | [추정] |
 
-**멀티플렉서 어댑터 (#37 cmux · #40 Orca, 구현됨)** — 세션이 멀티플렉서(여러 워크스페이스·패널·터미널을 가진 앱) 안에서 돌면 그 자리로 바로 간다.
+**멀티플렉서 어댑터 (#37 cmux · #40 Orca · #176 편집기, 구현됨)** — 세션이 멀티플렉서(여러 워크스페이스·패널·터미널을 가진 앱) 안에서 돌면 그 자리로 바로 간다.
 - 어댑터 표 하나(`wr-core/src/term.rs` `ADAPTERS` ↔ `mcp_report.py` `MUX`): 종류(kind), 읽을 env(허용 목록)와 필드, **필드별** 형식 검증. 위에서부터 먼저 맞는 줄:
   | kind | env (허용 목록) → 필드 | 형식 |
   |---|---|---|
+  | `vscode` | `TERM_PROGRAM=vscode` 또는 `VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost`일 때만(`when`) · `__CFBundleIdentifier` 필수 → `app` | 번들 id 허용 목록(`EDITORS`: VS Code·Insiders·Cursor `com.todesktop.230313mzl4w4u92`·Windsurf `com.exafunction.windsurf`). `when`이 맞으면 이 줄에서 끝(번들 id가 틀려도 아래로 안 감) |
   | `orca` | `ORCA_TERMINAL_HANDLE` 필수 → `surface`, `ORCA_WORKTREE_PATH` 선택 → `path` | 핸들 = `term_` + UUID 또는 `term_` + 16진수 32자(Orca 1.4 소스의 발급 형식), 경로 = 절대 경로(`/…`, 윈도우 `C:\…`·`C:/…`·UNC `\\server\share…`·`\\?\C:\…`·`\\?\UNC\server\share…` — #61. `C:foo`·`dev\shop` 같은 상대 경로, `\\.\` 장치 경로, `\\?\GLOBALROOT\…`는 아님)·1–1024자·제어 문자 없음 |
   | `cmux` | `CMUX_WORKSPACE_ID` 필수 → `workspace`, `CMUX_SURFACE_ID` 선택 → `surface` | UUID 또는 `workspace:2` 같은 짧은 참조 |
 
   표에 없는 env(`ORCA_AGENT_HOOK_TOKEN`·`ORCA_AGENT_LAUNCH_TOKEN` 같은 토큰류, `ORCA_WORKTREE_ID`·`ORCA_WORKSPACE_ID`·`ORCA_TAB_ID`·`ORCA_PANE_KEY`, `CMUX_*TOKEN*`, `CMUX_SOCKET_PASSWORD`, 소켓 경로 등)는
   읽지도 기록하지도 않는다. Orca가 먼저인 까닭: cmux 셸에서 Orca를 띄우면 Orca 터미널이 `CMUX_*`를 물려받을 수 있지만 `ORCA_TERMINAL_HANDLE`은 Orca 터미널 안에서만 생긴다.
+  편집기가 맨 앞인 까닭: cmux·Orca 셸에서 `code .`로 띄운 VS Code는 통합 터미널·확장 호스트에 `CMUX_*`·`ORCA_*`를 물려준다(VS Code 1.146에서 확인). `TERM_PROGRAM=vscode`는 통합 터미널이 직접 넣고,
+  확장 호스트(Claude Code 확장이 claude를 띄우는 곳)는 `TERM_PROGRAM`이 띄운 터미널 값이라 `VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost`로 안다. 번들 id는 Dock·`open`·`code .` 어느 쪽으로 띄워도 그 편집기 값.
+  번들 id env가 아예 없으면(윈도우 등) 다음 줄로 넘어간다(VS Code 터미널에서 띄운 Orca가 `TERM_PROGRAM`을 물려받아도 Orca 이동 유지). 목록 밖 VS Code 계열(VSCodium 등)은 기록하지 않는다.
+  앱(`jump_editor`, macOS): `open -b <번들 id> <폴더>`. 열린 폴더면 그 창, 하위 폴더면 새 창이 생기므로 폴더는 `editor_folder`가 고른다 — 세션 cwd가 git 저장소 루트·저장소 밖이면 cwd,
+  하위 폴더면 편집기 창 목록(`storage.json` `windowsState`, 읽기만)에서 루트 ~ cwd 사이의 가장 깊은 창, 없으면 루트. 창 목록은 늦게 저장된다(켠 직후의 창은 다음 창 이벤트·종료 때, 닫은 창이 `lastActiveWindow`로 남음 — 1.146 확인)
+  그래서 루트 위쪽 항목은 쓰지 않는다. `.code-workspace` 창은 폴더가 아니라 고르지 않는다. 열기가 실패하면 원래 방식(`command_for`).
   다른 앱은 공식 문서·실기기로 env·ID 형식을 확인한 뒤 줄을 더한다.
-- 훅(`wr-hook`·`hook.py`)은 모든 이벤트 끝에 `term: {mux: {kind, …필드}}`(cmux `{kind, workspace, surface?}` · Orca `{kind, surface, path?}`)를 붙인다(맞는 값이 있을 때만). MCP 사이드카(`wr-hook mcp`)도 기록 줄마다 같은 `term`.
+- 훅(`wr-hook`·`hook.py`)은 모든 이벤트 끝에 `term: {mux: {kind, …필드}}`(편집기 `{kind: "vscode", app}` · cmux `{kind, workspace, surface?}` · Orca `{kind, surface, path?}`)를 붙인다(맞는 값이 있을 때만). MCP 사이드카(`wr-hook mcp`)도 기록 줄마다 같은 `term`.
   리더(`server.py`·wr-core)는 같은 표로 **다시 검증**해 세션 `jump.mux`에 마지막 올바른 값을 둔다(서브에이전트 이벤트 포함, 모르는 kind·키는 버림). 골든 `fixtures/mux/term_cases.json`.
 - 앱(`terminal.rs`): 설정이 `auto`이거나 세션 kind와 같으면 kind별 명령 생성 함수(`mux_cmds` → `cmux_cmds` · `orca_cmds`)가 만든 명령을 셸 없이 인자 배열·명령마다 3초 제한으로 실행한다.
   cmux = 번들 CLI(`/Applications/cmux.app/Contents/Resources/bin/cmux`, `~/Applications`도; PATH는 보지 않음) `select-workspace --workspace <w>` → `focus-panel --panel <s> --workspace <w>`

@@ -52,6 +52,10 @@ cargo tauri build --target universal-apple-darwin   # 배포용 universal (.app�
   (`ORCA_AGENT_HOOK_TOKEN` 같은 토큰은 읽지 않음). Orca를 다시 켜서 터미널 핸들이 바뀌었으면 그 worktree의 터미널 목록에서 다시 찾고(에이전트가 도는 창 → 최근 출력 순),
   못 찾으면 Orca만 앞으로, Orca가 꺼져 있으면 Orca를 열고, 그래도 안 되면 경로를 복사하고 이유를 알린다. Codex는 `env_vars`에 두 이름을 더 넣는다(이미 연결한 Codex는 "다시 연결").
   macOS·Windows 모두(#54): Orca 위치는 실행 중인 Orca → 설치 정보(윈도우 레지스트리·맥 Spotlight) → 기본 설치 경로 순으로 찾아, 어디에 설치했든 동작한다
+- **VS Code·Cursor·Windsurf로 바로 이동**(앱, macOS, #176): 통합 터미널이나 Claude Code 확장에서 연 세션도 같은 자리를 누르면 그 편집기 창으로 간다("VS Code로 이동").
+  훅은 `TERM_PROGRAM=vscode` 또는 `VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost`일 때 `__CFBundleIdentifier`(번들 id) **하나만**, 아는 편집기 4개일 때만 기록한다.
+  cmux·Orca에서 `code .`로 띄운 VS Code가 물려받은 `CMUX_*`·`ORCA_*`보다 먼저다. 앱은 `open -b <번들 id> <폴더>` — 폴더는 저장소 루트·저장소 밖이면 세션 폴더,
+  하위 폴더면 편집기 창 목록(storage.json, 읽기만)에서 루트 ~ 세션 폴더 사이의 창, 없으면 루트. 편집기 안의 터미널 탭까지는 가지 않는다. Codex는 `env_vars`에 세 이름을 더한다("다시 연결")
 - **일하는 중에도 이동**(앱): 스튜디오에서 직원의 층 이름표·단계 명패, 미니 보기의 이름표 칩을 누르면 그 세션으로 간다(Orca·cmux면 그 자리, 아니면 폴더 열기).
   마우스를 올리면 하단 캡션에 "🖥️ Orca로 이동" 등. 직원·모니터를 누르는 반응은 그대로
   숨은 **이스터에그 8개**는 도감에 🥚 n/8로 모이고(못 찾은 건 힌트만), 회의 모드·움직임 줄이기면 말풍선만, 소리는 🔊일 때만. 미니 보기에서도 같은 반응(누르는 자리를 끌면 창이 움직임).
@@ -380,7 +384,7 @@ MCP 세션의 끝난 일도 오늘 완료 수와 퇴근 일보에 들어가고(`
   | 도구 | 바꾸는 곳 |
   |---|---|
   | Claude Code | `claude mcp add -s user waitscape …`(아래와 같은 명령) + "이 두 도구만 확인 없이 실행"(기본 체크) → `settings.json` `permissions.allow` |
-  | Codex CLI | `~/.codex/config.toml`(`CODEX_HOME`) `[mcp_servers.waitscape]` — `command`, `args = ["mcp", "--reports", <절대 경로>]`, `enabled_tools`(도구 2개), `env_vars = ["ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID"]`(Orca·cmux 이동용, 값이 없으면 아무것도 안 넘어감) |
+  | Codex CLI | `~/.codex/config.toml`(`CODEX_HOME`) `[mcp_servers.waitscape]` — `command`, `args = ["mcp", "--reports", <절대 경로>]`, `enabled_tools`(도구 2개), `env_vars = ["TERM_PROGRAM", "VSCODE_CRASH_REPORTER_PROCESS_TYPE", "__CFBundleIdentifier", "ORCA_TERMINAL_HANDLE", "ORCA_WORKTREE_PATH", "CMUX_WORKSPACE_ID", "CMUX_SURFACE_ID"]`(편집기·Orca·cmux 이동용, 값이 없으면 아무것도 안 넘어감) |
   | Antigravity CLI | `~/.gemini/config/mcp_config.json` `mcpServers.waitscape` — `command`, `args`, `enabledTools`(도구 2개) |
 
   Gemini CLI는 Antigravity CLI로 대체되어 대상에서 뺐다. 연결 기록: `~/.claude/waiting-room/mcp-connect.json`

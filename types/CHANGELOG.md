@@ -68,6 +68,11 @@
 - `InboxItem.test?` (추가만) — 완료 항목에 그 결과를 싣는다
 - 완료 OS 알림 본문 앞에 `🧪✓`/`🧪✗`/`🧪`, 눈치 모드 완료 문구 뒤 " · 테스트 통과/실패/실행"
 
+## 1.10 (예정, 편집기 이동 jhkwim/waitscape#176)
+- state: `Jump.mux`에 `kind: "vscode"` 형태 추가 = `{ kind: "vscode", app }` — `app`은 편집기 번들 id(VS Code·Insiders·Cursor·Windsurf 허용 목록, macOS) (추가만, 모르는 kind는 무시하던 모드는 그대로)
+- `Core.muxName(session)`이 편집기 세션에 "VS Code"·"VS Code Insiders"·"Cursor"·"Windsurf"를 돌려줌(번들 id를 모르면 "")
+- 훅 이벤트(events.jsonl) `term.mux`: 편집기 표시(`TERM_PROGRAM=vscode` 또는 확장 호스트)일 때 `{kind: "vscode", app}`. 읽는 env에 `TERM_PROGRAM`·`VSCODE_CRASH_REPORTER_PROCESS_TYPE`·`__CFBundleIdentifier` 추가(값은 번들 id만 기록)
+
 ## 1.8 (예정, 관제 인박스 jhkwim/waitscape#126)
 - `CoreLib.inboxQueue(sessions, now, seen?)` · `CoreLib.INBOX_KINDS` (추가만) — 지금 사람 손이 필요한 세션 순서(🔑 권한 → ❓ 질문 → 💤 멈춤 → ✉️ 확인 안 한 완료, 같은 종류는 오래 기다린 순). 추정(`confidence: "guess"`)·idle은 넣지 않음. 외부 모드도 씀
 - `Core.inbox` (@trusted, 코어가 본 항목을 기억): `list()` · `go()`(N) · `skip()`(Shift+N) · `mark(sid)`. 이벤트 `inbox`(목록이 바뀜) · `inbox-go`(N으로 고른 항목 — 모드가 그 직원을 보여 줌)
