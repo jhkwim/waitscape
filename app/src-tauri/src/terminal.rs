@@ -422,7 +422,15 @@ pub fn jump_mux(c: &MuxCmds, run: impl Fn(&Path, &[String]) -> Result<String, St
 /// `os` = `std::env::consts::OS`: cmux는 macOS만, Orca는 macOS·Windows(#54)
 /// 편집기(vscode)는 macOS만이고, 설정에서 VS Code·Cursor를 고른 사용자도 그 세션의 편집기 창으로 간다
 pub fn route<'a>(pref: &str, mux: Option<&'a Mux>, os: &str) -> Option<&'a Mux> {
-    let editor_pref = |m: &Mux| m.kind == "vscode" && matches!(pref, "Visual Studio Code" | "Cursor");
+    // 설정에서 고른 편집기와 그 세션의 편집기가 같을 때만(다르면 고른 앱으로 폴더 열기)
+    let editor_pref = |m: &Mux| {
+        m.kind == "vscode"
+            && matches!(
+                (pref, m.app.as_deref()),
+                ("Visual Studio Code", Some("com.microsoft.VSCode" | "com.microsoft.VSCodeInsiders"))
+                    | ("Cursor", Some("com.todesktop.230313mzl4w4u92"))
+            )
+    };
     mux.filter(|m| (pref == "auto" || pref == m.kind || editor_pref(m)) && (os == "macos" || (os == "windows" && m.kind == "orca")))
 }
 
@@ -1259,6 +1267,7 @@ mod tests {
         let m = mux(W, None);
         let o = Mux::of(&json!({"mux": {"kind": "orca", "surface": H}})).unwrap();
         let v = Mux::of(&json!({"mux": {"kind": "vscode", "app": "com.microsoft.VSCode"}})).unwrap();
+        let cur = Mux::of(&json!({"mux": {"kind": "vscode", "app": "com.todesktop.230313mzl4w4u92"}})).unwrap();
         for (pref, mx, os, want) in [
             ("auto", &m, "macos", true),
             ("cmux", &m, "macos", true),
@@ -1273,7 +1282,9 @@ mod tests {
             ("auto", &o, "linux", false),
             ("auto", &v, "macos", true),
             ("Visual Studio Code", &v, "macos", true),
-            ("Cursor", &v, "macos", true),
+            ("Cursor", &v, "macos", false),
+            ("Cursor", &cur, "macos", true),
+            ("Visual Studio Code", &cur, "macos", false),
             ("iTerm", &v, "macos", false),
             ("auto", &v, "windows", false),
         ] {

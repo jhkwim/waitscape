@@ -169,7 +169,7 @@ pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Option<Value> {
         }
         let v = mux_value(a, |_, env| get(env));
         // when이 맞았어도 필수 env가 아예 없으면(윈도우 등 번들 id가 없는 곳) 다음 줄로. 있는데 모르는 값이면 여기서 끝
-        if v.is_some() || (!a.when.is_empty() && a.fields.iter().all(|f| !f.2 || get(f.1).is_some())) {
+        if v.is_some() || (!a.when.is_empty() && a.fields.iter().all(|f| !f.2 || get(f.1).is_some_and(|v| !v.is_empty()))) {
             return v;
         }
     }
