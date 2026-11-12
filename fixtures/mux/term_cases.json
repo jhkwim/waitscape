@@ -1,5 +1,5 @@
 {
- "$comment": "멀티플렉서 이동 정보 골든(#37 cmux · #40 Orca): 같은 훅 입력(in)을 env별로 hook.py와 wr-hook(summarize + with_term)이 같은 줄(ts=0.5 고정)로 써야 한다. 어댑터 표의 env(ORCA_TERMINAL_HANDLE·ORCA_WORKTREE_PATH·CMUX_WORKSPACE_ID·CMUX_SURFACE_ID) 말고 다른 env(가짜 토큰·비밀번호·소켓 경로·Orca 탭/패널/작업공간 ID)는 기록되면 안 된다. 둘 다 있으면 Orca가 먼저. scripts/test_mcp_reports.py · wr-hook 테스트 jump_cases: 기록된 term → 세션 jump (server.py mux_jump = wr-core term::jump_of 재검증).",
+ "$comment": "멀티플렉서 이동 정보 골든(#37 cmux · #40 Orca): 같은 훅 입력(in)을 env별로 hook.py와 wr-hook(summarize + with_term)이 같은 줄(ts=0.5 고정)로 써야 한다. 어댑터 표의 env(TERM_PROGRAM·VSCODE_CRASH_REPORTER_PROCESS_TYPE·__CFBundleIdentifier·ORCA_TERMINAL_HANDLE·ORCA_WORKTREE_PATH·CMUX_WORKSPACE_ID·CMUX_SURFACE_ID) 말고 다른 env(가짜 토큰·비밀번호·소켓 경로·Orca 탭/패널/작업공간 ID)는 기록되면 안 된다. 편집기(#176, TERM_PROGRAM=vscode 또는 확장 호스트일 때만) → Orca → cmux 순. scripts/test_mcp_reports.py · wr-hook 테스트 jump_cases: 기록된 term → 세션 jump (server.py mux_jump = wr-core term::jump_of 재검증).",
  "in": {
   "session_id": "s1",
   "cwd": "/Users/alex/dev/shop",
@@ -325,6 +325,34 @@
     "CMUX_SURFACE_ID": "surface:8"
    },
    "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"cmux\", \"workspace\": \"workspace:7\", \"surface\": \"surface:8\"}}}"
+  },
+  {
+   "env": {
+    "TERM_PROGRAM": "vscode",
+    "__CFBundleIdentifier": "com.microsoft.VSCode",
+    "CMUX_WORKSPACE_ID": "workspace:3",
+    "CMUX_SOCKET_PASSWORD": "pw-not-recorded-9",
+    "VSCODE_GIT_IPC_HANDLE": "/tmp/vscode-git-not-recorded.sock"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"vscode\", \"app\": \"com.microsoft.VSCode\"}}}"
+  },
+  {
+   "env": {
+    "TERM_PROGRAM": "ghostty",
+    "VSCODE_CRASH_REPORTER_PROCESS_TYPE": "extensionHost",
+    "__CFBundleIdentifier": "com.todesktop.230313mzl4w4u92",
+    "ORCA_TERMINAL_HANDLE": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+    "VSCODE_IPC_HOOK": "/tmp/vscode-ipc-not-recorded.sock"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"vscode\", \"app\": \"com.todesktop.230313mzl4w4u92\"}}}"
+  },
+  {
+   "env": {
+    "TERM_PROGRAM": "vscode",
+    "__CFBundleIdentifier": "com.example.notrecorded",
+    "CMUX_WORKSPACE_ID": "workspace:4"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
   }
  ],
  "jump_cases": [
@@ -974,6 +1002,38 @@
      "kind": "cmux",
      "surface": "term_3f2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
      "path": "/Users/alex/dev/shop"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "vscode",
+     "app": "com.microsoft.VSCodeInsiders",
+     "workspace": "workspace:1"
+    }
+   },
+   "jump": {
+    "mux": {
+     "kind": "vscode",
+     "app": "com.microsoft.VSCodeInsiders"
+    }
+   }
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "vscode",
+     "app": "com.microsoft.vscode"
+    }
+   },
+   "jump": null
+  },
+  {
+   "term": {
+    "mux": {
+     "kind": "vscode"
     }
    },
    "jump": null

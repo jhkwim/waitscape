@@ -18,6 +18,11 @@
 //!   성공하면 앱을 앞으로. 앞으로·띄우기 = 맥 `open <찾은 번들>`, 윈도우(#54) `Orca.exe`를 인자 없이(단일 인스턴스라 기존 창이 앞으로, 기다리지 않음).
 //!   CLI·앱은 PATH를 보지 않고 `orca_find`(실행 중 프로세스 → 레지스트리·Spotlight → 고정 후보, 설치 폴더 안인지 검증)로 찾는다.
 //!
+//! - 편집기(#176): 세션 `jump.mux = {kind: "vscode", app: 번들 id}`(VS Code·Insiders·Cursor·Windsurf) → `jump_editor`(macOS).
+//!   그 편집기가 기록하는 열린 창 목록(`~/Library/Application Support/<앱>/User/globalStorage/storage.json`의 `windowsState`, 읽기만)에서
+//!   세션 cwd를 품은 가장 깊은 창 폴더를 골라 `/usr/bin/open -b <번들 id> <폴더>` — 열린 창이면 그 창이 앞으로 온다.
+//!   못 고르면 cwd 그대로(하위 폴더면 새 창이 생길 수 있음). 편집기 안의 특정 터미널 탭까지는 가지 않는다(확장 없이는 불가).
+//!
 //! 탭 단위 포커스(AppleScript `tty` 매칭)는 터미널 힌트가 생긴 뒤(P4 이후)로 미룬다.
 //! cargo feature `terminal-jump`를 끄면(Mac App Store 플레이버) 다른 앱을 실행하지 않고 늘 "unsupported"(→ 프론트가 경로 복사).
 
@@ -61,9 +66,9 @@ pub fn command_for(cwd: &str, pref: &str) -> Option<(String, Vec<String>)> {
 }
 
 /// 멀티플렉서 이동 대상 (세션 `jump` 값을 `term::jump_of`로 다시 검증한 것만)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Mux {
-    /// `wr_core::term::ADAPTERS`의 kind ("orca" | "cmux")
+    /// `wr_core::term::ADAPTERS`의 kind ("vscode" | "orca" | "cmux")
     pub kind: &'static str,
     /// cmux 워크스페이스 (cmux는 필수)
     pub workspace: Option<String>,
@@ -71,6 +76,8 @@ pub struct Mux {
     pub surface: Option<String>,
     /// Orca worktree 경로 (핸들이 바뀌었을 때 다시 찾기)
     pub path: Option<String>,
+    /// 편집기 번들 id (vscode는 필수, `wr_core::term::EDITORS`)
+    pub app: Option<String>,
 }
 
 impl Mux {
@@ -84,6 +91,7 @@ impl Mux {
             workspace: s("workspace"),
             surface: s("surface"),
             path: s("path"),
+            app: s("app"),
         })
     }
 }
@@ -410,8 +418,89 @@ pub fn jump_mux(c: &MuxCmds, run: impl Fn(&Path, &[String]) -> Result<String, St
 
 /// 멀티플렉서로 갈지: 설정이 "auto"이거나 세션의 kind와 같을 때만(다른 터미널을 고른 사용자는 원래대로).
 /// `os` = `std::env::consts::OS`: cmux는 macOS만, Orca는 macOS·Windows(#54)
+/// 편집기(vscode)는 macOS만이고, 설정에서 VS Code·Cursor를 고른 사용자도 그 세션의 편집기 창으로 간다
 pub fn route<'a>(pref: &str, mux: Option<&'a Mux>, os: &str) -> Option<&'a Mux> {
-    mux.filter(|m| (pref == "auto" || pref == m.kind) && (os == "macos" || (os == "windows" && m.kind == "orca")))
+    let editor_pref = |m: &Mux| m.kind == "vscode" && matches!(pref, "Visual Studio Code" | "Cursor");
+    mux.filter(|m| (pref == "auto" || pref == m.kind || editor_pref(m)) && (os == "macos" || (os == "windows" && m.kind == "orca")))
+}
+
+/// 편집기 번들 id → `~/Library/Application Support` 아래 폴더 이름
+fn editor_dir(app: &str) -> Option<&'static str> {
+    match app {
+        "com.microsoft.VSCode" => Some("Code"),
+        "com.microsoft.VSCodeInsiders" => Some("Code - Insiders"),
+        "com.todesktop.230313mzl4w4u92" => Some("Cursor"),
+        "com.exafunction.windsurf" => Some("Windsurf"),
+        _ => None,
+    }
+}
+
+/// 편집기의 열린 창 목록 파일 (읽기만)
+pub fn editor_storage(home: &Path, app: &str) -> Option<PathBuf> {
+    editor_dir(app).map(|d| {
+        home.join("Library/Application Support")
+            .join(d)
+            .join("User/globalStorage/storage.json")
+    })
+}
+
+/// `file://` URI → 경로 (`%XX` 풀기). 다른 스킴·잘못된 인코딩·UTF-8이 아니면 None
+fn file_uri_path(u: &str) -> Option<String> {
+    let r = u.strip_prefix("file://")?;
+    let b = r.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' {
+            let h = std::str::from_utf8(b.get(i + 1..i + 3)?).ok()?;
+            out.push(u8::from_str_radix(h, 16).ok()?);
+            i += 3;
+        } else {
+            out.push(b[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok().filter(|p| p.starts_with('/'))
+}
+
+/// 열린 창 목록(storage.json 내용)에서 cwd를 품은(같거나 상위인) 가장 깊은 창 폴더. 없으면 None
+pub fn pick_folder(storage: &str, cwd: &str) -> Option<String> {
+    let v: Value = serde_json::from_str(storage).ok()?;
+    let ws = &v["windowsState"];
+    let wins = ws["openedWindows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .chain(std::iter::once(&ws["lastActiveWindow"]));
+    let cwd = cwd.trim_end_matches('/');
+    wins.filter_map(|w| w["folder"].as_str().and_then(file_uri_path))
+        .map(|f| if f.len() > 1 { f.trim_end_matches('/').to_string() } else { f })
+        .filter(|f| cwd == f || cwd.starts_with(&format!("{}/", f.trim_end_matches('/'))))
+        .max_by_key(|f| f.len())
+}
+
+/// 편집기로 가는 명령: 고른 창 폴더(없으면 cwd)를 그 번들로 연다
+pub fn editor_cmd(app: &str, folder: &str) -> Cmd {
+    (PathBuf::from("/usr/bin/open"), args(&["-b", app, folder]))
+}
+
+/// 편집기 이동 → "mux"(이동) | "unsupported"(→ 경로 복사)
+pub fn jump_editor(cwd: &str, m: &Mux, home: &Path, run: impl Fn(&Path, &[String]) -> Result<String, String>) -> &'static str {
+    let Some(app) = m.app.as_deref().filter(|a| editor_dir(a).is_some()) else {
+        return "unsupported";
+    };
+    if !cwd_ok(cwd) {
+        return "unsupported";
+    }
+    let picked = editor_storage(home, app)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| pick_folder(&s, cwd))
+        .filter(|f| cwd_ok(f));
+    let (prog, a) = editor_cmd(app, picked.as_deref().unwrap_or(cwd));
+    match run(&prog, &a) {
+        Ok(_) => "mux",
+        Err(_) => "unsupported",
+    }
 }
 
 /// "opened" | "unsupported" | "mux" | "mux-app" | "mux-launch" | "mux-off" | "mux-denied" | "mux-perm"
@@ -419,6 +508,11 @@ pub fn route<'a>(pref: &str, mux: Option<&'a Mux>, os: &str) -> Option<&'a Mux> 
 pub fn open(cwd: &str, pref: &str, mux: Option<&Mux>, home: &Path) -> &'static str {
     use crate::mcp_connect::run_with_timeout;
     if let Some(m) = route(pref, mux, std::env::consts::OS) {
+        if m.kind == "vscode" {
+            let r = jump_editor(cwd, m, home, |p, a| run_with_timeout(p, a, None, MUX_TIMEOUT));
+            crate::wlog!("jump", "vscode 이동 결과 {r}");
+            return r;
+        }
         let find = |p: &Path, a: &[String]| run_with_timeout(p, a, None, FIND_TIMEOUT);
         if let Some(c) = mux_cmds(m, home, &find) {
             // 윈도우 Orca.exe(앞으로·띄우기)는 기다리지 않고 띄운다
@@ -496,6 +590,7 @@ mod tests {
             workspace: Some(ws.into()),
             surface: sf.map(String::from),
             path: None,
+            app: None,
         }
     }
 
@@ -945,6 +1040,7 @@ mod tests {
             workspace: None,
             surface: None,
             path: Some("/w".into()),
+            app: None,
         };
         assert!(orca_cmds(&inst, &m).is_none());
     }
@@ -982,11 +1078,105 @@ mod tests {
         std::fs::remove_dir_all(&d).ok();
     }
 
+    /// #176: 열린 창 목록에서 cwd를 품은 가장 깊은 폴더를 고른다(같은 폴더·하위 폴더). 다른 스킴·잘못된 인코딩은 버림
+    #[test]
+    fn editor_pick_folder() {
+        let st = json!({"windowsState": {
+        "lastActiveWindow": {"folder": "file:///Users/a/dev/shop/api"},
+        "openedWindows": [
+            {"folder": "file:///Users/a/dev/shop"},
+            {"folder": "file:///Users/a/%EC%9E%91%EC%97%85%20%ED%8F%B4%EB%8D%94"},
+            {"folder": "vscode-remote://ssh-remote%2Bbox/Users/a/dev"},
+            {"folder": "file:///Users/a/bad%ZZ"},
+            {"workspace": {"configPath": "file:///Users/a/x.code-workspace"}}
+        ]}})
+        .to_string();
+        assert_eq!(pick_folder(&st, "/Users/a/dev/shop").as_deref(), Some("/Users/a/dev/shop"));
+        assert_eq!(pick_folder(&st, "/Users/a/dev/shop/web/src").as_deref(), Some("/Users/a/dev/shop"));
+        assert_eq!(
+            pick_folder(&st, "/Users/a/dev/shop/api/v2").as_deref(),
+            Some("/Users/a/dev/shop/api")
+        );
+        assert_eq!(pick_folder(&st, "/Users/a/작업 폴더/x").as_deref(), Some("/Users/a/작업 폴더"));
+        assert_eq!(pick_folder(&st, "/Users/a/dev/shopping"), None, "이름이 앞부분만 같은 폴더는 아님");
+        assert_eq!(pick_folder(&st, "/Users/a/dev"), None);
+        assert_eq!(pick_folder("not json", "/Users/a"), None);
+        assert_eq!(pick_folder("{}", "/Users/a"), None);
+        assert_eq!(file_uri_path("file:///a%2Fb"), Some("/a/b".into()));
+        assert_eq!(file_uri_path("file:///a%"), None);
+        assert_eq!(file_uri_path("file:///a%FF"), None);
+        assert_eq!(file_uri_path("http:///a"), None);
+        assert_eq!(
+            file_uri_path("file://host/a").as_deref(),
+            None,
+            "호스트가 있는 URI는 로컬 경로가 아님"
+        );
+    }
+
+    /// #176: 편집기 이동 — 아는 번들만, cwd가 진짜 폴더일 때만, 고른 창 폴더를 `open -b`로. 실행 실패면 경로 복사
+    #[test]
+    fn editor_jump() {
+        let home = std::env::temp_dir().join(format!("wr-editor-{}", std::process::id()));
+        let proj = home.join("dev/shop");
+        std::fs::create_dir_all(proj.join("web")).unwrap();
+        let st = editor_storage(&home, "com.microsoft.VSCode").unwrap();
+        std::fs::create_dir_all(st.parent().unwrap()).unwrap();
+        std::fs::write(
+            &st,
+            json!({"windowsState": {"openedWindows": [{"folder": format!("file://{}", proj.display())}]}}).to_string(),
+        )
+        .unwrap();
+        let m = Mux::of(&json!({"mux": {"kind": "vscode", "app": "com.microsoft.VSCode"}})).unwrap();
+        assert_eq!(m.app.as_deref(), Some("com.microsoft.VSCode"));
+        let log = std::cell::RefCell::new(vec![]);
+        let ok = |p: &Path, a: &[String]| -> Result<String, String> {
+            log.borrow_mut().push(format!("{} {}", p.display(), a.join(" ")));
+            Ok(String::new())
+        };
+        let sub = proj.join("web").to_string_lossy().to_string();
+        assert_eq!(jump_editor(&sub, &m, &home, ok), "mux");
+        assert_eq!(
+            log.borrow().last().unwrap(),
+            &format!("/usr/bin/open -b com.microsoft.VSCode {}", proj.display())
+        );
+        // 목록 파일이 없는 편집기(Cursor)는 cwd 그대로
+        let c = Mux {
+            app: Some("com.todesktop.230313mzl4w4u92".into()),
+            ..m.clone()
+        };
+        assert_eq!(jump_editor(&sub, &c, &home, ok), "mux");
+        assert_eq!(
+            log.borrow().last().unwrap(),
+            &format!("/usr/bin/open -b com.todesktop.230313mzl4w4u92 {sub}")
+        );
+        let n = log.borrow().len();
+        assert_eq!(jump_editor("relative", &m, &home, ok), "unsupported");
+        assert_eq!(
+            jump_editor(
+                &sub,
+                &Mux {
+                    app: Some("com.apple.Terminal".into()),
+                    ..m.clone()
+                },
+                &home,
+                ok
+            ),
+            "unsupported"
+        );
+        assert_eq!(log.borrow().len(), n, "실행하지 않음");
+        assert_eq!(
+            jump_editor(&sub, &m, &home, |_: &Path, _: &[String]| Err("x".into())),
+            "unsupported"
+        );
+        std::fs::remove_dir_all(&home).ok();
+    }
+
     /// 설정별 분기 (PR #39 리뷰 🔵3): auto·같은 kind면 멀티플렉서로, 다른 터미널을 골랐으면 원래대로. cmux는 macOS만, Orca는 Windows도(#54)
     #[test]
     fn route_by_pref() {
         let m = mux(W, None);
         let o = Mux::of(&json!({"mux": {"kind": "orca", "surface": H}})).unwrap();
+        let v = Mux::of(&json!({"mux": {"kind": "vscode", "app": "com.microsoft.VSCode"}})).unwrap();
         for (pref, mx, os, want) in [
             ("auto", &m, "macos", true),
             ("cmux", &m, "macos", true),
@@ -999,6 +1189,11 @@ mod tests {
             ("orca", &o, "windows", true),
             ("Windows Terminal", &o, "windows", false),
             ("auto", &o, "linux", false),
+            ("auto", &v, "macos", true),
+            ("Visual Studio Code", &v, "macos", true),
+            ("Cursor", &v, "macos", true),
+            ("iTerm", &v, "macos", false),
+            ("auto", &v, "windows", false),
         ] {
             assert_eq!(route(pref, Some(mx), os).is_some(), want, "{pref} {} {os}", mx.kind);
         }

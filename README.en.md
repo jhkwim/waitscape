@@ -114,7 +114,7 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 
 | To do this | Use |
 |---|---|
-| Go to the first session | **N** in a Waitscape window — sessions opened in cmux or Orca jump straight to that terminal. For others it tells you which session it is |
+| Go to the first session | **N** in a Waitscape window — sessions opened in cmux, Orca or VS Code jump straight there. For others it tells you which session it is |
 | While using another app | **⌃⇧N** (Windows **Alt+Shift+N**) — works even when the window is hidden. Sessions it can't jump to show up as an OS notification. Change or turn it off in Settings → General → 📥 Up next |
 | Skip | **Shift+N** — it comes back with a new question or the next time it finishes. A permission or question you can't jump to stays first until you answer or skip it |
 | See the list | "Up next" at the top of 🙈 Low-profile mode and 💼 Work mode, and the "Next" chip in Studio's mini view |
@@ -128,7 +128,7 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 
 ## And more
 
-- **Jump to the session**: click a staff member with a question, a done banner or a floor tag to open that cmux pane or Orca terminal. Otherwise it opens a terminal (or editor) in the session folder. Jumping needs the hook turned on.
+- **Jump to the session**: click a staff member with a question, a done banner or a floor tag to open that cmux pane, Orca terminal or VS Code (Cursor, Windsurf) window. Otherwise it opens a terminal (or editor) in the session folder. Jumping needs the hook turned on.
 - **👆 Click reactions**: staff and props (monitors, coffee, plants, vending machine, elevator…) react when clicked. There are 8 hidden easter eggs.
 - **📋 Daily report**: when everything has been quiet for about 45 minutes in the afternoon, the boss waves a sheet: "The report is in!" It announces today's finished work, hours and MVP, then makes a shareable card (PNG).
 - **⚡ Quick replies**: answer a staff question within a minute and they cheer "👍 Quick!" with bonus funds. Keep answering fast for a 🔗 combo.
@@ -152,7 +152,7 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 | **Codex CLI** | ✅ (experimental) | Settings → AI tools → MCP reports | — |
 | **Antigravity CLI** | ✅ (experimental) | Settings → AI tools → MCP reports | — |
 
-Jump-to-terminal works for sessions opened in **cmux** (macOS) and **Orca** (macOS and Windows). cmux needs no settings change; macOS asks once to let Waitscape control cmux. Antigravity sessions show up as Gemini.
+Jump-to-terminal works for sessions opened in **cmux** (macOS) and **Orca** (macOS and Windows). Sessions opened in **VS Code**, Cursor or Windsurf (macOS), whether in the integrated terminal or the Claude Code extension, bring up that folder's editor window (not the exact terminal tab inside it). cmux needs no settings change; macOS asks once to let Waitscape control cmux. Antigravity sessions show up as Gemini.
 
 ## Install
 

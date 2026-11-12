@@ -144,7 +144,8 @@ def report_value(f, now):
 
 
 # ---------- 멀티플렉서 이동 정보 (#37) ----------
-# 어댑터 표(Rust term.rs ADAPTERS와 같음): (kind, ((필드, env 이름, 필수, 형식 검증), ...)). Orca가 먼저(Orca 터미널이 CMUX_*를 물려받아도)
+# 어댑터 표(Rust term.rs ADAPTERS와 같음): (kind, ((필드, env 이름, 필수, 형식 검증), ...), when). 편집기(#176) → Orca → cmux 순
+# when이 있으면 그 (env, 값) 가운데 하나가 맞을 때만 쓰고 거기서 끝낸다(VS Code를 cmux·Orca에서 띄워 CMUX_*·ORCA_*를 물려받아도 편집기)
 _HEX = "[0-9A-Fa-f]"
 _UUID = "%s{8}-%s{4}-%s{4}-%s{4}-%s{12}" % ((_HEX,) * 5)
 _CMUX_ID = re.compile(_UUID + r"|[a-z]{1,16}:[0-9]{1,6}")
@@ -161,15 +162,17 @@ def _orca_path_ok(v):
     return bool(_ABS_HEAD.match(v)) and len(v) <= 1024 and not any(unicodedata.category(c) in ("Cc", "Cs") for c in v)
 
 
+EDITORS = ("com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "com.todesktop.230313mzl4w4u92", "com.exafunction.windsurf")  # Rust term::EDITORS
 MUX = (
-    ("orca", (("surface", "ORCA_TERMINAL_HANDLE", True, _ORCA_HANDLE.fullmatch), ("path", "ORCA_WORKTREE_PATH", False, _orca_path_ok))),
-    ("cmux", (("workspace", "CMUX_WORKSPACE_ID", True, _CMUX_ID.fullmatch), ("surface", "CMUX_SURFACE_ID", False, _CMUX_ID.fullmatch))),
+    ("vscode", (("app", "__CFBundleIdentifier", True, EDITORS.__contains__),), (("TERM_PROGRAM", "vscode"), ("VSCODE_CRASH_REPORTER_PROCESS_TYPE", "extensionHost"))),
+    ("orca", (("surface", "ORCA_TERMINAL_HANDLE", True, _ORCA_HANDLE.fullmatch), ("path", "ORCA_WORKTREE_PATH", False, _orca_path_ok)), ()),
+    ("cmux", (("workspace", "CMUX_WORKSPACE_ID", True, _CMUX_ID.fullmatch), ("surface", "CMUX_SURFACE_ID", False, _CMUX_ID.fullmatch)), ()),
 )
-MUX_ENV = tuple(env for _, fields in MUX for _, env, _, _ in fields)  # 읽어도 되는 환경 변수 전부 (토큰·소켓 비밀번호·소켓 경로는 읽지 않음)
+MUX_ENV = tuple(e for _, fields, when in MUX for e in [w[0] for w in when] + [f[1] for f in fields])  # 읽어도 되는 환경 변수 전부 (토큰·소켓 비밀번호·소켓 경로는 읽지 않음)
 
 
 def _mux_value(adapter, get):
-    kind, fields = adapter
+    kind, fields, _when = adapter
     m = {"kind": kind}
     for field, env, required, ok in fields:
         v = get(field, env)
@@ -183,8 +186,11 @@ def _mux_value(adapter, get):
 def mux_term(env):
     """환경(매핑) → 훅 이벤트의 term 값. 어댑터 표의 env 이름만 조회한다"""
     for a in MUX:
+        when = a[2]
+        if when and not any(env.get(e) == want for e, want in when):
+            continue
         v = _mux_value(a, lambda _f, e: env.get(e))
-        if v:
+        if v or when:
             return v
     return None
 

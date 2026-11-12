@@ -224,8 +224,9 @@ const ADAPTERS = {};
 
 /* 세션으로 바로 갈 수 있나: 멀티플렉서(cmux #37 · Orca #40)에서 연 세션(jump.mux)이면 그 표시 이름, 아니면 "".
    스튜디오 완료 보고·질문 말풍선과 🙈 눈치 화면 [cmux로 이동]이 같은 판단을 쓴다(없으면 폴더 열기로 새 터미널이 떠서 기대와 다름) */
-const MUX_NAME = { cmux: "cmux", orca: "Orca" };   // wr-core term.rs 어댑터 표와 같이 늘림
-const muxName = s => (s && s.jump && s.jump.mux && MUX_NAME[s.jump.mux.kind]) || "";
+const MUX_NAME = { cmux: "cmux", orca: "Orca", vscode: "VS Code" };   // wr-core term.rs 어댑터 표와 같이 늘림
+const EDITOR_NAME = { "com.microsoft.VSCode": "VS Code", "com.microsoft.VSCodeInsiders": "VS Code Insiders", "com.todesktop.230313mzl4w4u92": "Cursor", "com.exafunction.windsurf": "Windsurf" };   // term.rs EDITORS (#176)
+const muxName = s => { const m = s && s.jump && s.jump.mux; return !m ? "" : m.kind === "vscode" ? EDITOR_NAME[m.app] || "" : MUX_NAME[m.kind] || ""; };
 
 window.CoreLib = {
   get lang() { return lang; },
