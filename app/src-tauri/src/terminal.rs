@@ -19,9 +19,11 @@
 //!   CLI·앱은 PATH를 보지 않고 `orca_find`(실행 중 프로세스 → 레지스트리·Spotlight → 고정 후보, 설치 폴더 안인지 검증)로 찾는다.
 //!
 //! - 편집기(#176): 세션 `jump.mux = {kind: "vscode", app: 번들 id}`(VS Code·Insiders·Cursor·Windsurf) → `jump_editor`(macOS).
-//!   그 편집기가 기록하는 열린 창 목록(`~/Library/Application Support/<앱>/User/globalStorage/storage.json`의 `windowsState`, 읽기만)에서
-//!   세션 cwd를 품은 가장 깊은 창 폴더를 골라 `/usr/bin/open -b <번들 id> <폴더>` — 열린 창이면 그 창이 앞으로 온다.
-//!   못 고르면 cwd 그대로(하위 폴더면 새 창이 생길 수 있음). 편집기 안의 특정 터미널 탭까지는 가지 않는다(확장 없이는 불가).
+//!   `/usr/bin/open -b <번들 id> <폴더>` — 그 폴더 창이 열려 있으면 그 창이 앞으로 오고, 하위 폴더면 새 창이 생긴다(VS Code 1.146).
+//!   폴더 고르기(`editor_folder`): cwd가 git 저장소 루트(`.git`이 있는 곳)거나 저장소 밖이면 cwd 그대로.
+//!   저장소 하위 폴더면 그 편집기의 창 목록(`~/Library/Application Support/<앱>/User/globalStorage/storage.json`의 `windowsState`, 읽기만)에서
+//!   루트 ~ cwd 사이에 있는 가장 깊은 창 폴더, 없으면 루트. 창 목록은 늦게 저장돼(켠 직후 창은 다음 창 이벤트·종료 때) 닫힌 창이 남을 수 있어
+//!   루트 위쪽 항목은 믿지 않는다. 열기가 실패하면 원래 방식(`command_for`). 편집기 안의 특정 터미널 탭까지는 가지 않는다(확장 없이는 불가).
 //!
 //! 탭 단위 포커스(AppleScript `tty` 매칭)는 터미널 힌트가 생긴 뒤(P4 이후)로 미룬다.
 //! cargo feature `terminal-jump`를 끄면(Mac App Store 플레이버) 다른 앱을 실행하지 않고 늘 "unsupported"(→ 프론트가 경로 복사).
@@ -465,6 +467,36 @@ fn file_uri_path(u: &str) -> Option<String> {
 
 /// 열린 창 목록(storage.json 내용)에서 cwd를 품은(같거나 상위인) 가장 깊은 창 폴더. 없으면 None
 pub fn pick_folder(storage: &str, cwd: &str) -> Option<String> {
+    pick_folder_within(storage, cwd, "/")
+}
+
+/// `a`가 `b`와 같거나 `b`의 상위 폴더인가 (경로 문자열, 끝 `/`는 무시)
+fn is_within(b: &str, a: &str) -> bool {
+    let (a, b) = (a.trim_end_matches('/'), b.trim_end_matches('/'));
+    a.is_empty() || a == b || b.starts_with(&format!("{a}/"))
+}
+
+/// cwd에서 위로 가며 처음 `.git`(폴더·파일)이 있는 곳. 없으면 None
+pub fn git_root(cwd: &str) -> Option<String> {
+    Path::new(cwd)
+        .ancestors()
+        .take(64)
+        .find(|p| p.join(".git").exists())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+/// 편집기에서 열 폴더: cwd가 저장소 루트·저장소 밖이면 cwd, 하위 폴더면 루트 ~ cwd 사이의 가장 깊은 창 폴더(없으면 루트)
+pub fn editor_folder(cwd: &str, storage: Option<&str>) -> String {
+    let cwd = cwd.trim_end_matches('/');
+    let cwd = if cwd.is_empty() { "/" } else { cwd };
+    match git_root(cwd) {
+        Some(root) if root != cwd => storage.and_then(|s| pick_folder_within(s, cwd, &root)).unwrap_or(root),
+        _ => cwd.to_string(),
+    }
+}
+
+/// `pick_folder`인데 `floor`(이 폴더와 같거나 아래)보다 위쪽 창 폴더는 고르지 않음
+fn pick_folder_within(storage: &str, cwd: &str, floor: &str) -> Option<String> {
     let v: Value = serde_json::from_str(storage).ok()?;
     let ws = &v["windowsState"];
     let wins = ws["openedWindows"]
@@ -475,7 +507,7 @@ pub fn pick_folder(storage: &str, cwd: &str) -> Option<String> {
     let cwd = cwd.trim_end_matches('/');
     wins.filter_map(|w| w["folder"].as_str().and_then(file_uri_path))
         .map(|f| if f.len() > 1 { f.trim_end_matches('/').to_string() } else { f })
-        .filter(|f| cwd == f || cwd.starts_with(&format!("{}/", f.trim_end_matches('/'))))
+        .filter(|f| is_within(cwd, f) && is_within(f, floor))
         .max_by_key(|f| f.len())
 }
 
@@ -484,7 +516,7 @@ pub fn editor_cmd(app: &str, folder: &str) -> Cmd {
     (PathBuf::from("/usr/bin/open"), args(&["-b", app, folder]))
 }
 
-/// 편집기 이동 → "mux"(이동) | "unsupported"(→ 경로 복사)
+/// 편집기 이동 → "mux"(이동) | "unsupported"(→ 원래 방식)
 pub fn jump_editor(cwd: &str, m: &Mux, home: &Path, run: impl Fn(&Path, &[String]) -> Result<String, String>) -> &'static str {
     let Some(app) = m.app.as_deref().filter(|a| editor_dir(a).is_some()) else {
         return "unsupported";
@@ -492,11 +524,11 @@ pub fn jump_editor(cwd: &str, m: &Mux, home: &Path, run: impl Fn(&Path, &[String
     if !cwd_ok(cwd) {
         return "unsupported";
     }
-    let picked = editor_storage(home, app)
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .and_then(|s| pick_folder(&s, cwd))
-        .filter(|f| cwd_ok(f));
-    let (prog, a) = editor_cmd(app, picked.as_deref().unwrap_or(cwd));
+    let storage = editor_storage(home, app).and_then(|p| std::fs::read_to_string(p).ok());
+    let folder = Some(editor_folder(cwd, storage.as_deref()))
+        .filter(|f| cwd_ok(f))
+        .unwrap_or_else(|| cwd.to_string());
+    let (prog, a) = editor_cmd(app, &folder);
     match run(&prog, &a) {
         Ok(_) => "mux",
         Err(_) => "unsupported",
@@ -511,7 +543,10 @@ pub fn open(cwd: &str, pref: &str, mux: Option<&Mux>, home: &Path) -> &'static s
         if m.kind == "vscode" {
             let r = jump_editor(cwd, m, home, |p, a| run_with_timeout(p, a, None, MUX_TIMEOUT));
             crate::wlog!("jump", "vscode 이동 결과 {r}");
-            return r;
+            if r == "mux" {
+                return r;
+            }
+            // 편집기를 지웠거나 열기가 실패하면 원래 방식(설정한 터미널로 폴더 열기 — mux_cmds는 vscode면 None)
         }
         let find = |p: &Path, a: &[String]| run_with_timeout(p, a, None, FIND_TIMEOUT);
         if let Some(c) = mux_cmds(m, home, &find) {
@@ -1113,12 +1148,53 @@ mod tests {
         );
     }
 
+    /// #176: 창 목록은 늦게 저장돼 닫힌 창이 남을 수 있다 → 저장소 루트·저장소 밖이면 cwd 그대로, 하위 폴더면 루트 ~ cwd 사이에서만 고름
+    #[test]
+    fn editor_folder_bounds() {
+        let home = std::env::temp_dir().join(format!("wr-editor-f-{}", std::process::id()));
+        let repo = home.join("dev/mono");
+        std::fs::create_dir_all(repo.join("apps/web/src")).unwrap();
+        std::fs::write(repo.join(".git"), "gitdir: x").unwrap(); // worktree는 .git이 파일
+        let p = |x: &std::path::Path| x.to_string_lossy().to_string();
+        let st = |fs: &[&std::path::Path]| {
+            let w: Vec<Value> = fs.iter().map(|f| json!({"folder": format!("file://{}", f.display())})).collect();
+            json!({"windowsState": {"openedWindows": w}}).to_string()
+        };
+        let stale = st(&[&home.join("dev")]); // 닫힌 상위 창이 남은 목록
+        assert_eq!(
+            editor_folder(&p(&repo), Some(&stale)),
+            p(&repo),
+            "루트면 cwd 그대로(닫힌 상위 창을 고르지 않음)"
+        );
+        assert_eq!(
+            editor_folder(&p(&repo.join("apps/web/src")), Some(&stale)),
+            p(&repo),
+            "하위 폴더 → 루트"
+        );
+        let apps = st(&[&repo.join("apps/web"), &home.join("dev")]);
+        assert_eq!(
+            editor_folder(&p(&repo.join("apps/web/src")), Some(&apps)),
+            p(&repo.join("apps/web")),
+            "루트 아래 열린 창"
+        );
+        assert_eq!(editor_folder(&p(&repo.join("apps/web/src")), None), p(&repo));
+        assert_eq!(
+            editor_folder(&p(&home.join("dev")), Some(&apps)),
+            p(&home.join("dev")),
+            "저장소 밖 → cwd"
+        );
+        assert_eq!(editor_folder(&format!("{}/", p(&repo)), None), p(&repo));
+        assert!(is_within("/a/b", "/a") && is_within("/a", "/a/") && !is_within("/ab", "/a") && is_within("/x", "/"));
+        std::fs::remove_dir_all(&home).ok();
+    }
+
     /// #176: 편집기 이동 — 아는 번들만, cwd가 진짜 폴더일 때만, 고른 창 폴더를 `open -b`로. 실행 실패면 경로 복사
     #[test]
     fn editor_jump() {
         let home = std::env::temp_dir().join(format!("wr-editor-{}", std::process::id()));
         let proj = home.join("dev/shop");
         std::fs::create_dir_all(proj.join("web")).unwrap();
+        std::fs::create_dir_all(proj.join(".git")).unwrap();
         let st = editor_storage(&home, "com.microsoft.VSCode").unwrap();
         std::fs::create_dir_all(st.parent().unwrap()).unwrap();
         std::fs::write(
@@ -1139,7 +1215,7 @@ mod tests {
             log.borrow().last().unwrap(),
             &format!("/usr/bin/open -b com.microsoft.VSCode {}", proj.display())
         );
-        // 목록 파일이 없는 편집기(Cursor)는 cwd 그대로
+        // 목록 파일이 없는 편집기(Cursor)도 저장소 하위 폴더면 저장소 루트, 저장소 밖이면 cwd 그대로
         let c = Mux {
             app: Some("com.todesktop.230313mzl4w4u92".into()),
             ..m.clone()
@@ -1147,7 +1223,13 @@ mod tests {
         assert_eq!(jump_editor(&sub, &c, &home, ok), "mux");
         assert_eq!(
             log.borrow().last().unwrap(),
-            &format!("/usr/bin/open -b com.todesktop.230313mzl4w4u92 {sub}")
+            &format!("/usr/bin/open -b com.todesktop.230313mzl4w4u92 {}", proj.display())
+        );
+        let out = home.join("dev").to_string_lossy().to_string();
+        assert_eq!(jump_editor(&out, &c, &home, ok), "mux");
+        assert_eq!(
+            log.borrow().last().unwrap(),
+            &format!("/usr/bin/open -b com.todesktop.230313mzl4w4u92 {out}")
         );
         let n = log.borrow().len();
         assert_eq!(jump_editor("relative", &m, &home, ok), "unsupported");

@@ -189,10 +189,11 @@ export interface Session {
 
 /** 세션으로 이동할 정보 (@since 1.3 @unstable). 서버가 어댑터 표(wr-core `term.rs`)로 다시 검증한 값만 */
 export interface Jump {
-  /** 멀티플렉서 자리. kind는 "cmux" · "orca"(@since 1.4) (늘어날 수 있음 — 모르는 kind는 무시).
+  /** 멀티플렉서 자리. kind는 "cmux" · "orca"(@since 1.4) · "vscode"(편집기, #176) (늘어날 수 있음 — 모르는 kind는 무시).
+   *  vscode: `app` = 편집기 번들 id(VS Code·Insiders·Cursor·Windsurf 허용 목록, macOS).
    *  cmux: 워크스페이스·패널 ID = UUID 또는 짧은 참조("workspace:2", "surface:5").
    *  orca: `surface` = 터미널 핸들("term_" + UUID 등, Orca를 다시 켜면 바뀔 수 있음), `path` = worktree 절대 경로(선택) */
-  mux?: { kind: string; workspace: string; surface?: string } | { kind: "orca"; surface: string; path?: string };
+  mux?: { kind: string; workspace: string; surface?: string } | { kind: "orca"; surface: string; path?: string } | { kind: "vscode"; app: string };
 }
 
 /** AI가 MCP 도구로 직접 보고한 내용 (@since 1.2 @unstable). 문자열은 서버에서 제어·양방향·제로폭 문자 제거 → 마스킹 → 절단을 거친 값.

@@ -4,6 +4,7 @@
 //! 지금은 편집기(VS Code 계열, #176)·Orca·cmux 세 줄. 다른 앱은 공식 문서·실제 기기로 env와 ID 형식을 확인한 뒤 줄을 더한다.
 //! - 편집기 줄은 `when`(이 env가 이 값일 때만)이 맞아야 쓰고, 맞으면 거기서 끝낸다(번들 id가 틀려도 아래 줄로 넘어가지 않음):
 //!   `TERM_PROGRAM=vscode`(통합 터미널) 또는 `VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost`(Claude Code 확장이 띄운 claude).
+//!   번들 id env가 아예 없으면(윈도우 등) 다음 줄로 넘어간다 — VS Code 터미널에서 띄운 Orca가 `TERM_PROGRAM`을 물려받아도 Orca 이동을 잃지 않게.
 //!   cmux·Orca에서 `code .`로 띄운 VS Code는 터미널에 `CMUX_*`·`ORCA_*`를 물려주므로 편집기 줄이 맨 앞이다.
 //!   기록하는 값은 `__CFBundleIdentifier`(macOS가 앱 실행 때 넣는 번들 id) 하나이고, 아는 편집기 번들 id만 받는다.
 //!
@@ -167,7 +168,8 @@ pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Option<Value> {
             continue;
         }
         let v = mux_value(a, |_, env| get(env));
-        if v.is_some() || !a.when.is_empty() {
+        // when이 맞았어도 필수 env가 아예 없으면(윈도우 등 번들 id가 없는 곳) 다음 줄로. 있는데 모르는 값이면 여기서 끝
+        if v.is_some() || (!a.when.is_empty() && a.fields.iter().all(|f| !f.2 || get(f.1).is_some())) {
             return v;
         }
     }
@@ -422,6 +424,11 @@ mod tests {
                 ("CMUX_WORKSPACE_ID", "workspace:1")
             ])),
             None
+        );
+        // 편집기 표시는 있는데 번들 id가 아예 없으면(윈도우) 다음 줄 — VS Code 터미널에서 띄운 Orca
+        assert_eq!(
+            from_env(env(&[("TERM_PROGRAM", "vscode"), ("ORCA_TERMINAL_HANDLE", H)])),
+            Some(json!({"mux": {"kind": "orca", "surface": H}}))
         );
         // 편집기 표시가 없으면 번들 id가 있어도 편집기 아님
         assert_eq!(

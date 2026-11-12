@@ -353,6 +353,14 @@
     "CMUX_WORKSPACE_ID": "workspace:4"
    },
    "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\"}"
+  },
+  {
+   "env": {
+    "TERM_PROGRAM": "vscode",
+    "ORCA_TERMINAL_HANDLE": "term_0123456789abcdef0123456789abcdef",
+    "ORCA_WORKTREE_PATH": "C:\\Users\\alex\\dev\\shop"
+   },
+   "out": "{\"ts\": 0.5, \"sid\": \"s1\", \"cwd\": \"/Users/alex/dev/shop\", \"event\": \"UserPromptSubmit\", \"text\": \"결제 모듈 고쳐줘\", \"term\": {\"mux\": {\"kind\": \"orca\", \"surface\": \"term_0123456789abcdef0123456789abcdef\", \"path\": \"C:\\\\Users\\\\alex\\\\dev\\\\shop\"}}}"
   }
  ],
  "jump_cases": [

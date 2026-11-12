@@ -128,6 +128,7 @@ def test_cmux():
     check(MR.mux_term({"TERM_PROGRAM": "ghostty", "__CFBundleIdentifier": "com.microsoft.VSCode", "CMUX_WORKSPACE_ID": "workspace:1"})
           == {"mux": {"kind": "cmux", "workspace": "workspace:1"}}, "편집기 표시 없음")
     check(MR.mux_jump({"mux": {"kind": "vscode", "app": "com.apple.Terminal"}}) is None, "vscode 재검증")
+    check(MR.mux_term({"TERM_PROGRAM": "vscode", "ORCA_TERMINAL_HANDLE": H}) == {"mux": {"kind": "orca", "surface": H}}, "번들 id 없음 → 다음 줄")
     # 파이썬만 생기는 서로게이트(비 UTF-8 env)는 경로로 받지 않음 — Rust는 그런 env를 아예 읽지 못함
     check(MR.mux_term({"ORCA_TERMINAL_HANDLE": H, "ORCA_WORKTREE_PATH": "/a\udcffb"}) == {"mux": {"kind": "orca", "surface": H}}, "서로게이트 경로")
     for bad in (None, "mux", {"mux": "workspace:1"}, {"mux": {"kind": "cmux", "workspace": 3}}, {"mux": {"kind": "cmux", "workspace": "-x"}},

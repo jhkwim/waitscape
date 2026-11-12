@@ -190,7 +190,8 @@ def mux_term(env):
         if when and not any(env.get(e) == want for e, want in when):
             continue
         v = _mux_value(a, lambda _f, e: env.get(e))
-        if v or when:
+        # when이 맞았어도 필수 env가 아예 없거나 빈 값이면(윈도우 등) 다음 줄로 (Rust 훅도 빈 값 = 없음). 있는데 모르는 값이면 여기서 끝
+        if v or (when and all(not req or env.get(e) for _f, e, req, _ok in a[1])):
             return v
     return None
 
