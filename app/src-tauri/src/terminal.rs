@@ -1125,26 +1125,36 @@ mod tests {
     #[test]
     fn editor_pick_folder() {
         let st = json!({"windowsState": {
-        "lastActiveWindow": {"folder": "file:///Users/a/dev/shop/api"},
+        "lastActiveWindow": {"folder": "file:///Users/alex/dev/shop/api"},
         "openedWindows": [
-            {"folder": "file:///Users/a/dev/shop"},
-            {"folder": "file:///Users/a/%EC%9E%91%EC%97%85%20%ED%8F%B4%EB%8D%94"},
-            {"folder": "vscode-remote://ssh-remote%2Bbox/Users/a/dev"},
-            {"folder": "file:///Users/a/bad%ZZ"},
-            {"workspace": {"configPath": "file:///Users/a/x.code-workspace"}}
+            {"folder": "file:///Users/alex/dev/shop"},
+            {"folder": "file:///Users/alex/%EC%9E%91%EC%97%85%20%ED%8F%B4%EB%8D%94"},
+            {"folder": "vscode-remote://ssh-remote%2Bbox/Users/alex/dev"},
+            {"folder": "file:///Users/alex/bad%ZZ"},
+            {"workspace": {"configPath": "file:///Users/alex/x.code-workspace"}}
         ]}})
         .to_string();
-        assert_eq!(pick_folder(&st, "/Users/a/dev/shop").as_deref(), Some("/Users/a/dev/shop"));
-        assert_eq!(pick_folder(&st, "/Users/a/dev/shop/web/src").as_deref(), Some("/Users/a/dev/shop"));
+        assert_eq!(pick_folder(&st, "/Users/alex/dev/shop").as_deref(), Some("/Users/alex/dev/shop"));
         assert_eq!(
-            pick_folder(&st, "/Users/a/dev/shop/api/v2").as_deref(),
-            Some("/Users/a/dev/shop/api")
+            pick_folder(&st, "/Users/alex/dev/shop/web/src").as_deref(),
+            Some("/Users/alex/dev/shop")
         );
-        assert_eq!(pick_folder(&st, "/Users/a/작업 폴더/x").as_deref(), Some("/Users/a/작업 폴더"));
-        assert_eq!(pick_folder(&st, "/Users/a/dev/shopping"), None, "이름이 앞부분만 같은 폴더는 아님");
-        assert_eq!(pick_folder(&st, "/Users/a/dev"), None);
-        assert_eq!(pick_folder("not json", "/Users/a"), None);
-        assert_eq!(pick_folder("{}", "/Users/a"), None);
+        assert_eq!(
+            pick_folder(&st, "/Users/alex/dev/shop/api/v2").as_deref(),
+            Some("/Users/alex/dev/shop/api")
+        );
+        assert_eq!(
+            pick_folder(&st, "/Users/alex/작업 폴더/x").as_deref(),
+            Some("/Users/alex/작업 폴더")
+        );
+        assert_eq!(
+            pick_folder(&st, "/Users/alex/dev/shopping"),
+            None,
+            "이름이 앞부분만 같은 폴더는 아님"
+        );
+        assert_eq!(pick_folder(&st, "/Users/alex/dev"), None);
+        assert_eq!(pick_folder("not json", "/Users/alex"), None);
+        assert_eq!(pick_folder("{}", "/Users/alex"), None);
         assert_eq!(file_uri_path("file:///a%2Fb"), Some("/a/b".into()));
         assert_eq!(file_uri_path("file:///a%"), None);
         assert_eq!(file_uri_path("file:///a%FF"), None);
