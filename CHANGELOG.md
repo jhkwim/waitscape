@@ -11,7 +11,7 @@
 
 ### 요약
 - 🧭 VS Code·Cursor·Windsurf에서 연 세션도 누르면 그 편집기 창으로 바로 가요(macOS).
-- 🔀 cmux에서 `code .`로 띄운 VS Code 세션이 cmux로 잘못 가던 것을 고쳤어요.
+- 🔀 cmux 터미널에서 띄운 VS Code의 세션이 cmux로 잘못 가던 것을 고쳤어요.
 - 🔁 Codex를 쓰신다면 설정 → AI 연결에서 한 번 "다시 연결"해 주세요.
 
 ### 추가
