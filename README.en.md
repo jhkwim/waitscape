@@ -26,7 +26,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 ## Why
 
 - **Waiting stops being boring.** When an agent works for 10 or 30 minutes, there's something to watch. Eleven kinds of animal staff (hamster, penguin, beaver, otter, octopus, robot, cat, fox, panda, plus a locked owl and hedgehog) type away with every tool call, and subagents gather in the meeting room.
-- **Nothing slips by.** A question triggers an OS notification and the staff member walks to the boss's office. With the hook on, one click jumps to that session's terminal (cmux or Orca).
+- **Nothing slips by.** A question triggers an OS notification and the staff member walks to the boss's office. With the hook on, clicking that staff member or the done banner on screen jumps to that session's terminal (cmux or Orca).
 - **Limits at a glance.** Your Claude 5-hour usage limit is the building's clock. The more you use, the later the day gets. Hit 100% and the power goes out.
 
 ## How it works
@@ -89,6 +89,8 @@ Besides Studio there are 🐹 Hamster, 🏟️ Scoreboard, 🪐 Orbit, 💼 Work
 
 - **Stays the same:** session data, done alerts, session jumps and funds. It stays on after you restart the app.
 - **Changes:** the screen (a work tool), the window title and OS notification text (e.g. "api-server · Task finished · 13 min"), and no sounds. The mini view becomes a small list too.
+- **The work-tool screen:** running, waiting and done-today counts with 5-hour and weekly limit bars at the top, then 📥 Up next, the session table and recent activity. Filter the table with the All, Running, Waiting and Done tabs; each row shows progress (context, todos) and badges such as approval, question or may-be-stuck. Rows with subagents expand. Alongside the done-today count you get work time, the longest task and the average input wait.
+- **Jump to a session:** sessions opened in cmux or Orca get a **Go to cmux** (or **Go to Orca**) button at the end of the row that takes you to that terminal. The mini-view list has a **↗ cmux** button.
 - **Settings → General → 🙈 Low-profile mode:** brightness (System, Light, Dark) and the transition (short blinds by default; pick "With staff leaving & arriving" and in Studio the staff take their bags down the elevator, then come back with coffee).
 - Press again mid-transition to finish it right away. With reduce motion or meeting mode it switches instantly.
 
