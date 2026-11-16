@@ -7019,7 +7019,7 @@ C.registerMode({
       } else sty(askb, "display", "none");
       ibDraw(bf, tc, anim, n);   // 🎫 번호표 전광판 · 머리 위 번호표 · 📥 결재함 · 도장
       tagZone(boss, bf.F); ftagFit(bf, [boss], 170, 666, askL != null ? askL - 6 - 4 : 1e4);   // 1층 이름표 줄이 "사장님 (나)"를 덮지 않게 (#64). 옮길 땐 천장 등(x 135~165) 뒤로, 질문 말풍선이 있으면 그 왼쪽 끝 앞까지(칩이 말풍선 밑에 숨지 않게 · 6 = 층 왼쪽 테두리, 말풍선은 건물 좌표)
-      ftagFlush();
+      ftagFlush(); mbFlush();
       /* 완료 연출 (배너·+자금, 큰 완료면 색종이까지) */
       const fa = fx.sid && actors.get(fx.sid), fi = fa ? floorIdx.get(fx.sid) : undefined;
       const lt = fa ? tc - fa.launchStart : 99;
@@ -7239,7 +7239,19 @@ C.registerMode({
       const w = a.tag.offsetWidth, l = a.el.offsetLeft + a.w / 2 - w / 2, t = a.el.offsetTop + a.tag.offsetTop;   // 이름표는 translateX(-50%) — offsetLeft 대신 몸 가운데에서
       a.tz = { F, k, l, r: l + w, t, b: t + a.tag.offsetHeight };
     }
-    const ftQ = [];
+    const ftQ = [], mbQ = [];
+    function mbFlush() {   // 회의 배너 자리·글(placeBabies가 모은 것) — ftagFlush 뒤라 이번 프레임에 줄인 층 이름표 폭을 씀(정적 그리기에서도 바로 맞음)
+      mbQ.splice(0).forEach(({ fl, zs, mt, long, short }) => {
+        const inv = +bld.style.getPropertyValue("--inv") || 1, tk = fl.tag.textContent + "|" + fontGen + "|" + inv + fl.ftS + "|" + mt + "|" + zs.map(z => z.k + z.t).join(";");   // 이름표 줄 맞춤(#64: 말줄임·자리 옮김)이 바뀌어도 다시 잼
+        if (fl.mbK !== tk) {
+          fl.mbK = tk; const L = fl.tag.offsetLeft + fl.tag.offsetWidth + 6, mh = fl.tag.offsetHeight;   // 배너 높이 ≈ 이름표 줄(CSS로 맞춤)
+          const lim = Math.min(666, ...zs.filter(z => z.r > L && z.t < mt + mh - 6 && z.b > mt).map(z => z.l - 4)), room = lim - L - 22;   // 22 = 말풍선 좌우 여백·테두리 · 6 = 테두리가 닿거나 말하는 아기가 통통 튈 때 잠깐 닿는 정도는 그대로
+          fl.mbFit = room >= 120 * inv ? 2 : room >= 40 * inv ? 1 : 0; sty(fl.mb, "left", L + "px"); sty(fl.mb, "maxWidth", Math.max(0, room) + "px");
+        }
+        html(fl.mb, `<span class="ell">${fl.mbFit === 2 ? long : short}</span>`);
+        sty(fl.mb, "top", mt + "px"); sty(fl.mb, "display", fl.mbFit ? "block" : "none");
+      });
+    }
     let fontGen = 0;   // 웹 글꼴이 늦게 들어오면 폭이 바뀜 → 이름표 맞춤·회의 배너를 다시 잼(아래 loadingdone)
     function ftagFit(fl, who, minL = 0, mR = 666, R = 1e4) {   // 666 = 엘리베이터 통로 앞
       const tg = fl.tag, zs = who.map(a => a && a.tz).filter(z => z && z.F === fl.F);
@@ -7350,17 +7362,9 @@ C.registerMode({
       /* 아기 "#1~3" 이름표(#74): 층 이름표 줄은 그 앞까지 줄이고(옮기지 않음 — 배너 자리), 배너는 이름표와 같은 높이에 걸리면 첫 이름표 앞에서 끝남.
          창이 좁아 글자 배율(--inv)이 크면 셋 다 한 줄 높이에 걸려 배너가 숨고 이름표 칩("서브 회의 n/총")이 진행을 보여 줌 */
       seat.forEach(b => tagZone(b, fl.F)); ftagFit(fl, seat, 0, 0);
-      const zs = seat.map(b => b.tz).filter(z => z && z.F === fl.F), mt = Math.max(2, top);
-      const inv = +bld.style.getPropertyValue("--inv") || 1, tk = fl.tag.textContent + "|" + fontGen + "|" + inv + fl.ftS + "|" + mt + "|" + zs.map(z => z.k + z.t).join(";");   // 이름표 줄 맞춤(#64: 말줄임·자리 옮김)이 바뀌어도 다시 잼
-      if (fl.mbK !== tk) {
-        fl.mbK = tk; const L = fl.tag.offsetLeft + fl.tag.offsetWidth + 6, mh = fl.tag.offsetHeight;   // 배너 높이 ≈ 이름표 줄(CSS로 맞춤)
-        const lim = Math.min(666, ...zs.filter(z => z.r > L && z.t < mt + mh - 6 && z.b > mt).map(z => z.l - 4)), room = lim - L - 22;   // 22 = 말풍선 좌우 여백·테두리 · 6 = 테두리가 닿거나 말하는 아기가 통통 튈 때 잠깐 닿는 정도는 그대로
-        fl.mbFit = room >= 120 * inv ? 2 : room >= 40 * inv ? 1 : 0; sty(fl.mb, "left", L + "px"); sty(fl.mb, "maxWidth", Math.max(0, room) + "px");
-      }
       const full = `🤝 ${X("회의", "Meeting")} ${dnN}/${tot}${say ? " · " + (sp && !cfg.hideText ? "#" + (sp.j + 1) + " " : "") + esc(cut(say, 18)) : ""}`;
       const ty = `${EMO[f.animal]} 📨 ${X("오, 고마워!", "Oh, thanks!")}`;   // 부모가 봉투를 받는 동안은 테이블 말풍선이 부모 한마디(층 이름표 칩을 가리지 않는 자리)
-      html(fl.mb, `<span class="ell">${thank ? (fl.mbFit === 2 ? ty : "📨") : fl.mbFit === 2 ? full : `🤝 ${dnN}/${tot}`}</span>`);
-      sty(fl.mb, "top", Math.max(2, top) + "px"); sty(fl.mb, "display", fl.mbFit ? "block" : "none");
+      mbQ.push({ fl, zs: seat.map(b => b.tz).filter(z => z && z.F === fl.F), mt: Math.max(2, top), long: thank ? ty : full, short: thank ? "📨" : `🤝 ${dnN}/${tot}` });   // 자리 재기는 층 이름표 줄 맞춤(ftagFlush) 뒤 — 줄인 폭으로(mbFlush)
       if (fl.more) { fl.more.hidden = tot <= 3; txt(fl.more, "+" + (tot - 3)); }
     }
 
