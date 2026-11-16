@@ -26,7 +26,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 ## Why
 
 - **Waiting stops being boring.** When an agent works for 10 or 30 minutes, there's something to watch. Eleven kinds of animal staff (hamster, penguin, beaver, otter, octopus, robot, cat, fox, panda, plus a locked owl and hedgehog) type away with every tool call, and subagents gather in the meeting room.
-- **Nothing slips by.** A question triggers an OS notification and the staff member walks to the boss's office. With the hook on, clicking that staff member or the done banner on screen jumps to that session's spot (a cmux or Orca terminal, or a VS Code window).
+- **Nothing slips by.** A question triggers an OS notification and the staff member walks to the boss's office. With the hook on, clicking that staff member, the done banner, or the question notification jumps to that session's spot (a cmux or Orca terminal, or a VS Code window).
 - **Limits at a glance.** Your Claude 5-hour usage limit is the building's clock. The more you use, the later the day gets. Hit 100% and the power goes out.
 
 ## How it works

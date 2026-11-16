@@ -87,6 +87,20 @@ impl Backend {
         self.settings.lock().unwrap().clone()
     }
 
+    /// 세션 바로 이동에 쓸 (cwd, 멀티플렉서·편집기 정보) — 마지막으로 보낸 state에서 찾는다. 없는 세션이면 빈 cwd
+    pub fn jump_target(&self, sid: &str) -> (String, Option<crate::terminal::Mux>) {
+        let last = self.last.lock().unwrap();
+        let sess = last
+            .as_ref()
+            .and_then(|s| s.get("sessions").and_then(|x| x.as_array()))
+            .and_then(|a| a.iter().find(|s| s.get("sid").and_then(|x| x.as_str()) == Some(sid)));
+        let cwd = sess
+            .and_then(|s| s.get("cwd").and_then(|x| x.as_str()))
+            .unwrap_or_default()
+            .to_string();
+        (cwd, sess.and_then(|s| s.get("jump")).and_then(crate::terminal::Mux::of))
+    }
+
     /// 다음 tick을 앞당긴다 (파일 변경·한도 갱신·설정 변경)
     pub fn kick(&self) {
         if let Some(tx) = self.kick.lock().unwrap().as_ref() {
@@ -127,13 +141,27 @@ pub fn os_notify(app: &AppHandle, title: &str, body: &str, quiet: bool) {
     }
 }
 
+/// 누름을 기다리는 알림 수의 상한(#186). 맥은 알림을 누르거나 닫을 때까지 대기 스레드가 남으므로(알림 센터에 쌓인 채로 남기도 함)
+/// 이 수를 넘으면 누름 없는 `os_notify`로 보낸다
+#[cfg(any(target_os = "macos", windows))]
+const CLICK_MAX: usize = 8;
+#[cfg(any(target_os = "macos", windows))]
+static CLICK_WAITING: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
 /// 누르면 `on_click`을 부르는 OS 알림(macOS·Windows, #92). 알림 하나에 그 알림을 기다리는 스레드 하나가 붙으므로
-/// 드문 알림에만 쓴다(업데이트 알림 = 버전마다 1번). 다른 알림은 `os_notify` — 알림 플러그인의 on_action을 켜면
-/// 모든 알림이 대기 스레드를 갖게 되므로 쓰지 않는다. 그 밖의 OS는 `os_notify`와 같다(눌러도 아무 일 없음)
-#[cfg_attr(not(feature = "updater"), allow(dead_code))] // 지금은 업데이트 알림만 쓴다(업데이터 없는 빌드에선 안 씀)
+/// 드문 알림에만 쓴다: 업데이트 알림(버전마다 1번)·질문 알림(같은 세션은 10분에 1번, #186). 완료·멈춤 알림은 `os_notify` —
+/// 알림 플러그인의 on_action을 켜면 모든 알림이 대기 스레드를 갖게 되므로 쓰지 않는다. 동시에 기다리는 알림은 `CLICK_MAX`개까지.
+/// 그 밖의 OS는 `os_notify`와 같다(눌러도 아무 일 없음)
 pub fn os_notify_click(app: &AppHandle, title: &str, body: &str, quiet: bool, on_click: impl FnOnce() + Send + 'static) {
     #[cfg(any(target_os = "macos", windows))]
     {
+        use std::sync::atomic::Ordering;
+        if CLICK_WAITING.fetch_add(1, Ordering::AcqRel) >= CLICK_MAX {
+            CLICK_WAITING.fetch_sub(1, Ordering::AcqRel);
+            wlog!("notify", "누름 대기 알림이 {CLICK_MAX}개라 누름 없이 보냄");
+            os_notify(app, title, body, quiet);
+            return;
+        }
         let mut n = notify_rust::Notification::new();
         n.summary(title).body(body).auto_icon();
         if !quiet {
@@ -157,9 +185,17 @@ pub fn os_notify_click(app: &AppHandle, title: &str, body: &str, quiet: bool, on
                 n.app_id(&app.config().identifier);
             }
         }
-        let spawned = std::thread::Builder::new()
-            .name("wr-notify-click".into())
-            .spawn(move || match n.show() {
+        // 대기가 끝나면(누름·닫힘·실패·스레드를 못 띄움 모두) 수를 돌려준다
+        struct Slot;
+        impl Drop for Slot {
+            fn drop(&mut self) {
+                CLICK_WAITING.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+            }
+        }
+        let slot = Slot;
+        let spawned = std::thread::Builder::new().name("wr-notify-click".into()).spawn(move || {
+            let _slot = slot;
+            match n.show() {
                 // 맥: 보내고 누르거나 닫을 때까지 기다린다(메인 런루프가 돌아야 함 — 앱 실행 중이면 돈다). 윈도우: 토스트 응답을 기다린다
                 Ok(h) => {
                     let r = h.wait_for_response(|r: &notify_rust::NotificationResponse| {
@@ -172,7 +208,8 @@ pub fn os_notify_click(app: &AppHandle, title: &str, body: &str, quiet: bool, on
                     }
                 }
                 Err(e) => wlog!("notify", "알림 실패: {e}"),
-            });
+            }
+        });
         if let Err(e) = spawned {
             wlog!("notify", "알림 스레드 실패: {e}");
         }
@@ -239,10 +276,11 @@ pub fn start(app: &AppHandle, be: Arc<Backend>) {
                 last_emit = Instant::now();
                 let v = serde_json::to_value(&st).unwrap_or(Value::Null);
                 app2.emit("state", &v).ok();
+                // 알림보다 먼저 기록: 질문 알림을 누르면 이 state에서 세션을 찾는다(#186)
+                *be2.last.lock().unwrap() = Some(v.clone());
                 if changed {
                     on_changed(&app2, &be2, &v);
                 }
-                *be2.last.lock().unwrap() = Some(v);
             }
         })
         .expect("engine thread");
@@ -274,15 +312,37 @@ fn on_changed(app: &AppHandle, be: &Backend, v: &Value) {
             Kind::Input => s.notify.input,
             Kind::Stall => s.notify.stall,
         };
-        if on && s.nunchi {
-            // 🙈 눈치 모드: 담백한 문구, 효과음 없음
+        if !on {
+            continue;
+        }
+        // 🙈 눈치 모드: 담백한 문구, 효과음 없음
+        let (t, b, quiet) = if s.nunchi {
             let (t, b) = a.plain(&s.lang);
-            os_notify(app, &t, &b, true);
-        } else if on {
-            os_notify(app, &a.title, &a.body, s.quiet);
+            (t, b, true)
+        } else {
+            (a.title.clone(), a.body.clone(), s.quiet)
+        };
+        if a.kind == Kind::Input {
+            // 질문·권한 알림은 누르면 그 세션으로(#186)
+            let (app2, sid) = (app.clone(), a.sid.clone());
+            os_notify_click(app, &t, &b, quiet, move || jump_to_session(&app2, &sid));
+        } else {
+            os_notify(app, &t, &b, quiet);
         }
     }
     crate::tray::update_summary(app, v);
+}
+
+/// 알림을 눌렀을 때: 그 세션의 터미널·편집기로(앱의 세션 바로 이동과 같은 `terminal::open`). 바로 갈 수 없으면 큰 창을 연다.
+/// 터미널 앱만 띄운 경우(mux-app·mux-launch)는 그 앱이 앞에 있으므로 큰 창을 덮어 열지 않는다
+fn jump_to_session(app: &AppHandle, sid: &str) {
+    let be = app.state::<Arc<Backend>>().inner().clone();
+    let (cwd, mux) = be.jump_target(sid);
+    let r = crate::terminal::open(&cwd, &be.settings().terminal, mux.as_ref(), &be.home);
+    wlog!("notify", "질문 알림 누름 → 세션 이동 {r}");
+    if matches!(r, "unsupported" | "mux-off" | "mux-denied" | "mux-perm") {
+        crate::tray::on_menu(app, "open");
+    }
 }
 
 fn start_watcher(be: &Arc<Backend>, tx: Sender<()>) {

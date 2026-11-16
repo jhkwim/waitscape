@@ -16,6 +16,8 @@ pub enum Kind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Alert {
     pub kind: Kind,
+    /// 세션 id — 질문 알림을 누르면 그 세션으로 이동(#186)
+    pub sid: String,
     pub title: String,
     pub body: String,
     /// 눈치 모드 문구용: 프로젝트 이름, 분(완료 = 실행 시간, 멈춤 = 응답 없는 시간, 모르면 0), 추정 질문인가
@@ -149,6 +151,7 @@ impl Detector {
                     let m = ((secs / 60.0).floor() as i64).max(1);
                     out.push(Alert {
                         kind: Kind::Stall,
+                        sid: sid.to_string(),
                         title: tr(lang, "stall").replace("{p}", project),
                         body: tr(lang, "stall.body")
                             .replace("{who}", &clip(&who, 60))
@@ -194,6 +197,7 @@ impl Detector {
                         };
                         out.push(Alert {
                             kind: Kind::Done,
+                            sid: sid.clone(),
                             title: tr(lang, "done").replace("{p}", project),
                             body: format!("{mark}{}", clip(prompt, 120)).trim_end().to_string(),
                             project: project.to_string(),
@@ -223,6 +227,7 @@ impl Detector {
                         };
                         out.push(Alert {
                             kind: Kind::Input,
+                            sid: sid.clone(),
                             title: tr(lang, key).replace("{p}", project),
                             body: clip(note, 160),
                             project: project.to_string(),
@@ -288,6 +293,7 @@ mod tests {
             a,
             vec![Alert {
                 kind: Kind::Done,
+                sid: "a".into(),
                 title: "demo 작업 완료".into(),
                 body: "fix it".into(),
                 project: "demo".into(),
@@ -384,6 +390,7 @@ mod tests {
             format!("Task finished · {} min · tests passed", a.mins)
         );
         let ask = d.feed(&st("needs_input", None), "en").remove(0);
+        assert_eq!(ask.sid, "a"); // 누르면 이 세션으로(#186)
         assert_eq!(ask.plain("ko"), ("demo".into(), "입력이 필요합니다".into()));
         assert_eq!(
             Alert {
