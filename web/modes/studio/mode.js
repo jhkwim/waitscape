@@ -394,6 +394,8 @@ const isBig = run => (run || 0) >= BIG_DONE_SEC;
    층 꾸미기 가격(80~600)이면 소품 1~2개/일, 한 층 5칸 ≈ 1,200 = 하루 반, 6층 전부 ≈ 2주 */
 /* 질문 종류(#120, state ask): 🔑 권한 승인 / ❓ 질문(없으면 모름 — 옛 Claude Code·트랜스크립트·MCP) */
 const askIco = a => a === "permission" ? "🔑" : "❓";
+/* 답을 기다리는 세션(❓ 대기 칩·미니 보기 대기 수, #184) = 관제 인박스의 🔑 권한 + ❓ 질문. 추정(guess)은 인박스처럼 빼고, 본 항목이어도 답할 때까지 센다 */
+const askQ = (ss, now) => C.inboxQueue(ss, now).filter(it => it.kind === "permission" || it.kind === "question");
 const EARN = { done: 25, short: 10, big: 50, huge: 75, SHORT_SEC: 30, HUGE_SEC: 1800 };
 const earnOf = s => { const run = (s && s.run) || 0; return run >= EARN.HUGE_SEC ? EARN.huge : isBig(run) ? EARN.big : run > 0 && run < EARN.SHORT_SEC ? EARN.short : EARN.done; };
 const FAST = { SEC: 60, base: 10, step: 5, max: 20 };
@@ -1193,7 +1195,7 @@ function mountLobby(root, ctx) {
     const aiFirst0 = firstSync;
     firstSync = false;
     model = { floors: top.map(f => f.kind), dotSids: top.map(f => f.s.sid), staff, bySid, askers, askSet: new Set(askers.map(a => a.sid)), working: list.filter(f => f.kind === "work" || f.kind === "agents").length,
-      waiting: list.filter(f => f.kind === "ask").length, stall: list.filter(f => f.kind === "stall").length, five: C.limits(st, now).five };
+      waiting: askQ(st.sessions, now).length, stall: list.filter(f => f.kind === "stall").length, five: C.limits(st, now).five };
     staff.forEach(f => wbT.update(f.sid, f.agAll, tc, firstSync, f.animal)); wbT.sweep(tc);   // 🧑‍🏫 2F 회의실 보드 팀
     staff.forEach(f => aiT.update(f.sid, f.aib ? boardOf(f.s) : null, tc, aiFirst0)); aiT.sweep(new Set(staff.map(f => f.sid)));   // ✍️ 그 층 벽 보드
     const sig = staff.map(f => f.sid + f.animal + f.pk + (f.shiny ? "*" : "") + f.project + (f.aib ? "w" : "")).join(",") + "|" + ctx.lang + (cfg.hideText ? "|h" : "") + "|" + dcM.sig();
@@ -7628,10 +7630,10 @@ C.registerMode({
       } else { gauge({ used: null }, now, HUDQ.pwI, HUDQ.pwU, HUDQ.pwV); html(HUDQ.pwH, X(`<span class="t" title="전력 · 5시간 한도">전력 · 5시간 한도</span><span class="r">정보 없음</span>`, `<span class="t" title="Power · 5h limit">Power · 5h limit</span><span class="r">no data</span>`)); }
       pwB.hud(HUDQ);   // 단계 무늬·배지 · 정전이면 "리셋까지"
       gauge(lim.week, now, HUDQ.wkI, null, HUDQ.wkV); txt($(".t-wk"), X("주간 한도", "Weekly limit") + pwB.wxIcon());
-      const callers = st ? st.sessions.filter(s => s.status === "needs_input") : [], calling = callers.length;
-      const longest = callers.reduce((m, s) => Math.max(m, s.since ? now - s.since : 0), 0), lm = Math.floor(longest / 60);   // ⏱ 가장 오래 기다린 질문
+      const callers = st ? askQ(st.sessions, now) : [], calling = callers.length;   // 인박스와 같은 기준(🔑+❓, 추정 제외, #184)
+      const longest = callers.reduce((m, it) => Math.max(m, it.since ? now - it.since : 0), 0), lm = Math.floor(longest / 60);   // ⏱ 가장 오래 기다린 질문
       HUDQ.chip.hidden = !calling; setAge(HUDQ.chip, ageCls(longest));
-      html(HUDQ.chip, `<span style="font-size:18px">❓</span>${calling} · ${lm >= 1 ? X(`최장 ${lm}분`, `longest ${lm}m`) : X("방금", "just now")}`);
+      html(HUDQ.chip, `<span style="font-size:18px">${callers.every(it => it.kind === "permission") ? "🔑" : "❓"}</span>${calling} · ${lm >= 1 ? X(`최장 ${lm}분`, `longest ${lm}m`) : X("방금", "just now")}`);
       HUDQ.chip.title = X(`입력 대기 ${calling} · 가장 오래 기다린 질문 ${lm}분`, `${calling} waiting for input · longest ${lm}m`);
       const sb = $('[data-act="sound"]'), qb = $('[data-act="quiet"]'), db = $('[data-act="dex"]');
       txt(sb, cfg.sound ? "🔊" : "🔈"); sb.classList.toggle("on", cfg.sound); sb.title = X("키보드 타자 소리 켜기/끄기", "Toggle keyboard typing sound");
