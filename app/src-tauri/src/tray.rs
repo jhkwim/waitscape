@@ -1,4 +1,4 @@
-//! 트레이/메뉴바 (ARCHITECTURE §3.4). 메뉴: (새 버전이 있으면 맨 위에 🎁 업데이트 있음) · 큰 화면 · 미니 보기(포켓·스튜디오 중 마지막, 체크 = 지금 미니) · 모드 ▸(목록 자동) · 회의 모드 · 🙈 눈치 모드 · 설정… · 종료.
+//! 트레이/메뉴바 (ARCHITECTURE §3.4). 메뉴: (새 버전이 있으면 맨 위에 🎁 업데이트 있음) · (기다리는 세션이 있으면 다음 세션 · 세션 목록) · 큰 화면 · 미니 보기(포켓·스튜디오 중 마지막, 체크 = 지금 미니) · 모드 ▸(목록 자동) · 회의 모드 · 🙈 눈치 모드 · 설정… · 종료.
 //! 큰 화면과 미니 보기는 전환(둘 중 하나만 보임). 모드 선택·설정…도 큰 화면으로 돌아간다.
 //! 모드 목록은 메인 창 코어가 켜진 모드 순서대로 알려 준다(`set_tray_modes`). macOS 메뉴바에는 `⏳2 ❗1` 요약을 띄운다.
 
@@ -72,6 +72,13 @@ fn t(lang: &str, k: &str) -> &'static str {
                 "업데이트 있음"
             }
         }
+        "next" => {
+            if en {
+                "Next Session"
+            } else {
+                "다음 세션"
+            }
+        }
         "none" => {
             if en {
                 "(open the window once)"
@@ -122,6 +129,47 @@ pub fn modes_submenu(app: &AppHandle, be: &Backend) -> tauri::Result<Submenu<Wry
     Ok(sub)
 }
 
+/// 메뉴에 둘 기다리는 세션 수 상한
+const WAIT_MAX: usize = 8;
+
+/// 답을 기다리는 세션 (sid, 권한이면 true, 프로젝트) — 인박스(core-lib.js `inboxQueue`)와 같은 기준·순서:
+/// 추정(guess) 제외, 권한 → 질문, 오래 기다린 순
+pub fn waiting(st: &serde_json::Value) -> Vec<(String, bool, String)> {
+    let s = |x: &serde_json::Value, k: &str| x.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let mut v: Vec<(bool, f64, String, String)> = st
+        .get("sessions")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+        .filter(|x| s(x, "status") == "needs_input" && s(x, "confidence") != "guess" && !s(x, "sid").is_empty())
+        .map(|x| {
+            let since = x.get("since").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            (s(x, "ask") == "permission", since, s(x, "sid"), s(x, "project"))
+        })
+        .collect();
+    v.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.total_cmp(&b.1)).then(a.2.cmp(&b.2)));
+    v.into_iter().map(|(p, _, sid, pr)| (sid, p, pr)).collect()
+}
+
+/// 목록 줄 글자: 🔑/❓ + 프로젝트(같은 이름이 여럿이면 뒤에 (2)…). 눈치 모드면 이모지 없이
+fn wait_labels(w: &[(String, bool, String)], nunchi: bool) -> Vec<String> {
+    let mut seen: std::collections::HashMap<&str, usize> = Default::default();
+    w.iter()
+        .map(|(_, perm, pr)| {
+            let name = if pr.trim().is_empty() { "?" } else { pr.as_str() };
+            let n = seen.entry(name).or_insert(0);
+            *n += 1;
+            let name: String = name.chars().take(40).collect();
+            let name = if *n > 1 { format!("{name} ({n})") } else { name };
+            if nunchi {
+                name
+            } else {
+                format!("{} {name}", if *perm { "🔑" } else { "❓" })
+            }
+        })
+        .collect()
+}
+
 fn build_menu(app: &AppHandle, be: &Backend) -> tauri::Result<Menu<Wry>> {
     let s = be.settings();
     let lang = s.lang.as_str();
@@ -147,6 +195,17 @@ fn build_menu(app: &AppHandle, be: &Backend) -> tauri::Result<Menu<Wry>> {
             &MenuItem::with_id(app, "quit", t(lang, "quit"), true, None::<&str>)?,
         ],
     )?;
+    // 기다리는 세션이 있으면 맨 위에: 다음 세션(늘 같은 자리) · 세션 목록 — 누르면 그 세션으로(#188)
+    let w = be.last.lock().unwrap().as_ref().map(waiting).unwrap_or_default();
+    if !w.is_empty() {
+        menu.prepend(&PredefinedMenuItem::separator(app)?)?;
+        let labels = wait_labels(&w, s.nunchi);
+        for ((sid, _, _), label) in w.iter().zip(labels).take(WAIT_MAX).rev() {
+            menu.prepend(&MenuItem::with_id(app, format!("jump:{sid}"), label, true, None::<&str>)?)?;
+        }
+        let next = plain_label(&format!("⏭ {}", t(lang, "next")), s.nunchi);
+        menu.prepend(&MenuItem::with_id(app, "jump-next", next, true, None::<&str>)?)?;
+    }
     // 새 버전이 있으면 맨 위에 (누르면 큰 화면 + 업데이트 대화상자. 설치는 거기서 사용자가 누를 때만)
     if let Some(v) = crate::updater::available(app) {
         let label = format!("🎁 {} (v{v})", t(lang, "update"));
@@ -271,6 +330,19 @@ pub fn on_menu(app: &AppHandle, id: &str) {
             let act = if k == "ctx-go" { "go" } else { "copy" };
             app.emit_to(label, "ctx-action", serde_json::json!({ "act": act, "sid": sid })).ok();
         }
+        "jump-next" => {
+            // 누른 때의 가장 급한 세션(메뉴를 연 뒤 바뀌었을 수 있음)
+            let first = be.last.lock().unwrap().as_ref().and_then(|v| waiting(v).into_iter().next());
+            if let Some((sid, _, _)) = first {
+                let a = app.clone();
+                std::thread::spawn(move || crate::backend::jump_to_session(&a, &sid, "트레이 다음 세션"));
+            }
+        }
+        x if x.starts_with("jump:") => {
+            // 터미널·편집기 열기(osascript 등)는 메뉴 이벤트(메인 스레드) 밖에서
+            let (a, sid) = (app.clone(), x[5..].to_string());
+            std::thread::spawn(move || crate::backend::jump_to_session(&a, &sid, "트레이 세션 목록"));
+        }
         "update" => switch_windows(app, |a| {
             if crate::windows::to_big(a) {
                 a.emit_to("main", "update-show", ()).ok(); // 가드에 막힌 전환이면 건너뜀
@@ -318,6 +390,17 @@ pub fn update_summary(app: &AppHandle, st: &serde_json::Value) {
         parts.insert(0, "🎁".to_string());
     }
     let title = parts.join(if plain { " · " } else { " " });
+    // 기다리는 세션 목록이 바뀌었으면 메뉴를 다시 만든다(바뀔 때만 — 열린 메뉴를 자꾸 갈아 끼우지 않게)
+    {
+        use std::sync::Mutex;
+        static LAST: Mutex<Vec<(String, bool, String)>> = Mutex::new(Vec::new());
+        let w: Vec<_> = waiting(st).into_iter().take(WAIT_MAX).collect();
+        let mut last = LAST.lock().unwrap();
+        if *last != w {
+            *last = w;
+            refresh(app);
+        }
+    }
     let app2 = app.clone();
     let alert = calling > 0;
     // 트레이 조작은 메인 스레드에서
@@ -340,6 +423,29 @@ pub fn update_summary(app: &AppHandle, st: &serde_json::Value) {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
+    #[test]
+    fn waiting_matches_inbox_order() {
+        let st = json!({"sessions": [
+            {"sid": "q1", "status": "needs_input", "ask": "question", "since": 10.0, "project": "web"},
+            {"sid": "g", "status": "needs_input", "ask": "permission", "confidence": "guess", "since": 1.0, "project": "x"},
+            {"sid": "p2", "status": "needs_input", "ask": "permission", "since": 30.0, "project": "api"},
+            {"sid": "p1", "status": "needs_input", "ask": "permission", "since": 20.0, "project": "api"},
+            {"sid": "w", "status": "working", "since": 0.0, "project": "y"},
+            {"sid": "u", "status": "needs_input", "since": 5.0, "project": ""},
+        ]});
+        let w = super::waiting(&st);
+        let ids: Vec<_> = w.iter().map(|x| x.0.as_str()).collect();
+        assert_eq!(
+            ids,
+            ["p1", "p2", "u", "q1"],
+            "권한 먼저, 같은 종류는 오래 기다린 순, 추정·작업 중 제외"
+        );
+        assert_eq!(super::wait_labels(&w, false), ["🔑 api", "🔑 api (2)", "❓ ?", "❓ web"]);
+        assert_eq!(super::wait_labels(&w, true), ["api", "api (2)", "?", "web"]);
+    }
+
     #[test]
     fn plain_label_drops_leading_emoji_in_nunchi() {
         assert_eq!(super::plain_label("🙈 눈치 모드", true), "눈치 모드");
