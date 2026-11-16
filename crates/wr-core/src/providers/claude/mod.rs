@@ -15,7 +15,7 @@ pub mod trace;
 pub mod usage;
 
 use crate::daylog::{DayFeed, FeedAct, FeedTurn, FeedWait};
-use crate::health::health;
+use crate::health::{health, main_health};
 use crate::hide::HideRules;
 use crate::limits::merge_limits;
 use crate::model::{tok_sum, HooksInfo, LimitsBlock, Poll, ProviderInfo, Session, Today, Usage};
@@ -163,13 +163,8 @@ impl ClaudeProvider {
         h.s.test = scan::test_of(main, h.s.prompt_ts); // 🧪 이번 턴의 마지막 테스트(#138)
         if h.s.status == "working" {
             h.s.say = Some(main.say.clone());
-            h.s.health = Some(health(
-                main.pending.values().map(|(n, t)| (n.as_str(), *t)),
-                main.last_ts,
-                h.s.last,
-                ctx.now,
-            ));
         }
+        let (main_pend, main_ts): (Vec<(String, f64)>, f64) = (main.pending.values().cloned().collect(), main.last_ts); // 메인 판정은 서브에이전트 판정 뒤(#182)
         let sub_dir = {
             let s = path.to_string_lossy();
             PathBuf::from(&s[..s.len() - ".jsonl".len()]).join("subagents")
@@ -190,6 +185,19 @@ impl ClaudeProvider {
                 ));
             }
             msgs.extend(c.msgs.values().copied());
+        }
+        if h.s.status == "working" {
+            let busy = h
+                .agents
+                .values()
+                .any(|a| a.status == "running" && a.health.as_ref().is_some_and(|x| x.as_ref().is_none_or(|h| h.level != "stall")));
+            h.s.health = Some(main_health(
+                main_pend.iter().map(|(n, t)| (n.as_str(), *t)),
+                main_ts,
+                h.s.last,
+                ctx.now,
+                busy,
+            ));
         }
         h.s.tokens = Some(tok_sum(msgs.iter(), h.s.prompt_ts.filter(|&x| x != 0.0).unwrap_or(0.0)));
         today_msgs.extend(msgs.into_iter().filter(|m| m.ts >= day_start));

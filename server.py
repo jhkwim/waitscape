@@ -193,6 +193,16 @@ def health(c, last_event, now):
     return None
 
 
+def main_health(c, last_event, now, agent_busy):
+    """메인 세션 판정(#182): 서브에이전트가 정상으로 일하는 중이면 Agent·Task 대기는 뺀다(포그라운드는 끝날 때까지 대기로 남음).
+    남은 대기가 있으면 그것으로, 없으면 정상(멈춤은 서브에이전트 자신의 판정이 보여 줌). health.rs `main_health()`."""
+    pend = c["pending"]
+    if agent_busy and any(n in ("Agent", "Task") for n, _ in pend.values()):
+        rest = {k: v for k, v in pend.items() if v[0] not in ("Agent", "Task")}
+        return health(dict(c, pending=rest), last_event, now) if rest else None
+    return health(c, last_event, now)
+
+
 def transcript(sid):
     if sid not in _paths:
         hits = glob.glob(os.path.join(PROJECTS, "*", sid + ".jsonl"))
@@ -221,7 +231,6 @@ def add_tokens(s, day_start, today_msgs, now):
         s["test"] = t
     if s["status"] == "working":
         s["say"] = main["say"]
-        s["health"] = health(main, s["last"], now)
     sub_dir = path[:-len(".jsonl")]
     for a in s["agents"].values():
         sub = os.path.join(sub_dir, "subagents", "agent-%s.jsonl" % a["aid"])
@@ -233,6 +242,10 @@ def add_tokens(s, day_start, today_msgs, now):
         if a["status"] == "running" and os.path.exists(sub):
             a["health"] = health(c, a["last"], now)
         msgs += am
+    if s["status"] == "working":   # 메인 판정은 서브에이전트 판정 뒤(#182)
+        busy = any(a["status"] == "running" and "health" in a and (a["health"] or {}).get("level") != "stall"   # 판정을 거친(트랜스크립트 있는) 서브에이전트만
+                   for a in s["agents"].values())
+        s["health"] = main_health(main, s["last"], now, busy)
     s["tokens"] = tok_sum(msgs, s.get("prompt_ts") or 0)
     today_msgs.extend(m for m in msgs if m[0] >= day_start)
 

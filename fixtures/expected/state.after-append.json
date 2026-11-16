@@ -1735,6 +1735,150 @@
   {
    "activity": [
     {
+     "icon": "🤖",
+     "text": "서브에이전트: 결제 흐름 조사",
+     "ts": 1792518410
+    }
+   ],
+   "agents": [
+    {
+     "aid": "sa1",
+     "bg": false,
+     "desc": "결제 흐름 조사",
+     "health": null,
+     "last": 1792519180,
+     "now": {
+      "icon": "🔍",
+      "kind": "search",
+      "text": "'refund' 찾는 중"
+     },
+     "recent": [
+      {
+       "icon": "🔍",
+       "kind": "search",
+       "text": "'refund' 찾는 중"
+      }
+     ],
+     "say": "환불 경로를 찾아볼게요.",
+     "since": 1792518411,
+     "status": "running",
+     "tokens": 12200,
+     "tools": 1,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/api-server",
+   "health": null,
+   "kind": "agent",
+   "kinds": {
+    "agent": 1
+   },
+   "last": 1792519180,
+   "project": "api-server",
+   "prompt": "결제 모듈 조사해줘",
+   "prompt_ts": 1792518400,
+   "run": 0,
+   "say": "",
+   "sid": "fx-sync-agent",
+   "since": 1792518400,
+   "started": 1792518400,
+   "status": "working",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 12000,
+    "out": 200,
+    "total": 12200
+   },
+   "tools": 1,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 결제 흐름 조사"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
+     "icon": "🤖",
+     "text": "서브에이전트: 결제 흐름 조사",
+     "ts": 1792518410
+    }
+   ],
+   "agents": [
+    {
+     "aid": "sa2",
+     "bg": false,
+     "desc": "결제 흐름 조사",
+     "health": {
+      "level": "stall",
+      "secs": 675.0,
+      "tool": "Grep"
+     },
+     "last": 1792518540,
+     "now": {
+      "icon": "🔍",
+      "kind": "search",
+      "text": "'refund' 찾는 중"
+     },
+     "recent": [
+      {
+       "icon": "🔍",
+       "kind": "search",
+       "text": "'refund' 찾는 중"
+      }
+     ],
+     "say": "환불 경로를 찾아볼게요.",
+     "since": 1792518411,
+     "status": "running",
+     "tokens": 12200,
+     "tools": 1,
+     "type": "Explore"
+    }
+   ],
+   "ctx": null,
+   "cwd": "/Users/alex/dev/api-server",
+   "health": {
+    "level": "stall",
+    "secs": 805.0,
+    "tool": "Agent"
+   },
+   "kind": "agent",
+   "kinds": {
+    "agent": 1
+   },
+   "last": 1792518540,
+   "project": "api-server",
+   "prompt": "결제 모듈 조사해줘",
+   "prompt_ts": 1792518400,
+   "run": 0,
+   "say": "",
+   "sid": "fx-sync-stuck",
+   "since": 1792518400,
+   "started": 1792518400,
+   "status": "working",
+   "todos": [],
+   "tokens": {
+    "cached": 0,
+    "new": 12000,
+    "out": 200,
+    "total": 12200
+   },
+   "tools": 1,
+   "trail": [
+    [
+     "agent",
+     "🤖",
+     "서브에이전트: 결제 흐름 조사"
+    ]
+   ]
+  },
+  {
+   "activity": [
+    {
      "icon": "🔧",
      "text": "TaskCreate",
      "ts": 1792518510
@@ -2046,21 +2190,21 @@
    "trail": []
   }
  ],
- "today_agents": 17,
+ "today_agents": 19,
  "today_kinds": {
-  "agent": 14,
+  "agent": 16,
   "bash": 10,
   "edit": 3,
   "other": 1,
   "read": 9,
-  "search": 3,
+  "search": 5,
   "todo": 5
  },
  "today_tokens": {
   "cached": 1131500,
-  "new": 218840,
-  "out": 23860,
-  "total": 242700
+  "new": 242840,
+  "out": 24260,
+  "total": 267100
  },
  "waited_today": 6020.0
 }

@@ -477,7 +477,7 @@ R status --state done --cheer "지적 2건"; R bye
   KPI 행(활성/입력 필요/멈춤 의심/서브에이전트/완료/토큰/대기) + 사용 한도 + 세션 테이블(행 클릭으로 프롬프트·활동·서브에이전트·할 일·메모 펼침).
   입력 필요·멈춤 의심 세션은 위로 정렬되고 자동으로 펼쳐짐. 펼침 상태는 localStorage `opsOpen`, 메모는 게임 모드와 같은 `memo:<세션ID>` 키 공유
 - 🔍 에이전트 상세 + 멈춤 감지: 트랜스크립트에서 마지막 발화(💬)와 실행 중인 도구를 읽음.
-  모델 응답이 2분/5분 없으면 느림/멈춤 의심, 도구 하나가 2분/10분 안 끝나면 느림/멈춤 의심 (`server.py`의 `SLOW`, `STALL`, `TOOL_SLOW`, `TOOL_STALL`)
+  모델 응답이 2분/5분 없으면 느림/멈춤 의심, 도구 하나가 2분/10분 안 끝나면 느림/멈춤 의심 (`server.py`의 `SLOW`, `STALL`, `TOOL_SLOW`, `TOOL_STALL`). 서브에이전트가 정상으로 일하는 동안 메인의 Agent·Task 대기는 세지 않음(`main_health`, #182)
 - 🔄 사용 한도 직접 조회 (선택): `WAITING_ROOM_POLL_USAGE=1 python3 server.py`로 켜면 5분마다
   `api.anthropic.com/api/oauth/usage`를 조회 (키체인의 Claude Code OAuth 토큰 사용, 메모리에만 보관).
   비공개 API라 Claude Code 업데이트로 바뀔 수 있음. 단독 테스트: `python3 usage_poll.py`

@@ -255,6 +255,17 @@
    "source": "transcript",
    "project": "demo"
   },
+  "to-agent-long": {
+   "status": "working",
+   "health": null,
+   "agents": [
+    {
+     "aid": "lg1",
+     "status": "running",
+     "health": null
+    }
+   ]
+  },
   "to-stale": {
    "listed": false
   },

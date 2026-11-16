@@ -64,7 +64,8 @@ Python 참조 서버에는 이 기능이 없으므로 `fixtures/expected/`(동�
 - `started`: working·needs_input·agents(메인 진행 중)이면 턴 시작 시각, done이면 null.
 - `run`: 마지막으로 끝난 턴의 `끝 - 시작` (초).
 - `confidence`: 위에서 "guess"가 아니면 "sure".
-- `health`: status가 working일 때만 server.py `health()`와 같은 식(대기 중 도구 → 도구 시간, 없으면 `now - 마지막 기록`). 그 밖은 null.
+- `health`: status가 working일 때만 server.py `main_health()`와 같은 식(대기 중 도구 → 도구 시간, 없으면 `now - 마지막 기록`). 그 밖은 null.
+  running이면서 멈춤 의심이 아닌 서브에이전트가 있으면 메인의 Agent·Task 대기는 빼고 판정하고, 남는 대기가 없으면 null(#182, `to-agent-long`).
 - `say`: working일 때 메인의 마지막 assistant 텍스트(마스킹 → 공백 정리 → 160자).
 
 ## 4. 도구 요약·할 일·에이전트
