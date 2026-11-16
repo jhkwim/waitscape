@@ -6241,7 +6241,7 @@ C.registerMode({
       return { s, sid: s.sid, kind, rank, status, ag, agAll, layout, aib, rep: repOf(s),
         animal: an.id, shiny: an.shiny, pk, pname: pid.name, label: `${an.shiny ? "✨" : ""}${aName(an.id)}·${pid.name}` };
     }
-    let model = { floors: [], more: 0, hiddenAsk: 0, all: [], st: null }, floorIdx = new Map();
+    let model = { floors: [], more: 0, all: [], st: null }, floorIdx = new Map();
     let cheer = null, cheerAt = -1e9, hovCap = null, hovJump = null, bossFree = -1e9;   // 🎉 사장님 축하 말풍선 · ✍️ 마우스를 올린 층(하단 캡션)
     const cheerSeen = new Set();
     let lastState = null, firstSync = true, visitor = null;
@@ -6960,7 +6960,7 @@ C.registerMode({
       /* 사장실 */
       const bf = FL[n], boss = ensureBoss();
       txt(bf.tag.children[0], "1F"); txt(bf.tag.children[1], X("사장실 · 나", "Boss office · me"));
-      const askN = model.floors.filter(f => f.kind === "ask").length + model.hiddenAsk;
+      const askN = model.st ? askQ(model.st.sessions, ctx.now()).length : 0;   // ❓ 대기 칩과 같은 기준(추정 제외, #184)
       txt(bf.tag.children[2], X(`승인 대기 ${askN}`, `Waiting ${askN}`)); sty(bf.tag.children[2], "background", "#34457f");
       let pqB = null, updB = false;
       /* 질문하러 와 있는 직원이 있으면(질문 말풍선이 사장님 자리를 덮음) 축하는 미뤘다가 끝나면 — 1분 넘게 밀리면 생략 */
@@ -7531,7 +7531,7 @@ C.registerMode({
       wbT.sweep(tc);
       list.sort((a, b) => a.rank - b.rank || (a.kind === "ask" ? a.s.since - b.s.since : 0) || (a.sid < b.sid ? -1 : a.sid > b.sid ? 1 : 0));
       const floors = list.slice(0, MAXF);
-      model = { floors, more: list.length - floors.length, hiddenAsk: list.slice(MAXF).filter(f => f.kind === "ask").length, st, all: list };
+      model = { floors, more: list.length - floors.length, st, all: list };
       nSess = Math.max(1, floors.length);
       floorIdx = new Map(floors.map((f, i) => [f.sid, i]));
       const live = new Set(floors.map(f => f.sid));
