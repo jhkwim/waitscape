@@ -243,7 +243,8 @@ def add_tokens(s, day_start, today_msgs, now):
             a["health"] = health(c, a["last"], now)
         msgs += am
     if s["status"] == "working":   # 메인 판정은 서브에이전트 판정 뒤(#182)
-        busy = any(a["status"] == "running" and (a.get("health") or {}).get("level") != "stall" for a in s["agents"].values())
+        busy = any(a["status"] == "running" and "health" in a and (a["health"] or {}).get("level") != "stall"   # 판정을 거친(트랜스크립트 있는) 서브에이전트만
+                   for a in s["agents"].values())
         s["health"] = main_health(main, s["last"], now, busy)
     s["tokens"] = tok_sum(msgs, s.get("prompt_ts") or 0)
     today_msgs.extend(m for m in msgs if m[0] >= day_start)

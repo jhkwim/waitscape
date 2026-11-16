@@ -713,7 +713,7 @@ impl TOnly {
             let busy = s
                 .agents
                 .iter()
-                .any(|a| a.status == "running" && a.health.as_ref().and_then(|x| x.as_ref()).is_none_or(|x| x.level != "stall")); // #182
+                .any(|a| a.status == "running" && a.health.as_ref().is_some_and(|x| x.as_ref().is_none_or(|h| h.level != "stall"))); // #182
             s.health = Some(main_health(
                 c.pend.values().map(|(n, t)| (n.as_str(), *t)),
                 main_last,

@@ -39,7 +39,7 @@ pub fn health<'a>(pending: impl IntoIterator<Item = (&'a str, f64)>, last_ts: f6
     None
 }
 
-/// 메인 세션 판정(#182): 서브에이전트가 정상으로 일하는 중이면(`agent_busy`) 메인의 Agent·Task 대기는 뺀다 —
+/// 메인 세션 판정(#182): 서브에이전트가 정상으로 일하는 중이면(`agent_busy` — 트랜스크립트로 판정을 거쳤고 멈춤 의심이 아님) 메인의 Agent·Task 대기는 뺀다 —
 /// 포그라운드 서브에이전트는 끝날 때까지 결과가 없어 대기로 남기 때문. 뺀 뒤 남은 대기가 있으면 그것으로,
 /// 없으면 정상(멈춤은 서브에이전트 자신의 판정이 보여 줌). server.py `main_health()`.
 pub fn main_health<'a>(

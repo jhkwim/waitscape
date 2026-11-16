@@ -190,7 +190,7 @@ impl ClaudeProvider {
             let busy = h
                 .agents
                 .values()
-                .any(|a| a.status == "running" && a.health.as_ref().and_then(|x| x.as_ref()).is_none_or(|x| x.level != "stall"));
+                .any(|a| a.status == "running" && a.health.as_ref().is_some_and(|x| x.as_ref().is_none_or(|h| h.level != "stall")));
             h.s.health = Some(main_health(
                 main_pend.iter().map(|(n, t)| (n.as_str(), *t)),
                 main_ts,
