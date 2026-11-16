@@ -369,20 +369,7 @@ pub fn set_tray_modes(app: AppHandle, w: WebviewWindow, be: B, modes: Vec<Value>
 #[tauri::command]
 pub async fn open_terminal(w: WebviewWindow, be: B<'_>, sid: String) -> Result<Value, String> {
     main_or_widget(&w)?;
-    let sess = be
-        .last
-        .lock()
-        .unwrap()
-        .as_ref()
-        .and_then(|s| s.get("sessions").and_then(|x| x.as_array()).cloned())
-        .unwrap_or_default()
-        .into_iter()
-        .find(|s| s.get("sid").and_then(|x| x.as_str()) == Some(sid.as_str()));
-    let cwd = sess
-        .as_ref()
-        .and_then(|s| s.get("cwd").and_then(|x| x.as_str()).map(String::from))
-        .unwrap_or_default();
-    let mux = sess.as_ref().and_then(|s| s.get("jump")).and_then(terminal::Mux::of);
+    let (cwd, mux) = be.jump_target(&sid);
     let (pref, home, cwd2, mux2) = (be.settings().terminal, be.home.clone(), cwd.clone(), mux.clone());
     let r = tauri::async_runtime::spawn_blocking(move || terminal::open(&cwd2, &pref, mux2.as_ref(), &home))
         .await
