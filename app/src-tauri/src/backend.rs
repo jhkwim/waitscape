@@ -325,7 +325,7 @@ fn on_changed(app: &AppHandle, be: &Backend, v: &Value) {
         if a.kind == Kind::Input {
             // 질문·권한 알림은 누르면 그 세션으로(#186)
             let (app2, sid) = (app.clone(), a.sid.clone());
-            os_notify_click(app, &t, &b, quiet, move || jump_to_session(&app2, &sid));
+            os_notify_click(app, &t, &b, quiet, move || jump_to_session(&app2, &sid, "질문 알림"));
         } else {
             os_notify(app, &t, &b, quiet);
         }
@@ -333,13 +333,13 @@ fn on_changed(app: &AppHandle, be: &Backend, v: &Value) {
     crate::tray::update_summary(app, v);
 }
 
-/// 알림을 눌렀을 때: 그 세션의 터미널·편집기로(앱의 세션 바로 이동과 같은 `terminal::open`). 바로 갈 수 없으면 큰 창을 연다.
+/// 질문 알림·트레이 세션 목록(#188)을 눌렀을 때: 그 세션의 터미널·편집기로(앱의 세션 바로 이동과 같은 `terminal::open`). 바로 갈 수 없으면 큰 창을 연다.
 /// 터미널 앱만 띄운 경우(mux-app·mux-launch)는 그 앱이 앞에 있으므로 큰 창을 덮어 열지 않는다
-fn jump_to_session(app: &AppHandle, sid: &str) {
+pub(crate) fn jump_to_session(app: &AppHandle, sid: &str, from: &str) {
     let be = app.state::<Arc<Backend>>().inner().clone();
     let (cwd, mux) = be.jump_target(sid);
     let r = crate::terminal::open(&cwd, &be.settings().terminal, mux.as_ref(), &be.home);
-    wlog!("notify", "질문 알림 누름 → 세션 이동 {r}");
+    wlog!("notify", "{from} 누름 → 세션 이동 {r}");
     if matches!(r, "unsupported" | "mux-off" | "mux-denied" | "mux-perm") {
         crate::tray::on_menu(app, "open");
     }

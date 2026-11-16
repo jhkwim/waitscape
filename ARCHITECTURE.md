@@ -198,7 +198,7 @@ interface CoreApi {
 ### 3.4 트레이 / 메뉴바
 
 - `TrayIconBuilder`(Tauri 2 코어 `tray-icon` 기능). 아이콘 상태는 기본·작업 중·입력 필요(빨간 점) 3종이다. macOS는 `set_title`로 메뉴바에 `⏳2 ❗1` 같은 텍스트를 띄운다[추정: title은 macOS 전용].
-- 메뉴: 세션 목록(상태 아이콘 + 프로젝트 + 경과 시간 → 누르면 터미널로 이동) / 큰 화면 / 미니 보기(체크) / 회의 모드 / 모드 관리… / 설정… / 종료. (구현: [새 버전이 있으면 맨 위 🎁 업데이트 있음 + 메뉴바 제목 맨 앞 🎁] · 큰 화면 · 미니 보기 · 모드 ▸ · 회의 모드 · 🙈 눈치 모드 · 설정… · 종료, 세션 목록은 미구현. 눈치 모드면 메뉴바 요약은 숫자만 `2 · 1`)
+- 메뉴: 세션 목록(상태 아이콘 + 프로젝트 + 경과 시간 → 누르면 터미널로 이동) / 큰 화면 / 미니 보기(체크) / 회의 모드 / 모드 관리… / 설정… / 종료. (구현: [새 버전이 있으면 맨 위 🎁 업데이트 있음 + 메뉴바 제목 맨 앞 🎁] · [기다리는 세션이 있으면 ⏭ 다음 세션 + 세션 목록(🔑/❓ + 프로젝트, 인박스 기준: 추정 제외·권한 → 질문·오래 기다린 순, 최대 8개) → 누르면 질문 알림과 같은 `backend::jump_to_session`, 목록이 바뀔 때만 메뉴 재생성, #188] · 큰 화면 · 미니 보기 · 모드 ▸ · 회의 모드 · 🙈 눈치 모드 · 설정… · 종료. 경과 시간은 메뉴를 매분 갈아 끼우지 않으려고 뺐다. 눈치 모드면 메뉴바 요약은 숫자만 `2 · 1`)
 - macOS에서 Dock 아이콘을 숨기는 메뉴바 전용 모드(`ActivationPolicy::Accessory`)는 설정으로 둔다(열린 질문 Q6).
 - `tauri-plugin-single-instance`로 중복 실행을 막는다. 두 번째 실행은 메인 창을 띄우기만 한다.
 
@@ -650,7 +650,7 @@ cargo tauri build --target universal-apple-darwin # → .app, .dmg
 
 ### 8.3 P3 구현 메모 (설계와 달라진 점)
 
-- **완료**: P3-a(골격·push·`wrmode:`·capabilities), P3-b(트레이·위젯·알림·자동 시작), P3-c(설정·훅 설치·터미널 이동·한도), P3-d 중 설치·삭제·켜기/순서 영속. **미구현**: 개발 폴더 링크·`mode-reload`(앱), "설치 후 수정됨" 배지(`.install.json` 해시는 기록만), 트레이 세션 목록.
+- **완료**: P3-a(골격·push·`wrmode:`·capabilities), P3-b(트레이·위젯·알림·자동 시작), P3-c(설정·훅 설치·터미널 이동·한도), P3-d 중 설치·삭제·켜기/순서 영속. **미구현**: 개발 폴더 링크·`mode-reload`(앱), "설치 후 수정됨" 배지(`.install.json` 해시는 기록만).
 - 크레이트 `app/src-tauri`(이름 `waitscape`, Tauri 2.12.4 · 플러그인 notification/dialog/autostart/single-instance, `notify` 8, `zip` 2). Rust 1.90+ 필요(크레이트별 `rust-version`).
 - **큰 화면 ↔ 미니 보기**: 두 창은 전환이라 동시에 보이지 않는다(`windows::View`). `open_widget`(메인 📌 미니 보기·포켓 위에 띄우기, 트레이 "미니 보기") = 위젯을 띄운 뒤 main을 **숨김**(닫지 않음). `close_widget`(위젯 ⤢ 크게 보기·`window.close()`) · 트레이 "큰 화면"·설정…·모드 선택 · Dock 클릭(Reopen) · 다시 실행(single-instance) = main을 보이고 위젯을 닫음. 위젯이 어떤 길로 닫히든(Cmd+W 포함) `CloseRequested`에서 큰 창을 되살려 창이 하나도 안 보이는 상태를 만들지 않는다. 미니 여부는 설정 `widget`에 남고(앱 종료는 CloseRequested를 거치지 않아 유지) 다음 시작은 main을 숨긴 채 만들어 그 화면으로 연다. Dock 클릭을 "큰 화면"으로 둔 이유: 미니 창은 이미 항상 위에 보여 "앞으로"가 할 일이 없고, Dock 클릭 = 앱 창 열기가 macOS 관례. 브라우저(PiP)는 탭을 숨길 수 없어 기존대로 창이 하나 더 뜬다.
 - **창**: `main`(index.html, 닫기 = 숨김) + `widget`(widget.html — 별도 셸 파일, 코어가 `<meta name="wr-widget">`를 보고 `#<모드>`(없으면 localStorage `widget:mode`, 기본 포켓)를 '떨어진 창' 모양으로만 mount. `open_widget(modeId)`는 `pocket`·`studio`만 받고, 이미 열린 창이면 해시만 바꿔 코어가 다시 불러온다). `manager` 창은 만들지 않고 P2의 설정 패널을 그대로 쓴다. 위젯 크기 맞춤은 포켓의 `win.resizeTo`를 `widget_resize` 명령으로 연결(WKWebView는 `outerWidth`가 0이라 코어가 inner와 같게 보정), 끌기는 `start_dragging`.
