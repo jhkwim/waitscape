@@ -7361,10 +7361,12 @@ C.registerMode({
          이름표 글·글꼴·글자 배율(--inv, 창이 좁으면 커짐)이 바뀔 때만 다시 잼(매 프레임 레이아웃 읽기 방지) */
       /* 아기 "#1~3" 이름표(#74): 층 이름표 줄은 그 앞까지 줄이고(옮기지 않음 — 배너 자리), 배너는 이름표와 같은 높이에 걸리면 첫 이름표 앞에서 끝남.
          창이 좁아 글자 배율(--inv)이 크면 셋 다 한 줄 높이에 걸려 배너가 숨고 이름표 칩("서브 회의 n/총")이 진행을 보여 줌 */
-      seat.forEach(b => tagZone(b, fl.F)); ftagFit(fl, seat, 0, 0);
+      seat.forEach(b => tagZone(b, fl.F));
+      const who = a.tag.style.display !== "none" ? [a, ...seat] : seat;   // 본체 이름표도 켜져 있으면(💤 멈춤 의심 — 보드 앞에 섬) 함께 피함
+      ftagFit(fl, who, 0, 0);
       const full = `🤝 ${X("회의", "Meeting")} ${dnN}/${tot}${say ? " · " + (sp && !cfg.hideText ? "#" + (sp.j + 1) + " " : "") + esc(cut(say, 18)) : ""}`;
       const ty = `${EMO[f.animal]} 📨 ${X("오, 고마워!", "Oh, thanks!")}`;   // 부모가 봉투를 받는 동안은 테이블 말풍선이 부모 한마디(층 이름표 칩을 가리지 않는 자리)
-      mbQ.push({ fl, zs: seat.map(b => b.tz).filter(z => z && z.F === fl.F), mt: Math.max(2, top), long: thank ? ty : full, short: thank ? "📨" : `🤝 ${dnN}/${tot}` });   // 자리 재기는 층 이름표 줄 맞춤(ftagFlush) 뒤 — 줄인 폭으로(mbFlush)
+      mbQ.push({ fl, zs: who.map(b => b.tz).filter(z => z && z.F === fl.F), mt: Math.max(2, top), long: thank ? ty : full, short: thank ? "📨" : `🤝 ${dnN}/${tot}` });   // 자리 재기는 층 이름표 줄 맞춤(ftagFlush) 뒤 — 줄인 폭으로(mbFlush)
       if (fl.more) { fl.more.hidden = tot <= 3; txt(fl.more, "+" + (tot - 3)); }
     }
 
