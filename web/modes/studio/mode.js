@@ -6278,7 +6278,8 @@ C.registerMode({
       sty(a.bub, "bottom", ((o.lying ? a.w : a.h) + (a.tag.style.display === "none" ? 8 : 24)) + "px");
       /* 🎰 모자로 키가 커져 이름표가 층 위로 넘치면(층 6개 · 서 있을 때) 그만큼 내려 모자 끝에 겹침 — .fl overflow에 잘리지 않게 */
       const over = o.lying ? 0 : Math.min(0, feet - a.h + Math.max(o.dy || 0, -(feet - a.h)) - 22);
-      sty(a.tag, "marginBottom", over < 0 && a.sp && a.sp.pre ? (2 + Math.max(over, -a.sp.pre * a.scale)) + "px" : "");
+      const mb = a.opt.baby ? 0 : 2;   // 아기 이름표는 머리에 붙임 — 회의 배너·층 이름표 줄과 틈(#74)
+      sty(a.tag, "marginBottom", over < 0 && a.sp && a.sp.pre ? (mb + Math.max(over, -a.sp.pre * a.scale)) + "px" : mb === 2 ? "" : mb + "px");
     }
     function bubble(a, h, on) { sty(a.bub, "display", on ? "block" : "none"); if (on) html(a.bub, h); }
     const tagOn = (a, on) => sty(a.tag, "display", on && !(nSess >= 6 && !a.opt.boss) ? "" : "none");
@@ -6924,7 +6925,7 @@ C.registerMode({
         /* 표시 정보 */
         const [ct, cc] = chipOf(f, a), tg = fl.tag.children;
         txt(tg[0], (n + 1 - i) + "F"); txt(tg[1].children[0], cfg.hideText ? "🤫 " + X("비공개", "Private") : f.s.project); txt(tg[1].children[1], ` · ${f.label.replace("·", " · ")}`); txt(tg[2], ct); sty(tg[2], "background", cc); if (dnm) trB.chip(tg[2]);
-        tagZone(a, fl.F); ftagFit(fl, [a], 0, SIGN_X - 4);   // 머리 이름표 자리를 피해 층 이름표 줄 맞춤 (#64) — 옮겨도 표지판 앞까지
+        tagZone(a, fl.F); if (!(info && info.babies)) ftagFit(fl, [a], 0, SIGN_X - 4);   // 머리 이름표 자리를 피해 층 이름표 줄 맞춤 (#64) — 옮겨도 표지판 앞까지. 회의 층은 placeBabies가 아기 이름표로 맞춤(#74)
         if (fl.sign) {
           const sg = signOf(f, a), up = !DRon && a.loc === "home" && a.x != null && a.x > SIGN_X - 30;   // 직원이 표지판 아래(걷기·엘리베이터 대기·바닥 2 소품 옆 휴식)면 접음 (#62)
           sty(fl.sign, "transition", anim && !fl.sign.fresh ? "" : "none"); fl.sign.fresh = false; fl.sign.classList.toggle("fold", up);
@@ -7230,7 +7231,7 @@ C.registerMode({
        줄였으면 전체 글은 title, 줄 전체 글은 늘 aria-label. 머리 이름표 자리는 제자리에 있을 때 잰 값(a.tz)을 기억 —
        걷거나 말풍선으로 잠깐 숨어도 이름표 줄이 들썩이지 않게. 잼은 이름표 글·자리·글자 배율·글꼴이 바뀔 때만(매 프레임 레이아웃 읽기 방지),
        바뀐 층들은 프레임 끝에 모아(ftagFlush) 쓰기 → 읽기 → 쓰기 한 번씩(층마다 리플로하지 않게).
-       회의 층은 그대로: 본체 이름표는 숨고, 아기 "#1~3"은 테이블 위 회의 배너와 자리를 나눠 써서 줄을 줄이면 배너가 길어져 더 가림 */
+       회의 층(#74): 본체 이름표는 숨고, 아기 "#1~3" 이름표 앞까지 줄임(옮기지 않음). 배너도 그 이름표를 피함(placeBabies) */
     function tagZone(a, F) {
       if (!a || a.par !== F || a.moving || (a.loc && a.loc !== "home") || a.tag.style.display === "none") return;
       const k = a.tag.textContent + "|" + a.el.style.left + "|" + a.h + "|" + bld.style.getPropertyValue("--inv") + "|" + fontGen;
@@ -7300,6 +7301,7 @@ C.registerMode({
       let top = B - 60, stallN = 0;
       if (w) { w.dn.forEach(e => sty(e, "display", "none")); w.env.forEach(e => sty(e, "display", "none")); w.ch.forEach(e => sty(e, "display", "none")); sty(w.yawn, "display", "none"); }
       let thank = false;
+      const seat = [];   // 자리에 앉은 아기(봉투 들고 걷는 아기 빼고) — 이름표 자리를 층 이름표 줄·배너가 피함(#74)
       a.babies.forEach((b, k) => {
         const m = show[k], gone = !m || (Tm && Tm.leave != null && tc >= Tm.leave + m.j * .2);
         const pop = !gone && Tm && anim ? clamp((tc - Tm.t0 - .2 - m.j * .25) / .3, 0, 1) : 1;   // 하나씩 와서 앉음
@@ -7333,7 +7335,7 @@ C.registerMode({
         }
         if (dlv && w) { const e = w.env[k]; sty(e, "display", "block"); sty(e, "left", (BOARD_X + 22 + k * 14) + "px"); sty(e, "top", (B - 40) + "px"); thank = true; }   // 정적: 부모 옆에 봉투만
         put(b, fl.F, x, B - 8 - BABY_UP, { dy: just ? -Math.round(ph.hop * 3) * 3 : speaking ? -Math.abs(Math.sin(T * 6)) * 5 : pop < 1 ? Math.round((1 - pop) * -14) : ((Math.floor(T * 3) + k) % 3 === 0 && anim && !stall && !d ? -3 : 0) });
-        sty(b.el, "opacity", String(pop));
+        sty(b.el, "opacity", String(pop)); seat.push(b);
         bubble(b, "", false); top = Math.min(top, B - 8 - BABY_UP - b.h - (nSess >= 6 ? 30 : 56));
         if (w && d && !just && !dlv) { const e = w.dn[k], s2 = WB.pix(WB.ART.dn, 3); if (e._u !== s2.url) { e._u = s2.url; e.src = s2.url; } sty(e, "width", s2.w + "px"); sty(e, "height", s2.h + "px"); sty(e, "display", "block"); sty(e, "left", (x + 8) + "px"); sty(e, "top", (B - 34 - BABY_UP) + "px"); }
         if (w && yawning) { sty(w.yawn, "display", "block"); sty(w.yawn, "left", (x + 16) + "px"); sty(w.yawn, "top", (B - 74 - BABY_UP - Math.round(((tc - Tm.t0) % 20) * 4)) + "px"); }
@@ -7345,9 +7347,14 @@ C.registerMode({
       /* 층 이름표(상태 칩까지) 줄 끝 뒤에서 시작해 통로 앞까지만 — 칩을 덮지 않게(#62). 남는 폭이 좁으면 "🤝 1/2"만, 그것도 안 들어가면 숨김
          (이름표 칩 "서브 회의 n/총"·보드 머리줄에 같은 진행이 있음. 이름표 아래로 내리면 아기 이름표·보드 글자를 가림).
          이름표 글·글꼴·글자 배율(--inv, 창이 좁으면 커짐)이 바뀔 때만 다시 잼(매 프레임 레이아웃 읽기 방지) */
-      const inv = +bld.style.getPropertyValue("--inv") || 1, tk = fl.tag.textContent + "|" + fontGen + "|" + inv + fl.ftS;   // 이름표 줄 맞춤(#64: 말줄임·자리 옮김)이 바뀌어도 다시 잼
+      /* 아기 "#1~3" 이름표(#74): 층 이름표 줄은 그 앞까지 줄이고(옮기지 않음 — 배너 자리), 배너는 이름표와 같은 높이에 걸리면 첫 이름표 앞에서 끝남.
+         창이 좁아 글자 배율(--inv)이 크면 셋 다 한 줄 높이에 걸려 배너가 숨고 이름표 칩("서브 회의 n/총")이 진행을 보여 줌 */
+      seat.forEach(b => tagZone(b, fl.F)); ftagFit(fl, seat, 0, 0);
+      const zs = seat.map(b => b.tz).filter(z => z && z.F === fl.F), mt = Math.max(2, top);
+      const inv = +bld.style.getPropertyValue("--inv") || 1, tk = fl.tag.textContent + "|" + fontGen + "|" + inv + fl.ftS + "|" + mt + "|" + zs.map(z => z.k + z.t).join(";");   // 이름표 줄 맞춤(#64: 말줄임·자리 옮김)이 바뀌어도 다시 잼
       if (fl.mbK !== tk) {
-        fl.mbK = tk; const L = fl.tag.offsetLeft + fl.tag.offsetWidth + 6, room = 666 - L - 22;   // 22 = 말풍선 좌우 여백·테두리
+        fl.mbK = tk; const L = fl.tag.offsetLeft + fl.tag.offsetWidth + 6, mh = fl.tag.offsetHeight;   // 배너 높이 ≈ 이름표 줄(CSS로 맞춤)
+        const lim = Math.min(666, ...zs.filter(z => z.r > L && z.t < mt + mh - 6 && z.b > mt).map(z => z.l - 4)), room = lim - L - 22;   // 22 = 말풍선 좌우 여백·테두리 · 6 = 테두리가 닿거나 말하는 아기가 통통 튈 때 잠깐 닿는 정도는 그대로
         fl.mbFit = room >= 120 * inv ? 2 : room >= 40 * inv ? 1 : 0; sty(fl.mb, "left", L + "px"); sty(fl.mb, "maxWidth", Math.max(0, room) + "px");
       }
       const full = `🤝 ${X("회의", "Meeting")} ${dnN}/${tot}${say ? " · " + (sp && !cfg.hideText ? "#" + (sp.j + 1) + " " : "") + esc(cut(say, 18)) : ""}`;

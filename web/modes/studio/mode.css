@@ -74,6 +74,7 @@ body[data-mode="studio"].quiet .stu .sign { transition: none !important; }
 body[data-mode="studio"] .stu .sign > div:first-child { overflow: hidden; text-overflow: ellipsis; }
 body[data-mode="studio"] .stu .bub .ell { display: block; overflow: hidden; text-overflow: ellipsis; }   /* 회의 배너: 층 이름표 줄 뒤 남은 폭에서 말줄임 */
 body[data-mode="studio"] .stu .bub.mbn:after { left: 22px; margin-left: 0; }   /* 회의 배너 꼬리: 폭이 바뀌어도 왼쪽 고정(첫 아기·테이블 쪽) */
+body[data-mode="studio"] .stu .bub.mbn { padding-top: 0; padding-bottom: 0; }   /* 회의 배너 높이 ≈ 층 이름표 줄 — 아래 아기 "#1~3" 이름표에 걸리지 않게(#74) */
 body[data-mode="studio"] .stu .pips { display: flex; gap: 3px; margin-top: 4px; }
 body[data-mode="studio"] .stu .pips i { width: 18px; height: 8px; background: #d8cdbd; border: 1px solid var(--line); }
 body[data-mode="studio"] .stu .pips i.on { background: #4fc86a; }
