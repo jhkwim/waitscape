@@ -6,7 +6,7 @@ use super::hooks::new_session;
 use super::scan::{blocks, key_of, parse_line, ScanCache};
 use super::trace::{load_meta, text_of, Meta};
 use crate::clock::Tz;
-use crate::health::health;
+use crate::health::{health, main_health};
 use crate::hide::HideRules;
 use crate::jsonl::{read_lines, size};
 use crate::model::{tok_sum, Activity, Agent, Session, Today, Usage};
@@ -710,7 +710,17 @@ impl TOnly {
         s.agents = agents;
         s.activity = c.activity.clone();
         if status == "working" {
-            s.health = Some(health(c.pend.values().map(|(n, t)| (n.as_str(), *t)), main_last, c.last_ts, now));
+            let busy = s
+                .agents
+                .iter()
+                .any(|a| a.status == "running" && a.health.as_ref().and_then(|x| x.as_ref()).is_none_or(|x| x.level != "stall")); // #182
+            s.health = Some(main_health(
+                c.pend.values().map(|(n, t)| (n.as_str(), *t)),
+                main_last,
+                c.last_ts,
+                now,
+                busy,
+            ));
             s.say = Some(main_say);
         }
         s.source = Some("transcript");

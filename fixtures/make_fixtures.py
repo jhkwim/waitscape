@@ -274,6 +274,25 @@ def build_base(out):
     a.say(t - 301, "인증은 미들웨어 한 곳에서 처리해요.", stop="end_turn", usage=(7000, 0, 0, 150))
     a.write(proj, ("fx-party", "p2"))
 
+    # --- fx-sync-agent(#182): 포그라운드 서브에이전트가 13분째 일하는 중 → 메인은 Agent 대기 때문에 멈춤 의심이 아님
+    #     fx-sync-stuck: 같은 모양인데 서브에이전트가 11분째 도구에 멈춤 → 메인도 그대로 멈춤 의심
+    for sid, aid, last in (("fx-sync-agent", "sa1", 20), ("fx-sync-stuck", "sa2", 660)):
+        c = D + "api-server"
+        ev(sid, c, t - 800, "UserPromptSubmit", text="결제 모듈 조사해줘")
+        ev(sid, c, t - 790, "PreToolUse", icon="🤖", text="서브에이전트: 결제 흐름 조사", kind="agent",
+           agent_desc="결제 흐름 조사", agent_req="Explore")
+        ev(sid, c, t - 789, "SubagentStart", aid=aid, atype="Explore")
+        ev(sid, c, t - last, "PreToolUse", aid=aid, atype="Explore", icon="🔍", text="'refund' 찾는 중", kind="search")
+        x = Tx(sid, c)
+        x.prompt(t - 800, "결제 모듈 조사해줘")
+        x.tool(t - 790, "sg" + aid, "Agent", {"description": "결제 흐름 조사", "subagent_type": "Explore", "prompt": "..."})
+        x.write(proj)
+        a = Tx(sid, c, True)
+        a.prompt(t - 789, "결제 흐름 조사")
+        a.say(t - last - 1, "환불 경로를 찾아볼게요.", usage=(12000, 0, 0, 200))
+        a.tool(t - last, "sq" + aid, "Grep", {"pattern": "refund"})
+        a.write(proj, (sid, aid))
+
     # --- fx-input: 입력 필요 (트랜스크립트 없음 → tokens 필드 없음, /trace는 no-transcript)
     c = D + "infra"
     ev("fx-input", c, t - 50, "UserPromptSubmit", text="배포 스크립트 정리")
@@ -897,6 +916,18 @@ def build_transcript_only(out):
     a.write(proj, ("to-agent-sync", "sy1"))
     json.dump({"agentType": "Explore", "description": "코드 탐색", "toolUseId": "a1"},
               open(os.path.join(proj, enc(D + "demo"), "to-agent-sync", "subagents", "agent-sy1.meta.json"), "w",
+                   encoding="utf-8"), ensure_ascii=False)
+
+    x = new("to-agent-long")   # #182: 포그라운드 서브에이전트 13분째 — 서브에이전트가 일하는 중이면 메인은 멈춤 의심 아님
+    x.prompt(t - 800, "탐색해줘")
+    x.tool(t - 790, "a1", "Agent", {"description": "긴 탐색", "subagent_type": "Explore", "prompt": "..."})
+    x.write(proj)
+    a = Tx("to-agent-long", D + "demo", True)
+    a.prompt(t - 789, "긴 탐색")
+    a.tool(t - 20, "y1", "Read", {"file_path": D + "demo/a.py"})
+    a.write(proj, ("to-agent-long", "lg1"))
+    json.dump({"agentType": "Explore", "description": "긴 탐색", "toolUseId": "a1"},
+              open(os.path.join(proj, enc(D + "demo"), "to-agent-long", "subagents", "agent-lg1.meta.json"), "w",
                    encoding="utf-8"), ensure_ascii=False)
 
     x = new("to-stale")
