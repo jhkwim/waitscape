@@ -143,7 +143,9 @@ pub fn os_notify(app: &AppHandle, title: &str, body: &str, quiet: bool) {
 
 /// 누름을 기다리는 알림 수의 상한(#186). 맥은 알림을 누르거나 닫을 때까지 대기 스레드가 남으므로(알림 센터에 쌓인 채로 남기도 함)
 /// 이 수를 넘으면 누름 없는 `os_notify`로 보낸다
+#[cfg(any(target_os = "macos", windows))]
 const CLICK_MAX: usize = 8;
+#[cfg(any(target_os = "macos", windows))]
 static CLICK_WAITING: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 /// 누르면 `on_click`을 부르는 OS 알림(macOS·Windows, #92). 알림 하나에 그 알림을 기다리는 스레드 하나가 붙으므로
@@ -274,10 +276,11 @@ pub fn start(app: &AppHandle, be: Arc<Backend>) {
                 last_emit = Instant::now();
                 let v = serde_json::to_value(&st).unwrap_or(Value::Null);
                 app2.emit("state", &v).ok();
+                // 알림보다 먼저 기록: 질문 알림을 누르면 이 state에서 세션을 찾는다(#186)
+                *be2.last.lock().unwrap() = Some(v.clone());
                 if changed {
                     on_changed(&app2, &be2, &v);
                 }
-                *be2.last.lock().unwrap() = Some(v);
             }
         })
         .expect("engine thread");
