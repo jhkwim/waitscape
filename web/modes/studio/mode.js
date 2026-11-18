@@ -4353,7 +4353,7 @@ function decorBig(h) {
     if (act === "dc-tab" || act === "dc-slot") ui.gdex = false;
     /* 더 새 버전이 쓴 꾸밈 저장(d.ro)은 저장이 막히므로 사기·되팔기·옮기기도 막는다(#195 — 되팔면 자금만 오르고 소품은 새로고침 때 돌아와 무한 되팔기) */
     if (d.ro && (act === "dc-buy" || act === "dc-sell" || act === "dc-move" || (act === "dc-slot" && ui.hold))) {
-      ui.hold = null; cap = X("새 버전 앱에서 꾸민 저장이라 이 버전에선 보기만 돼요 · 앱을 업데이트하면 다시 꾸밀 수 있어요", "Decor was saved by a newer version · view only here, update the app to edit");
+      ui.hold = null; cap = X("새 버전 저장이라 보기만 돼요 · 앱을 업데이트해요", "Saved by a newer version · update to edit");
       return renderTray();
     }
     if (act === "dc-tab") { if (ui.p !== b.dataset.p) { ui.p = b.dataset.p; ui.slot = null; } }
