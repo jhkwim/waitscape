@@ -5,9 +5,9 @@ const fs = require("fs"), path = require("path"), assert = require("assert");
 const src = fs.readFileSync(path.join(__dirname, "..", "web/modes/studio/mode.js"), "utf8");
 const cut = (a, b) => { const i = src.indexOf(a), j = src.indexOf(b, i); assert.ok(i > 0 && j > i, "구간을 못 찾음: " + a); return src.slice(i, j); };
 global.location = { search: "" };
-const code = cut("const P0", "/* ================= 모드 ================= */") + cut("const SHOP = [", "/* @test-end SAVE */")
+const code = cut("const P0", "/* ================= 모드 ================= */") + cut("/* 💾 스튜디오 본체 저장", "/* @test-end SAVE */")
   + cut("const DECOR = (() => {", "/* @test-end DECOR */") + cut("const GACHA = (() => {", "/* @test-end GACHA */");
-const { SHOP, SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn { SHOP, SAVE, DECOR, GACHA };")({ muxName: () => "" });
+const { SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn { SAVE, DECOR, GACHA };")({ muxName: () => "" });
 
 /* ---------- 💾 본체 저장 SAVE ---------- */
 {
@@ -18,7 +18,16 @@ const { SHOP, SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn {
   // 실제 저장 모양(v1, 버전 필드 없음): 값과 모르는 필드는 그대로
   const v1 = { funds: 4215, earned: 30120, dones: { a: 5, b: 3 }, dex: { cat: { n: 1 } }, shop: { plant: 1, coffee: 1 }, rep: {}, tok: { avg: 9, n: 2 }, paid: {}, day: { d: "2026-11-18", earned: 120 }, paceSecs: 30, combo: 2, future: { x: 1 } };
   const s = SAVE.load(JSON.stringify(v1));
-  ["funds", "earned", "dones", "dex", "shop", "day", "combo", "future"].forEach(k => assert.deepStrictEqual(s[k], v1[k], k));
+  ["earned", "dones", "dex", "shop", "day", "combo", "future"].forEach(k => assert.deepStrictEqual(s[k], v1[k], k));
+  // 🛒 사장실 상점 환불(#197, 한 번): 화분 300 + 커피머신 800 → 자금 +1,100 · 기록 mig.shop · 원본 shop은 그대로
+  assert.deepStrictEqual([s.funds, s.refund, s.mig.shop], [4215 + 1100, 1100, 1100]);
+  const again = SAVE.load(JSON.stringify(s));
+  assert.deepStrictEqual([again.funds, again.refund], [5315, undefined], "다시 읽어도 두 번 돌려주지 않음");
+  assert.strictEqual(SAVE.load(JSON.stringify({ shop: { trophy: 1, neon: 0, unknown: 1 } })).refund, 2500, "가진 것만 · 모르는 id는 0");
+  const proto = SAVE.load(JSON.stringify({ funds: 5, shop: { toString: 1, constructor: 1, hasOwnProperty: 1 } }));
+  assert.deepStrictEqual([proto.funds, proto.mig.shop], [5, 0], "프로토타입 이름은 값 없음(문자열 더하기 없음)");
+  assert.strictEqual(SAVE.load(JSON.stringify({ v: 2, shop: { trophy: 1 }, funds: 10 })).funds, 10, "읽기 전용 저장은 환불하지 않음(새 버전이 할 일)");
+  assert.deepStrictEqual(Object.values(SAVE.OLD_SHOP).reduce((a, b) => a + b, 0), 7400, "옛 상점 7종 값 합계");
   assert.strictEqual(s.doneN, 8, "doneN 없는 옛 저장은 지금 합계에서 시작(#195)");
   assert.strictEqual(SAVE.load(JSON.stringify(Object.assign({}, v1, { doneN: 50 }))).doneN, 50, "dones가 잘려 합계가 줄어도 doneN은 그대로");
   assert.strictEqual(SAVE.load(JSON.stringify(Object.assign({}, v1, { doneN: 3 }))).doneN, 8, "doneN이 합계보다 작으면 합계로");
@@ -45,8 +54,8 @@ const { SHOP, SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn {
   wr.give(10); wr.earn(10); assert.strictEqual(ro.funds, 999, "읽기 전용이면 보상·벌이도 안 올림(저장 안 되는 숫자를 보이지 않게)"); assert.strictEqual(wr.ro(), true);
   // 손상된 저장: 값 종류가 다르면 그 칸만 기본값
   const bad = SAVE.load(JSON.stringify({ funds: "500", earned: null, day: null, dones: [1], shop: { plant: 1 }, combo: "x" }));
-  assert.deepStrictEqual([bad.funds, bad.earned, bad.combo, Array.isArray(bad.dones), typeof bad.day.d, bad.shop.plant], [0, 0, 0, false, "string", 1]);
-  SAVE.wallet(bad, () => {}).give(60); assert.strictEqual(bad.funds, 60, "문자열 더하기 없음");
+  assert.deepStrictEqual([bad.funds, bad.earned, bad.combo, Array.isArray(bad.dones), typeof bad.day.d, bad.shop.plant], [300, 0, 0, false, "string", 1], "자금 \"500\" → 0 + 화분 환불 300");
+  SAVE.wallet(bad, () => {}).give(60); assert.strictEqual(bad.funds, 360, "문자열 더하기 없음");
   assert.strictEqual(SAVE.load(JSON.stringify({ day: { d: 5 } })).day.earned, 0);
 }
 
@@ -108,8 +117,6 @@ const { SHOP, SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn {
   });
   Object.entries(D.LIKES).forEach(([an, L]) => L.forEach(id => assert.ok(D.ITEMS[id], `${an}이 좋아하는 ${id}가 카탈로그에 있음`)));
   assert.strictEqual(Object.keys(D.LIKES).length, 11, "동물 11종 모두 좋아하는 소품");
-  // 알려진 문제(#197 카탈로그 합치기에서 이 목록을 비운다): 사장실 상점과 층 꾸미기가 같은 id를 다른 값으로 판다
-  const dup = SHOP.filter(it => D.ITEMS[it.id]).map(it => `${it.id}:${it.p}/${D.ITEMS[it.id].p}`);
-  assert.deepStrictEqual(dup, ["plant:300/120", "clock:600/200", "plush:500/180", "neon:1500/500"], "SHOP ↔ DECOR 겹침이 바뀌면 이 목록과 #197을 함께 갱신");
+  assert.ok(!/\bconst SHOP = \[/.test(src), "사장실 상점(SHOP)은 #197에서 꾸미기로 합침 — 파는 곳은 DECOR 하나");
 }
 console.log("✅ studio shop safety ok");
