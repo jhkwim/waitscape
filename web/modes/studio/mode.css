@@ -718,3 +718,9 @@ body[data-mode="studio"] .stu .bub.ask.w5, body[data-mode="studio"] .slb .bub.w5
 body[data-mode="studio"] .stu .bub.ask.w15, body[data-mode="studio"] .slb .bub.w15 { border-color: #e0383a; }
 body[data-mode="studio"] .stu .askchip.w5 { background: #ffc078; }
 body[data-mode="studio"] .stu .askchip.w15 { background: #ff8a7a; }
+
+/* ---------- 📌 미니 보기 2(#204): 큰 화면 건물을 0.7배로 — HUD·패널 없이 건물만, 카메라는 bld transform ---------- */
+body[data-mode="studio"] .stu.mini2 { height: 100vh; }
+body[data-mode="studio"] .stu.mini2 .hud, body[data-mode="studio"] .stu.mini2 .side, body[data-mode="studio"] .stu.mini2 .minibtn, body[data-mode="studio"] .stu.mini2 .dex { display: none; }
+body[data-mode="studio"] .stu.mini2 .view { position: fixed; inset: 0; padding: 0; overflow: hidden; touch-action: none; cursor: grab; }
+body[data-mode="studio"] .stu.mini2 .sc { margin: 0; overflow: visible; }
