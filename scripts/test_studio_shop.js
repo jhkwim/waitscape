@@ -24,6 +24,8 @@ const { SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn { SAVE,
   const again = SAVE.load(JSON.stringify(s));
   assert.deepStrictEqual([again.funds, again.refund], [5315, undefined], "다시 읽어도 두 번 돌려주지 않음");
   assert.strictEqual(SAVE.load(JSON.stringify({ shop: { trophy: 1, neon: 0, unknown: 1 } })).refund, 2500, "가진 것만 · 모르는 id는 0");
+  const proto = SAVE.load(JSON.stringify({ funds: 5, shop: { toString: 1, constructor: 1, hasOwnProperty: 1 } }));
+  assert.deepStrictEqual([proto.funds, proto.mig.shop], [5, 0], "프로토타입 이름은 값 없음(문자열 더하기 없음)");
   assert.strictEqual(SAVE.load(JSON.stringify({ v: 2, shop: { trophy: 1 }, funds: 10 })).funds, 10, "읽기 전용 저장은 환불하지 않음(새 버전이 할 일)");
   assert.deepStrictEqual(Object.values(SAVE.OLD_SHOP).reduce((a, b) => a + b, 0), 7400, "옛 상점 7종 값 합계");
   assert.strictEqual(s.doneN, 8, "doneN 없는 옛 저장은 지금 합계에서 시작(#195)");

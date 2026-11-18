@@ -394,7 +394,7 @@ const SAVE = (() => {
     if (!sv.ro) sv.v = VER;
     if (!sv.mig || typeof sv.mig !== "object" || Array.isArray(sv.mig)) sv.mig = {};
     if (!sv.ro && typeof sv.mig.shop !== "number") {   // 🛒 사장실 상점 환불(한 번) — refund = 이번에 돌려준 금액(저장에 안 남음, 본체가 로그·저장)
-      const back = Object.keys(sv.shop).reduce((t, k) => t + (sv.shop[k] && OLD_SHOP[k] || 0), 0);
+      const back = Object.keys(sv.shop).reduce((t, k) => t + (sv.shop[k] && Object.prototype.hasOwnProperty.call(OLD_SHOP, k) ? OLD_SHOP[k] : 0), 0);   // toString 같은 이름은 0
       sv.mig.shop = back; sv.funds += back;
       Object.defineProperty(sv, "refund", { value: back, enumerable: false });
     }
@@ -7776,7 +7776,7 @@ C.registerMode({
       const act = b.dataset.act, id = b.dataset.id;
       if (dcB.on() && (act === "poke" || act === "jump" || act === "term")) return;   // 🎨 꾸미기 중엔 👆 반응·세션 이동을 쉼
       if (act === "mini") openMini();
-      else if (act === "decor") dcB.tap("dc-toggle", b);
+      else if (act === "decor") { side.classList.remove("on"); dcB.tap("dc-toggle", b); }   // 좁은 창: 열린 패널(z 150)이 꾸미기 판(z 80)을 덮지 않게 닫고 엶
       else if (act.startsWith("ga-")) gaB.tap(act, b);   // 🎰 뽑기 판 · 👒 착용
       else if (act.startsWith("dc-")) dcB.tap(act, b);   // 🎨 층 탭·칸·소품 카드·옮기기·되팔기
       else if (act === "sound") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); if (cfg.sound) ctx.audio(); }
