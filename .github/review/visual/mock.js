@@ -6,7 +6,7 @@
    ?upd=1(새 버전 0.7.0 있음 — 배너·미니 보기 🎁 · [지금 업데이트]는 내려받기 42%에서 멈춤) · ?just=1(방금 이 버전으로 올린 뒤 「올랐어요」 카드)
    ?askkind=permission|question(질문 세션의 종류 · permission이면 note = 허락받을 도구 설명) · ?guess=1(그 질문이 추정) · ?hooks=partial(훅 일부만 등록 → 재설치 안내 창, #120)
    ?inbox=1(관제 인박스: 🔑 권한(cmux 세션) · ❓ 질문 · 💤 멈춤 · ✉️ 확인 안 한 완료 2 — 다음 칩·눈치·업무 모드 "다음에 볼 것") · ?inbox=2(질문 없이 멈춤 1 · 완료 4 — 전광판·결재함) · 두 장면 모두 🧪 테스트 통과·실패 완료 하나씩
-   ?nunchi=1(🙈 눈치 모드로 시작) · ?m=work(모드 덮어쓰기 — --extra는 mode=studio가 앞에 붙으므로)
+   ?nunchi=1(🙈 눈치 모드로 시작) · ?nxlong=1(눈치 모드 긴 연출 — B 키로 퇴근·출근) · ?m=work(모드 덮어쓰기 — --extra는 mode=studio가 앞에 붙으므로)
    ?seed=shop(스튜디오 상점·꾸미기 저장 fixture, #197: 자금 4,200 · Lv.5 · 사장실 화분·커피머신 · waitscape 층 포스터·화분·선인장 · api-server 층 러그 — 열 때마다 덮어씀) */
 (() => {
   const q = new URLSearchParams(location.search);
@@ -68,7 +68,7 @@
   const UPD = q.has("upd") || q.has("just");
   const lang = q.get("lang") || "ko";
   const settings = { usageLookup: false, notify: { done: true, input: true, stall: true, memo: true }, quiet: false, langPref: lang, lang, autostart: false,
-    terminal: "auto", modes: {}, widget: false, hideProjects: [], hideBuiltin: true, activeOnly: true, recentMinutes: 30, updateCheck: false, nunchi: q.has("nunchi"), nunchiKey: "Control+KeyQ", nunchiLong: false, nunchiTheme: "system", nunchiGlobal: true, inboxKey: "Control+Shift+KeyN", inboxGlobal: true };
+    terminal: "auto", modes: {}, widget: false, hideProjects: [], hideBuiltin: true, activeOnly: true, recentMinutes: 30, updateCheck: false, nunchi: q.has("nunchi"), nunchiKey: "Control+KeyQ", nunchiLong: q.has("nxlong"), nunchiTheme: "system", nunchiGlobal: true, inboxKey: "Control+Shift+KeyN", inboxGlobal: true };
   const fire = (event, payload) => (L[event] || []).forEach(h => cbs[h] && cbs[h]({ event, payload }));
   setInterval(() => fire("state", mkState(Date.now() / 1000)), 1000);
   async function listModes() {

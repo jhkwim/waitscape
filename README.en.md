@@ -16,7 +16,7 @@
 
 </div>
 
-Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code, Codex and more) into a **pixel-art office**. Each session becomes a staff member working on their own floor. When one has a question, they ride the elevator down to the boss (you) on the first floor. When they finish, they come to report. You can see who is doing what, and who is waiting on you, without watching your terminals.
+Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code, Codex and more) into a **pixel-art office**. Each session becomes a staff member working on their own floor. When one has a question, they ride the elevator down to the boss (you) in the office. When they finish, they come to report. You can see who is doing what, and who is waiting on you, without watching your terminals.
 
 <div align="center">
 <img src="docs/assets/en/studio.gif" width="860" alt="Studio mode — animal staff working from their chairs, a penguin taking the elevator to ask a question, a meeting-room baby handing over a result envelope, a robot finishing a big job">
@@ -135,8 +135,8 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 - **📋 Daily report**: when everything has been quiet for about 45 minutes in the afternoon, the boss waves a sheet: "The report is in!" It announces today's finished work, hours and MVP, then makes a shareable card (PNG).
 - **⚡ Quick replies**: answer a staff question within a minute and they cheer "👍 Quick!" with bonus funds. Keep answering fast for a 🔗 combo.
 - **🎨 Decorate floors**: spend the funds you earn from finished work on props for each project's floor. Each animal has favorites. No real payments.
-- **🍩 Snacks & 🍖 team dinner**: pick a floor on the 🎨 decorate panel to buy its staff ☕ coffee, 🍩 a donut, 🍕 pizza or 🍰 cake (two per staff a day). The snack sits on the desk and gets eaten a few bites at a time. In the evening the 📋 daily report lets everyone go up for a rooftop barbecue, and the next day a dinner photo hangs on 1F.
-- **🎰 Capsule machine**: drop funds into the machine on 1F, turn the handle, and a capsule rolls out and pops open: staff accessories (hats, sunglasses…), desk toys, or a "job application" that unlocks a locked animal. Everything goes into a collection on the decorate panel, and duplicates refund part of the cost.
+- **🍩 Snacks & 🍖 team dinner**: pick a floor on the 🎨 decorate panel to buy its staff ☕ coffee, 🍩 a donut, 🍕 pizza or 🍰 cake (two per staff a day). The snack sits on the desk and gets eaten a few bites at a time. In the evening the 📋 daily report lets everyone go up for a rooftop barbecue, and the next day a dinner photo hangs in the office.
+- **🎰 Capsule machine**: drop funds into the machine in the 1F lobby, turn the handle, and a capsule rolls out and pops open: staff accessories (hats, sunglasses…), desk toys, or a "job application" that unlocks a locked animal. Everything goes into a collection on the decorate panel, and duplicates refund part of the cost.
 - **📔 Sightings**: the first time you spot a tiny detail, it gets stamped and you earn 💰+5. The 📖 dex shows the 29 scenes you've seen and hints for the rest.
 - **😴 Naps & 🍱 lunch**: staff who've been idle a while start nodding off, then sleep on the desk, and jump awake ❗ when work comes back. At noon, idle staff eat a bento, ramen, onigiri or sandwich at their desks, then doze off after lunch.
 - **🎲 Random events**: every now and then someone drops by unannounced: a 🍕 pizza courier, a 📦 mystery box, a 🐈 lost kitten, a 🖨️ jammed printer, a 🎈 balloon, or (rarely, at night) a 🌠 shooting star. Click them for a small bonus in funds (up to 5 a day).

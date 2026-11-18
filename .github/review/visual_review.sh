@@ -173,7 +173,7 @@ PY
     if [ -s "$WORK/web.diff" ]; then
       printf -- '- 바뀐 web/ 파일: %s\n' "$(grep -E '^diff --git' "$WORK/web.diff" | awk '{print $4}' | sed 's#^b/##' | tr '\n' ' ')"
       printf '\n이 PR이 **의도한** 화면 변화를 가늠하는 참고용 diff(앞 30000바이트). 코드 리뷰는 하지 않는다 — 회귀 판단에만 쓴다.\n\n```diff\n'
-      head -c 30000 "$WORK/web.diff" | sed 's/```/ˋˋˋ/g'; printf '\n```\n'
+      head -c 30000 "$WORK/web.diff" | LC_ALL=C sed 's/```/ˋˋˋ/g'; printf '\n```\n'   # 30000바이트에서 자르면 한글 중간이 끊길 수 있어 바이트 단위로(BSD sed: illegal byte sequence)
     else printf -- '- (base 없음 또는 web/ 변경 없음 — 회귀 비교 없이 head만 검수)\n'; fi
     printf '\n## 도구 사용 규칙 (headless 실행: 사용자에게 권한을 물을 수 없다)\n\n'
     printf -- '- **셸 명령은 쓰지 않는다**(자동 거부되어 실패한다). 파일을 만들거나 고치지 않는다.\n'
