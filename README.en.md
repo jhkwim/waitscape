@@ -42,7 +42,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 <td width="44%" align="center"><img src="docs/assets/en/mini.gif" width="300" alt="Mini view — question close-up, back to work, rooftop celebration, report to the boss"></td>
 <td width="56%" valign="middle">
 <h3>📌 Mini view</h3>
-A tiny always-on-top "lobby camera". The big window hides and only this small one stays above your other apps. It watches the boss's office, and when something happens it goes to that floor. Questions get a close-up and a caption; big wins get fireworks on the roof and a report to the boss. When subagents spin up, it follows the elevator to the meeting room. Scroll or press ↑↓ to look around the floors yourself. Chairs and tiny details like naps, desk props and the night guard show up in the mini view too.
+A small always-on-top window. The big window hides and only this small one stays above your other apps. It shows the same building as the big window, one floor at a time. It watches the boss's office; when someone comes down with a question it follows them to the elevator, and when someone finishes or a subagent meeting starts it shows that floor for a moment. Scroll for floors and scroll sideways for the rest of a floor. All the tiny details from the big window show up in the mini view too.
 </td>
 </tr>
 <tr>
@@ -99,15 +99,14 @@ Besides Studio there are 🐹 Hamster, 🏟️ Scoreboard, 🪐 Orbit, 💼 Work
 | To do this | Use |
 |---|---|
 | Go mini | Studio's **📌 Mini view** button · **⌘2** (Windows **Ctrl+2**) · menu bar (tray) · window right-click |
-| Back to the big window | **⤢** (shows on hover) · **⌘2** (Windows **Ctrl+2**) · right-click menu · Dock icon (macOS) · menu bar (tray) "Full Window" |
-| Look around the floors | Wheel or trackpad (one floor at a time) · ▲▼ (on hover) · **↑↓** keys · status dots at the top · the "Next" chip |
+| Back to the big window | **⤢** in the top bar · **⌘2** (Windows **Ctrl+2**) · right-click menu · Dock icon (macOS) · menu bar (tray) "Full Window" |
+| Look around the floors | Wheel or trackpad (one floor at a time) · **↑↓** keys · status dots in the top bar · sideways scroll or Shift+wheel (rest of the floor) |
 | Go to the next session | **N** (skip with **Shift+N**) — see 📥 Up next below |
 | Back to the auto camera | **Esc**, or leave it alone for 10 seconds |
 
 - You see either the big window or the mini view, never both. If you quit in the mini view, the next launch starts there too.
-- The "Next" chip uses the same order as 📥 Up next (🔑 permission → ❓ question → 💤 stall → ✉️ unseen done). Click it to go to that floor; it counts as seen.
-- The **🎥Cut / 🎥Pan** button (on hover) picks how the camera moves between floors (cut = quick jump, pan = glide up and down).
-- Click a floor's name tag chip to jump straight to that session's terminal (app).
+- Click a floor's name tag to jump straight to that session's terminal (app).
+- In a narrow window you scroll sideways for the rest of the floor and the elevator stays on the right. Even at the narrowest you see from the desk to the elevator.
 - In 📌 Pocket mode, the pin button that floats it on top is the mini view (app; a PiP window in the browser). The widget expands by itself when input is needed.
 
 ### 📥 Up next
@@ -119,7 +118,7 @@ With several sessions open, Waitscape lines up the sessions that need your hands
 | Go to the first session | **N** in a Waitscape window — sessions opened in cmux, Orca or VS Code jump straight there. For others it tells you which session it is |
 | While using another app | **⌃⇧N** (Windows **Alt+Shift+N**) — works even when the window is hidden. Sessions it can't jump to show up as an OS notification. Change or turn it off in Settings → General → 📥 Up next |
 | Skip | **Shift+N** — it comes back with a new question or the next time it finishes. A permission or question you can't jump to stays first until you answer or skip it |
-| See the list | "Up next" at the top of 🙈 Low-profile mode and 💼 Work mode, and the "Next" chip in Studio's mini view |
+| See the list | "Up next" at the top of 🙈 Low-profile mode and 💼 Work mode |
 | In Studio's big window | 🎫 The boss's monitor turns into a ticket board ("NOW 001 · 🔑5F +3") and the staff member gets a ticket over their head. ✉️ Unseen done work piles up as envelopes in the 📥 inbox tray on the boss's desk (thicker for long jobs). Check it and a red approval stamp lands |
 
 - Guesses (like a permission request that might be approved right away) are left out.
