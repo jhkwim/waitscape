@@ -383,17 +383,35 @@ const SHOP = [
   { id: "frame", e: "🖼️", n: ["액자", "Frame"], p: 1200, lv: 4 },
   { id: "trophy", e: "🏆", n: ["트로피", "Trophy"], p: 2500, lv: 5 },
 ];
-/* 💾 스튜디오 본체 저장(ctx.store "save", 스키마 버전 없음 — #197 지갑 단계에서 v를 붙임). 모르는 필드는 그대로 둔다(Object.assign).
+/* 💾 스튜디오 본체 저장(ctx.store "save"). v = 스키마 버전(#197부터 1, 그 전 저장은 v 없음 = 1로 봄). 모르는 필드는 그대로 둔다(Object.assign).
+   더 새 버전이 쓴 저장(v > VER)은 읽기 전용(sv.ro, 저장에 안 남는 속성): 화면은 보여 주되 저장하지 않고 결제도 막는다(꾸밈·뽑기·간식과 같은 규칙).
    doneN = 줄지 않는 누적 완료 수(스튜디오 Lv 기준, #195): dones는 세션 200개로 잘려 합계가 줄 수 있어 따로 둔다. 옛 저장은 지금 합계로 시작 */
 const SAVE = (() => {
-  const def = () => ({ funds: 0, earned: 0, dones: {}, doneN: 0, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0, combo: 0 });
+  const VER = 1;
+  const def = () => ({ v: VER, funds: 0, earned: 0, dones: {}, doneN: 0, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0, combo: 0 });
   function load(raw) {
     let j = null; try { j = JSON.parse(raw || "null"); } catch {}
     const sv = Object.assign(def(), j && typeof j === "object" && !Array.isArray(j) ? j : {});
     sv.doneN = Math.max(Number.isFinite(sv.doneN) ? sv.doneN : 0, Object.values(sv.dones || {}).reduce((t, n) => t + (+n || 0), 0));
+    Object.defineProperty(sv, "ro", { value: typeof sv.v === "number" && sv.v > VER, enumerable: false });
+    if (!sv.ro) sv.v = VER;
     return sv;
   }
-  return { def, load };
+  /* 💰 지갑: 자금이 바뀌는 길은 모두 여기(#197). ch = 바뀌면 부를 함수(저장 예약)
+     pay(값) 결제 — 값이 0 이상이고 자금이 넉넉하고 읽기 전용이 아닐 때만 빼고 true(아니면 아무것도 안 하고 false — 물건을 주기 전에 확인)
+     give(n) 보상(이벤트·목격·되팔기·뽑기 중복 — 벌이 통계에는 안 셈) · earn(n) 벌이(완료·빠른 답장·페이스 — earned·오늘 벌이에도 셈) */
+  function wallet(sv, ch) {
+    const amt = n => typeof n === "number" && Number.isFinite(n) && n >= 0;
+    const w = {
+      funds: () => sv.funds,
+      can: p => amt(p) && !sv.ro && sv.funds >= p,
+      pay(p) { if (!w.can(p)) return false; sv.funds -= p; ch(); return true; },
+      give(n) { if (!amt(n) || !n) return; sv.funds += n; ch(); },
+      earn(n) { if (!amt(n) || !n) return; sv.funds += n; sv.earned += n; sv.day.earned += n; ch(); },
+    };
+    return w;
+  }
+  return { VER, def, load, wallet };
 })();
 /* @test-end SAVE */
 /* 완료(done) = AI가 응답을 끝내고 사용자 차례가 됨(하루 수십 번). 그 작업의 실행 시간(run)이 이만큼 넘을 때만 "큰 일 완료"로 크게 축하 */
@@ -4399,8 +4417,8 @@ function decorBig(h) {
       const id = b.dataset.id, it = D.ITEMS[id], p = ui.p, sl = ui.slot;
       if (!it || !p || !sl || D.KIND[sl] !== it.slot || !D.onSale(id, nowS())) return renderTray();   // 🎃 시즌이 끝난 팩은 못 삼(판을 열어 둔 채 기간이 지나도)
       const F = cell(p);
-      if (F.s[sl] || h.lv() < it.lv || h.funds() < it.p) return renderTray();
-      h.spend(it.p); F.s[sl] = id; F.at[sl] = nowS(); if (id === "plant") F.wilt = 0;
+      if (F.s[sl] || h.lv() < it.lv || !h.pay(it.p)) return renderTray();   // 💰 결제가 되어야 놓음(지갑이 자금·읽기 전용 확인)
+      F.s[sl] = id; F.at[sl] = nowS(); if (id === "plant") F.wilt = 0;
       deliver(p, sl, id, tc); float = { amt: -it.p, t0: tc }; save(); h.saveNow();
       const f = h.model().floors.find(x => keyOf(x) === p), lk = f && liked(f.animal, id);
       h.log("📦", X(`${nm(id)} 샀어요 · ${p} ${sn(sl)} −${it.p}${lk ? ` · ${h.aName(f.animal)}${josa(h.aName(f.animal), "이", "가")} 좋아해요 ♥` : ""}`, `Bought ${nm(id)} for ${p} ${sn(sl)} −${it.p}${lk ? ` · ${h.aName(f.animal)} loves it ♥` : ""}`));
@@ -4413,7 +4431,7 @@ function decorBig(h) {
     else if (act === "dc-sell") {
       const F = d.fl[ui.p], id = F && F.s[ui.slot]; if (!id || !ownIt(id)) return renderTray();   // ❔ 모르는 소품은 되팔지 않음(지우면 새 버전에서 잃음)
       const back = Math.floor(D.ITEMS[id].p / 2);
-      delete F.s[ui.slot]; delete F.at[ui.slot]; h.spend(-back); float = { amt: back, t0: tc }; save(); h.saveNow();
+      delete F.s[ui.slot]; delete F.at[ui.slot]; h.give(back); float = { amt: back, t0: tc }; save(); h.saveNow();
       h.log("💰", X(`${nm(id)} 되팔기 +${back}`, `Sold ${nm(id)} +${back}`));
       if (ui.slot === "F2") h.rebuild();
     }
@@ -4921,7 +4939,7 @@ function habitBig(h) {
 
 /* ================= 🎰 캡슐 뽑기 (GACHA: 카탈로그·뽑기·저장 공용 · 큰 화면 gachaBig · 미니 보기는 착용만 읽음, jhkwim/waitscape#86 · #53 다음 단계) =================
    1층 화분과 커피머신 자리 사이에 캡슐 뽑기 기계. 누르면 작은 판 → [돌리기 💰150] → 동전 · 손잡이 드르륵(90°씩 4번) · 캡슐이 굴러 나와 톡 열림 → 결과 카드.
-   움직임 줄이기·회의 모드(정적)면 연출 없이 결과 카드만. 보기용(기능·보상 없음), 결제는 간식·회식과 같은 길(h.spend → sv.funds).
+   움직임 줄이기·회의 모드(정적)면 연출 없이 결과 카드만. 보기용(기능·보상 없음), 결제는 간식·회식과 같은 길(h.pay → 본체 지갑, #197).
    - 값 150(간식 2~3개 · 하루 벌이 ≈ 950의 1/6) · 하루 횟수 제한 없음 · 같은 게 또 나오면 40%(💰60) 돌려받음(입사 지원서는 중복 없음)
    - 등급 흔함 70 · 드묾 25 · 전설 5(%) → 그 등급 안에서 고르게. 비어 있는 등급은 흔함 → 드묾 → 전설 순으로 대신
    - 나오는 것 16종: 직원 액세서리 8(머리 7 · 얼굴 1, GA_ACC) · 책상 소품 6(DECOR "gacha" 팩) · 입사 지원서 2(🦉·🦔, 드묾 — 뽑으면 hire.unlock → 새 세션부터 출근,
@@ -5139,13 +5157,14 @@ function gachaBig(h) {
     const tc = h.clockT(), free = dev.on.has("free");
     if (spin || tc - lastTap < .5 || GA.why(d, h.funds(), free)) return render();
     lastTap = tc; reload();
+    if (!dev.any && !h.can(GA.PRICE)) return render();   // 💰 본체 저장이 읽기 전용이면(#197) 돈을 못 빼니 뽑지 않음
     if (GA.why(d, h.funds(), free)) return render();   // 다시 읽어 보니 그새 새 버전 창이 v2로 씀 → 돈만 빠지지 않게
     const force = dev.on.has("legend") ? { tier: "l" } : dev.on.has("rare") ? { tier: "r" } : (id => id ? { id } : null)([...dev.on].find(x => GA.BY[x]));
     /* 지원서: 결제·저장 전에 먼저 잠금을 풂 — 못 풀면 지원서를 빼고 다시 뽑음("입사했어요!" 거짓 표시 없음) · 개발용이면 풀지 않음 */
     const res = GA.draw(d, Math.random, locked, force, dev.any || !h.hire ? null : an => h.hire.unlock(an));
     const now = Date.now() / 1000;
     GA.apply(d, res, now); save();
-    if (!dev.any) { h.spend(GA.PRICE - res.back); h.float(-(GA.PRICE - res.back)); h.saveNow(); }   // 개발용 쿼리(?gacha=)면 자금도 건드리지 않음
+    if (!dev.any) { h.pay(GA.PRICE - res.back); h.float(-(GA.PRICE - res.back)); h.saveNow(); }   // 개발용 쿼리(?gacha=)면 자금도 건드리지 않음
     const it = res.it;
     h.log("🎰", X(`뽑기: ${nm(it)} (${GA.TIER[it.t].n[0]})${res.dup ? ` · 중복 +${res.back}` : ""}`, `Gacha: ${nm(it)} (${GA.TIER[it.t].n[1]})${res.dup ? ` · dup +${res.back}` : ""}`));
     ui.res = null; ui.pop = h.anim() ? "" : "res"; if (!h.anim()) ui.res = res;
@@ -5210,7 +5229,7 @@ function gachaBig(h) {
      자기 층에서 "회식이다!" 하고 엘리베이터 쪽으로 사라짐 → 옥상 계단실에서 나와 그릴 둘레로(연기·불꽃·지글지글·전구 줄) → 수다 → "건배! 🍻" → "잘 먹었습니다!" → 계단실로.
      연출 동안 건물 위에 옥상 자리(ROOF_H)를 더 둠 — 하늘에 자리가 없으면 건물이 잠깐 작아짐. 움직임 줄이기(또는 연출 중 움직임이 꺼지면)면 정지 장면 카드.
      🙈 눈치 모드가 오면 바로 끝냄 · 📋 일보 연출·눈치 모드 중엔 시작 못 함. 다음 날 하루 동안 1층 오른쪽 벽(🛒 카트 위)에 "📷 어제 회식 사진" 액자(참석 동물 최대 4).
-   - 결제는 SHOP·🎨 소품과 같은 길(h.spend → 본체 sv.funds·saveSoon → saveNow) · 스튜디오 로그 한 줄 · 자금 옆 −숫자. 빠른 연타: 같은 직원은 0.6초 잠금, 개수·자금은 누를 때마다 다시 확인.
+   - 결제는 SHOP·🎨 소품과 같은 길(h.can 확인 → h.pay → 본체 지갑 · saveNow, #197) · 스튜디오 로그 한 줄 · 자금 옆 −숫자. 빠른 연타: 같은 직원은 0.6초 잠금, 개수·자금은 누를 때마다 다시 확인.
    - 저장 ctx.store "treat" = { v: 1, d: "YYYY-MM-DD"(간식의 날), s: { sid: [{ k: 간식 id, t: 산 시각(초) }, …최대 2] }, dn: { d: 회식한 날, t, w: [{ a: 동물, p: 프로바이더, sh: 0|1 }, …최대 6] } }.
      없으면 기본값 · 모르는 필드는 버림 · 잘못된 값(모르는 간식 id·숫자 아님·모르는 동물)은 그 항목만 버림 · 날이 바뀌면 s를 비움(dn은 다음 날 사진용으로 남김) · sid 40개까지.
      큰 화면만 씀. 모르는 새 버전(v > 1)이면 읽기만.
@@ -5350,9 +5369,9 @@ function treatBig(h) {
     if (lock.has(sid) && tc - lock.get(sid) < .6) return false;   // 빠른 연타(더블 클릭) = 한 번
     roll();
     const L = dev.treat ? [] : listOf(sid);
-    if (L.length >= R.MAX || h.funds() < k.p) return false;
+    if (L.length >= R.MAX || (!dev.any && !h.can(k.p))) return false;
     lock.set(sid, tc);
-    if (!dev.any) { h.spend(k.p); h.float(-k.p); }
+    if (!dev.any) { h.pay(k.p); h.float(-k.p); }
     if (!dev.treat) { (s.s[sid] = L.slice()).push({ k: id, t: nowS() }); const ks = Object.keys(s.s); if (ks.length > 40) ks.sort((a, b) => s.s[a][0].t - s.s[b][0].t).slice(0, ks.length - 40).forEach(x => delete s.s[x]); save(); }
     h.saveNow();
     react.set(sid, { id, t0: tc, n: L.length + 1 });
@@ -5441,12 +5460,12 @@ function treatBig(h) {
     return { show: true, dis: st[0] !== "ok", text: st[1], title: X("오늘 일한 직원들이 옥상에서 바베큐 (보기용 · 하루 한 번)", "Today's crew grills on the rooftop (looks only · once a day)") };
   }
   function go(d) {
-    if (s.ro || S || cardEl || busy() || doneToday() || !evening() || h.funds() < R.DINNER) return false;   // s.ro: 새 버전 저장이면 기록(dn)을 못 남기니 결제도 안 함
+    if (s.ro || S || cardEl || busy() || doneToday() || !evening() || (!dev.any && !h.can(R.DINNER))) return false;   // s.ro: 새 버전 저장이면 기록(dn)을 못 남기니 결제도 안 함
     if (!members(d).length) return false;   // 갈 직원이 없으면 카드를 닫지 않음
     h.drClose();   // 카드를 닫으며 📋 일보 연출도 끝(직원이 제자리로) → 그다음에 갈 직원을 셈
     const mem = members(d); if (!mem.length || h.drActive()) return false;
     s.dn = { d: today(), t: nowS(), w: mem.map(m => ({ a: m.animal, p: m.pk, sh: m.shiny ? 1 : 0 })) }; save();   // 결제보다 먼저 표시(두 번 못 감)
-    if (!dev.any) { h.spend(R.DINNER); h.float(-R.DINNER); h.saveNow(); }   // 개발용 쿼리면 공짜(간식과 같음)
+    if (!dev.any) { h.pay(R.DINNER); h.float(-R.DINNER); h.saveNow(); }   // 개발용 쿼리면 공짜(간식과 같음)
     h.log("🍖", X(`회식! 옥상 바베큐 (${mem.length}명) −${R.DINNER.toLocaleString("en-US")}`, `Team dinner! Rooftop BBQ (${mem.length}) −${R.DINNER.toLocaleString("en-US")}`) + (dev.any ? " (dev)" : ""));
     start(mem); return true;
   }
@@ -5789,7 +5808,7 @@ function napBig(h) {
      1층 둘은 누르기 전에 질문 말풍선이 뜨면 비켜 줌(개발용 ?evt=는 보여 주기 위해 그대로). 아기 고양이·프린터는 책상 층만 — 나와 있는 층이 회의 배치가 되면 걷음
    - 움직임 줄이기·회의 모드(정적 그리기): 걷기·날기 없이 그 자리에 나타났다 사라짐(누르기는 됨) · 효과음 없음
    - 보상: 하루(새벽 4시 경계 — TINY.dayKey, 퇴근 일보·달력과 같음) 최대 5번. 그 뒤엔 와도 보상 없이 반응만(로그에 "오늘 보상은 다 받았어요").
-     결제는 간식·뽑기와 같은 길(h.spend(−n) → sv.funds · 자금 옆 +n)
+     보상은 간식·뽑기와 같은 지갑(h.give(n) · 자금 옆 +n, #197)
    - 저장 ctx.store "evt" = { v: 1, n: { 종류: 만난(누른) 횟수 }, day: "YYYY-MM-DD"(보상 센 날), got: 그날 보상 수 }. 누를 때 다시 읽고 씀(다른 창과 안 겹치게).
      모르는 종류 키는 그대로 둠(새 버전에서 만난 것) · 잘못된 값은 버림 · 모르는 새 버전(v > 1)이면 읽기만(반응만, 보상·저장 없음). 다음 이벤트 시각은 저장하지 않음(창을 열 때마다 새로)
    - 🎲 n/6(만난 종류 수): 사이드 📖 직원 도감 카드·도감 창 제목 옆
@@ -6068,7 +6087,7 @@ function eventBig(h) {
     const r = V.claim(s, E.k, ctx.now(), Math.random, !!dev);
     if (r.save) save();
     E.amt = r.amt; E.capped = r.capped; E.show = r.amt || (dev || s.ro ? V.pay(E.k, Math.random) : 0);   // show: 그림용(개발용이면 동전만 보여 줌)
-    if (r.amt) { h.spend(-r.amt); h.float(r.amt); h.saveNow(); }
+    if (r.amt) { h.give(r.amt); h.float(r.amt); h.saveNow(); }
     const LOG = { pizza: X("피자 배달 왔어요 · 사장님이 받았어요", "Pizza arrived · the boss signed for it"), box: X("「?」 택배 상자를 열었어요", "Opened a mystery box"), cat: X("길 잃은 아기 고양이를 쓰다듬었어요 ❤️", "Petted a lost kitten ❤️"),
       printer: X("고장 난 프린터를 고쳤어요 🔧", "Fixed the jammed printer 🔧"), balloon: X("풍선을 터뜨렸더니 동전이 떨어졌어요", "Popped a balloon · a coin fell out"), star: X("별똥별에 소원을 빌었어요 ✨", "Made a wish on a shooting star ✨") };
     h.log(V.ICON[E.k], LOG[E.k] + (r.amt ? ` · +${r.amt}` : dev ? X(" (개발용 · 저장 안 함)", " (dev · not saved)") : r.capped ? X(" · 오늘 보상은 다 받았어요", " · no more rewards today") : ""));
@@ -6106,7 +6125,7 @@ function eventBig(h) {
 
 /* ================= 📔 목격 일지 (SPOT: 목록·저장 형식 공용 · 큰 화면 spotBig만 — 미니 보기는 세지 않음. 본체·각 묶음에는 h.spot(id) 한 줄씩, jhkwim/waitscape#112) =================
    깨알 디테일 장면을 큰 화면에서 "처음 본 순간" 도장. 본 것 = 이름·조건·날짜, 못 본 것 = ❔ + 힌트(📖 직원 도감 창 「📔 목격 일지」 칸 · 사이드 도감 카드·창 제목 옆 📔n/29).
-   - 처음 볼 때 토스트 "📔 새 목격!" + 💰 +5(간식·뽑기·이벤트와 같은 길 h.spend(−5) · 자금 옆 +5) + 로그 한 줄
+   - 처음 볼 때 토스트 "📔 새 목격!" + 💰 +5(간식·뽑기·이벤트와 같은 지갑 h.give(5) · 자금 옆 +5) + 로그 한 줄
    - 세는 곳: 장면을 그리는 바로 그 자리에서 h.spot(id)(이미 본 것은 Set 확인 한 번으로 끝 — 프레임마다 불러도 됨)
    - 안 셈: 🙈 눈치 모드 · 숨김(NX) · 탭이 안 보일 때 · 미니 보기(spotBig이 없음)
    - 저장 ctx.store "spot" = { v: 1, s: { id: 처음 본 시각(ms) } }. 볼 때 다시 읽고 씀(다른 창과 안 겹치게) · 모르는 id는 그대로 둠(새 버전에서 본 것) · 잘못된 값은 버림 · 모르는 새 버전(v > 1)이면 읽기만
@@ -6177,7 +6196,7 @@ function spotBig(h) {
     lastSync = t; sync(); if (got.has(id) || s.ro) return;   // 다른 창이 먼저 봄 · 그새 새 버전이 씀
     s.s[id] = t; got.add(id);
     try { ctx.store.set("spot", V.dump(s)); } catch {}
-    h.spend(-V.PAY); h.saveNow(); h.float(V.PAY);   // 도장과 자금을 같이 저장(이벤트 보상과 같은 길)
+    h.give(V.PAY); h.saveNow(); h.float(V.PAY);   // 도장과 자금을 같이 저장(이벤트 보상과 같은 길)
     const it = V.BY[id], n = V.count(s);
     h.log("📔", X(`새 목격: ${it.e} ${it.n[0]} · +${V.PAY} (${n}/${V.LIST.length})`, `New sighting: ${it.e} ${it.n[1]} · +${V.PAY} (${n}/${V.LIST.length})`));
     q.push({ id, n });
@@ -6236,7 +6255,8 @@ C.registerMode({
     if (!cfg.animals.some(a => SP.includes(a))) cfg.animals = SP.slice();
     let dirty = false;
     const saveSoon = () => { dirty = true; };
-    const flush = () => { if (!dirty) return; dirty = false; try { ctx.store.set("save", JSON.stringify(sv)); } catch {} };
+    const wallet = SAVE.wallet(sv, saveSoon);   // 💰 자금은 이 지갑으로만 바꾼다(#197)
+    const flush = () => { if (!dirty || sv.ro) return; dirty = false; try { ctx.store.set("save", JSON.stringify(sv)); } catch {} };
     const saveCfg = () => { try { ctx.store.set("cfg", JSON.stringify(cfg)); } catch {} };
     if (sv.day.d !== ymd()) sv.day = { d: ymd(), earned: 0 };
 
@@ -6443,27 +6463,27 @@ C.registerMode({
       box: (...a) => box(...a), parentFor: (...a) => parentFor(...a), model: () => model, n: () => nSess, bossAct: () => bossAct, floorOf: sid => floorIdx.get(sid),
       provName: id => C.provider(ctx.state, { provider: id }).name, anim: () => animOn(), kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), dinner: c => trB.cardBtn(c) });   // 🍖 카드 아래 회식 버튼
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
-      lv: () => lvOf(), funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
+      lv: () => lvOf(), funds: wallet.funds, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs), ga: () => gaB });   // 🍩 층을 고르면 간식 줄
     const gaB = gachaBig({ ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
-      funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
+      funds: wallet.funds, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
       kick: () => { if (!animOn()) staticDraw(); }, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode), dr: () => drB.active() || trB.active(), setP,
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true) });
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ spot: id => spB.see(id), ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
     const trB = treatBig({ bossAct: () => bossAct, ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
-      funds: () => sv.funds, spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
+      funds: wallet.funds, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
       anim: () => animOn(), still: () => !!(rm.matches || ctx.settings.quiet), kick: () => { if (!animOn()) staticDraw(); }, layout: () => layout() });
     const napB = napBig({ spot: id => spB.see(id), ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), dark: () => { const p = pwB.phase(); return p === "out" || p === "reset"; },   // 😴 졸음 · 🍱 점심(#106)
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim), snack: (sid, i) => trB.onDesk(sid, i) });
     const evB = eventBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, model: () => model, scale: () => scaleK, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 🎲 랜덤 이벤트(#100)
       stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), wet: () => pwB.wet(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
-      spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
+      can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); } });
     const spB = spotBig({ ctx, doc, mkEl, sty, html, X, main: $(".main"), clockT, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 📔 목격 일지(#112)
-      spend: v => { sv.funds -= v; saveSoon(); }, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), anim: () => animOn(),
+      can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), anim: () => animOn(),
       redex: () => { if (dexEl && dexEl.classList.contains("on")) renderDex(); } });
     const pwWins = [];
 
@@ -7500,7 +7520,7 @@ C.registerMode({
       let amt = earnOf(s), bonus = false;
       const tk = s.tokens && s.tokens.total;                   // 토큰을 많이 쓴다고 보상은 없다. 평소보다 적게 썼을 때만 +5
       if (tk > 0) { if (sv.tok.n >= 3 && tk < sv.tok.avg) { amt += 5; bonus = true; } sv.tok.avg = (sv.tok.avg * sv.tok.n + tk) / (sv.tok.n + 1); sv.tok.n = Math.min(sv.tok.n + 1, 60); }
-      sv.funds += amt; sv.earned += amt; sv.day.earned += amt; sv.dones[f.sid] = (sv.dones[f.sid] || 0) + 1; sv.doneN++; prune(sv.dones, 200);
+      wallet.earn(amt); sv.dones[f.sid] = (sv.dones[f.sid] || 0) + 1; sv.doneN++; prune(sv.dones, 200);
       const a = actors.get(f.sid);
       if (a) { a.launchStart = tc; a.launchUntil = tc + 4.5; fx = { sid: f.sid, amt, big, base: EARN.done, bonus: amt - (bonus ? 5 : 0) - EARN.done, tok: bonus }; }
       dcB.earn(f, amt, tc);   // 🎨 자금 옆 +n · 시든 화분에 물
@@ -7520,7 +7540,7 @@ C.registerMode({
       const r = fastReply(Math.max(0, (f.s.since || 0) - at), Number.isInteger(sv.combo) && sv.combo > 0 ? sv.combo : 0);   // 끝 = 다시 working이 된 시각(동기화 지연과 무관)
       sv.combo = r.n;
       if (r.amt) {
-        sv.funds += r.amt; sv.earned += r.amt; sv.day.earned += r.amt;
+        wallet.earn(r.amt);
         dcB.float(r.amt);
         const combo = r.n > 1 ? ` 🔗×${r.n}` : "";
         qfx = { sid: f.sid, t0: tc, txt: X(`👍 빠르다!${combo} +${r.amt}`, `👍 Quick!${combo} +${r.amt}`) };
@@ -7596,7 +7616,7 @@ C.registerMode({
         const hr = String(Math.floor(now / 3600)), b = sv.rep[hr] || (sv.rep[hr] = [0, 0]); b[1] += dt; if (ok) b[0] += dt;
         Object.keys(sv.rep).forEach(k => { if (+k < Math.floor(now / 3600) - 24) delete sv.rep[k]; });
       }
-      if (ok) { okRun += dt; sv.paceSecs += dt; while (sv.paceSecs >= 3600) { sv.paceSecs -= 3600; sv.funds += 10; sv.earned += 10; sv.day.earned += 10; pushLog("⭐", X("페이스 준수 1시간 · +10", "On pace for an hour · +10")); } saveSoon(); }
+      if (ok) { okRun += dt; sv.paceSecs += dt; while (sv.paceSecs >= 3600) { sv.paceSecs -= 3600; wallet.earn(10); pushLog("⭐", X("페이스 준수 1시간 · +10", "On pace for an hour · +10")); } saveSoon(); }
       else if (valid) okRun = 0;
       if (sv.day.d !== ymd()) sv.day = { d: ymd(), earned: 0 };
       /* 사장님께 질문하러 가는 직원은 한 번에 한 명 */
@@ -7717,7 +7737,7 @@ C.registerMode({
       html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류", "🎲 Random events · kinds met"))}" style="white-space:nowrap">🎲${evB.count()}/${EVT.KINDS.length}</span> · <span title="${esc(X("📔 목격 일지 · 처음 본 장면", "📔 Sightings · scenes seen"))}" style="white-space:nowrap">📔${spB.n()}/${spB.total()}</span></small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
       const lv = lvOf();
       setSec("shop", "", `<h3><span>🛒 ${X("상점 · 꾸미기", "Shop · decorate")}</span><span>💰 ${sv.funds.toLocaleString("en-US")}</span></h3><div class="shop">${SHOP.map(it => {
-        const own = owned(it.id), locked = lv < it.lv, afford = sv.funds >= it.p, nm = it.n[ctx.lang === "en" ? 1 : 0];
+        const own = owned(it.id), locked = lv < it.lv, afford = wallet.can(it.p), nm = it.n[ctx.lang === "en" ? 1 : 0];
         return `<button class="sb ${own ? "own" : locked || !afford ? "dis" : ""}" type="button" data-act="buy" data-id="${it.id}" ${own ? "disabled" : ""} title="${esc(locked ? X(`스튜디오 Lv.${it.lv}에 열려요`, `Unlocks at studio Lv.${it.lv}`) : "")}">${it.e} ${esc(nm)} <s>${own ? "✓" : locked ? "Lv." + it.lv : "💰" + (it.p >= 1000 ? (it.p / 1000).toFixed(it.p % 1000 ? 1 : 0) + "k" : it.p)}</s></button>`;
       }).join("")}</div><button type="button" class="sb dcgo" data-act="decor">🎨 ${X("층마다 꾸미기 (프로젝트별 소품)", "Decorate floors (per project)")}</button><div class="tip">${X("꾸미기는 보기용이에요 (기능 없음). 자금은 작업을 잘 마치거나 한도를 아껴 쓸 때 쌓여요.", "Decor is for looks only. Funds grow when you finish work well and pace your limits.")}</div>`);
       const stallN = model.all ? model.all.filter(f => f.kind === "stall").length : 0, okMin = Math.floor(okRun / 60);
@@ -7782,7 +7802,7 @@ C.registerMode({
       else if (act === "jump") { if (!drB.active()) pkB.jump(b.dataset.sid); }   // 🖥️ 층 이름표·단계 명패 → 그 세션 (모니터는 POKE 반응만)
       else if (act === "update") { if (ctx.core.update) ctx.core.update.open(); }
       else if (act === "nxdoor") { NX.ring(clockT()); if (soundOk() && cfg.sound) PK.play(ctx.audio(), "bell"); if (!animOn()) staticDraw(); }   // 🙈 현관 종(깨알)
-      else if (act === "buy") { const it = SHOP.find(x => x.id === id); if (it && !owned(id) && sv.funds >= it.p && lvOf() >= it.lv) { sv.funds -= it.p; sv.shop[id] = 1; saveSoon(); pushLog("🛒", X(`${it.n[0]} 구입! (보기용)`, `Bought ${it.n[1]}!`)); sync(); } }
+      else if (act === "buy") { const it = SHOP.find(x => x.id === id); if (it && !owned(id) && lvOf() >= it.lv && wallet.pay(it.p)) { sv.shop[id] = 1; saveSoon(); pushLog("🛒", X(`${it.n[0]} 구입! (보기용)`, `Bought ${it.n[1]}!`)); sync(); } }
       else if (act === "animal") { if (!SP.includes(id) || hire.lockedReal(id)) return;   // 🔒 잠긴 동물은 못 고름
         const i = cfg.animals.indexOf(id), onN = cfg.animals.filter(a => SP.includes(a) && !hire.lockedReal(a)).length;
         if (i >= 0) { if (onN > 1) cfg.animals.splice(i, 1); } else cfg.animals.push(id); saveCfg(); buildSig = ""; sync(); renderDex(); }

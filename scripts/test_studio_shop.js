@@ -23,6 +23,25 @@ const { SHOP, SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn {
   assert.strictEqual(SAVE.load(JSON.stringify(Object.assign({}, v1, { doneN: 50 }))).doneN, 50, "dones가 잘려 합계가 줄어도 doneN은 그대로");
   assert.strictEqual(SAVE.load(JSON.stringify(Object.assign({}, v1, { doneN: 3 }))).doneN, 8, "doneN이 합계보다 작으면 합계로");
   assert.deepStrictEqual(SAVE.load(JSON.stringify(s)), s, "load → JSON → load 왕복");
+  assert.strictEqual(s.v, 1, "v 없는 옛 저장 = v1로 읽고 v를 붙임"); assert.strictEqual(s.ro, false);
+  assert.ok(!("ro" in JSON.parse(JSON.stringify(s))), "ro는 저장에 남지 않음");
+  const nw = SAVE.load(JSON.stringify(Object.assign({}, v1, { v: 2 })));
+  assert.deepStrictEqual([nw.ro, nw.v, nw.funds], [true, 2, 4215], "더 새 버전 저장 = 읽기 전용, v는 그대로");
+}
+
+/* ---------- 💰 지갑 SAVE.wallet ---------- */
+{
+  let n = 0; const sv = SAVE.load(JSON.stringify({ funds: 300, earned: 1000, day: { d: "2026-11-18", earned: 40 } })), w = SAVE.wallet(sv, () => n++);
+  assert.strictEqual(w.can(300), true); assert.strictEqual(w.can(301), false);
+  [-1, NaN, Infinity, "5", undefined].forEach(p => assert.strictEqual(w.can(p), false, "이상한 값 " + p));
+  assert.strictEqual(w.pay(301), false); assert.deepStrictEqual([sv.funds, n], [300, 0], "모자라면 아무것도 안 함");
+  assert.strictEqual(w.pay(120), true); assert.deepStrictEqual([sv.funds, sv.earned, n], [180, 1000, 1], "결제는 벌이 통계를 안 건드림");
+  w.give(60); assert.deepStrictEqual([sv.funds, sv.earned, sv.day.earned, n], [240, 1000, 40, 2], "보상 = 자금만");
+  w.earn(25); assert.deepStrictEqual([sv.funds, sv.earned, sv.day.earned, n], [265, 1025, 65, 3], "벌이 = 자금·누적·오늘");
+  w.give(-5); w.earn(-5); w.give(0); w.give(NaN); assert.deepStrictEqual([sv.funds, n], [265, 3], "음수·0·NaN 무시");
+  assert.strictEqual(w.pay(0), true, "0원 결제는 됨(공짜)");
+  const ro = SAVE.load(JSON.stringify({ v: 2, funds: 999 })), wr = SAVE.wallet(ro, () => { throw new Error("읽기 전용인데 저장 예약"); });
+  assert.strictEqual(wr.can(1), false); assert.strictEqual(wr.pay(1), false); assert.strictEqual(ro.funds, 999, "읽기 전용 저장이면 결제 막음");
 }
 
 /* ---------- 🎨 층 꾸밈 저장 DECOR ---------- */

@@ -58,7 +58,7 @@ const mkBig = (o = {}) => {
   let hidden = !!o.hidden, anim = o.anim !== false;
   const B = f({ ctx: { lang: "ko", store: { get: (k, d) => store.has(k) ? store.get(k) : d, set: (k, v) => store.set(k, v) } }, doc: { hidden: false },
     mkEl: () => ({ style: {} }), sty: () => {}, html: () => {}, X: (a) => a, main: {}, clockT: () => 0, hidden: () => hidden,
-    spend: v => paid.push(v), saveNow: () => {}, float: () => {}, log: () => {}, hud: () => {}, anim: () => anim, redex: () => {} });
+    give: v => paid.push(-v), saveNow: () => {}, float: () => {}, log: () => {}, hud: () => {}, anim: () => anim, redex: () => {} });
   return { B, store, paid, setHidden: v => (hidden = v), setAnim: v => (anim = v) };
 };
 const realNow = Date.now; let fake = 1e12; Date.now = () => (fake += 1500);   // 다른 창 확인 1초 간격을 넘기며
