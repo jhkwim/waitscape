@@ -54,7 +54,7 @@ assert.strictEqual(V.devOf("?evt=pizza"), "pizza"); assert.strictEqual(V.devOf("
 assert.strictEqual(V.devOf("?evt=nope"), ""); assert.strictEqual(V.devOf(""), ""); assert.strictEqual(V.devOf("?evt=constructor"), "");
 // 본체 연결: 개발용이면 save()가 저장소를 건드리지 않음 · 자금은 보상이 있을 때만(개발용은 0)
 assert.ok(/const save = \(\) => \{ if \(!s\.ro && !dev\)/.test(src), "eventBig save는 개발용·새 버전이면 쓰지 않음");
-assert.ok(/if \(r\.amt\) \{ h\.spend\(-r\.amt\)/.test(src), "자금은 실제 보상이 있을 때만");
+assert.ok(/if \(r\.amt\) \{ h\.give\(r\.amt\)/.test(src), "자금은 실제 보상이 있을 때만");
 
 // 저장: 왕복 · 모르는 종류 보존 · 잘못된 값 버림 · 새 버전(v > 1)은 읽기만(보상·저장 없음)
 const raw = JSON.stringify({ v: 1, n: { pizza: 2, ufo: 1, cat: -1, box: "3", star: 1.5 }, day: "2026-11-03", got: 9, junk: 1 });
