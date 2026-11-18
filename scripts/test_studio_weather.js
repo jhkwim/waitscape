@@ -52,7 +52,7 @@ assert.strictEqual(load("?wx=snow").kind(D(2026, 7, 1, 15), "Asia/Seoul"), "snow
 assert.strictEqual(load("?wx=nope").dev, "");
 
 // pwClock.env: 한도 날씨를 켰고 주간 60%↑면 한도가 우선, 아니면 달력
-const env = cut("const PW_RESET_LEN", "const PW_MPAT");
+const env = cut("const PW_RESET_LEN", "const pwGaugeBg");
 const C = { limits: (st) => ({ five: { used: 10, wasReset: false, reset: 0 }, week: { used: st.wk } }) };
 const pw = new Function("C", "WX", "clamp", "lerp", "ease", "pwKv", "pwMix", "pwH", env + "\nreturn pwClock;")(C, W, (v, a, b) => Math.max(a, Math.min(b, v)), (a, b, t) => a + (b - a) * t, t => t, () => 0, a => a, () => 0);
 const at = (wk, on, cal) => { const c = pw(); c.read({ limits: {}, wk }, 0, 0); const E = c.env(0, 0, true, false, on, cal); return [E.wxK, E.wk, E.lim, E.fog]; };

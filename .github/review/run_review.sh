@@ -197,7 +197,7 @@ PY
   printf -- '- diff는 아래에 이미 있다(길면 `.review/pr.diff`를 읽는다). 변경 파일 전체가 필요할 때만 해당 파일을 읽는다.\n'
   printf -- '- 파일 읽기는 **최대 8회**, 한 번에 넓은 줄 범위로 읽는다(파일 하나를 조각조각 읽지 않는다). diff로 판단되는 건 읽지 않고 바로 답한다. 8회 안에 끝내고 JSON을 출력한다.\n'
   printf '\n## PR diff (%s)\n\n' "$( [ "$(wc -c < "$WORK/pr.diff")" -gt "$EMBED" ] && echo "앞 ${EMBED}바이트만 — 나머지는 .review/pr.diff" || echo "전체" )"
-  printf '```diff\n'; head -c "$EMBED" "$WORK/pr.diff" | sed 's/```/ˋˋˋ/g'; printf '\n```\n'
+  printf '```diff\n'; head -c "$EMBED" "$WORK/pr.diff" | LC_ALL=C sed 's/```/ˋˋˋ/g'; printf '\n```\n'
   printf '\n\n---\n\n이제 리뷰하라. 출력은 schema.json 형식의 JSON 하나뿐이다. 모든 문장은 한국어.\n'
 } > "$BASE.prompt.md"
 
