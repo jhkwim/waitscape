@@ -6759,14 +6759,14 @@ C.registerMode({
       const fl = model.floors.slice(0, 5), dots = q(".dots");
       while (dots.children.length < fl.length) mkEl("i", "", dots);
       while (dots.children.length > fl.length) dots.lastChild.remove();
-      fl.forEach((f, i) => { const d = dots.children[i]; sty(d, "background", M2COL[f.kind] || M2COL.idle); d.classList.toggle("blink", f.kind === "ask"); });
+      fl.forEach((f, i) => { const d = dots.children[i]; sty(d, "background", M2COL[f.kind] || M2COL.idle); d.classList.toggle("blink", f.kind === "ask" && animOn()); });   // 회의 모드·움직임 줄이기면 깜빡이지 않음
       const working = model.floors.filter(f => f.kind === "work" || f.kind === "agents").length, waiting = model.floors.filter(f => f.kind === "ask").length;
       txt(q(".wk"), X(`작업 ${working}`, `Busy ${working}`));
       const ak = q(".ak"); ak.hidden = !waiting; txt(ak, X(`❓ 대기 ${waiting}`, `❓ Wait ${waiting}`));
     }
     const cam = { up: null, cx: null, hold: -1e9, acc: 0, drag: null, moved: false, x: null, y: null, tl: [], tlFor: null, sl: null };   // up: 로비에서 몇 층 위(세션 수가 바뀌어도 같은 층) · x·y: 지금 카메라(부드럽게 따라감)
     function miniLayout() {
-      const K = MINI2.K; scaleK = K;
+      const K = MINI2.K; scaleK = K; cam.tlFor = null;   // 이름표 원래 자리는 매초(이름표 맞춤이 옮길 수 있음) 다시 잼
       bld.style.setProperty("--inv", "1"); sty(bld, "top", "");
       sty(sc, "width", Math.round(MINI2.FULL * K) + "px"); sty(sc, "height", Math.round((sceneH || 700) * K) + "px");
       camApply(); pwB.resize(); evB.resize();
@@ -6785,12 +6785,12 @@ C.registerMode({
       let cx, cy;
       if (p) {
         const fi = FL.findIndex(r => p.y > r.F.offsetTop + 2 && p.y <= r.F.offsetTop + r.F.offsetHeight + 2);
+        cx = p.x - (vw - MINI2.SHAFT_W - 54);   // 직원이 창 오른쪽 고정 통로 바로 왼쪽에(통로에 가리지 않게) — 엘리베이터 앞에 오면 통로는 제자리
         cy = carEl && carEl.contains(a.el) || fi < 0 ? p.y - vh + 14 : floorCy(fi);
         if (fi === nSess && askb && askb.style.display === "block") {   // 사장실 질문 말풍선(미니에선 .8배, 오른쪽 아래 기준)까지 담음 — 위로는 최대 30
           const ab = askb.getBoundingClientRect(), bb = bld.getBoundingClientRect(), K = MINI2.K;
           cy = Math.max(cy - 30, Math.min(cy, (ab.top - bb.top) / K - 4)); cx = Math.min(cx, (ab.left - bb.left) / K - 4);
         }
-        cx = p.x - (vw - MINI2.SHAFT_W - 54);   // 직원이 창 오른쪽 고정 통로 바로 왼쪽에(통로에 가리지 않게) — 엘리베이터 앞에 오면 통로는 제자리
       } else { const fi = camFi(); cy = floorCy(fi); cx = cam.cx != null ? cam.cx : autoX(fi, vw); }
       cx = vw >= MINI2.FULL - 2 ? 0 : clamp(cx, 0, MINI2.FULL - vw);
       if (cam.cx != null) cam.cx = cx;
@@ -7966,10 +7966,11 @@ C.registerMode({
 
     sync();
     if (!FL.length) { buildSig = "init"; build(); renderHud(); renderSide(); }
+    if (mini && ctx.state) renderMiniHud();   // 📌 위 줄을 첫 1초 비우지 않게
     if (ctx.nunchi && ctx.nunchi.phase === "plain") nxHide();   // 🙈 눈치 화면이 덮은 채로 올라옴(다시 켠 앱·모드 전환)
     ensureLoop();
     return {
-      update() { sync(); },
+      update() { sync(); if (mini && ctx.state) renderMiniHud(); },
       unmount() { flush(); if (mini) doc.documentElement.classList.remove("stu-lobby"); if (NX.res) { NX.res(); NX.res = null; } },   // 퇴장 연출 중 다른 모드로 바뀌면 코어가 기다리지 않게
       /* 🙈 눈치 모드 훅(core/nunchi.js): leave → Promise(다 나가면) | null(블라인드만) · hide · arrive { long, say } */
       nunchi(ev, o) { if (ev === "leave" || ev === "hide") trB.stop(); return ev === "leave" ? nxLeave() : ev === "hide" ? nxHide() : ev === "arrive" ? nxArrive(o || {}) : null; },
