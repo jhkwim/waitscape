@@ -724,5 +724,15 @@ body[data-mode="studio"] .stu.mini2 { height: 100vh; background: var(--deep); } 
 body[data-mode="studio"] .stu.mini2 .hud, body[data-mode="studio"] .stu.mini2 .side, body[data-mode="studio"] .stu.mini2 .minibtn, body[data-mode="studio"] .stu.mini2 .dex { display: none; }
 body[data-mode="studio"] .stu.mini2 .dc-plus { display: none !important; }   /* 💰 자금 오름 숫자는 큰 화면 HUD 연출(JS가 display를 씀) */
 body[data-mode="studio"] .stu.mini2 .ftag.fol span { display: none !important; }   /* 창 왼쪽에 붙어 따라오는 층 이름표는 "3F 완료"만 */
+body[data-mode="studio"] .stu.mini2 .bub.side.ask { transform: scale(.8); transform-origin: 100% 100%; }   /* 사장실 질문 말풍선은 작은 창에 맞게 */
+body[data-mode="studio"] .stu.mini2 .m2h { position: fixed; left: 0; right: 0; top: 0; height: 18px; display: flex; align-items: center; gap: 6px; padding: 0 6px; color: #fff; font: 900 11px/18px system-ui, sans-serif; white-space: nowrap; overflow: hidden; z-index: 5; }
+body[data-mode="studio"] .stu.mini2 .m2h .g { position: relative; width: 70px; height: 8px; background: #4a3560; border: 1px solid #1d1430; flex: none; }
+body[data-mode="studio"] .stu.mini2 .m2h .g i { position: absolute; left: 0; top: 0; bottom: 0; background: #4fd06a; }
+body[data-mode="studio"] .stu.mini2 .m2h .g u { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: #ff6b8a; }
+body[data-mode="studio"] .stu.mini2 .m2h .dots { display: flex; gap: 3px; margin-left: 4px; }
+body[data-mode="studio"] .stu.mini2 .m2h .dots i { width: 8px; height: 8px; border: 1px solid #1d1430; }
+body[data-mode="studio"] .stu.mini2 .m2h .dots i.blink { animation: m2blink 1s steps(2) infinite; }
+body[data-mode="studio"] .stu.mini2 .m2h .ak { background: #ffc83a; color: #2e2040; padding: 0 4px; line-height: 14px; }
+@keyframes m2blink { 50% { opacity: .25; } }
 body[data-mode="studio"] .stu.mini2 .view { position: fixed; inset: 18px 0 0 0; padding: 0; overflow: hidden; touch-action: none; cursor: grab; }
 body[data-mode="studio"] .stu.mini2 .sc { margin: 0; overflow: visible; }

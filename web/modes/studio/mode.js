@@ -6263,6 +6263,7 @@ C.registerMode({
     const mini = !ctx0.isMain;   // 작은 창(앱 위젯·PiP) = 미니 보기
     if (mini && !MINI2.on(ctx0)) return mountLobby(root, ctx0);
     const ctx = mini ? MINI2.ctx(ctx0) : ctx0;   // 📌 미니 보기 2: 보기 전용(#204)
+    let m2h = null;   // 📌 미니 보기 2 위 줄
     const doc = ctx.doc, win = ctx.win, $ = s => root.querySelector(s);
     const X = (ko, en) => ctx.lang === "en" ? en : ko;
     const aName = id => NAME[id][ctx.lang === "en" ? 1 : 0];
@@ -6485,6 +6486,7 @@ C.registerMode({
     hud.appendChild(ctx.switcher);
     if (mini) {   // 📌 미니 보기 2: 건물만(HUD·패널 없음) · 독립 창이면 창 크기를 기본 폭으로
       app.classList.add("mini2"); doc.documentElement.classList.add("stu-lobby");
+      m2h = mkEl("div", "m2h", app, null, '<span>⚡</span><div class="g"><i class="seg"></i><u></u></div><b class="pv"></b><span class="dots"></span><b class="wk"></b><b class="ak" hidden></b>');
       if (win.top === win) try { if (Math.abs(win.innerWidth - MINI2.W) > 2 || Math.abs(win.innerHeight - MINI2.H) > 2) win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {}
     }
     mkEl("div", "sun", view); mkEl("div", "hill", view, { left: "-40px", width: "420px", height: "90px" }); mkEl("div", "hill", view, { right: "-60px", width: "520px", height: "120px", background: "" }); mkEl("div", "ground", view);
@@ -6748,29 +6750,67 @@ C.registerMode({
 
     /* ---------- 📌 미니 보기 2 카메라(#204): 0.7배 고정 · 세로는 한 층(위아래 층이 반씩 비침) · 가로는 창이 좁을 때만 넘김 + 엘리베이터 오른쪽 고정 ----------
        휠(세로 = 층, 가로·Shift = 옆) · 끌기로 직접 보면 HOLD초 뒤 자동 카메라(지금은 사장실)로 돌아옴 */
-    const cam = { up: null, cx: null, hold: -1e9, acc: 0, drag: null, moved: false };   // up: 로비에서 몇 층 위(세션 수가 바뀌어도 같은 층)
+    /* 📌 미니 보기 2 위 줄(18px): ⚡ 5시간 한도 게이지 · 직원 상태 점(위층부터 5개, 질문은 깜빡) · 작업 수 · ❓ 대기 */
+    const M2COL = { work: "#4fc86a", agents: "#5aa8ff", ask: "#ffc83a", stall: "#e0605a", done: "#ff6b8a", idle: "#9a8cb0" };
+    function renderMiniHud() {
+      if (!m2h) return;
+      const q = s => m2h.querySelector(s), now = ctx.now(), lc = C.limits(ctx.state, now).five;
+      gauge(lc, now, q(".g i"), q(".g u"), q(".pv"));
+      const fl = model.floors.slice(0, 5), dots = q(".dots");
+      while (dots.children.length < fl.length) mkEl("i", "", dots);
+      while (dots.children.length > fl.length) dots.lastChild.remove();
+      fl.forEach((f, i) => { const d = dots.children[i]; sty(d, "background", M2COL[f.kind] || M2COL.idle); d.classList.toggle("blink", f.kind === "ask" && animOn()); });   // 회의 모드·움직임 줄이기면 깜빡이지 않음
+      const working = model.floors.filter(f => f.kind === "work" || f.kind === "agents").length, waiting = model.floors.filter(f => f.kind === "ask").length;
+      txt(q(".wk"), X(`작업 ${working}`, `Busy ${working}`));
+      const ak = q(".ak"); ak.hidden = !waiting; txt(ak, X(`❓ 대기 ${waiting}`, `❓ Wait ${waiting}`));
+    }
+    const cam = { up: null, cx: null, hold: -1e9, acc: 0, drag: null, moved: false, x: null, y: null, tl: [], tlFor: null, sl: null };   // up: 로비에서 몇 층 위(세션 수가 바뀌어도 같은 층) · x·y: 지금 카메라(부드럽게 따라감)
     function miniLayout() {
-      const K = MINI2.K; scaleK = K;
+      const K = MINI2.K; scaleK = K; cam.tlFor = null;   // 이름표 원래 자리는 매초(이름표 맞춤이 옮길 수 있음) 다시 잼
       bld.style.setProperty("--inv", "1"); sty(bld, "top", "");
       sty(sc, "width", Math.round(MINI2.FULL * K) + "px"); sty(sc, "height", Math.round((sceneH || 700) * K) + "px");
       camApply(); pwB.resize(); evB.resize();
     }
-    function camApply() {
-      const K = MINI2.K, W = view.clientWidth, H = view.clientHeight;
-      if (!W || !H || !FL.length) return;
-      if (clockT() > cam.hold) { cam.up = null; cam.cx = null; cam.acc = 0; }
-      const fi = camFi(), F = FL[fi] && FL[fi].F;
-      if (!F) return;
-      const vw = W / K, vh = H / K, full = vw >= MINI2.FULL - 2;
-      const cx = full ? 0 : clamp(cam.cx != null ? cam.cx : autoX(fi, vw), 0, MINI2.FULL - vw);
+    /* 자동 카메라(둘러보기가 아닐 때): ❓ 질문하러 내려오는 직원(visitor)을 따라감 — 그 층에선 직원을 창 오른쪽 쪽에, 엘리베이터 안이면 세로로 이어서. 없으면 사장실 */
+    function actorPos(a) {
+      if (!a || !a.el.isConnected) return null;
+      const b = bld.getBoundingClientRect(), r = a.el.getBoundingClientRect(), K = MINI2.K;
+      return r.width ? { x: (r.left + r.width / 2 - b.left) / K, y: (r.bottom - b.top) / K } : null;
+    }
+    function camTarget(vw, vh) {
+      const held = clockT() <= cam.hold;
+      if (!held) { cam.up = null; cam.cx = null; cam.acc = 0; }
+      const floorCy = fi => { const F = FL[fi].F; return F.offsetTop - (vh - F.offsetHeight) / 2; };
+      const a = !held && visitor ? actors.get(visitor) : null, p = actorPos(a);
+      let cx, cy;
+      if (p) {
+        const fi = FL.findIndex(r => p.y > r.F.offsetTop + 2 && p.y <= r.F.offsetTop + r.F.offsetHeight + 2);
+        cx = p.x - (vw - MINI2.SHAFT_W - 54);   // 직원이 창 오른쪽 고정 통로 바로 왼쪽에(통로에 가리지 않게) — 엘리베이터 앞에 오면 통로는 제자리
+        cy = carEl && carEl.contains(a.el) || fi < 0 ? p.y - vh + 14 : floorCy(fi);
+        if (fi === nSess && askb && askb.style.display === "block") {   // 사장실 질문 말풍선(미니에선 .8배, 오른쪽 아래 기준)까지 담음 — 위로는 최대 30
+          const ab = askb.getBoundingClientRect(), bb = bld.getBoundingClientRect(), K = MINI2.K;
+          cy = Math.max(cy - 30, Math.min(cy, (ab.top - bb.top) / K - 4)); cx = Math.min(cx, (ab.left - bb.left) / K - 4);
+        }
+      } else { const fi = camFi(); cy = floorCy(fi); cx = cam.cx != null ? cam.cx : autoX(fi, vw); }
+      cx = vw >= MINI2.FULL - 2 ? 0 : clamp(cx, 0, MINI2.FULL - vw);
       if (cam.cx != null) cam.cx = cx;
-      const cy = clamp(F.offsetTop - (vh - F.offsetHeight) / 2, -40, (sceneH || 700) + 20 - vh);
+      return { cx, cy: clamp(cy, -40, (sceneH || 700) + 20 - vh) };
+    }
+    function camApply(dt) {   // dt가 있으면(매 프레임) 부드럽게 따라가고, 한 층 넘게 멀면 바로 자름
+      const K = MINI2.K, W = view.clientWidth, H = view.clientHeight;
+      if (!W || !H || !FL.length || !FL.every(r => r.F)) return;
+      const vw = W / K, vh = H / K, t = camTarget(vw, vh);
+      if (cam.x == null || dt == null || Math.abs(t.cy - cam.y) > vh * 1.2 || !animOn()) { cam.x = t.cx; cam.y = t.cy; }
+      else { const k = Math.min(1, dt * 7); cam.x += (t.cx - cam.x) * k; cam.y += (t.cy - cam.y) * k; }
+      const cx = cam.x, cy = cam.y;
       sty(bld, "transform", `translate(${-Math.round(cx * K)}px,${-Math.round(cy * K)}px) scale(${K})`);
-      const sl = Math.min(MINI2.SHAFT, Math.round(cx + vw - MINI2.SHAFT_W)), dx = sl - MINI2.SHAFT, tl = FL.map(r => r.tag ? r.tag.offsetLeft : 0);   // 읽기 먼저(리플로 한 번)
+      if (cam.tlFor !== FL) { cam.tlFor = FL; cam.tl = FL.map(r => r.tag ? r.tag.offsetLeft : 0); cam.sl = null; }   // 이름표 원래 자리는 층을 지을 때 한 번만 잼
+      const sl = Math.min(MINI2.SHAFT, Math.round(cx + vw - MINI2.SHAFT_W)), dx = sl - MINI2.SHAFT;
       if (shaftEl) sty(shaftEl, "left", sl + "px");
-      FL.forEach((r, i) => { if (!r.tag) return; const fol = cx > tl[i] - 8;   // 층 이름표는 창 왼쪽에 붙어 따라오고, 따라올 땐 "3F 완료"처럼 짧게(.fol — 이름표 맞춤 ftagFlush가 span을 다시 그려도 CSS로 숨김)
-        sty(r.tag, "transform", fol ? `translateX(${Math.round(cx - tl[i] + 8)}px)` : ""); if (r.tag.classList.contains("fol") !== fol) r.tag.classList.toggle("fol", fol); });
-      /* 👆 엘리베이터 누를 자리는 통로를 따라가고, 통로에 가려진 물건의 누를 자리는 끔 */
+      FL.forEach((r, i) => { if (!r.tag) return; const fol = cx > cam.tl[i] - 8;   // 층 이름표는 창 왼쪽에 붙어 따라오고, 따라올 땐 "3F 완료"처럼 짧게(.fol — 이름표 맞춤 ftagFlush가 span을 다시 그려도 CSS로 숨김)
+        sty(r.tag, "transform", fol ? `translateX(${Math.round(cx - cam.tl[i] + 8)}px)` : ""); if (r.tag.classList.contains("fol") !== fol) r.tag.classList.toggle("fol", fol); });
+      if (cam.sl === sl) return; cam.sl = sl;
+      /* 👆 엘리베이터 누를 자리는 통로를 따라가고, 통로에 가려진 물건의 누를 자리는 끔(통로가 움직일 때만) */
       bld.querySelectorAll(".pk-hit").forEach(e => {
         if (e.classList.contains("ev")) { sty(e, "transform", dx ? `translateX(${dx}px)` : ""); return; }
         const x = parseFloat(e.style.left) || 0, w = parseFloat(e.style.width) || 0;
@@ -6781,7 +6821,7 @@ C.registerMode({
     const camFi = () => clamp(cam.up == null ? nSess : FL.length - 1 - cam.up, 0, FL.length - 1);
     if (mini) {   // 카메라는 큰 화면 1초 타이머의 layout()에서도 다시 맞춤(둘러보기 만료 → 자동)
       const look = () => { cam.hold = clockT() + MINI2.HOLD; };
-      const curX = () => cam.cx != null ? cam.cx : autoX(camFi(), view.clientWidth / MINI2.K);
+      const curX = () => cam.cx != null ? cam.cx : cam.x != null ? cam.x : autoX(camFi(), view.clientWidth / MINI2.K);   // 지금 보이는 자리에서 이어서
       ctx.listen(view, "wheel", e => {
         e.preventDefault(); look();
         const u = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? view.clientHeight : 1, ddx = e.deltaX * u, ddy = e.deltaY * u;   // 줄·페이지 단위 휠도 픽셀로
@@ -7178,6 +7218,7 @@ C.registerMode({
       gaB.frame(T, tc, anim);   // 🎰 뽑기 연출 · 판 자리
       evB.frame(T, tc, anim);   // 🎲 랜덤 이벤트(25~50분마다 하나)
       spB.frame(T, tc, anim);   // 📔 새 목격 토스트
+      if (mini) camApply(anim ? dt : null);   // 📌 미니 보기 2: 자동 카메라가 직원을 따라감
     }
 
     /* 한 층의 동물 놓기 — 반환 { babies } */
@@ -7921,14 +7962,15 @@ C.registerMode({
     if (doc.fonts && doc.fonts.addEventListener) ctx.listen(doc.fonts, "loadingdone", () => { fontGen++; });   // 층 이름표 맞춤(#64) 다시 잼
     ctx.on("settings", () => { buildSig = ""; sync(); renderHud(); ensureLoop(); });
     ctx.on("update", () => sync());   // 새 버전 알림(사장님 말풍선)
-    ctx.every(1000, () => { pkB.reload(); drB.tick(); if (!mini) { renderHud(); if (ctx.state) renderSide(); } flush(); layout(); if (!animOn() && FL.length) staticDraw(); });
+    ctx.every(1000, () => { pkB.reload(); drB.tick(); if (!mini) { renderHud(); if (ctx.state) renderSide(); } else if (ctx.state) renderMiniHud(); flush(); layout(); if (!animOn() && FL.length) staticDraw(); });
 
     sync();
     if (!FL.length) { buildSig = "init"; build(); renderHud(); renderSide(); }
+    if (mini && ctx.state) renderMiniHud();   // 📌 위 줄을 첫 1초 비우지 않게
     if (ctx.nunchi && ctx.nunchi.phase === "plain") nxHide();   // 🙈 눈치 화면이 덮은 채로 올라옴(다시 켠 앱·모드 전환)
     ensureLoop();
     return {
-      update() { sync(); },
+      update() { sync(); if (mini && ctx.state) renderMiniHud(); },
       unmount() { flush(); if (mini) doc.documentElement.classList.remove("stu-lobby"); if (NX.res) { NX.res(); NX.res = null; } },   // 퇴장 연출 중 다른 모드로 바뀌면 코어가 기다리지 않게
       /* 🙈 눈치 모드 훅(core/nunchi.js): leave → Promise(다 나가면) | null(블라인드만) · hide · arrive { long, say } */
       nunchi(ev, o) { if (ev === "leave" || ev === "hide") trB.stop(); return ev === "leave" ? nxLeave() : ev === "hide" ? nxHide() : ev === "arrive" ? nxArrive(o || {}) : null; },
