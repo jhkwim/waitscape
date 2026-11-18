@@ -383,6 +383,19 @@ const SHOP = [
   { id: "frame", e: "🖼️", n: ["액자", "Frame"], p: 1200, lv: 4 },
   { id: "trophy", e: "🏆", n: ["트로피", "Trophy"], p: 2500, lv: 5 },
 ];
+/* 💾 스튜디오 본체 저장(ctx.store "save", 스키마 버전 없음 — #197 지갑 단계에서 v를 붙임). 모르는 필드는 그대로 둔다(Object.assign).
+   doneN = 줄지 않는 누적 완료 수(스튜디오 Lv 기준, #195): dones는 세션 200개로 잘려 합계가 줄 수 있어 따로 둔다. 옛 저장은 지금 합계로 시작 */
+const SAVE = (() => {
+  const def = () => ({ funds: 0, earned: 0, dones: {}, doneN: 0, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0, combo: 0 });
+  function load(raw) {
+    let j = null; try { j = JSON.parse(raw || "null"); } catch {}
+    const sv = Object.assign(def(), j && typeof j === "object" && !Array.isArray(j) ? j : {});
+    sv.doneN = Math.max(Number.isFinite(sv.doneN) ? sv.doneN : 0, Object.values(sv.dones || {}).reduce((t, n) => t + (+n || 0), 0));
+    return sv;
+  }
+  return { def, load };
+})();
+/* @test-end SAVE */
 /* 완료(done) = AI가 응답을 끝내고 사용자 차례가 됨(하루 수십 번). 그 작업의 실행 시간(run)이 이만큼 넘을 때만 "큰 일 완료"로 크게 축하 */
 const BIG_DONE_SEC = 600;
 const isBig = run => (run || 0) >= BIG_DONE_SEC;
@@ -4131,6 +4144,7 @@ const DECOR = (() => {
   return { findAt, pull, PACK, SDEV, devSeason, packOpen, onSale, seasons, seasonKey, untilOf, ART, CAT, ITEMS, LIKES, SLOTS, KIND, SLOTN, MINI, MSC, VER, DAY, bigAt, load, dump, touch, sweep, plantArt, likeSlot, itemHTML, boxHTML, canHTML, hearts, place, nameOf, hasPlant };
 })();
 
+/* @test-end DECOR */
 /* ---------- 🎨 큰 화면: HUD [🎨 꾸미기] → 층 탭 → 칸 → 소품 카드(택배로 배달). h = 스튜디오 본체 연결 ---------- */
 function decorBig(h) {
   const { ctx, doc, win, mkEl, sty, txt, html, X } = h, D = DECOR, en = () => ctx.lang === "en";
@@ -4993,6 +5007,7 @@ const GACHA = (() => {
   return { VER, PRICE, BACK, RATES, TIER, ITEMS, BY, back, staffKey, load, dump, has, poolOf, roll, draw, why, apply, wearOf, setWear, count };
 })();
 
+/* @test-end GACHA */
 /* ---------- 🎰 큰 화면: 1층 뽑기 기계 · 연출 · 결과 카드 · 착용 · 도감 HTML. h = 스튜디오 본체 연결 ---------- */
 function gachaBig(h) {
   const { ctx, doc, mkEl, sty, txt, html, X } = h, GA = GACHA, en = () => ctx.lang === "en", K = "#4a3560";
@@ -6214,11 +6229,8 @@ C.registerMode({
     const canTerm = typeof ctx.api.openTerminal === "function";
 
     /* ---------- 저장 (ctx.store) ---------- */
-    const DEF = () => ({ funds: 0, earned: 0, dones: {}, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0, combo: 0 });
     const readJson = (k, d) => { try { const j = JSON.parse(ctx.store.get(k, "") || "null"); return j && typeof j === "object" ? j : d; } catch { return d; } };
-    const sv = Object.assign(DEF(), readJson("save", {}));
-    /* 누적 완료 수(스튜디오 Lv 기준, #195): sv.dones는 세션 200개로 잘려 합계가 줄 수 있으므로 줄지 않는 값을 따로 둔다. 옛 저장은 지금 합계로 시작 */
-    sv.doneN = Math.max(Number.isFinite(sv.doneN) ? sv.doneN : 0, Object.values(sv.dones || {}).reduce((t, n) => t + (+n || 0), 0));
+    const sv = SAVE.load(ctx.store.get("save", "") || "");   // 💾 위 SAVE 블록(#197 안전망)
     const cfgJ = readJson("cfg", null);   // rv: 👔 동물 목록 버전(2 = 새 캐릭터 4종 이후) — 그 전 저장이면 새 캐릭터를 켠 것으로(HIRE.normCfg)
     const cfg = HIRE.normCfg(Object.assign({ animals: SP.slice(), fixed: null, sound: true, frags: true, weather: false, hideText: false, rv: cfgJ ? 0 : 2 }, cfgJ || {}));   // hideText: 🤫 프로젝트·작업 문구 숨김(미니 보기도 같은 cfg)
     if (!cfg.animals.some(a => SP.includes(a))) cfg.animals = SP.slice();
