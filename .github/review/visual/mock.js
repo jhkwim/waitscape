@@ -6,9 +6,17 @@
    ?upd=1(새 버전 0.7.0 있음 — 배너·미니 보기 🎁 · [지금 업데이트]는 내려받기 42%에서 멈춤) · ?just=1(방금 이 버전으로 올린 뒤 「올랐어요」 카드)
    ?askkind=permission|question(질문 세션의 종류 · permission이면 note = 허락받을 도구 설명) · ?guess=1(그 질문이 추정) · ?hooks=partial(훅 일부만 등록 → 재설치 안내 창, #120)
    ?inbox=1(관제 인박스: 🔑 권한(cmux 세션) · ❓ 질문 · 💤 멈춤 · ✉️ 확인 안 한 완료 2 — 다음 칩·눈치·업무 모드 "다음에 볼 것") · ?inbox=2(질문 없이 멈춤 1 · 완료 4 — 전광판·결재함) · 두 장면 모두 🧪 테스트 통과·실패 완료 하나씩
-   ?nunchi=1(🙈 눈치 모드로 시작) · ?m=work(모드 덮어쓰기 — --extra는 mode=studio가 앞에 붙으므로) */
+   ?nunchi=1(🙈 눈치 모드로 시작) · ?m=work(모드 덮어쓰기 — --extra는 mode=studio가 앞에 붙으므로)
+   ?seed=shop(스튜디오 상점·꾸미기 저장 fixture, #197: 자금 4,200 · Lv.5 · 사장실 화분·커피머신 · waitscape 층 포스터·화분·선인장 · api-server 층 러그 — 열 때마다 덮어씀) */
 (() => {
   const q = new URLSearchParams(location.search);
+  if (q.get("seed") === "shop") try {
+    const now = Math.floor(Date.now() / 1000), ns = "mode:studio:";
+    localStorage.setItem(ns + "save", JSON.stringify({ funds: 4200, earned: 30000, dones: { "1d18e2": 20, "4ddee2": 12, "8bbce2": 8 }, doneN: 40, shop: { plant: 1, coffee: 1 } }));
+    localStorage.setItem(ns + "decor", JSON.stringify({ v: 1, fl: {
+      waitscape: { s: { W1: "poster", F1: "plant", D1: "cactus" }, at: { W1: now - 86400, F1: now - 3 * 86400, D1: now - 3600 }, seen: now },
+      "api-server": { s: { F2: "rug" }, at: { F2: now - 86400 }, seen: now } }, wh: {}, last: null, sp: "" }));
+  } catch {}
   const ROLE = q.get("role") === "widget" ? "widget" : "main";
   const T0 = Date.now() / 1000;
   function mkState(now) {

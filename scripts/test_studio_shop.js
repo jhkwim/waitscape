@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+// 🛒 스튜디오 상점·꾸미기 안전망(#197 1단계) 테스트: 본체 저장(SAVE) · 층 꾸밈 저장(DECOR load/dump·touch·sweep·pull) · 시즌 판매 · 카탈로그 (Node만): node scripts/test_studio_shop.js
+// web/modes/studio/mode.js에서 스프라이트·SHOP·SAVE·DECOR·GACHA 부분만 떼어 실행한다(DOM 없이). 재설계 때 바뀌어야 하는 사실은 "#197"로 표시해 두었다.
+const fs = require("fs"), path = require("path"), assert = require("assert");
+const src = fs.readFileSync(path.join(__dirname, "..", "web/modes/studio/mode.js"), "utf8");
+const cut = (a, b) => { const i = src.indexOf(a), j = src.indexOf(b, i); assert.ok(i > 0 && j > i, "구간을 못 찾음: " + a); return src.slice(i, j); };
+global.location = { search: "" };
+const code = cut("const P0", "/* ================= 모드 ================= */") + cut("const SHOP = [", "/* @test-end SAVE */")
+  + cut("const DECOR = (() => {", "/* @test-end DECOR */") + cut("const GACHA = (() => {", "/* @test-end GACHA */");
+const { SHOP, SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn { SHOP, SAVE, DECOR, GACHA };")({ muxName: () => "" });
+
+/* ---------- 💾 본체 저장 SAVE ---------- */
+{
+  const z = SAVE.load("");
+  assert.deepStrictEqual([z.funds, z.earned, z.doneN], [0, 0, 0]);
+  assert.deepStrictEqual(Object.keys(SAVE.load("{깨진")), Object.keys(z), "깨진 JSON → 기본값");
+  assert.strictEqual(SAVE.load("[1,2]").funds, 0, "배열 → 기본값");
+  // 실제 저장 모양(v1, 버전 필드 없음): 값과 모르는 필드는 그대로
+  const v1 = { funds: 4215, earned: 30120, dones: { a: 5, b: 3 }, dex: { cat: { n: 1 } }, shop: { plant: 1, coffee: 1 }, rep: {}, tok: { avg: 9, n: 2 }, paid: {}, day: { d: "2026-11-18", earned: 120 }, paceSecs: 30, combo: 2, future: { x: 1 } };
+  const s = SAVE.load(JSON.stringify(v1));
+  ["funds", "earned", "dones", "dex", "shop", "day", "combo", "future"].forEach(k => assert.deepStrictEqual(s[k], v1[k], k));
+  assert.strictEqual(s.doneN, 8, "doneN 없는 옛 저장은 지금 합계에서 시작(#195)");
+  assert.strictEqual(SAVE.load(JSON.stringify(Object.assign({}, v1, { doneN: 50 }))).doneN, 50, "dones가 잘려 합계가 줄어도 doneN은 그대로");
+  assert.strictEqual(SAVE.load(JSON.stringify(Object.assign({}, v1, { doneN: 3 }))).doneN, 8, "doneN이 합계보다 작으면 합계로");
+  assert.deepStrictEqual(SAVE.load(JSON.stringify(s)), s, "load → JSON → load 왕복");
+}
+
+/* ---------- 🎨 층 꾸밈 저장 DECOR ---------- */
+{
+  const b = D.load("");
+  assert.deepStrictEqual([b.v, Object.keys(b.fl).length, Object.keys(b.wh).length, b.ro], [1, 0, 0, undefined]);
+  assert.strictEqual(D.load("{깨진").v, 1); assert.strictEqual(D.load('{"fl":{}}').ro, undefined, "v 없음 → 빈 저장");
+  assert.strictEqual(D.load('{"v":2,"fl":{}}').ro, true, "더 새 버전 = 읽기 전용(#195에서 사고팔기도 막음)");
+  assert.strictEqual(D.load('{"v":1,"fl":{}}').ro, false);
+  const v1 = { v: 1, fl: { web: { s: { W1: "poster", F1: "plant" }, at: { W1: 100, F1: 200 }, seen: 1000 } }, wh: { old: { s: { D1: "cactus" }, at: { D1: 50 }, put: 900 } }, last: { p: "web", slot: "W1", id: "poster", t: 1 }, sp: "halloween:2026" };
+  const d = D.load(JSON.stringify(v1));
+  assert.deepStrictEqual(JSON.parse(D.dump(d)), v1, "v1 load → dump 왕복");
+  const proto = D.load('{"v":1,"fl":{"__proto__":{"s":{"W1":"poster"}},"constructor":{"s":{}}}}');
+  assert.strictEqual(proto.fl.__proto__.s.W1, "poster", "프로젝트 이름이 __proto__여도 안전한 맵"); assert.strictEqual({}.s, undefined);
+  assert.deepStrictEqual(D.load('{"v":1,"fl":{"a":7,"b":{"s":[1]}}}').fl.a, { s: {}, at: {} }, "이상한 층 값 → 빈 층");
+
+  // touch: 창고에서 복원(화분이면 시든 채) · 3일 넘게 안 왔으면 시듦 · seen은 10분마다
+  const DAY = 86400, t0 = 1_800_000_000;
+  let x = D.load(JSON.stringify({ v: 1, fl: {}, wh: { p: { s: { F1: "plant", W1: "poster" }, at: { F1: 1, W1: 1 }, put: t0 } } }));
+  let r = D.touch(x, "p", t0 + 10);
+  assert.deepStrictEqual(r.back.sort(), ["F1", "W1"]); assert.strictEqual(r.ch, true); assert.strictEqual(x.wh.p, undefined); assert.strictEqual(x.fl.p.wilt, 1);
+  assert.strictEqual(D.touch(x, "nope", t0), null, "꾸민 적 없는 층");
+  x = D.load(JSON.stringify({ v: 1, fl: { p: { s: { F1: "plant" }, at: { F1: t0 }, seen: t0 } } }));
+  assert.deepStrictEqual(D.touch(x, "p", t0 + 300), { back: null, ch: false }, "10분 안 = 변화 없음");
+  D.touch(x, "p", t0 + 3 * DAY + 1); assert.strictEqual(x.fl.p.wilt, 1, "3일 넘게 안 옴 → 화분 시듦");
+
+  // sweep: 7일 넘게 안 온 층 → 창고(빈 층은 그냥 지움) · 지금 보이는 층은 그대로 · 창고 100개 넘으면 오래된 것부터
+  x = D.load(JSON.stringify({ v: 1, fl: { a: { s: { W1: "poster" }, at: {}, seen: t0 }, e: { s: {}, at: {}, seen: t0 }, live: { s: { W1: "poster" }, at: {}, seen: t0 }, new: { s: { W1: "poster" }, at: {}, seen: t0 + 6 * DAY } } }));
+  assert.strictEqual(D.sweep(x, t0 + 8 * DAY, new Set(["live"])), true);
+  assert.deepStrictEqual(Object.keys(x.fl).sort(), ["live", "new"]); assert.deepStrictEqual(Object.keys(x.wh), ["a"]); assert.strictEqual(x.wh.a.put, t0 + 8 * DAY);
+  const many = { v: 1, fl: {}, wh: {} }; for (let i = 0; i < 103; i++) many.wh["w" + i] = { s: { W1: "poster" }, at: {}, put: i };
+  x = D.load(JSON.stringify(many)); D.sweep(x, t0, new Set());
+  assert.strictEqual(Object.keys(x.wh).length, 100); assert.ok(!x.wh.w0 && !x.wh.w2 && x.wh.w3, "창고 넘침: 오래된 것부터 지움");
+
+  // pull · findAt: 뽑기 소품은 하나뿐 — 층·창고 어디에 있든 모두 빼 옴
+  x = D.load(JSON.stringify({ v: 1, fl: { a: { s: { D1: "g_x" }, at: { D1: 1 } } }, wh: { b: { s: { D1: "g_x", W1: "poster" }, at: {} } } }));
+  assert.deepStrictEqual(D.findAt(x, "g_x"), { p: "a", sl: "D1", wh: false });
+  assert.strictEqual(D.pull(x, "g_x").length, 2); assert.strictEqual(D.findAt(x, "g_x"), null); assert.strictEqual(x.wh.b.s.W1, "poster");
+}
+
+/* ---------- 🎃 시즌 판매 ---------- */
+{
+  const at = (m, d) => new Date(2026, m - 1, d, 12).getTime() / 1000;   // 새벽 4시 경계라 정오로
+  const pk = (from, to) => ({ id: "t", win: { from, to } });
+  assert.strictEqual(D.packOpen(pk([10, 20], [11, 7]), at(11, 7)), true); assert.strictEqual(D.packOpen(pk([10, 20], [11, 7]), at(11, 8)), false);
+  assert.strictEqual(D.packOpen(pk([12, 25], [2, 10]), at(1, 5)), true, "해를 넘기는 기간"); assert.strictEqual(D.packOpen(pk([12, 25], [2, 10]), at(3, 1)), false);
+  assert.strictEqual(D.packOpen({ id: "b" }, at(1, 1)), true, "기간 없는 팩 = 늘 판매");
+  assert.strictEqual(D.onSale("no_such_item", at(1, 1)), false);
+  GA.ITEMS.filter(it => it.k === "desk").forEach(it => assert.strictEqual(D.onSale(it.id, at(1, 1)), false, "뽑기 소품은 팔지 않음 " + it.id));
+}
+
+/* ---------- 📦 카탈로그 ---------- */
+{
+  Object.values(D.ITEMS).forEach(it => {
+    assert.ok(D.KIND.W1 === it.slot || ["wall", "desk", "floor"].includes(it.slot), it.id + " 칸 종류");
+    if (!D.PACK[it.pack].gacha) assert.ok(it.p > 0 && Number.isInteger(it.p), it.id + " 값");
+    assert.ok(!it.a || D.ART[it.a], it.id + " 그림(ART) 있음");
+  });
+  Object.entries(D.LIKES).forEach(([an, L]) => L.forEach(id => assert.ok(D.ITEMS[id], `${an}이 좋아하는 ${id}가 카탈로그에 있음`)));
+  assert.strictEqual(Object.keys(D.LIKES).length, 11, "동물 11종 모두 좋아하는 소품");
+  // 알려진 문제(#197 카탈로그 합치기에서 이 목록을 비운다): 사장실 상점과 층 꾸미기가 같은 id를 다른 값으로 판다
+  const dup = SHOP.filter(it => D.ITEMS[it.id]).map(it => `${it.id}:${it.p}/${D.ITEMS[it.id].p}`);
+  assert.deepStrictEqual(dup, ["plant:300/120", "clock:600/200", "plush:500/180", "neon:1500/500"], "SHOP ↔ DECOR 겹침이 바뀌면 이 목록과 #197을 함께 갱신");
+}
+console.log("✅ studio shop safety ok");

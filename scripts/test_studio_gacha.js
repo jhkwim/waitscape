@@ -5,7 +5,7 @@ const fs = require("fs"), path = require("path"), assert = require("assert");
 const src = fs.readFileSync(path.join(__dirname, "..", "web/modes/studio/mode.js"), "utf8");
 const cut = (a, b) => { const i = src.indexOf(a), j = src.indexOf(b, i); assert.ok(i > 0 && j > i, "구간을 못 찾음: " + a); return src.slice(i, j); };
 global.location = { search: "" };
-const code = cut("const P0", "/* ================= 모드 ================= */") + cut("const DECOR = (() => {", "/* ---------- 🎨 큰 화면") + cut("const GACHA = (() => {", "/* ---------- 🎰 큰 화면");
+const code = cut("const P0", "/* ================= 모드 ================= */") + cut("const DECOR = (() => {", "/* @test-end DECOR */") + cut("const GACHA = (() => {", "/* @test-end GACHA */");
 const M = new Function("C", code + "\nreturn { GACHA, DECOR, GA_ACC, BYID, CH, mkG };")({ muxName: () => "" });
 const { GACHA: GA, DECOR, GA_ACC, BYID, CH, mkG } = M;
 
