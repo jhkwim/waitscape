@@ -329,7 +329,7 @@ body[data-mode="studio"] .stu .bub.pw-lift { z-index: 21 !important; }   /* 말�
 body[data-mode="studio"] .slb .pwi { font-size: 12px; line-height: 12px; }
 @media (prefers-color-scheme: dark) { body[data-mode="studio"] .stu { --pw-city: #2a2350; } }
 
-/* ---------- 🧑‍🏫 회의실 화이트보드 (큰 화면 층 보드 · 로비 2F 회의실 공용) — 손글씨는 번들 Galmuri11 ---------- */
+/* ---------- 🧑‍🏫 회의실 화이트보드 (큰 화면 층 보드 · 미니 회의실 공용) — 손글씨는 번들 Galmuri11 ---------- */
 body[data-mode="studio"] .stu, body[data-mode="studio"] .slb { --wb: #fbfdff; }
 body[data-mode="studio"] .wbt { position: absolute; font: 400 12px/13px "Galmuri11", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; white-space: nowrap; -webkit-font-smoothing: none; }
 body[data-mode="studio"] .wbt .c { display: inline-block; }
