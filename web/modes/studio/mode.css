@@ -484,6 +484,7 @@ body[data-mode="studio"] .stu .bub.dcr:after { left: -9px; bottom: auto; top: 8p
 /* 🙈 눈치 모드 (#51): 1층 현관문 · 손에 든 가방·커피 · 엘리베이터 호출 버튼 */
 body[data-mode="studio"] .stu .nxp { position: absolute; image-rendering: pixelated; display: block; pointer-events: none; z-index: 4; transform-origin: 50% 0; }
 body[data-mode="studio"] .stu .nxout { overflow: hidden; background: linear-gradient(#9fdcff 0 52px, #cfefff 52px 66px, #5fcf6a 66px 72px, #4bb35a 72px); }
+body[data-mode="studio"] .stu .nx-lobby { font: 900 8px/10px system-ui, sans-serif; letter-spacing: .5px; background: #ffd23f; color: #2e2040; width: 34px; height: 10px; text-align: center; }
 body[data-mode="studio"] .stu .nxpanel { background: #d49a62; border: 3px solid var(--deep, #4a3560); transform-origin: 0 50%; }
 body[data-mode="studio"] .stu .nxpanel.open { background: #b07848; }
 body[data-mode="studio"] .stu .nxpanel .nx-dp { position: absolute; left: 5px; width: 26px; height: 30px; background: #e3ae78; border: 2px solid #9a6438; }
