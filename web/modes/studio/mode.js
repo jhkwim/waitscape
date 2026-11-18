@@ -6243,12 +6243,12 @@ function spotBig(h) {
    지금은 숨은 설정(저장 "mini2" = "1" 또는 주소 ?mini2)으로만 켬 — 2단계에서 옛 미니 보기(mountLobby)를 대신함 */
 const MINI2 = {
   K: .7, W: 606, H: 162, MIN_W: 325, HOLD: 10, FULL: 866, SHAFT: 674, SHAFT_W: 118,
-  on(ctx) { try { return ctx.store.get("mini2", "") === "1" || /[?&]mini2\b/.test(ctx.win.location.search); } catch { return false; } },
+  on(ctx) { try { return ctx.store.get("mini2", "") === "1" || /[?&]mini2(=1)?(&|$)/.test(ctx.win.location.search); } catch { return false; } },
   ctx(c) {
     const st = c.store, hide = new Set(["drOpen"]);
     return Object.create(c, { store: { value: { get: (k, d) => hide.has(k) ? d : st.get(k, d), set: () => {} } } });
   },
-  focusX: (fi, n) => fi === n ? 20 : fi === n + 1 ? 100 : 300,   // 사장님 책상 · 회전문 · 직원 책상 왼쪽
+  focusX: (fi, n) => fi === n ? 20 : fi === n + 1 ? 0 : 300,   // 사장님 책상 · 로비 처음부터(이름표·회전문) · 직원 책상 왼쪽
 };
 
 C.registerMode({
@@ -6523,7 +6523,7 @@ C.registerMode({
       redex: () => { if (dexEl && dexEl.classList.contains("on")) renderDex(); } });
     const pwWins = [];
 
-    let FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, tkHead, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
+    let shaftEl = null, FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, tkHead, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
     const OY = 6;
     const box = (p, x, y, w, h, bg, o) => mkEl("div", "b", p, Object.assign({ left: x + "px", top: y + "px", width: w + "px", height: h + "px", background: bg, zIndex: 2 }, o || {}));
     const bx = (p, x, y, w, h, bg, bd, z) => box(p, x, y, w, h, bg, { border: "3px solid " + (bd || "#4a3560"), zIndex: z || 1 });
@@ -6707,7 +6707,7 @@ C.registerMode({
         FL.push(r);
       }
       // 엘리베이터 통로 + 카 (모든 층 위로)
-      const shaft = mkEl("div", "shaft", bld, { top: (40 + OY) + "px", height: (FT[L] + FH[L] - FT[0]) + "px" });
+      const shaft = mkEl("div", "shaft", bld, { top: (40 + OY) + "px", height: (FT[L] + FH[L] - FT[0]) + "px" }); shaftEl = shaft;   // 📌 미니 보기 2가 통로를 창 오른쪽에 고정
       carEl = mkEl("div", "car", shaft); lamp = mkEl("div", "lamp", carEl);
       dl = mkEl("div", "dr", carEl, { left: "0" }); dr = mkEl("div", "dr", carEl, { right: "0" });
       banner = mkEl("div", "banner", bld);
@@ -6748,7 +6748,7 @@ C.registerMode({
 
     /* ---------- 📌 미니 보기 2 카메라(#204): 0.7배 고정 · 세로는 한 층(위아래 층이 반씩 비침) · 가로는 창이 좁을 때만 넘김 + 엘리베이터 오른쪽 고정 ----------
        휠(세로 = 층, 가로·Shift = 옆) · 끌기로 직접 보면 HOLD초 뒤 자동 카메라(지금은 사장실)로 돌아옴 */
-    const cam = { fi: null, cx: null, hold: -1e9, acc: 0, drag: null };
+    const cam = { up: null, cx: null, hold: -1e9, acc: 0, drag: null, moved: false };   // up: 로비에서 몇 층 위(세션 수가 바뀌어도 같은 층)
     function miniLayout() {
       const K = MINI2.K; scaleK = K;
       bld.style.setProperty("--inv", "1"); sty(bld, "top", "");
@@ -6758,31 +6758,40 @@ C.registerMode({
     function camApply() {
       const K = MINI2.K, W = view.clientWidth, H = view.clientHeight;
       if (!W || !H || !FL.length) return;
-      if (clockT() > cam.hold) { cam.fi = null; cam.cx = null; }
-      const fi = clamp(cam.fi == null ? nSess : cam.fi, 0, FL.length - 1), F = FL[fi] && FL[fi].F;
+      if (clockT() > cam.hold) { cam.up = null; cam.cx = null; cam.acc = 0; }
+      const fi = camFi(), F = FL[fi] && FL[fi].F;
       if (!F) return;
       const vw = W / K, vh = H / K, full = vw >= MINI2.FULL - 2;
       const cx = full ? 0 : clamp(cam.cx != null ? cam.cx : MINI2.focusX(fi, nSess), 0, MINI2.FULL - vw);
       if (cam.cx != null) cam.cx = cx;
       const cy = clamp(F.offsetTop - (vh - F.offsetHeight) / 2, -40, (sceneH || 700) + 20 - vh);
       sty(bld, "transform", `translate(${-Math.round(cx * K)}px,${-Math.round(cy * K)}px) scale(${K})`);
-      const sh = bld.querySelector(".shaft"); if (sh) sty(sh, "left", Math.min(MINI2.SHAFT, Math.round(cx + vw - MINI2.SHAFT_W)) + "px");
-      FL.forEach(r => { if (r.tag) sty(r.tag, "transform", cx > r.tag.offsetLeft - 8 ? `translateX(${Math.round(cx - r.tag.offsetLeft + 8)}px)` : ""); });   // 층 이름표는 창 왼쪽에 붙어 따라옴
+      const sl = Math.min(MINI2.SHAFT, Math.round(cx + vw - MINI2.SHAFT_W)), dx = sl - MINI2.SHAFT, tl = FL.map(r => r.tag ? r.tag.offsetLeft : 0);   // 읽기 먼저(리플로 한 번)
+      if (shaftEl) sty(shaftEl, "left", sl + "px");
+      FL.forEach((r, i) => { if (r.tag) sty(r.tag, "transform", cx > tl[i] - 8 ? `translateX(${Math.round(cx - tl[i] + 8)}px)` : ""); });   // 층 이름표는 창 왼쪽에 붙어 따라옴
+      /* 👆 엘리베이터 누를 자리는 통로를 따라가고, 통로에 가려진 물건의 누를 자리는 끔 */
+      bld.querySelectorAll(".pk-hit").forEach(e => {
+        if (e.classList.contains("ev")) { sty(e, "transform", dx ? `translateX(${dx}px)` : ""); return; }
+        const x = parseFloat(e.style.left) || 0, w = parseFloat(e.style.width) || 0;
+        sty(e, "pointerEvents", dx && x + w > sl && x < MINI2.SHAFT + MINI2.SHAFT_W ? "none" : "");
+      });
     }
-    if (mini) {
+    const camFi = () => clamp(cam.up == null ? nSess : FL.length - 1 - cam.up, 0, FL.length - 1);
+    if (mini) {   // 카메라는 큰 화면 1초 타이머의 layout()에서도 다시 맞춤(둘러보기 만료 → 자동)
       const look = () => { cam.hold = clockT() + MINI2.HOLD; };
+      const curX = () => cam.cx != null ? cam.cx : MINI2.focusX(camFi(), nSess);
       ctx.listen(view, "wheel", e => {
         e.preventDefault(); look();
-        const K = MINI2.K, sideW = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
-        if (sideW) { cam.cx = (cam.cx != null ? cam.cx : MINI2.focusX(cam.fi == null ? nSess : cam.fi, nSess)) + (e.deltaX || e.deltaY) / K; }
-        else { cam.acc += e.deltaY; if (Math.abs(cam.acc) >= 40) { cam.fi = clamp((cam.fi == null ? nSess : cam.fi) + Math.sign(cam.acc), 0, FL.length - 1); cam.acc = 0; cam.cx = null; } }
+        const u = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? view.clientHeight : 1, ddx = e.deltaX * u, ddy = e.deltaY * u;   // 줄·페이지 단위 휠도 픽셀로
+        if (Math.abs(ddx) > Math.abs(ddy) || e.shiftKey) cam.cx = curX() + (ddx || ddy) / MINI2.K;
+        else { cam.acc += ddy; if (Math.abs(cam.acc) >= 40) { const fi = clamp(camFi() + Math.sign(cam.acc), 0, FL.length - 1); cam.up = FL.length - 1 - fi; cam.acc = 0; cam.cx = null; } }
         camApply();
       }, { passive: false });
-      ctx.listen(view, "pointerdown", e => { cam.drag = { x: e.clientX, cx: cam.cx != null ? cam.cx : MINI2.focusX(cam.fi == null ? nSess : cam.fi, nSess) }; });
-      ctx.listen(win, "pointermove", e => { if (!cam.drag || !e.buttons) { cam.drag = null; return; } const dx = e.clientX - cam.drag.x; if (Math.abs(dx) < 4) return; look(); cam.cx = cam.drag.cx - dx / MINI2.K; camApply(); });
+      ctx.listen(view, "pointerdown", e => { cam.drag = { x: e.clientX, cx: curX() }; cam.moved = false; });
+      ctx.listen(win, "pointermove", e => { if (!cam.drag || !e.buttons) { cam.drag = null; return; } const dx = e.clientX - cam.drag.x; if (!cam.moved && Math.abs(dx) < 4) return; cam.moved = true; look(); cam.cx = cam.drag.cx - dx / MINI2.K; camApply(); });
       ctx.listen(win, "pointerup", () => { cam.drag = null; });
+      ctx.listen(view, "click", e => { if (cam.moved) { cam.moved = false; e.preventDefault(); e.stopPropagation(); } }, { capture: true });   // 끌어서 넘긴 뒤 손을 떼면 누르기로 치지 않음
       ctx.listen(win, "resize", () => { if (win.top === win && win.innerWidth < MINI2.MIN_W - 2) try { win.resizeTo(MINI2.MIN_W + (win.outerWidth - win.innerWidth), win.outerHeight); } catch {} });
-      ctx.every(1000, () => { if (clockT() > cam.hold && (cam.fi != null || cam.cx != null)) camApply(); });
     }
 
     /* ---------- 소리: 키보드 타자 (Web Audio 합성, 작은 볼륨) ---------- */
