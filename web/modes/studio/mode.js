@@ -366,7 +366,7 @@ const DESK_X = 385, BOARD_X = 278;   // 직원 자리: 책상 층 의자 · 회�
 const BOSS_UP = 15, SEAT_UP = 8, BABY_UP = 6;   // BABY_UP: 회의 테이블 아기 의자(#159)   // SEAT_UP: 직원 사무용 의자(책상 층에 앉을 때만)   // 🪑 사장 의자: 앉은 사장님을 책상 위로 올리는 높이(서 있거나 걸을 땐 바닥 그대로)
 const SIGN_X = 522;   // 책상 층 작업 표지판 왼쪽 끝(오른쪽은 통로 앞까지). 직원이 이 아래로 오면 표지판을 위로 접음(얼굴이 보이게, #62)
 const DOOR_X = 128, DOOR_W = 88, DOOR_CX = DOOR_X + DOOR_W / 2;   // 🙈 1층 로비 회전문(#201: 층 이름표 오른쪽 — 사장실은 2층)
-const FHS = 134, FHB = 140;
+const FHS = 140, FHB = 140;   // 층 높이: 모든 층 같음(#204 — 미니 보기 2가 한 층을 창 높이에 꼭 맞게 비춤, 직원이 많아도 줄이지 않음)
 const WALLS = ["#ffeec2", "#ffe3b0", "#f9efc8", "#fbe2c0", "#fff1cc"], WALL_LO = ["#f2d79a", "#f0c88c", "#ebdba6", "#eeca9c", "#f5de9f"];
 const T = { desk: "#c98d5a", deskTop: "#e9b377", roof: "#f6a43c", chair: "#d0905a" };
 /* 🪑 미니 보기 의자 높이(#153): 사장은 사장 의자로 MB_UP, 직원은 사무용 의자로 MS_UP만큼 책상 위로(3px 격자) */
@@ -6237,12 +6237,12 @@ function spotBig(h) {
   return { see, frame, dexHtml, n, total, reload: sync };
 }
 
-/* 📌 미니 보기 2(#204): 작은 창(앱 위젯·PiP)에 큰 화면 건물을 그대로 0.7배로 비추는 보기 전용 창.
-   기본 폭 W = 한 층 전부(866×0.7) · 창을 줄이면 MIN_W(직원 책상 320 ~ 엘리베이터 오른쪽 784)까지, 그보다 좁으면 가로로 넘겨 보고 엘리베이터는 창 오른쪽에 고정.
+/* 📌 미니 보기 2(#204): 작은 창(앱 위젯·PiP)에 큰 화면 건물의 한 층을 창 높이에 꼭 맞게(약 1.16배) 비추는 보기 전용 창.
+   위 TOP 줄은 전력·작업 수 자리(2단계). 기본 606×180 · 창을 줄이면 MIN_W(직원 책상 ~ 엘리베이터)까지 · 층의 나머지는 가로로 넘겨 보고 엘리베이터는 창 오른쪽에 고정.
    저장·자금·소리는 건드리지 않음(메인 창이 주인) — 쓰기는 버리고 메인끼리 주고받는 신호(drOpen)는 안 읽음.
    지금은 숨은 설정(저장 "mini2" = "1" 또는 주소 ?mini2)으로만 켬 — 2단계에서 옛 미니 보기(mountLobby)를 대신함 */
 const MINI2 = {
-  K: .7, W: 606, H: 162, MIN_W: 325, HOLD: 10, FULL: 866, SHAFT: 674, SHAFT_W: 118,
+  K: 162 / 140, W: 606, H: 180, TOP: 18, MIN_W: 540, HOLD: 10, FULL: 866, SHAFT: 674, SHAFT_W: 110,   // K: 한 층(140)이 창 높이(H − TOP 줄)에 꼭 맞게 · MIN_W: 직원 책상 320 ~ 엘리베이터 792
   on(ctx) { try { return ctx.store.get("mini2", "") === "1" || /[?&]mini2(=1)?(&|$)/.test(ctx.win.location.search); } catch { return false; } },
   ctx(c) {
     const st = c.store, hide = new Set(["drOpen"]);
@@ -6645,7 +6645,7 @@ C.registerMode({
       if (bossAct) bossAct.par = null;
       bld.textContent = ""; pwWins.length = 0;
       const L = n + 1;   // 🏛️ 1층 로비(#201) — 사장실은 n(2층)
-      FH = Array.from({ length: L + 1 }, (_, i) => i >= n ? FHB : n >= 6 ? 120 : FHS);
+      FH = Array.from({ length: L + 1 }, (_, i) => i >= n ? FHB : FHS);
       FT = [40 + OY]; for (let i = 1; i <= L; i++) FT[i] = FT[i - 1] + FH[i - 1];
       BASE = FH.map(h => h - 8);
       sceneH = FT[L] + FH[L] + 4;
@@ -6762,13 +6762,14 @@ C.registerMode({
       const fi = camFi(), F = FL[fi] && FL[fi].F;
       if (!F) return;
       const vw = W / K, vh = H / K, full = vw >= MINI2.FULL - 2;
-      const cx = full ? 0 : clamp(cam.cx != null ? cam.cx : MINI2.focusX(fi, nSess), 0, MINI2.FULL - vw);
+      const cx = full ? 0 : clamp(cam.cx != null ? cam.cx : Math.min(MINI2.focusX(fi, nSess), MINI2.SHAFT + MINI2.SHAFT_W - vw), 0, MINI2.FULL - vw);   // 자동이면 엘리베이터 오른쪽 끝을 창 오른쪽에
       if (cam.cx != null) cam.cx = cx;
       const cy = clamp(F.offsetTop - (vh - F.offsetHeight) / 2, -40, (sceneH || 700) + 20 - vh);
       sty(bld, "transform", `translate(${-Math.round(cx * K)}px,${-Math.round(cy * K)}px) scale(${K})`);
       const sl = Math.min(MINI2.SHAFT, Math.round(cx + vw - MINI2.SHAFT_W)), dx = sl - MINI2.SHAFT, tl = FL.map(r => r.tag ? r.tag.offsetLeft : 0);   // 읽기 먼저(리플로 한 번)
       if (shaftEl) sty(shaftEl, "left", sl + "px");
-      FL.forEach((r, i) => { if (r.tag) sty(r.tag, "transform", cx > tl[i] - 8 ? `translateX(${Math.round(cx - tl[i] + 8)}px)` : ""); });   // 층 이름표는 창 왼쪽에 붙어 따라옴
+      FL.forEach((r, i) => { if (!r.tag) return; const fol = cx > tl[i] - 8, sp = r.tag.querySelector("span");   // 층 이름표는 창 왼쪽에 붙어 따라오고, 따라올 땐 "3F 완료"처럼 짧게(책상 이름표와 안 겹치게)
+        sty(r.tag, "transform", fol ? `translateX(${Math.round(cx - tl[i] + 8)}px)` : ""); if (sp) sty(sp, "display", fol ? "none" : ""); });
       /* 👆 엘리베이터 누를 자리는 통로를 따라가고, 통로에 가려진 물건의 누를 자리는 끔 */
       bld.querySelectorAll(".pk-hit").forEach(e => {
         if (e.classList.contains("ev")) { sty(e, "transform", dx ? `translateX(${dx}px)` : ""); return; }
