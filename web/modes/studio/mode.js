@@ -391,7 +391,11 @@ const SAVE = (() => {
   const def = () => ({ v: VER, funds: 0, earned: 0, dones: {}, doneN: 0, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0, combo: 0 });
   function load(raw) {
     let j = null; try { j = JSON.parse(raw || "null"); } catch {}
-    const sv = Object.assign(def(), j && typeof j === "object" && !Array.isArray(j) ? j : {});
+    const sv = Object.assign(def(), j && typeof j === "object" && !Array.isArray(j) ? j : {}), d0 = def();
+    /* 손상된 저장(값 종류가 다름): 숫자·객체 칸은 기본값으로(문자열 더하기·null 접근으로 스튜디오가 멈추지 않게) */
+    ["funds", "earned", "paceSecs", "combo"].forEach(k => { if (typeof sv[k] !== "number" || !Number.isFinite(sv[k])) sv[k] = d0[k]; });
+    ["dones", "dex", "shop", "rep", "tok", "paid", "day"].forEach(k => { if (!sv[k] || typeof sv[k] !== "object" || Array.isArray(sv[k])) sv[k] = d0[k]; });
+    if (typeof sv.day.d !== "string" || typeof sv.day.earned !== "number") sv.day = d0.day;
     sv.doneN = Math.max(Number.isFinite(sv.doneN) ? sv.doneN : 0, Object.values(sv.dones || {}).reduce((t, n) => t + (+n || 0), 0));
     Object.defineProperty(sv, "ro", { value: typeof sv.v === "number" && sv.v > VER, enumerable: false });
     if (!sv.ro) sv.v = VER;
@@ -404,10 +408,11 @@ const SAVE = (() => {
     const amt = n => typeof n === "number" && Number.isFinite(n) && n >= 0;
     const w = {
       funds: () => sv.funds,
+      ro: () => !!sv.ro,
       can: p => amt(p) && !sv.ro && sv.funds >= p,
       pay(p) { if (!w.can(p)) return false; sv.funds -= p; ch(); return true; },
-      give(n) { if (!amt(n) || !n) return; sv.funds += n; ch(); },
-      earn(n) { if (!amt(n) || !n) return; sv.funds += n; sv.earned += n; sv.day.earned += n; ch(); },
+      give(n) { if (!amt(n) || !n || sv.ro) return; sv.funds += n; ch(); },   // 읽기 전용이면 보상·벌이도 안 올림(저장 안 되는 숫자를 화면에 보이지 않게)
+      earn(n) { if (!amt(n) || !n || sv.ro) return; sv.funds += n; sv.earned += n; sv.day.earned += n; ch(); },
     };
     return w;
   }
@@ -4383,8 +4388,8 @@ function decorBig(h) {
     if (act === "dc-done") return set(false);
     if (act === "dc-gdex") { ui.gdex = !ui.gdex; ui.hold = null; return renderTray(); }
     if (act === "dc-tab" || act === "dc-slot") ui.gdex = false;
-    /* 더 새 버전이 쓴 꾸밈 저장(d.ro)은 저장이 막히므로 사기·되팔기·옮기기도 막는다(#195 — 되팔면 자금만 오르고 소품은 새로고침 때 돌아와 무한 되팔기) */
-    if (d.ro && (act === "dc-buy" || act === "dc-sell" || act === "dc-move" || (act === "dc-slot" && ui.hold))) {
+    /* 더 새 버전이 쓴 꾸밈 저장(d.ro)·본체 저장(h.ro, #197 — 되팔면 소품만 지워지고 대금은 저장 안 됨)은 저장이 막히므로 사기·되팔기·옮기기도 막는다(#195 — 되팔면 자금만 오르고 소품은 새로고침 때 돌아와 무한 되팔기) */
+    if ((d.ro || h.ro()) && (act === "dc-buy" || act === "dc-sell" || act === "dc-move" || (act === "dc-slot" && ui.hold))) {
       ui.hold = null; cap = X("새 버전 저장이라 보기만 돼요 · 앱을 업데이트해요", "Saved by a newer version · update to edit");
       return renderTray();
     }
@@ -5127,9 +5132,9 @@ function gachaBig(h) {
   }
   function render() {
     pop.hidden = !ui.pop; if (!ui.pop) return;
-    const funds = h.funds(), free = dev.on.has("free"), poor = !free && funds < GA.PRICE, c = GA.count(d), busy = !!spin;
-    const spinBtn = (lab) => `<button type="button" class="dc-btn ga-go${poor || busy || d.ro ? " dis" : ""}" data-act="ga-spin"${poor || busy || d.ro ? ' aria-disabled="true"' : ""}>🎰 ${lab} <b>💰${GA.PRICE}</b></button>`;
-    const why = d.ro ? X("새 버전 저장이라 이 버전에선 못 돌려요", "Saved by a newer version · can't spin here") : poor ? X(`💰 ${GA.PRICE - funds} 모자라요 · 완료하면 +${EARN.done}, 10분↑ +${EARN.big} · ⚡ 빠른 답장 +${FAST.base}`, `💰 ${GA.PRICE - funds} short · +${EARN.done} per done, +${EARN.big} for 10 min+ · ⚡ quick reply +${FAST.base}`) : "";
+    const funds = h.funds(), free = dev.on.has("free"), poor = !free && funds < GA.PRICE, c = GA.count(d), busy = !!spin, ro = d.ro || (!dev.any && h.ro());   // 본체 저장 읽기 전용(#197)도 못 돌림
+    const spinBtn = (lab) => `<button type="button" class="dc-btn ga-go${poor || busy || ro ? " dis" : ""}" data-act="ga-spin"${poor || busy || ro ? ' aria-disabled="true"' : ""}>🎰 ${lab} <b>💰${GA.PRICE}</b></button>`;
+    const why = ro ? X("새 버전 저장이라 이 버전에선 못 돌려요", "Saved by a newer version · can't spin here") : poor ? X(`💰 ${GA.PRICE - funds} 모자라요 · 완료하면 +${EARN.done}, 10분↑ +${EARN.big} · ⚡ 빠른 답장 +${FAST.base}`, `💰 ${GA.PRICE - funds} short · +${EARN.done} per done, +${EARN.big} for 10 min+ · ⚡ quick reply +${FAST.base}`) : "";
     let b;
     if (ui.pop === "res" && ui.res) {
       const r = ui.res, it = r.it, L = it.t === "l";
@@ -5349,7 +5354,7 @@ function treatBig(h) {
   /* ---------- 🍩 사기 (🎨 꾸미기 판의 간식 줄) ---------- */
   const floorOf = sid => h.model().floors.find(f => f.sid === sid);
   function row(fs) {   // fs = 고른 층(프로젝트)의 층들 → 판 HTML (판은 1초마다 다시 그림 → 자금·새벽 4시가 바로 반영)
-    roll(); const funds = h.funds(), ro = !!s.ro;
+    roll(); const funds = h.funds(), ro = !!s.ro || (!dev.any && h.ro());   // 본체 저장 읽기 전용(#197)
     return `<div class="tr-rows">` + fs.slice(0, 3).map(f => {
       const L = listOf(f.sid), n = L.length, full = n >= R.MAX, an = f.animal, nmA = h.aName(an);
       const btns = R.KINDS.map(k => {
@@ -5365,7 +5370,7 @@ function treatBig(h) {
   }
   function buy(sid, id) {
     const k = R.KIND[id], f = floorOf(sid), tc = h.clockT();
-    if (s.ro || !k || !f) return false;   // 새 버전 저장(읽기 전용): 기록을 못 남기니 결제도 안 함(하루 상한이 무너지지 않게)
+    if (s.ro || (!dev.any && h.ro()) || !k || !f) return false;   // 새 버전 저장(읽기 전용): 기록을 못 남기니 결제도 안 함(하루 상한이 무너지지 않게)
     if (lock.has(sid) && tc - lock.get(sid) < .6) return false;   // 빠른 연타(더블 클릭) = 한 번
     roll();
     const L = dev.treat ? [] : listOf(sid);
@@ -5450,7 +5455,7 @@ function treatBig(h) {
   function cardBtn(c) {
     if (!c || !c.d || c.kind === "morning" || c.d.today === false) return { show: false };
     const n = members(c.d).length, need = R.DINNER - h.funds();
-    const st = s.ro ? ["ro", X("🍖 회식 · 새 버전에서 저장한 기록이라 여기선 못 가요", "🍖 Team dinner · saved by a newer version, not available here")]
+    const st = s.ro || (!dev.any && h.ro()) ? ["ro", X("🍖 회식 · 새 버전에서 저장한 기록이라 여기선 못 가요", "🍖 Team dinner · saved by a newer version, not available here")]
       : doneToday() ? ["done", X("🍖 오늘 회식 완료 ✓ · 내일 1층에 사진이 걸려요", "🍖 Team dinner done ✓ · photo on 1F tomorrow")]
       : !evening() ? ["early", X("🍖 회식은 17시부터", "🍖 Team dinner opens at 5 pm")]
       : !n ? ["none", X("🍖 회식 갈 직원이 없어요", "🍖 No one to take to dinner")]
@@ -5460,7 +5465,7 @@ function treatBig(h) {
     return { show: true, dis: st[0] !== "ok", text: st[1], title: X("오늘 일한 직원들이 옥상에서 바베큐 (보기용 · 하루 한 번)", "Today's crew grills on the rooftop (looks only · once a day)") };
   }
   function go(d) {
-    if (s.ro || S || cardEl || busy() || doneToday() || !evening() || (!dev.any && !h.can(R.DINNER))) return false;   // s.ro: 새 버전 저장이면 기록(dn)을 못 남기니 결제도 안 함
+    if (s.ro || (!dev.any && h.ro()) || S || cardEl || busy() || doneToday() || !evening() || (!dev.any && !h.can(R.DINNER))) return false;   // s.ro: 새 버전 저장이면 기록(dn)을 못 남기니 결제도 안 함
     if (!members(d).length) return false;   // 갈 직원이 없으면 카드를 닫지 않음
     h.drClose();   // 카드를 닫으며 📋 일보 연출도 끝(직원이 제자리로) → 그다음에 갈 직원을 셈
     const mem = members(d); if (!mem.length || h.drActive()) return false;
@@ -6463,17 +6468,17 @@ C.registerMode({
       box: (...a) => box(...a), parentFor: (...a) => parentFor(...a), model: () => model, n: () => nSess, bossAct: () => bossAct, floorOf: sid => floorIdx.get(sid),
       provName: id => C.provider(ctx.state, { provider: id }).name, anim: () => animOn(), kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), dinner: c => trB.cardBtn(c) });   // 🍖 카드 아래 회식 버튼
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
-      lv: () => lvOf(), funds: wallet.funds, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
+      lv: () => lvOf(), funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs), ga: () => gaB });   // 🍩 층을 고르면 간식 줄
     const gaB = gachaBig({ ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
-      funds: wallet.funds, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
+      funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
       kick: () => { if (!animOn()) staticDraw(); }, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode), dr: () => drB.active() || trB.active(), setP,
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true) });
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ spot: id => spB.see(id), ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
     const trB = treatBig({ bossAct: () => bossAct, ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
-      funds: wallet.funds, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
+      funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
       anim: () => animOn(), still: () => !!(rm.matches || ctx.settings.quiet), kick: () => { if (!animOn()) staticDraw(); }, layout: () => layout() });
     const napB = napBig({ spot: id => spB.see(id), ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), dark: () => { const p = pwB.phase(); return p === "out" || p === "reset"; },   // 😴 졸음 · 🍱 점심(#106)

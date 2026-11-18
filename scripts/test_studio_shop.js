@@ -42,6 +42,12 @@ const { SHOP, SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn {
   assert.strictEqual(w.pay(0), true, "0원 결제는 됨(공짜)");
   const ro = SAVE.load(JSON.stringify({ v: 2, funds: 999 })), wr = SAVE.wallet(ro, () => { throw new Error("읽기 전용인데 저장 예약"); });
   assert.strictEqual(wr.can(1), false); assert.strictEqual(wr.pay(1), false); assert.strictEqual(ro.funds, 999, "읽기 전용 저장이면 결제 막음");
+  wr.give(10); wr.earn(10); assert.strictEqual(ro.funds, 999, "읽기 전용이면 보상·벌이도 안 올림(저장 안 되는 숫자를 보이지 않게)"); assert.strictEqual(wr.ro(), true);
+  // 손상된 저장: 값 종류가 다르면 그 칸만 기본값
+  const bad = SAVE.load(JSON.stringify({ funds: "500", earned: null, day: null, dones: [1], shop: { plant: 1 }, combo: "x" }));
+  assert.deepStrictEqual([bad.funds, bad.earned, bad.combo, Array.isArray(bad.dones), typeof bad.day.d, bad.shop.plant], [0, 0, 0, false, "string", 1]);
+  SAVE.wallet(bad, () => {}).give(60); assert.strictEqual(bad.funds, 60, "문자열 더하기 없음");
+  assert.strictEqual(SAVE.load(JSON.stringify({ day: { d: 5 } })).day.earned, 0);
 }
 
 /* ---------- 🎨 층 꾸밈 저장 DECOR ---------- */
