@@ -697,7 +697,7 @@ function powerBig(h) {
       r.bulb = box(F, lx - 6, 16, 12, 4, "#8a8098", { zIndex: 4 }); r.lx = lx; r.ly = T0 + 22;
       r.click = mkEl("div", "b pw-click", bld, { left: (lx + 18) + "px", top: (T0 + 10) + "px", display: "none" }, X("딸깍", "click"));
       r.str = mkEl("div", "b pw-str", bld, { display: "none" }, X("으라차~", "Stretch~"));
-      if (r.has) {
+      if (r.has && !lob) {   // 🕯️ 촛불은 책상 위(로비엔 책상이 없음)
         const cx = boss ? 160 : meet ? 384 : 342, top = boss ? B - 26 : meet ? B - 22 : B - 26;
         r.cx = cx; r.cy = T0 + top - 16;
         r.candle = mkEl("div", "b", bld, { left: (cx - 5) + "px", top: (T0 + top - 24) + "px", zIndex: 22, display: "none" });
@@ -2870,7 +2870,7 @@ function pokeBig(h) {
         r.cart = { el: fl.cart, x: 790, y: B - 62 };
         wn("win", 330, 40, 100, 62); wn("win2", 580, 40, 100, 62);
         r.els = Object.assign(r.els, { vend: [ve], cart: [fl.cart] });
-        hit(F, fk, "vend", 494, B - 58, 56, 60); hit(F, fk, "win", 330, 40, 100, B - 57 - 40);   // 🎰 창 아래쪽은 뽑기 기계가 앞에 hit(F, fk, "win2", 580, 40, 92, 62); hit(F, fk, "cart", 792, B - 62, 50, 62);
+        hit(F, fk, "vend", 494, B - 58, 56, 60); hit(F, fk, "win", 330, 40, 100, B - 57 - 40); hit(F, fk, "win2", 580, 40, 92, 62); hit(F, fk, "cart", 792, B - 62, 50, 62);   // 🎰 왼쪽 창 아래쪽은 뽑기 기계가 앞에
       } else if (boss) {
         r.mon = { el: fl.mon, x: 200, y: B - 98, w: 76, h: 56, ov: box(F, 206, B - 92, 64, 44, "transparent", { zIndex: "10", overflow: "hidden", pointerEvents: "none" }) };
         const ce = mkEl("div", "b", F, { left: "518px", top: "28px", width: "40px", height: "40px", zIndex: "3" });
@@ -4219,6 +4219,7 @@ function decorBig(h) {
     G = { fl: [], boss: null };
     o.FL.forEach((fl, i) => {
       if (i === o.n) { G.boss = mkEl("div", "b dc-dim", fl.F, { left: "0", top: "0", width: "860px", height: "100%", display: "none", zIndex: "58" }); return; }
+      if (fl.lobby) { G.lobby = mkEl("div", "b dc-dim", fl.F, { left: "0", top: "0", width: "860px", height: "100%", display: "none", zIndex: "58" }); return; }   // 🏛️ 로비도 꾸미기 중엔 흐리게(#201)
       const f = fl.f; if (!f) return;
       const r = { i, F: fl.F, B: fl.B, f, p: keyOf(f), meet: f.layout === "meet", el: {}, sl: {}, fishX: 1 };
       D.SLOTS.forEach(sl => { r.el[sl] = mkEl("div", "b dc-it", fl.F, { display: "none" }); });
@@ -4297,6 +4298,7 @@ function decorBig(h) {
       });
     });
     if (G.boss) sty(G.boss, "display", ui.on && ui.p ? "block" : "none");
+    if (G.lobby) sty(G.lobby, "display", ui.on && ui.p ? "block" : "none");
     while (dl.length && tc - dl[0].t0 > 3) dl.shift();
     /* 자금 옆 숫자: 살 때 −(빨강, 아래로) · 벌 때 +(금색, 위로) */
     const fu = float ? tc - float.t0 : 9;
@@ -6876,7 +6878,7 @@ C.registerMode({
         Object.assign(car, { st: "idle", row: nSess, door: 0, dir: 0 });
         NX.mode = "arrive";
         /* 1층: 아직 문으로 들어오는 사람이 있으면 엘리베이터 문을 열어 두고 기다림 */
-        NX.hold = row => row === nSess && [...actors.values()].some(a => a.goal === "home" && (a.loc === "out" || a.loc === "door" || (a.loc === "boss" && a.lift !== "board")));
+        NX.hold = row => row === nSess + 1 && [...actors.values()].some(a => a.goal !== "out" && (a.loc === "out" || a.loc === "door" || (a.loc === "lobby" && a.lift !== "board")));   // 🏛️ 로비 엘리베이터가 다 탈 때까지 기다림(#201)
         const k2 = order[Math.min(1, order.length - 1)];
         NX.sayAt = o.say && k2 ? k2.a.nx.inAt + .25 : null;   // 두 번째 사람이 들어올 때 "다들 어디 갔다 왔어?"
       }
@@ -6886,7 +6888,7 @@ C.registerMode({
     function nxCheck(tc) {
       const list = [...actors.values()];
       if (NX.mode === "leave") {
-        if (NX.shhAt == null && list.some(a => a.goal === "out" && ["boss", "door", "out"].includes(a.loc))) NX.shhAt = tc;
+        if (NX.shhAt == null && list.some(a => a.goal === "out" && ["lobby", "door", "out"].includes(a.loc))) NX.shhAt = tc;   // 로비에 내리면 사장님 🤫
         if (list.every(a => a.loc === "out")) { if (NX.doneAt == null) NX.doneAt = tc; if (tc - NX.doneAt > .3 && NX.res) { NX.res(); NX.res = null; } }
       } else if (NX.mode === "arrive" && list.every(a => (!a.nx || a.loc === "boss" && a.goal === "boss") && !a.lift && a.loc !== "car" && !a.moving)) { NX.mode = null; NX.hold = null; }
     }
@@ -7785,7 +7787,7 @@ C.registerMode({
         <div><h4>🤫 ${X("화면 공유용", "For screen sharing")}</h4><div class="chips"><button class="chip ${cfg.hideText ? "" : "off"}" type="button" data-act="hidetext" title="${esc(X("켜면 회의 보드에 \"🤫 비밀 회의\"와 물결 낙서만 (✓는 그대로) · 층 이름표의 프로젝트도 숨김 · 미니 보기·퇴근 일보 카드도 같이", "Meeting boards show \"🤫 Secret meeting\" and squiggles (✓ stays), floor tags hide project names, mini view and daily report card too"))}">🤫 ${X("프로젝트·작업 문구 숨김", "Hide project & task text")} ${cfg.hideText ? "ON" : "OFF"}</button></div>
         ${drB.can ? `<h4 style="margin-top:8px">📋 ${X("퇴근 일보 · 고급: 퇴근 시각", "Daily report · advanced: clock-out time")}</h4><div class="chips">${[null, "17:00", "18:00", "18:30", "19:00", "20:00", "21:00"].map(t => `<button class="chip fx2 ${(cfg.offAt || null) === t ? "on" : ""}" type="button" data-act="offat" data-id="${t || ""}" title="${esc(t ? X(`${t}이 지나면 사장님이 일보를 들고 알려요(누르면 발표)`, `After ${t} the boss holds up the report (click to present)`) : X("기본: 오후에 45분 동안 조용하면 자동으로 알려요", "Default: notifies after 45 quiet minutes in the afternoon"))}">${t ? "⏰ " + t : X("끄기 (기본: 자동)", "Off (default: auto)")}</button>`).join("")}</div>
         <div class="chips" style="margin-top:6px"><button class="chip ${cfg.cardCheer ? "" : "off"}" type="button" data-act="cardcheer" title="${esc(X("AI가 MCP 보고로 남긴 칭찬 한마디(waitscape_status cheer)를 일보 카드·복사 텍스트의 사장님 말풍선에 넣어요. 공유용이라 기본은 꺼짐 · 🤫 숨김이 켜져 있으면 넣지 않아요", "Put the AI's cheer line (from MCP reports) in the boss bubble of the report card and copied text. Off by default since cards get shared; never with 🤫 on"))}">✍️ ${X("카드에 AI 한마디", "AI cheer on card")} ${cfg.cardCheer ? "ON" : "OFF"}</button></div>` : ""}</div></div>
-        <div class="roster"><h4>🎲 ${X("지금 출근 · 세션 ID → 해시 → 동물", "On duty · session ID → hash → animal")}</h4>${model.floors.map((f, i) => `<div><b>${nSess + 1 - i}F</b> #${esc(f.sid.slice(0, 4))} → ${f.shiny ? "✨ " : ""}${EMO[f.animal]} <b>${esc(aName(f.animal))}</b> · <span style="color:${PROV_COLOR[f.pk]};font-weight:900">${esc(f.pname)} ${ACC_NAME[f.pk][ctx.lang === "en" ? 1 : 0]}</span></div>`).join("") || `<div>${X("아직 없음", "Nobody yet")}</div>`}<div>🍼 ${X("서브에이전트 = 부모 동물의 아기 버전", "Sub-agent = baby version of its parent")}</div></div></div>
+        <div class="roster"><h4>🎲 ${X("지금 출근 · 세션 ID → 해시 → 동물", "On duty · session ID → hash → animal")}</h4>${model.floors.map((f, i) => `<div><b>${nSess + 2 - i}F</b> #${esc(f.sid.slice(0, 4))} → ${f.shiny ? "✨ " : ""}${EMO[f.animal]} <b>${esc(aName(f.animal))}</b> · <span style="color:${PROV_COLOR[f.pk]};font-weight:900">${esc(f.pname)} ${ACC_NAME[f.pk][ctx.lang === "en" ? 1 : 0]}</span></div>`).join("") || `<div>${X("아직 없음", "Nobody yet")}</div>`}<div>🍼 ${X("서브에이전트 = 부모 동물의 아기 버전", "Sub-agent = baby version of its parent")}</div></div></div>
       <div class="note">💡 ${X("도감에는 처음 출근한 날만 기록해요 · 설정에서 꺼 둔 동물도 도감 기록은 그대로 · 👑 사장님 햄찌는 고정 마스코트 · 같은 세션은 항상 같은 동물이에요 (해시가 같으니까요). 소리·코드 조각은 회의 모드나 탭이 숨겨졌을 때 자동으로 멈춰요.", "The dex only records the first day. Disabled animals keep their record. The boss hamster is a fixed mascot. The same session is always the same animal (same hash). Sound and code bits stop automatically in quiet mode or when the tab is hidden.")}</div>`;
     }
     function openDex() { renderDex(); dexEl.classList.add("on"); const x = dexEl.querySelector('[data-act="dexclose"]'); if (x) x.focus(); }
