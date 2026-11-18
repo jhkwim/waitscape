@@ -723,5 +723,6 @@ body[data-mode="studio"] .stu .askchip.w15 { background: #ff8a7a; }
 body[data-mode="studio"] .stu.mini2 { height: 100vh; background: var(--deep); }   /* 위 18px = 전력·작업 수 줄 자리(2단계) */
 body[data-mode="studio"] .stu.mini2 .hud, body[data-mode="studio"] .stu.mini2 .side, body[data-mode="studio"] .stu.mini2 .minibtn, body[data-mode="studio"] .stu.mini2 .dex { display: none; }
 body[data-mode="studio"] .stu.mini2 .dc-plus { display: none !important; }   /* 💰 자금 오름 숫자는 큰 화면 HUD 연출(JS가 display를 씀) */
+body[data-mode="studio"] .stu.mini2 .ftag.fol span { display: none !important; }   /* 창 왼쪽에 붙어 따라오는 층 이름표는 "3F 완료"만 */
 body[data-mode="studio"] .stu.mini2 .view { position: fixed; inset: 18px 0 0 0; padding: 0; overflow: hidden; touch-action: none; cursor: grab; }
 body[data-mode="studio"] .stu.mini2 .sc { margin: 0; overflow: visible; }

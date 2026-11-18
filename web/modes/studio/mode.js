@@ -6762,14 +6762,14 @@ C.registerMode({
       const fi = camFi(), F = FL[fi] && FL[fi].F;
       if (!F) return;
       const vw = W / K, vh = H / K, full = vw >= MINI2.FULL - 2;
-      const cx = full ? 0 : clamp(cam.cx != null ? cam.cx : Math.min(MINI2.focusX(fi, nSess), MINI2.SHAFT + MINI2.SHAFT_W - vw), 0, MINI2.FULL - vw);   // 자동이면 엘리베이터 오른쪽 끝을 창 오른쪽에
+      const cx = full ? 0 : clamp(cam.cx != null ? cam.cx : autoX(fi, vw), 0, MINI2.FULL - vw);
       if (cam.cx != null) cam.cx = cx;
       const cy = clamp(F.offsetTop - (vh - F.offsetHeight) / 2, -40, (sceneH || 700) + 20 - vh);
       sty(bld, "transform", `translate(${-Math.round(cx * K)}px,${-Math.round(cy * K)}px) scale(${K})`);
       const sl = Math.min(MINI2.SHAFT, Math.round(cx + vw - MINI2.SHAFT_W)), dx = sl - MINI2.SHAFT, tl = FL.map(r => r.tag ? r.tag.offsetLeft : 0);   // 읽기 먼저(리플로 한 번)
       if (shaftEl) sty(shaftEl, "left", sl + "px");
-      FL.forEach((r, i) => { if (!r.tag) return; const fol = cx > tl[i] - 8, sp = r.tag.querySelector("span");   // 층 이름표는 창 왼쪽에 붙어 따라오고, 따라올 땐 "3F 완료"처럼 짧게(책상 이름표와 안 겹치게)
-        sty(r.tag, "transform", fol ? `translateX(${Math.round(cx - tl[i] + 8)}px)` : ""); if (sp) sty(sp, "display", fol ? "none" : ""); });
+      FL.forEach((r, i) => { if (!r.tag) return; const fol = cx > tl[i] - 8;   // 층 이름표는 창 왼쪽에 붙어 따라오고, 따라올 땐 "3F 완료"처럼 짧게(.fol — 이름표 맞춤 ftagFlush가 span을 다시 그려도 CSS로 숨김)
+        sty(r.tag, "transform", fol ? `translateX(${Math.round(cx - tl[i] + 8)}px)` : ""); if (r.tag.classList.contains("fol") !== fol) r.tag.classList.toggle("fol", fol); });
       /* 👆 엘리베이터 누를 자리는 통로를 따라가고, 통로에 가려진 물건의 누를 자리는 끔 */
       bld.querySelectorAll(".pk-hit").forEach(e => {
         if (e.classList.contains("ev")) { sty(e, "transform", dx ? `translateX(${dx}px)` : ""); return; }
@@ -6777,10 +6777,11 @@ C.registerMode({
         sty(e, "pointerEvents", dx && x + w > sl && x < MINI2.SHAFT + MINI2.SHAFT_W ? "none" : "");
       });
     }
+    const autoX = (fi, vw) => Math.min(MINI2.focusX(fi, nSess), MINI2.SHAFT + MINI2.SHAFT_W - vw);   // 자동이면 엘리베이터 오른쪽 끝을 넘지 않게
     const camFi = () => clamp(cam.up == null ? nSess : FL.length - 1 - cam.up, 0, FL.length - 1);
     if (mini) {   // 카메라는 큰 화면 1초 타이머의 layout()에서도 다시 맞춤(둘러보기 만료 → 자동)
       const look = () => { cam.hold = clockT() + MINI2.HOLD; };
-      const curX = () => cam.cx != null ? cam.cx : MINI2.focusX(camFi(), nSess);
+      const curX = () => cam.cx != null ? cam.cx : autoX(camFi(), view.clientWidth / MINI2.K);
       ctx.listen(view, "wheel", e => {
         e.preventDefault(); look();
         const u = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? view.clientHeight : 1, ddx = e.deltaX * u, ddy = e.deltaY * u;   // 줄·페이지 단위 휠도 픽셀로
@@ -6791,7 +6792,7 @@ C.registerMode({
       ctx.listen(view, "pointerdown", e => { cam.drag = { x: e.clientX, cx: curX() }; cam.moved = false; });
       ctx.listen(win, "pointermove", e => { if (!cam.drag || !e.buttons) { cam.drag = null; return; } const dx = e.clientX - cam.drag.x; if (!cam.moved && Math.abs(dx) < 4) return; cam.moved = true; look(); cam.cx = cam.drag.cx - dx / MINI2.K; camApply(); });
       ctx.listen(win, "pointerup", () => { cam.drag = null; });
-      ctx.listen(view, "click", e => { if (cam.moved) { cam.moved = false; e.preventDefault(); e.stopPropagation(); } }, { capture: true });   // 끌어서 넘긴 뒤 손을 떼면 누르기로 치지 않음
+      ctx.listen(win, "click", e => { if (cam.moved) { cam.moved = false; e.preventDefault(); e.stopPropagation(); } }, { capture: true });   // 끌어서 넘긴 뒤 손을 떼면 누르기로 치지 않음(창 capture = 문서 capture로 받는 머그·뽑기·이벤트보다 먼저)
       ctx.listen(win, "resize", () => { if (win.top === win && win.innerWidth < MINI2.MIN_W - 2) try { win.resizeTo(MINI2.MIN_W + (win.outerWidth - win.innerWidth), win.outerHeight); } catch {} });
     }
 
@@ -7920,7 +7921,7 @@ C.registerMode({
     if (doc.fonts && doc.fonts.addEventListener) ctx.listen(doc.fonts, "loadingdone", () => { fontGen++; });   // 층 이름표 맞춤(#64) 다시 잼
     ctx.on("settings", () => { buildSig = ""; sync(); renderHud(); ensureLoop(); });
     ctx.on("update", () => sync());   // 새 버전 알림(사장님 말풍선)
-    ctx.every(1000, () => { pkB.reload(); drB.tick(); renderHud(); if (ctx.state) renderSide(); flush(); layout(); if (!animOn() && FL.length) staticDraw(); });
+    ctx.every(1000, () => { pkB.reload(); drB.tick(); if (!mini) { renderHud(); if (ctx.state) renderSide(); } flush(); layout(); if (!animOn() && FL.length) staticDraw(); });
 
     sync();
     if (!FL.length) { buildSig = "init"; build(); renderHud(); renderSide(); }
