@@ -626,6 +626,14 @@ body[data-mode="studio"] .stu .bub.r.gl:after { left: auto; right: -9px; border-
 body[data-mode="studio"] .stu .askchip.w5 { background: #ffc078; }
 body[data-mode="studio"] .stu .askchip.w15 { background: #ff8a7a; }
 
+/* 공용 규칙(옛 미니 .slb 정리 때 선택자만 뺌) */
+body[data-mode="studio"] .stu .pw-lm { image-rendering: pixelated; }
+body[data-mode="studio"] .stu { --wb: #fbfdff; }
+body[data-mode="studio"] .stu .pk-fx img { image-rendering: pixelated; }
+body[data-mode="studio"] .stu .stp[data-act="jump"], body[data-mode="studio"] .stu .ftag[data-act="jump"] { cursor: pointer; }   /* 🖥️ 누르면 그 세션으로 (#40) */
+body[data-mode="studio"] .stu .bub.ask.w5 { border-color: #f0882a; }
+body[data-mode="studio"] .stu .bub.ask.w15 { border-color: #e0383a; }
+
 /* ---------- 📌 미니 보기(#204): 큰 화면 건물의 한 층을 창 높이에 꼭 맞게 — HUD·패널 없이 건물만(위 18px 줄), 카메라는 bld transform ---------- */
 body[data-mode="studio"] .stu.mini2 { height: 100vh; background: var(--deep); }   /* 위 18px = 전력·작업 수 줄 자리(2단계) */
 body[data-mode="studio"] .stu.mini2 .hud, body[data-mode="studio"] .stu.mini2 .side, body[data-mode="studio"] .stu.mini2 .minibtn, body[data-mode="studio"] .stu.mini2 .dex { display: none; }
@@ -637,11 +645,10 @@ body[data-mode="studio"] .stu.mini2 .m2h .g { position: relative; width: 70px; h
 body[data-mode="studio"] .stu.mini2 .m2h .g i { position: absolute; left: 0; top: 0; bottom: 0; background: #4fd06a; }
 body[data-mode="studio"] .stu.mini2 .m2h .g u { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: #ff6b8a; }
 body[data-mode="studio"] .stu.mini2 .m2h .dots { display: flex; gap: 3px; margin-left: 4px; }
-body[data-mode="studio"] .stu.mini2 .m2h .dots i { width: 8px; height: 8px; border: 1px solid #1d1430; }
-body[data-mode="studio"] .stu.mini2 .m2h .dots i.blink { animation: m2blink 1s steps(2) infinite; }
+body[data-mode="studio"] .stu.mini2 .m2h .dots button { width: 10px; height: 10px; min-width: 0; padding: 0; border: 1px solid #1d1430; }
+body[data-mode="studio"] .stu.mini2 .m2h .dots button.blink { animation: m2blink 1s steps(2) infinite; }
 body[data-mode="studio"] .stu.mini2 .m2h .ak { background: #ffc83a; color: #2e2040; padding: 0 4px; line-height: 14px; }
 @keyframes m2blink { 50% { opacity: .25; } }
-body[data-mode="studio"] .stu.mini2 .m2h .dots i { cursor: pointer; }
 body[data-mode="studio"] .stu.mini2 .m2h .sp { flex: 1; }
 body[data-mode="studio"] .stu.mini2 .m2h button { height: 14px; min-width: 18px; padding: 0 2px; border: 1px solid #1d1430; background: #fff8e8; color: #2e2040; font: 700 10px/12px system-ui, sans-serif; cursor: pointer; }
 body[data-mode="studio"] .stu.mini2 .m2h button.on { background: #ffd23f; }

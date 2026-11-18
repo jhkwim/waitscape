@@ -5329,7 +5329,7 @@ C.registerMode({
       const q = s => m2h.querySelector(s), now = ctx.now(), lc = C.limits(ctx.state, now).five;
       gauge(lc, now, q(".g i"), q(".g u"), q(".pv"));
       const fl = model.floors.slice(0, 5), dots = q(".dots");
-      while (dots.children.length < fl.length) mkEl("i", "", dots);
+      while (dots.children.length < fl.length) { const d = mkEl("button", "", dots); d.type = "button"; }   // 버튼 = 키보드로도 누름
       while (dots.children.length > fl.length) dots.lastChild.remove();
       fl.forEach((f, i) => { const d = dots.children[i]; sty(d, "background", M2COL[f.kind] || M2COL.idle); d.classList.toggle("blink", f.kind === "ask" && animOn()); d.dataset.act = "m2dot"; d.dataset.sid = f.sid;   // 회의 모드·움직임 줄이기면 깜빡이지 않음 · 누르면 그 층
         const tt = `${EMO[f.animal]} ${cfg.hideText ? "" : f.s.project} — ${X("눌러서 보기", "click to view")}`; if (d.getAttribute("aria-label") !== tt) d.setAttribute("aria-label", tt); });
@@ -5397,7 +5397,7 @@ C.registerMode({
     }
     const autoX = (fi, vw) => Math.min(MINI2.focusX(fi, nSess), MINI2.SHAFT + MINI2.SHAFT_W - vw);   // 자동이면 엘리베이터 오른쪽 끝을 넘지 않게
     /* 질문이 없을 때 비출 층: 🎉 방금 완료한 직원 층(완료 연출 4.5초, 가장 최근) > 🤖 서브에이전트 회의가 막 열린 층(6초) > 2F 사장실 */
-    const m2meet = new Map(), m2was = new Set();
+    const m2meet = new Map(), m2was = new Set(); let m2init = false;
     function shotFi() {
       const tc = clockT(); let sh = null;
       actors.forEach(x => { if (x.launchUntil > tc && (!sh || x.launchStart > sh.launchStart)) sh = x; });
@@ -5407,7 +5407,7 @@ C.registerMode({
     }
     function m2track() {   // 회의 배치로 막 바뀐 층을 기억(첫 동기화는 빼고)
       const tc = clockT(), now = new Set(model.floors.filter(f => f.layout === "meet").map(f => f.sid));
-      if (!firstSync) now.forEach(sid => { if (!m2was.has(sid)) m2meet.set(sid, tc + 6); });
+      if (m2init) now.forEach(sid => { if (!m2was.has(sid)) m2meet.set(sid, tc + 6); }); m2init = true;   // 처음 본 회의는 "막 열림"이 아님
       m2was.clear(); now.forEach(sid => m2was.add(sid));
     }
     const curFi = () => cam.up != null ? camFi() : shotFi();   // 둘러보기를 시작할 땐 지금 비추던 층에서
@@ -5425,6 +5425,8 @@ C.registerMode({
       if (!ctx.api.startDrag) ctx.listen(view, "pointerdown", e => { cam.drag = { x: e.clientX, cx: curX() }; cam.moved = false; });   // 끌어서 넘기기는 브라우저 PiP만 — 앱 위젯은 빈 곳을 끌면 창이 움직임(코어)
       ctx.listen(win, "pointermove", e => { if (!cam.drag || !e.buttons) { cam.drag = null; return; } const dx = e.clientX - cam.drag.x; if (!cam.moved && Math.abs(dx) < 4) return; cam.moved = true; look(); cam.cx = cam.drag.cx - dx / MINI2.K; camApply(); });
       ctx.listen(win, "pointerup", () => { cam.drag = null; });
+      ctx.listen(win, "pointerdown", () => { cam.moved = false; }, { capture: true });   // 새로 누르면 지난 끌기의 "클릭 막기"는 끝
+      ctx.on("inbox-go", it => { const i = it ? model.floors.findIndex(f => f.sid === it.sid) : -1; if (i >= 0) { cam.up = FL.length - 1 - i; cam.cx = null; cam.hold = clockT() + MINI2.HOLD; camApply(); } });   // N 키(관제 인박스) → 그 층
       ctx.listen(doc, "keydown", e => {   // ↑↓ = 층 둘러보기 · Esc = 자동 카메라로
         if (e.metaKey || e.ctrlKey || e.altKey || (e.target && e.target.closest && e.target.closest("input, textarea, select, [contenteditable]"))) return;
         if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); look(); const fi = clamp(curFi() + (e.key === "ArrowUp" ? -1 : 1), 0, FL.length - 1); cam.up = FL.length - 1 - fi; cam.cx = null; camApply(); }
@@ -6424,7 +6426,7 @@ C.registerMode({
       if (!pipApi) return;
       if (miniWin) { miniWin.close(); return; }
       let pw;
-      try { pw = await pipApi.requestWindow({ width: 282, height: 162 }); } catch (e) { win.console.warn("[studio] PiP 창을 열 수 없어요", e); return; }
+      try { pw = await pipApi.requestWindow({ width: MINI2.W, height: MINI2.H }); } catch (e) { win.console.warn("[studio] PiP 창을 열 수 없어요", e); return; }
       const base = pw.document.createElement("base");   // 상대 경로(core/core.css·modes/studio/mode.css)를 이 탭 기준으로
       base.href = win.location.href; pw.document.head.append(base);
       pw.document.title = "Waitscape Studio";
@@ -6564,7 +6566,7 @@ C.registerMode({
     ctx.listen(doc, "visibilitychange", ensureLoop);
     if (rm.addEventListener) ctx.listen(rm, "change", ensureLoop);
     if (doc.fonts && doc.fonts.addEventListener) ctx.listen(doc.fonts, "loadingdone", () => { fontGen++; });   // 층 이름표 맞춤(#64) 다시 잼
-    ctx.on("settings", () => { buildSig = ""; sync(); renderHud(); ensureLoop(); });
+    ctx.on("settings", () => { buildSig = ""; sync(); renderHud(); if (mini && ctx.state) renderMiniHud(); ensureLoop(); });
     ctx.on("update", () => sync());   // 새 버전 알림(사장님 말풍선)
     ctx.every(1000, () => { pkB.reload(); drB.tick(); if (!mini) { renderHud(); if (ctx.state) renderSide(); } else if (ctx.state) renderMiniHud(); flush(); layout(); if (!animOn() && FL.length) staticDraw(); });
 
