@@ -374,20 +374,13 @@ const MB_UP = 12, MS_UP = 6;
 /* 🪑 회의 의자(#159): 책상 의자(파랑·팔걸이)와 다른 팔걸이 없는 둥근 등받이 의자 — c 겉 · l 쿠션 */
 const MEET_CHAIR = { c: "#5fc4a8", l: "#b4ecd8" };   // 민트(사용자 선택): 크림 벽·아기 동물 색과 안 겹치고 파란 책상 의자와 구분
 const TEST_MARK = { pass: " 🧪✓", fail: " 🧪✗", ran: " 🧪" };   // 🧪 그 턴의 테스트(#138) — 미니 보기 완료 보고·정보 줄(#155)
-const SHOP = [
-  { id: "plant", e: "🪴", n: ["화분", "Plant"], p: 300, lv: 1 },
-  { id: "coffee", e: "☕", n: ["커피머신", "Coffee"], p: 800, lv: 1 },
-  { id: "clock", e: "🕰️", n: ["벽시계", "Clock"], p: 600, lv: 2 },
-  { id: "plush", e: "🧸", n: ["인형", "Plush"], p: 500, lv: 2 },
-  { id: "neon", e: "💡", n: ["네온사인", "Neon"], p: 1500, lv: 3 },
-  { id: "frame", e: "🖼️", n: ["액자", "Frame"], p: 1200, lv: 4 },
-  { id: "trophy", e: "🏆", n: ["트로피", "Trophy"], p: 2500, lv: 5 },
-];
 /* 💾 스튜디오 본체 저장(ctx.store "save"). v = 스키마 버전(#197부터 1, 그 전 저장은 v 없음 = 1로 봄). 모르는 필드는 그대로 둔다(Object.assign).
    더 새 버전이 쓴 저장(v > VER)은 읽기 전용(sv.ro, 저장에 안 남는 속성): 화면은 보여 주되 저장하지 않고 결제도 막는다(꾸밈·뽑기·간식과 같은 규칙).
    doneN = 줄지 않는 누적 완료 수(스튜디오 Lv 기준, #195): dones는 세션 200개로 잘려 합계가 줄 수 있어 따로 둔다. 옛 저장은 지금 합계로 시작 */
 const SAVE = (() => {
   const VER = 1;
+  /* 🛒 옛 사장실 상점(SHOP 7종, 0.9.3까지) 값 — #197에서 상점을 🎨 꾸미기 하나로 합치며 산 값을 전액 돌려준다(sv.mig.shop = 돌려준 금액, 한 번만). sv.shop 원본은 지우지 않음 */
+  const OLD_SHOP = { plant: 300, coffee: 800, clock: 600, plush: 500, neon: 1500, frame: 1200, trophy: 2500 };
   const def = () => ({ v: VER, funds: 0, earned: 0, dones: {}, doneN: 0, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0, combo: 0 });
   function load(raw) {
     let j = null; try { j = JSON.parse(raw || "null"); } catch {}
@@ -399,6 +392,12 @@ const SAVE = (() => {
     sv.doneN = Math.max(Number.isFinite(sv.doneN) ? sv.doneN : 0, Object.values(sv.dones || {}).reduce((t, n) => t + (+n || 0), 0));
     Object.defineProperty(sv, "ro", { value: typeof sv.v === "number" && sv.v > VER, enumerable: false });
     if (!sv.ro) sv.v = VER;
+    if (!sv.mig || typeof sv.mig !== "object" || Array.isArray(sv.mig)) sv.mig = {};
+    if (!sv.ro && typeof sv.mig.shop !== "number") {   // 🛒 사장실 상점 환불(한 번) — refund = 이번에 돌려준 금액(저장에 안 남음, 본체가 로그·저장)
+      const back = Object.keys(sv.shop).reduce((t, k) => t + (sv.shop[k] && OLD_SHOP[k] || 0), 0);
+      sv.mig.shop = back; sv.funds += back;
+      Object.defineProperty(sv, "refund", { value: back, enumerable: false });
+    }
     return sv;
   }
   /* 💰 지갑: 자금이 바뀌는 길은 모두 여기(#197). ch = 바뀌면 부를 함수(저장 예약)
@@ -416,7 +415,7 @@ const SAVE = (() => {
     };
     return w;
   }
-  return { VER, def, load, wallet };
+  return { VER, OLD_SHOP, def, load, wallet };
 })();
 /* @test-end SAVE */
 /* 완료(done) = AI가 응답을 끝내고 사용자 차례가 됨(하루 수십 번). 그 작업의 실행 시간(run)이 이만큼 넘을 때만 "큰 일 완료"로 크게 축하 */
@@ -2374,7 +2373,6 @@ const PK = (() => {
     flower: { r: [".P.P.", "PPYPP", ".PPP.", "..G.."], p: { P: "#ff8ab0", Y: "#ffd23f", G: "#3a9a4a" } },
     leaf: { r: [".GG", "GGL", "GL."], p: { G: "#5fcf6a", L: "#3a9a4a" } },
     clock: { r: ["..KKKKKK..", ".KWWWWWWK.", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", ".KWWWWWWK.", "..KKKKKK.."], p: { K, W: "#fffaf0" } },
-    clockG: { r: ["..KKKKKK..", ".KWWWWWWK.", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", "KWWWWWWWWK", ".KWWWWWWK.", "..KKKKKK.."], p: { K: "#c9940f", W: "#fff6d8" } },   // 상점 벽시계 = 금테
     mug: { r: ["KKKKKK..", "KBBBBKKK", "KWWWWK.K", "KWWWWK.K", "KWWWWKKK", "KWWWWK..", ".KKKK..."], p: { K, B: "#6b3f2a", W: "#fff" } },
     can: { r: ["KKKK", "KRRK", "KWWK", "KRRK", "KRRK", "KKKK"], p: { K, R: "#ff5a6a", W: "#fff" } },
     lemon: { r: ["KKKK", "KYYK", "KWWK", "KYYK", "KYYK", "KKKK"], p: { K, Y: "#ffd23f", W: "#fff" } },
@@ -2866,10 +2864,9 @@ function pokeBig(h) {
         const q = { obj, x: x + 3, y: y + 3, w: w - 6, h: hh - 6, sky, gl: gl && gl.el }; r.wins.push(q); r.els[obj] = [gl && gl.el]; return q; };
       if (boss) {
         r.mon = { el: fl.mon, x: 200, y: B - 98, w: 76, h: 56, ov: box(F, 206, B - 92, 64, 44, "transparent", { zIndex: "10", overflow: "hidden", pointerEvents: "none" }) };
-        const gold = h.owned("clock"), ce = mkEl("div", "b", F, { left: "518px", top: "28px", width: "40px", height: "40px", zIndex: "3" });
-        pimg(ce, gold ? PK.ART.clockG : PK.ART.clock, 4, 0, 0, 1);
+        const ce = mkEl("div", "b", F, { left: "518px", top: "28px", width: "40px", height: "40px", zIndex: "3" });
+        pimg(ce, PK.ART.clock, 4, 0, 0, 1);
         const hm = box(ce, 18, 8, 4, 12, "#2e2040", { transformOrigin: "50% 100%", zIndex: "2" }), hh2 = box(ce, 18, 12, 4, 8, "#d23a4a", { transformOrigin: "50% 100%", zIndex: "2" });
-        if (gold) box(ce, 18, 40, 4, 10, "#c9940f", { zIndex: "0" });   // 금테 시계: 작은 추
         r.clock = { el: ce, hm, hh: hh2, x: 518, y: 28, w: 40, secs: () => { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); } };
         const ve = h.vendEl(i);
         r.vend = { el: ve, x: 496, y: B - 56, w: 52, h: 62, lx: 503, ly: B - 21 };
@@ -2901,8 +2898,8 @@ function pokeBig(h) {
         hit(F, fk, "a", 343, B - 88 - SEAT_UP, 84, 86 + SEAT_UP); hit(F, fk, "mon", 444, B - 92, 68, 58); if (sh) hit(F, fk, "shelf", 24, 26, 78, 98); hit(F, fk, "mug", 503, B - 52, 32, 30);
         if (sh) hit(F, fk, "win", 140, 34, 90, 56); hit(F, fk, "win2", 792, 38, 48, 50);
       }
-      /* 화분(시안의 도트 화분 · 상점 화분을 사면 한 단계 큰 화분). 회의 배치는 아기 자리를 비켜 작은 화분. 🎨 바닥 2 칸에 소품이 있으면 그 층은 화분 없음 */
-      if (boss || !(h.noPlant && h.noPlant(f))) { const big = h.owned("plant") && !meet, sc = meet ? 2 : big ? 4 : 3, x = boss ? (big ? 296 : 300) : meet ? 638 : big ? 606 : 614, y = B - 12 * sc;
+      /* 화분(시안의 도트 화분). 회의 배치는 아기 자리를 비켜 작은 화분. 🎨 바닥 2 칸에 소품이 있으면 그 층은 화분 없음 */
+      if (boss || !(h.noPlant && h.noPlant(f))) { const sc = meet ? 2 : 3, x = boss ? 300 : meet ? 638 : 614, y = B - 12 * sc;
         const g = mkEl("div", "b", F, { left: x + "px", top: y + "px", width: 12 * sc + "px", height: 12 * sc + "px", zIndex: "7" }); pimg(g, PK.ART.plant, sc, 0, 0, 1); const flL = mkEl("div", "b", g, { left: "0", top: "0", zIndex: "2" });
         r.plant = { el: g, fl: flL, x, y, w: 12 * sc, fs: sc, fx0: 3.5 * sc, fy0: -2 * sc, fx1: 7 * sc, fy1: 0 }; r.els.plant = [g];
         hit(F, fk, "plant", x - 6, y - 6, 12 * sc + 12, 12 * sc + 6); }
@@ -3933,7 +3930,7 @@ function dayrepMini(h) {
 }
 
 /* ================= 🎨 층 꾸미기 (DECOR: 카탈로그·저장·소품 그리기 공용 · 큰 화면 decorBig · 미니 보기 decorMini. 본체에는 연결 줄만) =================
-   완료로 모은 자금(💰)으로 층마다 소품을 사서 칸(벽 2 · 책상 1 · 바닥 2)에 둔다. 사장실 상점(SHOP 7종)은 그대로, 층 소품은 층마다 따로 산다.
+   완료로 모은 자금(💰)으로 층마다 소품을 사서 칸(벽 2 · 책상 1 · 바닥 2)에 둔다. 사장실 상점(SHOP 7종)은 #197에서 없애고 산 값을 돌려줬다(SAVE.OLD_SHOP).
    - 층 키 = 프로젝트 이름(session.project): 세션이 바뀌어도 꾸밈 유지. 7일 넘게 안 온 프로젝트의 소품은 창고(wh)로 → 다시 오면 그대로 복원(택배로 돌아옴)
    - 옮기기 무료(같은 종류 칸끼리 · 다른 층으로도) · 되팔기 50%
    - 직원(동물)마다 좋아하는 소품 2개(LIKES): 두면 하트, 쉴 때(idle) 그 옆에 가서 쉼
@@ -5234,7 +5231,7 @@ function gachaBig(h) {
      자기 층에서 "회식이다!" 하고 엘리베이터 쪽으로 사라짐 → 옥상 계단실에서 나와 그릴 둘레로(연기·불꽃·지글지글·전구 줄) → 수다 → "건배! 🍻" → "잘 먹었습니다!" → 계단실로.
      연출 동안 건물 위에 옥상 자리(ROOF_H)를 더 둠 — 하늘에 자리가 없으면 건물이 잠깐 작아짐. 움직임 줄이기(또는 연출 중 움직임이 꺼지면)면 정지 장면 카드.
      🙈 눈치 모드가 오면 바로 끝냄 · 📋 일보 연출·눈치 모드 중엔 시작 못 함. 다음 날 하루 동안 1층 오른쪽 벽(🛒 카트 위)에 "📷 어제 회식 사진" 액자(참석 동물 최대 4).
-   - 결제는 SHOP·🎨 소품과 같은 길(h.can 확인 → h.pay → 본체 지갑 · saveNow, #197) · 스튜디오 로그 한 줄 · 자금 옆 −숫자. 빠른 연타: 같은 직원은 0.6초 잠금, 개수·자금은 누를 때마다 다시 확인.
+   - 결제는 🎨 소품·뽑기와 같은 길(h.can 확인 → h.pay → 본체 지갑 · saveNow, #197) · 스튜디오 로그 한 줄 · 자금 옆 −숫자. 빠른 연타: 같은 직원은 0.6초 잠금, 개수·자금은 누를 때마다 다시 확인.
    - 저장 ctx.store "treat" = { v: 1, d: "YYYY-MM-DD"(간식의 날), s: { sid: [{ k: 간식 id, t: 산 시각(초) }, …최대 2] }, dn: { d: 회식한 날, t, w: [{ a: 동물, p: 프로바이더, sh: 0|1 }, …최대 6] } }.
      없으면 기본값 · 모르는 필드는 버림 · 잘못된 값(모르는 간식 id·숫자 아님·모르는 동물)은 그 항목만 버림 · 날이 바뀌면 s를 비움(dn은 다음 날 사진용으로 남김) · sid 40개까지.
      큰 화면만 씀. 모르는 새 버전(v > 1)이면 읽기만.
@@ -5904,8 +5901,8 @@ function eventBig(h) {
   let geo = null;
   function measure() { const S = view.querySelector(".sc"); geo = { vw: view.clientWidth, vh: view.clientHeight, l: S ? S.offsetLeft : 0, w: S ? S.offsetWidth : 0, top: S ? S.offsetTop : 120 }; }
   function resize() { if (E && (E.k === "balloon" || E.k === "star")) { measure(); E.bx = null; } }   // 풍선은 새 크기에서 빈 하늘을 다시 고름
-  /* 🖨️ 프린터 자리(층 x 왼쪽): 창 아래 262~304 — 🛒 커피머신(책상 층 286~322)을 샀으면 🎨 바닥 1(~195)과 커피머신 사이 200~242. 그 자리가 ✍️ AI 보드(~253) 밑이면 이 층엔 안 놓음(null) */
-  const prnX = fl => !h.coffee() ? 262 : fl.aib ? null : 200;
+  /* 🖨️ 프린터 자리(층 x 왼쪽): 창 아래 262~304 */
+  const prnX = () => 262;
   const prnOk = fl => fl.desk && prnX(fl) != null;
   function build(o) {
     const f1 = o.FL[o.n];
@@ -6291,6 +6288,11 @@ C.registerMode({
     let lastState = null, firstSync = true, visitor = null;
     const prevRaw = new Map(), logs = [], actors = new Map();
     const pushLog = (icon, text) => { const t = ctx.now(); logs.unshift({ t, icon, text }); if (logs.length > 30) logs.pop(); };
+    if (sv.refund != null) {   // 🛒 사장실 상점 환불(#197, 한 번): 기록을 바로 저장
+      saveSoon();
+      /* 첫 출근 로그들에 밀리지 않게 조금 뒤 맨 위에 + 자금 옆 +숫자 */
+      if (sv.refund > 0) ctx.after(3000, () => { pushLog("💰", X(`상점이 🎨 꾸미기로 합쳐져 산 값 +${sv.refund.toLocaleString("en-US")} 환불`, `Shop merged into 🎨 Decorate · refunded +${sv.refund.toLocaleString("en-US")}`)); dcB.float(sv.refund); });
+    }
     const stateAge = () => Math.max(0, ctx.now() - (lastState ? lastState.now : ctx.now()));
 
     /* ---------- 액터 ---------- */
@@ -6461,7 +6463,7 @@ C.registerMode({
     [[8, 60, 70], [34, 150, 56], [18, 250, 80], [12, 420, 64], [46, 330, 48]].forEach(([t, l, w], i) => mkEl("div", "cloud", view, { top: t * 3 + "px", left: l * 2 + "px", width: w + "px", animationDelay: -i * 30 + "s", animationDuration: 90 + i * 35 + "s" }));
     view.insertBefore(sc, null);
     const pwB = powerBig({ spot: id => spB.see(id), doc, win, mkEl, sty, txt, html, X, view, hud, cfg: () => cfg, wear: sid => gaB.wearSid(sid) });   // 전력·날씨
-    const pkB = pokeBig({ ctx, doc, win, mkEl, sty, html, X, view, main: $(".main"), cfg, car, actors, setP, canTerm, clockT, model: () => model, bossAct: () => bossAct, owned: id => owned(id), noPlant: f => dcB.noPlant(f),   // 👆 클릭 반응 (🎨 바닥 2에 소품이 있으면 화분 자리를 비킴)
+    const pkB = pokeBig({ ctx, doc, win, mkEl, sty, html, X, view, main: $(".main"), cfg, car, actors, setP, canTerm, clockT, model: () => model, bossAct: () => bossAct, noPlant: f => dcB.noPlant(f),   // 👆 클릭 반응 (🎨 바닥 2에 소품이 있으면 화분 자리를 비킴)
       vendEl: i => pwB.vendEl(i), vOff: () => pwB.vOff(), scale: () => scaleK, anim: () => animOn(), askb: () => askb, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(),
       resetIn: () => { const l = C.limits(ctx.state, ctx.now()).five; return l && l.reset ? Math.max(0, l.reset - ctx.now()) : null; } });
     const drB = dayrepBig({ ctx, doc, win, mkEl, sty, txt, html, X, view, cfg, saveCfg, clockT, actors, mkActor, setP, put, bubble, tagOn, dropActor, animalOf,   // 📋 퇴근 일보
@@ -6484,7 +6486,7 @@ C.registerMode({
     const napB = napBig({ spot: id => spB.see(id), ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), dark: () => { const p = pwB.phase(); return p === "out" || p === "reset"; },   // 😴 졸음 · 🍱 점심(#106)
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim), snack: (sid, i) => trB.onDesk(sid, i) });
     const evB = eventBig({ ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, model: () => model, scale: () => scaleK, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 🎲 랜덤 이벤트(#100)
-      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), coffee: () => owned("coffee"), out: () => pwB.out(), night: () => pwB.night(), wet: () => pwB.wet(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
+      stop: () => drB.active() || drB.open() || trB.active() || trB.cardOn() || gaB.spinning(), busy: () => gaB.busy(), out: () => pwB.out(), night: () => pwB.night(), wet: () => pwB.wet(), askOn: () => !!askb && askb.style.display !== "none", boss: () => bossAct, ring: () => NX.ring(clockT()),
       can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), kick: () => { if (!animOn()) staticDraw(); },
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); } });
     const spB = spotBig({ ctx, doc, mkEl, sty, html, X, main: $(".main"), clockT, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)),   // 📔 목격 일지(#112)
@@ -6498,7 +6500,6 @@ C.registerMode({
     const bx = (p, x, y, w, h, bg, bd, z) => box(p, x, y, w, h, bg, { border: "3px solid " + (bd || "#4a3560"), zIndex: z || 1 });
     const emo = (p, x, y, size, e, z) => mkEl("div", "b", p, { left: x + "px", top: y + "px", fontSize: size + "px", zIndex: z || 10, lineHeight: 1 }, e);
     const win_ = (f, x, y, w, h) => { const el = bx(f, x, y, w, h, "#9fdcff", "#4a3560", 2); box(f, x + w / 2 + 1, y, 3, h, "#4a3560", { zIndex: 3 }); pwWins.push({ f, x, y, w, h, el, gl: box(f, x + 8, y + 8, 16, 8, "#fff", { zIndex: 3 }) }); return el; };
-    const owned = id => !!sv.shop[id];
 
     function deskFront(f, B, cx, who) {
       const chx = cx - 35, r = { chx, B };
@@ -6523,17 +6524,6 @@ C.registerMode({
       else if (v === 1) { Object.assign(r, { el: bx(F, 24, 26, 76, 96, "#5a6078"), x: 24, y: 26, w: 82, h: 102 }); for (let k = 0; k < 4; k++) { box(F, 30, 34 + k * 21, 64, 13, "#2e3248", { border: "2px solid #1a1a28" }); r.ledC.push(k % 2 ? "#6adf8a" : "#ff6b6b", "#6adf8a"); r.leds.push(box(F, 34, 38 + k * 21, 5, 5, k % 2 ? "#6adf8a" : "#ff6b6b"), box(F, 44, 38 + k * 21, 5, 5, "#6adf8a")); } }
       else { Object.assign(r, { el: bx(F, 24, 30, 70, 92, "#9aa0b8"), x: 24, y: 30, w: 76, h: 98 }); for (let k = 0; k < 3; k++) emo(F, 32, 34 + k * 28, 20, "📚📚📖", 2); }
       return r;
-    }
-    function decorFloor(F, B, boss, meet) {
-      /* 화분·벽시계는 👆 POKE가 도트로 그림(상점 화분 = 큰 화분 · 상점 벽시계 = 금테 시계) */
-      /* 1층 액자·커피머신은 🙈 현관문(DOOR_X) 자리를 비켜 창 아래쪽에 */
-      if (owned("frame")) emo(F, boss ? 292 : 300, boss ? 44 : 40, 30, "🖼️", 3);
-      if (owned("coffee") && !meet) { if (boss) { bx(F, 392, B - 46, 30, 46, "#4a4a62", "#2e2040", 5); box(F, 398, B - 40, 18, 10, "#16213a", { zIndex: 6 }); box(F, 402, B - 24, 10, 10, "#ff6b6b", { zIndex: 6 }); emo(F, 396, B - 70, 18, "☕", 6); } else { bx(F, 286, B - 46, 30, 46, "#4a4a62", "#2e2040", 5); box(F, 292, B - 40, 18, 10, "#16213a", { zIndex: 6 }); box(F, 296, B - 24, 10, 10, "#ff6b6b", { zIndex: 6 }); emo(F, 290, B - 70, 18, "☕", 6); } }
-      if (boss) {
-        if (owned("plush")) emo(F, 40, B - 54, 26, "🧸", 11);
-        if (owned("neon")) mkEl("div", "b nsign", F, { left: "136px", top: "46px", zIndex: 3 }, "OPEN");
-        if (owned("trophy")) emo(F, 138, B - 58, 28, "🏆", 11);
-      }
     }
     /* 엘리베이터 호출 버튼 ▲▼: 그 층에서 기다리는 사람이 있으면 가는 방향이 켜짐 */
     function hallBuild(F, B) { const e = mkEl("div", "b hall", F, { left: "658px", top: (B - 78) + "px" }); return { e, u: mkEl("i", "u", e), d: mkEl("i", "d", e) }; }
@@ -6649,7 +6639,6 @@ C.registerMode({
           r.chx = 98;
           r.door = nxDoorBuild(F, B);   // 🙈 현관문(눈치 모드 퇴장·출근)
           const tg = mkEl("div", "ftag", F); tg.innerHTML = "<b></b><span></span><em></em>"; r.tag = tg;
-          decorFloor(F, B, true, false);
         } else {
           const meet = f && f.layout === "meet", aib = !!(f && !meet && f.aib);
           if (aib) r.aib = aiBoardBuild(F, B);   // ✍️ AI가 쓴 보드가 책장·왼쪽 창 자리를 덮음(회의 보드와 같은 자리)
@@ -6660,7 +6649,6 @@ C.registerMode({
             r.more = mkEl("div", "sign", F, { left: "578px", top: (B - 70) + "px", zIndex: 12, padding: "0 5px" }); r.more.hidden = true;
             r.mb = mkEl("div", "bub mbn", F, { left: "518px", display: "none", zIndex: 26, transform: "none" });   // 왼쪽 = 층 이름표 줄 끝 뒤(placeBabies)
           } else r.desk = deskFront(F, B, 420, f && f.animal);
-          decorFloor(F, B, false, meet);
           if (f) {
             const go = el => { if (canTerm) { el.dataset.act = "jump"; el.dataset.sid = f.sid; el.dataset.jump = f.sid; } return el; };   // 🖥️ 누르면 그 세션으로(일하는 중에도)
             if (!meet) { r.sign = mkSign(F, SIGN_X); r.stp = go(mkEl("div", "b stp", F, { left: "450px", top: (B - 15) + "px", display: "none" })); r.stp.dataset.aicap = f.sid; }   // 책상 앞 단계 명패 "3/5"
@@ -7425,7 +7413,7 @@ C.registerMode({
       w.el = mkEl("div", "b wbx", F, { left: "33px", top: "31px", width: "214px", height: "78px", zIndex: 5, overflow: "hidden" });
       bx(F, 350, B - 22, 270, 10, T.deskTop, "#4a3560", 9); bx(F, 356, B - 13, 258, 13, T.desk, "#4a3560", 9);
       w.dbox = mkEl("div", "b", F, { left: "372px", top: (B - 34) + "px", zIndex: 10 });
-      w.clock = mkEl("div", "b", F, { left: (owned("frame") ? 342 : 300) + "px", top: "26px", width: "30px", height: "30px", borderRadius: "50%", background: "#fff", border: "3px solid #4a3560", zIndex: 3 });
+      w.clock = mkEl("div", "b", F, { left: "300px", top: "26px", width: "30px", height: "30px", borderRadius: "50%", background: "#fff", border: "3px solid #4a3560", zIndex: 3 });
       [[11, 0, 3, 3], [21, 11, 3, 3], [11, 21, 3, 3], [0, 11, 3, 3]].forEach(([x, y, ww, hh]) => box(w.clock, x, y, ww, hh, "#9a8cb0"));   // 눈금 12·3·6·9
       w.hand = box(w.clock, 11, 3, 3, 11, "#2e2040", { transformOrigin: "1px 11px" }); box(w.clock, 11, 11, 3, 3, "#d23a4a");
       w.pb = mkEl("div", "bub", F, { left: "392px", top: "8px", zIndex: 30 });   // 부모 한마디("어, 잉크가…" · "회의 끝! 👏") — 층 위로 잘리지 않게 머리 오른쪽 위
@@ -7641,7 +7629,7 @@ C.registerMode({
       dcB.read(floors, tc, firstSync);   // 🎨 층(프로젝트)이 보임 → 창고 복원·시듦 · 7일 안 온 층은 창고로
       gaB.read(floors);   // 🎰 직원(프로젝트 + 프로바이더) → 착용 액세서리
       evB.read();   // 🎲 만난 종류(다른 창이 쓴 것)
-      const sig = floors.map(f => f.sid + f.layout + (f.aib ? "w" : "")).join(",") + "|" + nSess + "|" + Object.keys(sv.shop).sort().join(",") + "|" + ctx.lang + "|" + dcB.sig();
+      const sig = floors.map(f => f.sid + f.layout + (f.aib ? "w" : "")).join(",") + "|" + nSess + "|" + ctx.lang + "|" + dcB.sig();
       if (sig !== buildSig) { buildSig = sig; build(); }
       if (moreEl) { moreEl.hidden = !model.more; txt(moreEl, X(`+${model.more}명 더`, `+${model.more} more`)); }
       renderHud(); renderSide();
@@ -7740,11 +7728,8 @@ C.registerMode({
       setSec("dex", "dexcard", "").onclick = openDex;
       const dcard = side.querySelector("[data-sec=dex]"); dcard.setAttribute("role", "button"); dcard.tabIndex = 0;
       html(dcard, `<div class="tx">📖 ${X("직원 도감", "Staff dex")}<small>${dc.sp}/${SP.length} · ✨${dc.sh} · <span title="${esc(X("🎲 랜덤 이벤트 · 만난 종류", "🎲 Random events · kinds met"))}" style="white-space:nowrap">🎲${evB.count()}/${EVT.KINDS.length}</span> · <span title="${esc(X("📔 목격 일지 · 처음 본 장면", "📔 Sightings · scenes seen"))}" style="white-space:nowrap">📔${spB.n()}/${spB.total()}</span></small></div><div class="ic">${SP.map(id => { const d = sv.dex[id] || {}, found = d.n || d.s, sp = sprite(doc, BYID[id], { view: "front", legs: "s", eyes: "o", sil: !found, shiny: !d.n && !!d.s, trim: 1 }, 2); return `<span><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px">${d.s ? "<em>✨</em>" : ""}</span>`; }).join("")}</div>`);
-      const lv = lvOf();
-      setSec("shop", "", `<h3><span>🛒 ${X("상점 · 꾸미기", "Shop · decorate")}</span><span>💰 ${sv.funds.toLocaleString("en-US")}</span></h3><div class="shop">${SHOP.map(it => {
-        const own = owned(it.id), locked = lv < it.lv, afford = wallet.can(it.p), nm = it.n[ctx.lang === "en" ? 1 : 0];
-        return `<button class="sb ${own ? "own" : locked || !afford ? "dis" : ""}" type="button" data-act="buy" data-id="${it.id}" ${own ? "disabled" : ""} title="${esc(locked ? X(`스튜디오 Lv.${it.lv}에 열려요`, `Unlocks at studio Lv.${it.lv}`) : "")}">${it.e} ${esc(nm)} <s>${own ? "✓" : locked ? "Lv." + it.lv : "💰" + (it.p >= 1000 ? (it.p / 1000).toFixed(it.p % 1000 ? 1 : 0) + "k" : it.p)}</s></button>`;
-      }).join("")}</div><button type="button" class="sb dcgo" data-act="decor">🎨 ${X("층마다 꾸미기 (프로젝트별 소품)", "Decorate floors (per project)")}</button><div class="tip">${X("꾸미기는 보기용이에요 (기능 없음). 자금은 작업을 잘 마치거나 한도를 아껴 쓸 때 쌓여요.", "Decor is for looks only. Funds grow when you finish work well and pace your limits.")}</div>`);
+      /* 🎨 꾸미기 바로가기(#197: 사장실 상점은 꾸미기로 합침 — 산 값은 SAVE.load에서 돌려줌) */
+      setSec("shop", "", `<h3><span>🎨 ${X("꾸미기", "Decorate")}</span><span>💰 ${sv.funds.toLocaleString("en-US")}</span></h3><button type="button" class="sb dcgo" data-act="decor">🎨 ${X("층 소품 · 간식 · 뽑기 소품", "Floor items · treats · gacha finds")}</button><div class="tip">${X("일을 마치면 자금이 쌓여요. 층 소품, 직원 간식, 1층 뽑기에 써요.", "Finishing work earns funds. Spend them on floor items, staff treats and the gacha on 1F.")}</div>`);
       const stallN = model.all ? model.all.filter(f => f.kind === "stall").length : 0, okMin = Math.floor(okRun / 60);
       setSec("res", "res", `<h3><span>🏆 ${X("오늘의 성과", "Today")}</span></h3><div class="log">
         <div>✅ ${X("완료", "Done")} <b>${st.done_today || 0}</b>${X("건", "")} · ${X("자금", "Funds")} <b>+${sv.day.earned}</b></div>
@@ -7807,7 +7792,6 @@ C.registerMode({
       else if (act === "jump") { if (!drB.active()) pkB.jump(b.dataset.sid); }   // 🖥️ 층 이름표·단계 명패 → 그 세션 (모니터는 POKE 반응만)
       else if (act === "update") { if (ctx.core.update) ctx.core.update.open(); }
       else if (act === "nxdoor") { NX.ring(clockT()); if (soundOk() && cfg.sound) PK.play(ctx.audio(), "bell"); if (!animOn()) staticDraw(); }   // 🙈 현관 종(깨알)
-      else if (act === "buy") { const it = SHOP.find(x => x.id === id); if (it && !owned(id) && lvOf() >= it.lv && wallet.pay(it.p)) { sv.shop[id] = 1; saveSoon(); pushLog("🛒", X(`${it.n[0]} 구입! (보기용)`, `Bought ${it.n[1]}!`)); sync(); } }
       else if (act === "animal") { if (!SP.includes(id) || hire.lockedReal(id)) return;   // 🔒 잠긴 동물은 못 고름
         const i = cfg.animals.indexOf(id), onN = cfg.animals.filter(a => SP.includes(a) && !hire.lockedReal(a)).length;
         if (i >= 0) { if (onN > 1) cfg.animals.splice(i, 1); } else cfg.animals.push(id); saveCfg(); buildSig = ""; sync(); renderDex(); }
