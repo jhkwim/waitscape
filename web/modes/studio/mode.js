@@ -1095,14 +1095,14 @@ function powerMini(h) {
 
 /* ================= 미니 보기 (작은 창: 앱 위젯 창 · 브라우저 Document PiP) =================
    메인 문서가 아닌 곳(ctx.isMain === false)에 올라가면 건물 전체 대신 282×162, 3× 도트의 "로비 카메라"를 그린다.
-   세계 = 방을 세로로 쌓은 기둥(옥상 · 직원 층(3F~) · 2F 회의실 · 1F 사장실, 방마다 282×144). 카메라 = 기둥의 세로 위치 하나(줌 없음, 정수 배율 유지).
+   세계 = 방을 세로로 쌓은 기둥(옥상 · 직원 층(3F~) · 회의실(번호 없음) · 2F 사장실, 방마다 282×144). 카메라 = 기둥의 세로 위치 하나(줌 없음, 정수 배율 유지).
    평소엔 사장실. 이벤트가 나면 그 장소로 가서 담고, 끝나면 사장실로 돌아온다. 우선순위 질문 > 완료 > 출동, 샷마다 최소 체류.
    - 질문: 그 층 클로즈업 + 하단 자막. 7초 넘으면 사장실(대기 시간)과 번갈아. 해결되면 기뻐하는 컷 후 복귀. 직원은 내려오지 않음
    - 완료: 평소엔 사장실에서 바로 보고(직원이 엘리베이터로 내려와 보고 + 사장님 끄덕임)
      큰 완료(실행 BIG_DONE_SEC 이상): 그 층 → 옥상 폭죽 → 사장실(보고 + 사장님 박수)
-   - 출동(서브에이전트): 엘리베이터를 따라가는 샷 → 2F 회의실
+   - 출동(서브에이전트): 엘리베이터를 따라가는 샷 → 회의실
    전환은 ctx.store "lobbyCam": cut(기본, 0.36초 아이리스 · 출동만 따라가는 팬) | pan(모든 이동을 세로 팬, 멀면 중간 층 건너뜀).
-   회의 모드·움직임 줄이기·창 숨김이면 정적(상태만, 효과 없는 컷). 층 번호는 로비 기준(회의실이 2F라 직원은 3F부터, 오래된 세션이 아래).
+   회의 모드·움직임 줄이기·창 숨김이면 정적(상태만, 효과 없는 컷). 층 번호는 큰 화면과 같음(1F 로비 · 2F 사장실 · 직원 3F부터, 오래된 세션이 아래). 미니엔 로비 방이 없고 회의실은 번호 없이 사장실 위(#201, 큰 화면 한 벌로 합칠 때 정리).
    둘러보기(사용자가 직접 층 이동): 휠·트랙패드 세로 스크롤(한 번에 한 층) · 호버 ▲▼ · 키보드 ↑↓(Esc = 자동으로) · 상단 바 상태 점 · "다음" 칩.
    마지막 조작 후 LOOK_SEC 동안은 자동 카메라를 멈춘다(질문·완료는 "다음" 칩에 층과 함께 쌓임). 조작이 없으면 자동 카메라로 돌아가 밀린 이벤트를 처리. */
 function mountLobby(root, ctx) {
@@ -1233,7 +1233,7 @@ function mountLobby(root, ctx) {
     firstSync = false;
     model = { floors: top.map(f => f.kind), dotSids: top.map(f => f.s.sid), staff, bySid, askers, askSet: new Set(askers.map(a => a.sid)), working: list.filter(f => f.kind === "work" || f.kind === "agents").length,
       waiting: askQ(st.sessions, now).length, stall: list.filter(f => f.kind === "stall").length, five: C.limits(st, now).five };
-    staff.forEach(f => wbT.update(f.sid, f.agAll, tc, firstSync, f.animal)); wbT.sweep(tc);   // 🧑‍🏫 2F 회의실 보드 팀
+    staff.forEach(f => wbT.update(f.sid, f.agAll, tc, firstSync, f.animal)); wbT.sweep(tc);   // 🧑‍🏫 회의실 보드 팀
     staff.forEach(f => aiT.update(f.sid, f.aib ? boardOf(f.s) : null, tc, aiFirst0)); aiT.sweep(new Set(staff.map(f => f.sid)));   // ✍️ 그 층 벽 보드
     const sig = staff.map(f => f.sid + f.animal + f.pk + (f.shiny ? "*" : "") + f.project + (f.aib ? "w" : "")).join(",") + "|" + ctx.lang + (cfg.hideText ? "|h" : "") + "|" + dcM.sig();
     if (sig !== buildSig) { buildSig = sig; build(); }
@@ -1273,7 +1273,7 @@ function mountLobby(root, ctx) {
   const RT = r => r * RH;
   const yOfRoom = r => RT(r) + FY - 78;   // 그 방에 선 엘리베이터 카의 월드 y
   const idxOf = key => key === "roof" ? 0 : key === "meet" ? NR - 2 : key === "boss" ? NR - 1 : keyIdx.has(key) ? keyIdx.get(key) : NR - 1;
-  const floorOfIdx = r => NR - r;   // 1F = 맨 아래
+  const floorOfIdx = r => r === NR - 1 ? "2F" : r === NR - 2 ? "회" : (NR - r) + "F";   // 맨 아래 = 2F 사장실(1F 로비는 큰 화면에만) · 회의실은 번호 없음
   function wallRoom(R) {
     const p = R.p;
     box(p, 0, 0, 219, FY, `linear-gradient(var(--wall) 0 ${FY - 36}px,var(--wallLo) ${FY - 36}px)`); box(p, 273, 0, 9, FY, `linear-gradient(var(--wall) 0 ${FY - 36}px,var(--wallLo) ${FY - 36}px)`);
@@ -1352,9 +1352,9 @@ function mountLobby(root, ctx) {
       return { a: actor(p, 5), ch, d, e }; });
     R.yawn = mk("div", "b", p, { display: "none", zIndex: 30, fontSize: "12px", color: "#6a5a88" }, X("하암", "yawn"));
     R.dood = mk("div", "b", p, { zIndex: 5, display: "none" });
-    R.tag.style.background = "#3a6fc8"; txt(R.tag, X("📋 2F · 회의실", "📋 2F · Meeting"));
+    R.tag.style.background = "#3a6fc8"; txt(R.tag, X("📋 회의실", "📋 Meeting"));
   }
-  function bossRoom(R) {   // 1F 사장실 (예전 미니 보기 그대로)
+  function bossRoom(R) {   // 2F 사장실 (예전 미니 보기 그대로)
     const p = R.p; wallRoom(R); desk(R, 0, "#b87a4a", 1);
     box(p, 111, FY - 6, 108, 6, "var(--rug)", { opacity: .55, zIndex: 2 });
     R.plantEl = mk("div", "b emo", p, { left: "126px", top: (FY - 30) + "px", fontSize: "27px", zIndex: 5 }, "🪴");
@@ -1367,7 +1367,7 @@ function mountLobby(root, ctx) {
     R.umb = mk("div", "b", p, { left: "162px", top: (FY - 30) + "px", width: "16px", height: "30px", zIndex: 6, pointerEvents: "none" });
     R.cat = mk("img", "b", p, { display: "none", zIndex: 8, pointerEvents: "none" }); R.cat.alt = ""; R.cat.draggable = false;
     R.beam = mk("div", "b", p, { display: "none", zIndex: 8, pointerEvents: "none", background: "linear-gradient(90deg, rgba(255, 236, 140, .85), rgba(255, 236, 140, 0))", clipPath: "polygon(0 42%, 100% 0, 100% 100%, 0 58%)" });
-    R.tag.style.background = "#34457f"; txt(R.tag, X("🐹 사장실 · 1F", "🐹 Boss · 1F"));
+    R.tag.style.background = "#34457f"; txt(R.tag, X("🐹 사장실 · 2F", "🐹 Boss · 2F"));
   }
   function roofRoom(R) {
     const p = R.p;
@@ -1411,7 +1411,7 @@ function mountLobby(root, ctx) {
     if (cam.beat) cam.beat.y0 = null;
   }
 
-  /* ---------- 엘리베이터: 출동(D)과 완료 보고(V)가 한 대를 번갈아 씀. 쉬는 자리는 1F ---------- */
+  /* ---------- 엘리베이터: 출동(D)과 완료 보고(V)가 한 대를 번갈아 씀. 쉬는 자리는 2F 사장실 ---------- */
   let D = null, V = null;
   const travel = (a, b) => clamp(.4 + .4 * Math.abs(a - b), .8, 2.2);
   function dTimes(d) {   // 출동 타임라인(시안 기준 u: 카 도착 = -0.2)
@@ -1625,8 +1625,8 @@ function mountLobby(root, ctx) {
         const T = dTimes(D), s = tc - D.t0, p = model.bySid.get(D.sid);
         if (!p) return "";
         if (s < T.rideAt) return X(`🤖 ${p.floor}F ${aName(p.animal)}${josa(aName(p.animal), "이", "가")} 서브 ${D.n}명을 출동시켜요`, `🤖 ${p.floor}F ${aName(p.animal)} sends out ${D.n} sub-agent${D.n > 1 ? "s" : ""}`);
-        if (s < T.meetAt) return X(`🛗 ${p.floor}F → 2F 회의실로 내려가요`, `🛗 ${p.floor}F → 2F meeting room`);
-        return wbSub(tc) || X(`📋 2F 회의실 · 서브 회의 ${p.ag.length}명`, `📋 2F meeting · ${p.ag.length} sub-agent${p.ag.length > 1 ? "s" : ""}`);
+        if (s < T.meetAt) return X(`🛗 ${p.floor}F → 회의실로 내려가요`, `🛗 ${p.floor}F → meeting room`);
+        return wbSub(tc) || X(`📋 회의실 · 서브 회의 ${p.ag.length}명`, `📋 Meeting · ${p.ag.length} sub-agent${p.ag.length > 1 ? "s" : ""}`);
       }
     }
     if (V) {
@@ -1638,7 +1638,7 @@ function mountLobby(root, ctx) {
     return "";
   }
 
-  /* ---------- 🧑‍🏫 2F 회의실 화이트보드 (규칙은 WB 블록): 팀 수만큼 보드를 나눔 · 아기는 엘리베이터로 와서 앉고, 팀이 끝나면 지우고 떠남 ---------- */
+  /* ---------- 🧑‍🏫 회의실 화이트보드 (규칙은 WB 블록): 팀 수만큼 보드를 나눔 · 아기는 엘리베이터로 와서 앉고, 팀이 끝나면 지우고 떠남 ---------- */
   const wbLab = t => { const f = model.bySid.get(t.sid); return { em: f ? EMO[f.animal] : "", fl: f ? f.floor + "F" : "", proj: f ? f.project : "", name: f ? aName(f.animal) : "" }; };
   const wbSub = tc => WB.sub(wbT.list().filter(t => model.bySid.has(t.sid)), tc, X, wbLab, !!cfg.hideText);
   function meetSeats(tc) {   // 자리: 1팀 3명 · 2팀 2명씩 · 3팀+ 1명씩(최대 4) — 일하는 아기 먼저
@@ -1829,7 +1829,7 @@ function mountLobby(root, ctx) {
           const s2 = sprOf(f, { seated: 1, arms: "u", eyes: "c" }); show(R.actor, s2, R.x, FY - 12 - MS_UP, { dy: -U });
         } }
     });
-    /* 사장님 (1F) */
+    /* 사장님 (2F) */
     const BR = rooms[NR - 1];
     {
       const alt = shot.k === "askalt", clap = sv && ph === "stay" && sv.big, nod = sv && ph === "stay" && !sv.big;
@@ -1902,7 +1902,7 @@ function mountLobby(root, ctx) {
     rooms.forEach(R => {
       if (!R.lamp || !vis(R)) return;
       const d = cs.y - yOfRoom(R.r), here = Math.abs(d) < RH / 2;
-      txt(R.lamp, pwM.dead() ? "--" : here ? floorOfIdx(R.r) + "F" : d < 0 ? "▲" : "▼");   // 정전 땐 꺼짐
+      txt(R.lamp, pwM.dead() ? "--" : here ? floorOfIdx(R.r) : d < 0 ? "▲" : "▼");   // 정전 땐 꺼짐
       sty(R.lamp, "color", pwM.dead() ? "#5a5070" : here ? "#7dff9c" : "#a99bc8");
     });
     /* 아기(서브에이전트): 출동 샷이면 엘리베이터를 타고 오고, 아니면 회의실(🧑‍🏫 화이트보드 · 자리)에서 */
@@ -2022,7 +2022,7 @@ function mountLobby(root, ctx) {
     if (a === "big") return X("⤢ 큰 화면으로 돌아가기", "⤢ Back to the full window");
     if (a === "close") return X("✕ 닫기", "✕ Close");
     if (a === "up") return b.getAttribute("aria-disabled") === "true" ? X("▲ 맨 위층(옥상)이에요", "▲ Already at the top (roof)") : X("▲ 위층 보기 · 휠·↑ 키도 돼요", "▲ Floor up · wheel or ↑ works too");
-    if (a === "down") return b.getAttribute("aria-disabled") === "true" ? X("▼ 맨 아래층(1F)이에요", "▼ Already at the bottom (1F)") : X("▼ 아래층 보기 · 휠·↓ 키도 돼요", "▼ Floor down · wheel or ↓ works too");
+    if (a === "down") return b.getAttribute("aria-disabled") === "true" ? X("▼ 맨 아래층(2F 사장실)이에요", "▼ Already at the bottom (2F)") : X("▼ 아래층 보기 · 휠·↓ 키도 돼요", "▼ Floor down · wheel or ↓ works too");
     if (a === "dot") { const f = model.bySid.get(b.dataset.sid); return f ? `${f.floor}F ${EMO[f.animal]} ${cut(f.project, 14)} · ${stLabel(f)} — ${X("누르면 이동", "click to go")}` : ""; }
     if (a === "step") { const f = model.bySid.get(b.dataset.sid); return f && f.step ? `✍️ ${f.floor}F ${f.step.step}/${f.step.total} · ${cfg.hideText ? "🤫" : f.title ? cut(f.title, 30) : X("단계 보고", "step report")}` : ""; }
     if (a === "jump") { const f = model.bySid.get(b.dataset.sid); return f ? "🖥️ " + goLabel(f.s, X) : ""; }
@@ -2091,7 +2091,7 @@ function mountLobby(root, ctx) {
   };
 }
 
-/* ================= 🧑‍🏫 회의실 화이트보드 (큰 화면 층 보드 · 로비 2F 회의실 보드 공용) =================
+/* ================= 🧑‍🏫 회의실 화이트보드 (큰 화면 층 보드 · 미니 회의실 보드 공용) =================
    서브에이전트(아기)가 모이면 보드에 팀 이름과 할 일(에이전트당 한 줄)을 적고, 끝나면 ✓, 팀이 다 끝나면 부모가 만세 → 지우개로 지운다.
    - 줄 문구 = agents[].desc(서버 마스킹 · 50자). 비면 type 이름 + 번호("#1 일반 작업"). now.text(지금 도구)는 보드에 안 쓰고 테이블 위 말풍선에만.
    - ✓ = agents[].status "done". 끝낸 아기는 ✉️ 결과 봉투를 들고 부모(보드 앞)에게 종종걸음 → 건네면 테이블 말풍선이 "🐱 📨 오, 고마워!" → 자리로 돌아와
@@ -2295,8 +2295,8 @@ const WB = (() => {
     if (ev.length) return ev.sort((a, b) => b[0] - a[0])[0][1];
     const act = teams.filter(T => T.end == null);
     if (!act.length) return "";
-    if (hide) return X(`📋 2F 회의실 · 🤫 비밀 회의 ${act.length}팀`, `📋 2F meeting · 🤫 ${act.length} secret team${act.length > 1 ? "s" : ""}`);
-    return X("📋 2F 회의실 · ", "📋 2F · ") + act.map(T => { const L = lab(T); return `${L.em} ${L.fl} ${doneN(T, t)}/${T.mem.length}`; }).join(" · ");
+    if (hide) return X(`📋 회의실 · 🤫 비밀 회의 ${act.length}팀`, `📋 Meeting · 🤫 ${act.length} secret team${act.length > 1 ? "s" : ""}`);
+    return X("📋 회의실 · ", "📋 Meeting · ") + act.map(T => { const L = lab(T); return `${L.em} ${L.fl} ${doneN(T, t)}/${T.mem.length}`; }).join(" · ");
   }
 
   /* ---------- ✍️ AI 보드(MCP waitscape_board): 세션별 { key, lines, doneAt[], wt[[쓰기 시작, 걸리는 시간]], end, allAt, ink } ----------
@@ -3301,7 +3301,7 @@ function pokeMini(h) {
 /* ================= 📋 퇴근 일보 (DAYREP: 공용 규칙·카드 DR · 큰 화면 dayrepBig · 미니 보기 dayrepMini. 본체에는 연결 줄만) =================
    데이터 = Core.api.daylog(day) (types/daylog.d.ts, 하루 = 새벽 4시 경계). 화면을 가로채지 않는다: 준비되면 사장님이 종이를 흔들며 알리고, 누르면 발표.
    - 오늘 ready(완료 1건+ · 정오 이후 · 45분 무활동)면 "📋 일보 나왔어요!" → 누르면 "자동 퇴근" 연출(사장님 혼자 불 끄고 발표) → 카드
-   - 🏃 퇴근(HUD) = 바로 "다들 1층으로 모여~" 연출(직원이 없으면 그날 일한 직원이 엘리베이터로 옴) → 카드 · 📋 일보 = 지금까지 일보 카드만
+   - 🏃 퇴근(HUD) = 바로 "다들 사장실로 모여~" 연출(직원이 없으면 그날 일한 직원이 엘리베이터로 옴) → 카드 · 📋 일보 = 지금까지 일보 카드만
    - 고급 옵션 퇴근 시각(cfg.offAt, 기본 끔): 그 시각이 지나면 같은 알림 → "모여~" 연출
    - 다음 날 첫 활동 때 prev.unseen이면 "☀️ 좋은 아침! 어제 일보" 알림 → 어제 카드(출근 장면)
    - 본 일보는 ctx.store("dayrep") = { day, done }로 기억(같은 날 완료 수가 늘지 않으면 다시 알리지 않음), ready인 날은 daylogSeen(day)
