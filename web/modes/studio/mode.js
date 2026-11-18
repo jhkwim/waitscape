@@ -4351,6 +4351,11 @@ function decorBig(h) {
     if (act === "dc-done") return set(false);
     if (act === "dc-gdex") { ui.gdex = !ui.gdex; ui.hold = null; return renderTray(); }
     if (act === "dc-tab" || act === "dc-slot") ui.gdex = false;
+    /* 더 새 버전이 쓴 꾸밈 저장(d.ro)은 저장이 막히므로 사기·되팔기·옮기기도 막는다(#195 — 되팔면 자금만 오르고 소품은 새로고침 때 돌아와 무한 되팔기) */
+    if (d.ro && (act === "dc-buy" || act === "dc-sell" || act === "dc-move" || (act === "dc-slot" && ui.hold))) {
+      ui.hold = null; cap = X("새 버전 앱에서 꾸민 저장이라 이 버전에선 보기만 돼요 · 앱을 업데이트하면 다시 꾸밀 수 있어요", "Decor was saved by a newer version · view only here, update the app to edit");
+      return renderTray();
+    }
     if (act === "dc-tab") { if (ui.p !== b.dataset.p) { ui.p = b.dataset.p; ui.slot = null; } }
     else if (act === "dc-slot") {
       const p = b.dataset.p, sl = b.dataset.slot;
@@ -6212,6 +6217,8 @@ C.registerMode({
     const DEF = () => ({ funds: 0, earned: 0, dones: {}, dex: {}, shop: {}, rep: {}, tok: { avg: 0, n: 0 }, paid: {}, day: { d: ymd(), earned: 0 }, paceSecs: 0, combo: 0 });
     const readJson = (k, d) => { try { const j = JSON.parse(ctx.store.get(k, "") || "null"); return j && typeof j === "object" ? j : d; } catch { return d; } };
     const sv = Object.assign(DEF(), readJson("save", {}));
+    /* 누적 완료 수(스튜디오 Lv 기준, #195): sv.dones는 세션 200개로 잘려 합계가 줄 수 있으므로 줄지 않는 값을 따로 둔다. 옛 저장은 지금 합계로 시작 */
+    sv.doneN = Math.max(Number.isFinite(sv.doneN) ? sv.doneN : 0, Object.values(sv.dones || {}).reduce((t, n) => t + (+n || 0), 0));
     const cfgJ = readJson("cfg", null);   // rv: 👔 동물 목록 버전(2 = 새 캐릭터 4종 이후) — 그 전 저장이면 새 캐릭터를 켠 것으로(HIRE.normCfg)
     const cfg = HIRE.normCfg(Object.assign({ animals: SP.slice(), fixed: null, sound: true, frags: true, weather: false, hideText: false, rv: cfgJ ? 0 : 2 }, cfgJ || {}));   // hideText: 🤫 프로젝트·작업 문구 숨김(미니 보기도 같은 cfg)
     if (!cfg.animals.some(a => SP.includes(a))) cfg.animals = SP.slice();
@@ -7469,8 +7476,7 @@ C.registerMode({
     /* ---------- 데이터 → 모델 → 보상 ---------- */
     const lastActTs = new Map(), prevStall = new Map(), askSince = new Map(), askGuess = new Set();
     let lastTick = 0, okRun = 0, startedAt = ctx.now();
-    const totalDones = () => Object.values(sv.dones).reduce((t, n) => t + n, 0);
-    const lvOf = () => 1 + Math.floor(Math.sqrt(totalDones() / 2));
+    const lvOf = () => 1 + Math.floor(Math.sqrt(sv.doneN / 2));   // 줄지 않는 누적 완료 수(#195) — 오래된 세션 기록이 지워져도 Lv가 내려가지 않음
     const lvEmp = n => { const lv = 1 + Math.floor(Math.sqrt(n)); const lo = (lv - 1) ** 2, hi = lv * lv; return { lv, pct: Math.round((n - lo) / (hi - lo) * 100) }; };
     const prune = (o, max) => { const k = Object.keys(o); if (k.length > max) k.slice(0, k.length - max).forEach(x => delete o[x]); };
 
@@ -7482,7 +7488,7 @@ C.registerMode({
       let amt = earnOf(s), bonus = false;
       const tk = s.tokens && s.tokens.total;                   // 토큰을 많이 쓴다고 보상은 없다. 평소보다 적게 썼을 때만 +5
       if (tk > 0) { if (sv.tok.n >= 3 && tk < sv.tok.avg) { amt += 5; bonus = true; } sv.tok.avg = (sv.tok.avg * sv.tok.n + tk) / (sv.tok.n + 1); sv.tok.n = Math.min(sv.tok.n + 1, 60); }
-      sv.funds += amt; sv.earned += amt; sv.day.earned += amt; sv.dones[f.sid] = (sv.dones[f.sid] || 0) + 1; prune(sv.dones, 200);
+      sv.funds += amt; sv.earned += amt; sv.day.earned += amt; sv.dones[f.sid] = (sv.dones[f.sid] || 0) + 1; sv.doneN++; prune(sv.dones, 200);
       const a = actors.get(f.sid);
       if (a) { a.launchStart = tc; a.launchUntil = tc + 4.5; fx = { sid: f.sid, amt, big, base: EARN.done, bonus: amt - (bonus ? 5 : 0) - EARN.done, tok: bonus }; }
       dcB.earn(f, amt, tc);   // 🎨 자금 옆 +n · 시든 화분에 물
