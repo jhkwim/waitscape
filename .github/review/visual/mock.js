@@ -29,6 +29,7 @@
     add("1d18e2", "waitscape", "claude", "working", { started: T0 - 1520, since: T0 - 1520, ctx: 87, activity: [{ icon: "✏️", text: "web/modes/studio/mode.js 수정", ts: now - 3 }] });
     add("4ddee2", "api-server", "codex", "working", { started: T0 - 760, since: T0 - 760, ctx: 54, activity: [{ icon: "⚡", text: "cargo test --workspace", ts: now - 2 }] });
     add("1000e2", "docs", "gemini", "done", { started: T0 - 562, since: T0 - 150, run: 412 });
+    if (q.has("many")) for (let i = 0; i < (+q.get("many") || 8); i++) add("7a" + String(i).padStart(4, "0"), "proj-" + (i + 1), ["claude", "codex", "gemini"][i % 3], "working", { started: T0 - 300 - i * 40, since: T0 - 300 - i * 40, ctx: 20 + i * 5 });   // ?many=N: 일하는 세션 N개 더(층 수 설정 #201)
     if (q.has("answer")) { const x = S.find(x => x.sid === "8bbce2"), qa = T0 + 2, an = qa + +q.get("answer"); Object.assign(x, now < qa ? { status: "working", since: T0 - 30 } : now < an ? { status: "needs_input", since: qa } : { status: "working", since: an }); }   // ?answer=N: 일하다 2초 뒤 질문 → N초 뒤 답함(N ≤ 60이면 ⚡ 빠른 답장)
     if (q.has("team")) {   // ?team=N: 1d18e2가 서브에이전트 3명과 회의 → #1이 페이지를 연 뒤 N초에 끝남(✉️ 결과 봉투 전달, 소수 가능) · &all=1이면 셋 다 N초 간격으로 끝남(만세까지)
       const x = S.find(x => x.sid === "1d18e2"), n = +q.get("team") || 3, all = q.has("all");
