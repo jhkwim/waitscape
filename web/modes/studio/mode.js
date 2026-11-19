@@ -4476,6 +4476,7 @@ function eventBig(h) {
   const night = () => HABIT.isNight(ctx.now()) || (h.night() || 0) > .5;
   /* 하늘 자리(view 크기 · 건물 .sc 위치): 나올 때와 창 크기가 바뀔 때만 잼(매 프레임 레이아웃을 읽지 않게) */
   let geo = null;
+  let skyP = null;   // 하늘 이벤트 판(.vpin.back) — 큰 화면 첫 layout 뒤에 생김
   function measure() { const S = view.querySelector(".sc"); geo = { vw: view.clientWidth, vh: view.clientHeight, l: S ? S.offsetLeft - view.scrollLeft : 0, w: S ? S.offsetWidth : 0, top: S ? S.offsetTop - view.scrollTop : 120 }; }   // 창 기준(하늘 이벤트는 스크롤 밖 .vpin.back 판 · #201)
   function resize() { if (E && (E.k === "balloon" || E.k === "star")) { measure(); E.bx = null; } }   // 풍선은 새 크기에서 빈 하늘을 다시 고름
   /* 🖨️ 프린터 자리(층 x 왼쪽): 창 아래 262~304 */
@@ -4692,7 +4693,7 @@ function eventBig(h) {
       }
     }
     if (!E) return;
-    const sky = E.k === "balloon" || E.k === "star", par = sky ? (view.parentNode.querySelector(":scope>.vpin.back") || view) : E.k === "pizza" ? G.F1 && G.F1.F : E.k === "box" ? G.LB && G.LB.F : (G.fl.find(f => f.sid === E.sid) || {}).F;
+    const sky = E.k === "balloon" || E.k === "star", par = sky ? (skyP || (skyP = view.parentNode.querySelector(":scope>.vpin.back")) || view) : E.k === "pizza" ? G.F1 && G.F1.F : E.k === "box" ? G.LB && G.LB.F : (G.fl.find(f => f.sid === E.sid) || {}).F;
     if (!par) return end();   // 그 층이 사라짐(직원 퇴근 등)
     if (!E.dom || E.dom.par !== par) { unmk(E); E.dom = mk(par, sky); }
     if (E.dom.lang !== ctx.lang) { E.dom.lang = ctx.lang; E.dom.hit.title = V.ICON[E.k] + " " + nm(E.k) + X(" · 눌러 보세요", " · click me"); E.dom.hit.setAttribute("aria-label", E.dom.hit.title); }   // 언어가 바뀌면 다시
@@ -5301,7 +5302,7 @@ C.registerMode({
       layout();
     }
 
-    const vbgFit = () => { if (mini) return; if (view.scrollLeft && sc.offsetWidth <= view.clientWidth) view.scrollLeft = 0;   // 가로가 들어가면 0으로(배경 층이 따라가며 스스로 넘침을 만들지 않게)
+    const vbgFit = () => { if (mini) return; const mxL = Math.max(0, sc.offsetLeft + sc.offsetWidth - view.clientWidth); if (view.scrollLeft > mxL) view.scrollLeft = mxL;   // 건물 기준 최대로 자름(배경 층이 따라가며 스스로 넘침을 붙잡지 않게 · 창을 넓힐 때도)
       vScroll(); vpinFit(); sty(vbg, "height", Math.max(view.clientHeight, sc.offsetTop + sc.offsetHeight + 30) + "px"); };   // 30 = .sc 아래 여백(땅)
     const vScroll = () => sty(vbg, "left", view.scrollLeft + "px");
     if (!mini) ctx.listen(view, "scroll", vScroll, { passive: true });
@@ -5309,7 +5310,7 @@ C.registerMode({
     let vpinB = null, vpin = null;
     const vpinFit = () => {
       if (mini) return;
-      if (!vpin) { const mn = view.parentNode; vpinB = mkEl("div", "vpin back"); vpin = mkEl("div", "vpin"); mn.insertBefore(vpinB, view); mn.insertBefore(vpin, view.nextSibling);
+      if (!vpin) { const mn = view.parentNode; vpinB = mkEl("div", "vpin back"); vpin = mkEl("div", "vpin"); mn.insertBefore(vpinB, view.nextSibling); mn.insertBefore(vpin, vpinB.nextSibling);   // back은 z 0: 하늘 소품(.vbg) 위, 건물(.sc z 1) 뒤
         view.querySelectorAll(":scope>.vstick").forEach(e => (e.classList.contains("pw-wx") ? vpinB : vpin).appendChild(e)); }
       [vpinB, vpin].forEach(p => { sty(p, "left", view.offsetLeft + "px"); sty(p, "top", view.offsetTop + "px"); sty(p, "width", view.clientWidth + "px"); sty(p, "height", view.clientHeight + "px"); });
     };
