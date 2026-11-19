@@ -5622,6 +5622,13 @@ C.registerMode({
 
     /* ---------- 한 프레임 그리기 ---------- */
     const STAT_COL = { ask: "#e8a020", stall: "#c85a5a", work: "#3fa35a", agents: "#4a8ae8", done: "#ff6b8a", idle: "#8a7aa0", away: "#8a7aa0", meet: "#4a8ae8", slow: "#d8902a" };
+    const GAG = [   // 🏗️ 직원 층이 많아지면 사장님 아재 개그(층 수 설정 #201) — 8층 이상으로 늘 때, 5분에 한 번
+      ["건물을 한 채 더 사야 하나~ 넓혀야 하나~ 🏗️", "Buy another building~ or just widen this one~ 🏗️"],
+      ["오늘은 다들 출근해서 '층'분하네! 😎", "Full house! We're really floor-ing it 😎"],
+      ["올라갈수록 '층'성심이 높아지는구먼 ㅎㅎ", "The higher the floor, the higher the loyal-tea ☕"],
+      ["이러다 엘리베이터가 먼저 퇴근하겠어~ 🛗", "The elevator might clock out before us~ 🛗"],
+    ];
+    let gag = null, gagN = 0, gagT = -1e9, gagI = 0;
     let bossAct = null, fx = { sid: null, amt: 0 }, qfx = null;   // qfx: ⚡ 빠른 답장 { sid, t0, txt }
     const ensureBoss = () => {
       const l = X("사장님 (나)", "Boss (me)");
@@ -5743,6 +5750,10 @@ C.registerMode({
       if (cheer && tc - bossFree < .4) { cheer.held = cheer.held || tc; cheer.t0 = tc; if (tc - cheer.held > 60) cheer = null; }
       if (cheer && tc - cheer.t0 >= CHEER_SEC) cheer = null;
       const ch = !bossBusy && tc - bossFree >= .4 ? cheer : null;
+      if (anim && n >= 8 && n > gagN && tc - gagT > 300 && !bossBusy) { gag = { t0: tc, i: gagI++ % GAG.length }; gagT = tc; }   // 🏗️ 층이 8개 이상으로 늘면
+      if (n !== gagN && (n < gagN || n < 8 || !bossBusy)) gagN = n;   // 사장실이 바쁠 때 늘면 한가해질 때까지 기다림
+      if (gag && (tc - gag.t0 > 4.5 || !anim || bossBusy)) gag = null;
+      const gagS = gag && !ch && !trB.bossSay(tc) ? X(...GAG[gag.i]) : "";
       const bAway = !DRon && trB.bossAway(tc);   // 👔 사장님이 회식하러 옥상에(사장실이 바빠지면 바로 돌아옴)
       if (DRon) drB.boss(boss, bf, T, tc, ph);
       else if (bAway) trB.boss(boss, bf, T, tc, ph, n);
@@ -5761,6 +5772,10 @@ C.registerMode({
         setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: anim && Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
         boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(trB.bossSay(tc)), true);
       }
+      else if (gagS && !thanker) {   // 🏗️ 아재 개그(머리 긁적)
+        setP(boss, { view: "front", seated: 1, legs: "s", eyes: Math.floor(tc * 2) % 2 ? "c" : "o", mouth: "o", arms: Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
+        boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(gagS), true);
+      }
       else if (thanker) { setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: "u" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: -ph.hop * 10 }); tagOn(boss, false); boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); bubble(boss, "✅ " + X("확인!", "Got it!"), true); }
       else {
         // 전력·날씨 연출(정전·리셋 말풍선)이 먼저, 없을 때 새 버전 알림(앱) → 누르면 업데이트 대화상자 (설치는 거기서 누를 때만)
@@ -5775,7 +5790,7 @@ C.registerMode({
         else bubble(boss, pq && pq.say || "", !!(pq && pq.say));
       }
       if (DRon || bAway) pkB.bossPaws(false);
-      else pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc));   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
+      else pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc) || !!gagS);   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
       if (!bAway) drB.paper(boss, bf, T, anim);   // 📋 알림 중이면 종이를 흔듦
       /* 질문 말풍선 (층 위로 넘칠 수 있게 건물 위에 직접) */
       const askL = asker && !DRon ? Math.round(asker.x + 6 - asker.w / 2 - 14 - 290) : null;   // 질문 말풍선 왼쪽 끝(폭 290)
