@@ -5750,10 +5750,11 @@ C.registerMode({
       if (cheer && tc - bossFree < .4) { cheer.held = cheer.held || tc; cheer.t0 = tc; if (tc - cheer.held > 60) cheer = null; }
       if (cheer && tc - cheer.t0 >= CHEER_SEC) cheer = null;
       const ch = !bossBusy && tc - bossFree >= .4 ? cheer : null;
-      if (anim && n >= 8 && n > gagN && tc - gagT > 300 && !bossBusy) { gag = { t0: tc, i: gagI++ % GAG.length }; gagT = tc; }   // 🏗️ 층이 8개 이상으로 늘면
-      if (n !== gagN && (n < gagN || n < 8 || !bossBusy)) gagN = n;   // 사장실이 바쁠 때 늘면 한가해질 때까지 기다림
-      if (gag && (tc - gag.t0 > 4.5 || !anim || bossBusy)) gag = null;
-      const gagS = gag && !ch && !trB.bossSay(tc) ? X(...GAG[gag.i]) : "";
+      const gagHold = !anim || bossBusy || !!ch || !!trB.bossSay(tc);   // 멈춤·사장실이 바쁨·다른 말풍선 → 한가해질 때까지 기다림(쿨타임도 안 씀)
+      if (!gagHold && n >= 8 && n > gagN && tc - gagT > 300) { gag = { t0: tc, i: gagI++ % GAG.length }; gagT = tc; }   // 🏗️ 층이 8개 이상으로 늘면
+      if (n !== gagN && (n < gagN || n < 8 || !gagHold)) gagN = n;
+      if (gag && (tc - gag.t0 > 4.5 || gagHold)) gag = null;
+      const gagS = gag ? X(...GAG[gag.i]) : "";
       const bAway = !DRon && trB.bossAway(tc);   // 👔 사장님이 회식하러 옥상에(사장실이 바빠지면 바로 돌아옴)
       if (DRon) drB.boss(boss, bf, T, tc, ph);
       else if (bAway) trB.boss(boss, bf, T, tc, ph, n);
