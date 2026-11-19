@@ -5305,7 +5305,7 @@ C.registerMode({
     const vbgFit = () => { if (mini) return; const mxL = Math.max(0, sc.offsetLeft + sc.offsetWidth - view.clientWidth); if (view.scrollLeft > mxL) view.scrollLeft = mxL;   // 건물 기준 최대로 자름(배경 층이 따라가며 스스로 넘침을 붙잡지 않게 · 창을 넓힐 때도)
       vScroll(); vpinFit(); sty(vbg, "height", Math.max(view.clientHeight, sc.offsetTop + sc.offsetHeight + 30) + "px"); };   // 30 = .sc 아래 여백(땅)
     const vScroll = () => sty(vbg, "left", view.scrollLeft + "px");
-    if (!mini) ctx.listen(view, "scroll", vScroll, { passive: true });
+    if (!mini) ctx.listen(view, "scroll", () => { edgeAsk(clockT(), drB.active(), true); vScroll(); }, { passive: true });
     /* 창에 붙는 것(.vstick: 비·눈 캔버스 · 일보 화면·건너뛰기)은 스크롤 밖 .main의 판(vpinB 건물 뒤 · vpin 위)으로 옮겨 view 자리에 맞춤 — 스크롤 영역을 늘리지 않게 */
     let vpinB = null, vpin = null;
     const vpinFit = () => {
@@ -5314,6 +5314,22 @@ C.registerMode({
         view.querySelectorAll(":scope>.vstick").forEach(e => (e.classList.contains("pw-wx") ? vpinB : vpin).appendChild(e)); }
       [vpinB, vpin].forEach(p => { sty(p, "left", view.offsetLeft + "px"); sty(p, "top", view.offsetTop + "px"); sty(p, "width", view.clientWidth + "px"); sty(p, "height", view.clientHeight + "px"); });
     };
+    /* ❓ 화면 밖 질문자 표시(#201): 스크롤로 안 보이는 입력 필요 직원이 있으면 그쪽 가장자리에 칩 · 누르면 가장 가까운 사람 층으로 */
+    let eaT = -1, ea = null;
+    const edgeAsk = (tc, off, force) => { if (mini || (!force && tc - eaT < .2)) return; eaT = tc;
+      off = off || !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on));   // 🙈 눈치 모드(퇴근 연출 포함)엔 숨김
+      if (!ea) { vpinFit(); ea = { up: mkEl("button", "tbtn ea up", vpin), dn: mkEl("button", "tbtn ea dn", vpin) }; ea.up.dataset.act = ea.dn.dataset.act = "edgeask"; }
+      const up = [], dn = [], th = dcB.trayH();   // 🎨 꾸미기 판이 열려 있으면 그 아래부터가 보이는 곳
+      if (!off && model && view.scrollHeight > view.clientHeight + 1) { const vr = view.getBoundingClientRect(), vt = vr.top + th;
+        model.floors.forEach(f => { const a = f.kind === "ask" && actors.get(f.sid); if (!a || !a.el || !a.el.isConnected) return;
+          const r = a.el.getBoundingClientRect(); if (!r.height) return; const o = { y: view.scrollTop + (r.top + r.bottom) / 2 - vr.top, boss: a.loc === "boss" };
+          if (r.bottom < vt + 12) up.push(o); else if (r.top > vr.bottom - 12) dn.push(o); }); }
+      sty(ea.up, "top", (th + 6) + "px");
+      [[ea.up, up, "▲", (p, q) => q.y > p.y], [ea.dn, dn, "▼", (p, q) => q.y < p.y]].forEach(([b, os, ar, nearer]) => { b.hidden = !os.length; if (!os.length) return;
+        const o = os.reduce((p, q) => nearer(p, q) ? q : p); b.dataset.y = String(Math.round(o.y));   // 가장 가까운 사람 · 글도 그 사람 기준
+        const t = ar + " " + (o.boss ? "💬 " + X("질문 중", "Asking") : "❓ " + X("입력 필요", "Needs input")) + (os.length > 1 ? " " + os.length : "");
+        if (b.textContent !== t) { b.textContent = t; b.title = X("눌러서 그 층 보기", "Click to scroll there"); } }); };
+    let vH = 0;   // 지난 layout 때 창(.view) 높이
     let zoomCenter = false;   // 🔍 1배를 켜고 끌 때 가로 가운데로
     function layout() {
       if (mini) return miniLayout();
@@ -5328,8 +5344,9 @@ C.registerMode({
       let k = cfg.zoom1 ? 1 : [3, 2, 1.5, 1.25, 1, .75, .5].find(s => s * ws <= W && s * hs <= H + 24);   // 🔍 1배 고정이면 넘치는 만큼 가로·세로 스크롤
       if (!k) k = Math.max(.5, Math.min(W / ws, H / hs));   // 층이 많아도 0.5배 밑으로는 안 줄이고 세로 스크롤 (#201)
       const sw = Math.round(ws * k) + "px", sh = Math.round(hs * k) + "px";
-      if (sc.style.width !== sw || sc.style.height !== sh) {   // 크기가 바뀌면 아래(사장실·로비) 기준으로 스크롤 자리를 지킴 — 처음엔 맨 아래
-        const fromBot = sc.style.width ? view.scrollHeight - view.scrollTop - view.clientHeight : 0;   // 처음(아직 안 줄인 건물 높이)은 맨 아래
+      if (sc.style.width !== sw || sc.style.height !== sh || view.clientHeight !== vH) {   // 건물·창 높이가 바뀌면 아래(사장실·로비) 기준으로 스크롤 자리를 지킴 — 처음엔 맨 아래(HUD 줄바꿈으로 창 높이만 줄어도)
+        const fromBot = sc.style.width && vH ? view.scrollHeight - view.scrollTop - vH : 0;   // 처음(아직 안 줄인 건물 높이)은 맨 아래 · 옛 창 높이 기준
+        vH = view.clientHeight;
         sty(sc, "width", sw); sty(sc, "height", sh); vbgFit();   // 배경 층 높이부터(줄일 때 옛 높이가 스크롤 길이를 붙잡지 않게)
         view.scrollTop = view.scrollHeight - view.clientHeight - Math.max(0, fromBot);
         if (zoomCenter) { zoomCenter = false; if (sc.offsetWidth > view.clientWidth) view.scrollLeft = Math.round(sc.offsetLeft + sc.offsetWidth / 2 - view.clientWidth / 2); }   // 건물 가운데
@@ -5861,6 +5878,7 @@ C.registerMode({
       evB.frame(T, tc, anim);   // 🎲 랜덤 이벤트(25~50분마다 하나)
       spB.frame(T, tc, anim);   // 📔 새 목격 토스트
       if (mini) camApply(anim ? dt : null);   // 📌 미니 보기 2: 자동 카메라가 직원을 따라감
+      else edgeAsk(tc, DRon, !anim);   // ❓ 화면 밖 질문자 칩(정적 그리기는 드물어서 매번)
     }
 
     /* 한 층의 동물 놓기 — 반환 { babies } */
@@ -6560,6 +6578,7 @@ C.registerMode({
       else if (act === "decor") { side.classList.remove("on"); dcB.tap("dc-toggle", b); }   // 좁은 창: 열린 패널(z 150)이 꾸미기 판(z 80)을 덮지 않게 닫고 엶
       else if (act.startsWith("ga-")) gaB.tap(act, b);   // 🎰 뽑기 판 · 👒 착용
       else if (act.startsWith("dc-")) dcB.tap(act, b);   // 🎨 층 탭·칸·소품 카드·옮기기·되팔기
+      else if (act === "edgeask") { const th = dcB.trayH(); view.scrollTo({ top: Math.max(0, +b.dataset.y - th - (view.clientHeight - th) / 2), behavior: animOn() ? "smooth" : "auto" }); }   // 꾸미기 판 아래 보이는 곳 가운데 · 움직임 줄이기·🤫 회의 모드면 바로   // ❓ 그 층이 화면 가운데로
       else if (act === "zoom1") { cfg.zoom1 = !cfg.zoom1 || undefined; saveCfg(); zoomCenter = true; layout(); renderHud(); if (!animOn()) staticDraw(); }
       else if (act === "sound") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); if (cfg.sound) ctx.audio(); }
       else if (act === "quiet") ctx.settings.setQuiet && ctx.settings.setQuiet(!ctx.settings.quiet);

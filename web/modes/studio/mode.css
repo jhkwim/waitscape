@@ -660,3 +660,14 @@ body[data-mode="studio"] .stu.mini2 .m2h button { height: 14px; min-width: 18px;
 body[data-mode="studio"] .stu.mini2 .m2h button.on { background: #ffd23f; }
 body[data-mode="studio"] .stu.mini2 .view { position: fixed; inset: 18px 0 0 0; padding: 0; overflow: hidden; touch-action: none; cursor: grab; }
 body[data-mode="studio"] .stu.mini2 .sc { margin: 0; overflow: visible; }
+/* ❓ 화면 밖 질문자 칩(#201): 스크롤로 안 보이는 질문자 쪽 가장자리 가운데 · 누르면 그 층으로 (시안 A · 에이전트 검토로 고름) */
+body[data-mode="studio"] .stu .vpin > .ea { position: absolute; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; height: 30px; font-size: 12px; padding: 0 12px; background: #ffc83a; pointer-events: auto; cursor: pointer; z-index: 5; box-shadow: 3px 3px 0 rgba(0, 0, 0, .35); animation: stu-ea 1.6s steps(2) infinite; }
+body[data-mode="studio"] .stu .vpin > .ea:hover { margin-top: -1px; }
+body[data-mode="studio"] .stu .vpin > .ea.up { top: 6px; }
+body[data-mode="studio"] .stu .vpin > .ea.dn { bottom: 6px; animation-name: stu-ea-dn; }
+body[data-mode="studio"] .stu .vpin > .ea[hidden] { display: none; }
+@keyframes stu-ea { 50% { translate: 0 -2px; } }
+@keyframes stu-ea-dn { 50% { translate: 0 2px; } }
+@media (prefers-reduced-motion: reduce) { body[data-mode="studio"] .stu .vpin > .ea { animation: none; } }
+body.quiet[data-mode="studio"] .stu .vpin > .ea { animation: none; }   /* 🤫 회의 모드도 멈춤 */
+body[data-mode="studio"] .stu.tiny .vpin > .ea.dn { bottom: 46px; }   /* 좁은 창: 📌 미니 보기 버튼 위로 */
