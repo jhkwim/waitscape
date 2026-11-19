@@ -5305,7 +5305,7 @@ C.registerMode({
     const vbgFit = () => { if (mini) return; const mxL = Math.max(0, sc.offsetLeft + sc.offsetWidth - view.clientWidth); if (view.scrollLeft > mxL) view.scrollLeft = mxL;   // 건물 기준 최대로 자름(배경 층이 따라가며 스스로 넘침을 붙잡지 않게 · 창을 넓힐 때도)
       vScroll(); vpinFit(); sty(vbg, "height", Math.max(view.clientHeight, sc.offsetTop + sc.offsetHeight + 30) + "px"); };   // 30 = .sc 아래 여백(땅)
     const vScroll = () => sty(vbg, "left", view.scrollLeft + "px");
-    if (!mini) ctx.listen(view, "scroll", () => { vScroll(); edgeAsk(clockT(), drB.active(), true); }, { passive: true });
+    if (!mini) ctx.listen(view, "scroll", () => { edgeAsk(clockT(), drB.active(), true); vScroll(); }, { passive: true });
     /* 창에 붙는 것(.vstick: 비·눈 캔버스 · 일보 화면·건너뛰기)은 스크롤 밖 .main의 판(vpinB 건물 뒤 · vpin 위)으로 옮겨 view 자리에 맞춤 — 스크롤 영역을 늘리지 않게 */
     let vpinB = null, vpin = null;
     const vpinFit = () => {
@@ -6577,7 +6577,7 @@ C.registerMode({
       else if (act === "decor") { side.classList.remove("on"); dcB.tap("dc-toggle", b); }   // 좁은 창: 열린 패널(z 150)이 꾸미기 판(z 80)을 덮지 않게 닫고 엶
       else if (act.startsWith("ga-")) gaB.tap(act, b);   // 🎰 뽑기 판 · 👒 착용
       else if (act.startsWith("dc-")) dcB.tap(act, b);   // 🎨 층 탭·칸·소품 카드·옮기기·되팔기
-      else if (act === "edgeask") view.scrollTo({ top: Math.max(0, +b.dataset.y - view.clientHeight / 2), behavior: animOn() ? "smooth" : "auto" });   // 움직임 줄이기·🤫 회의 모드면 바로   // ❓ 그 층이 화면 가운데로
+      else if (act === "edgeask") { const th = dcB.trayH(); view.scrollTo({ top: Math.max(0, +b.dataset.y - th - (view.clientHeight - th) / 2), behavior: animOn() ? "smooth" : "auto" }); }   // 꾸미기 판 아래 보이는 곳 가운데 · 움직임 줄이기·🤫 회의 모드면 바로   // ❓ 그 층이 화면 가운데로
       else if (act === "zoom1") { cfg.zoom1 = !cfg.zoom1 || undefined; saveCfg(); zoomCenter = true; layout(); renderHud(); if (!animOn()) staticDraw(); }
       else if (act === "sound") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); if (cfg.sound) ctx.audio(); }
       else if (act === "quiet") ctx.settings.setQuiet && ctx.settings.setQuiet(!ctx.settings.quiet);
