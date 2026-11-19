@@ -5877,7 +5877,7 @@ C.registerMode({
       evB.frame(T, tc, anim);   // 🎲 랜덤 이벤트(25~50분마다 하나)
       spB.frame(T, tc, anim);   // 📔 새 목격 토스트
       if (mini) camApply(anim ? dt : null);   // 📌 미니 보기 2: 자동 카메라가 직원을 따라감
-      else edgeAsk(tc, DRon);   // ❓ 화면 밖 질문자 칩
+      else edgeAsk(tc, DRon, !anim);   // ❓ 화면 밖 질문자 칩(정적 그리기는 드물어서 매번)
     }
 
     /* 한 층의 동물 놓기 — 반환 { babies } */
