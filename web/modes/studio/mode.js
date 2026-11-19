@@ -353,7 +353,8 @@ const HIRE = (() => {
 })();
 
 /* ================= 모드 ================= */
-const MAXF = 6;          // 최대 직원 층 수 (사장실·로비 제외)
+const MAXF = 6;          // 보이는 직원 층 수 기본값 (사장실·로비 제외) · ⚙ 설정에서 FLOORS_MIN~FLOORS_MAX
+const FLOORS_MIN = 3, FLOORS_MAX = 10;
 const E_X = 723;         // 엘리베이터 문 앞 x (카 안 = 이 자리에서 타고 내림)
 const ASK_X = 598;       // 사장님 앞에서 질문하는 자리
 /* 엘리베이터 기다리는 자리(질문하러 갈 때·🙈 눈치 모드 퇴장·출근 모두 같은 규칙): 자기 층 바닥, 통로 왼쪽에서 엘리베이터 쪽을 보고 선다.
@@ -4850,6 +4851,7 @@ C.registerMode({
     const saveSoon = () => { dirty = true; };
     const wallet = SAVE.wallet(sv, saveSoon);   // 💰 자금은 이 지갑으로만 바꾼다(#197)
     const flush = () => { if (!dirty || sv.ro) return; dirty = false; try { ctx.store.set("save", JSON.stringify(sv)); } catch {} };
+    const maxF = () => { const v = Math.round(+cfg.floors); return v >= FLOORS_MIN && v <= FLOORS_MAX ? v : MAXF; };   // 🏢 보이는 직원 층 수
     const saveCfg = () => { try { ctx.store.set("cfg", JSON.stringify(cfg)); } catch {} };
     if (sv.day.d !== ymd()) sv.day = { d: ymd(), earned: 0 };
 
@@ -5620,11 +5622,19 @@ C.registerMode({
 
     /* ---------- 한 프레임 그리기 ---------- */
     const STAT_COL = { ask: "#e8a020", stall: "#c85a5a", work: "#3fa35a", agents: "#4a8ae8", done: "#ff6b8a", idle: "#8a7aa0", away: "#8a7aa0", meet: "#4a8ae8", slow: "#d8902a" };
+    const GAG = [   // 🏗️ 직원 층이 많아지면 사장님 아재 개그(층 수 설정 #201) — 8층 이상으로 늘 때, 5분에 한 번
+      ["건물을 한 채 더 사야 하나~ 넓혀야 하나~ 🏗️", "Buy another building~ or just widen this one~ 🏗️"],
+      ["오늘은 다들 출근해서 '층'분하네! 😎", "Full house! We're really floor-ing it 😎"],
+      ["올라갈수록 '층'성심이 높아지는구먼 ㅎㅎ", "The higher the floor, the higher the loyal-tea ☕"],
+      ["이러다 엘리베이터가 먼저 퇴근하겠어~ 🛗", "The elevator might clock out before us~ 🛗"],
+    ];
+    let gag = null, gagN = 0, gagT = -1e9, gagI = 0;
     let bossAct = null, fx = { sid: null, amt: 0 }, qfx = null;   // qfx: ⚡ 빠른 답장 { sid, t0, txt }
     const ensureBoss = () => {
       const l = X("사장님 (나)", "Boss (me)");
       if (bossAct && bossAct.opt.label !== l) { bossAct.opt.label = l; txt(bossAct.tag, l); }   // 언어를 바꾸면 머리 이름표도
-      return bossAct || (bossAct = mkActor(BOSS, { boss: 1, label: l, color: "#34457f" }));
+      if (!bossAct) { bossAct = mkActor(BOSS, { boss: 1, label: l, color: "#34457f" }); bossAct.tag.classList.add("bt"); }   // 머리 이름표는 숨김(CSS .bt) — 층 이름표 "2F 사장실 · 나"가 다른 층처럼 왼쪽에 그대로 있게
+      return bossAct;
     };
     const parentFor = (fi, x, feet) => x > 640 ? { p: bld, x: x + 6, feet: feet + FT[fi], z: 40 } : { p: FL[fi].F, x, feet, z: null };
 
@@ -5740,6 +5750,11 @@ C.registerMode({
       if (cheer && tc - bossFree < .4) { cheer.held = cheer.held || tc; cheer.t0 = tc; if (tc - cheer.held > 60) cheer = null; }
       if (cheer && tc - cheer.t0 >= CHEER_SEC) cheer = null;
       const ch = !bossBusy && tc - bossFree >= .4 ? cheer : null;
+      const gagHold = !anim || bossBusy || !!ch || !!trB.bossSay(tc);   // 멈춤·사장실이 바쁨·다른 말풍선 → 한가해질 때까지 기다림(쿨타임도 안 씀)
+      if (!gagHold && n >= 8 && n > gagN && tc - gagT > 300) { gag = { t0: tc, i: gagI++ % GAG.length }; gagT = tc; }   // 🏗️ 층이 8개 이상으로 늘면
+      if (n !== gagN && (n < gagN || n < 8 || !gagHold)) gagN = n;
+      if (gag && (tc - gag.t0 > 4.5 || gagHold)) gag = null;
+      const gagS = gag ? X(...GAG[gag.i]) : "";
       const bAway = !DRon && trB.bossAway(tc);   // 👔 사장님이 회식하러 옥상에(사장실이 바빠지면 바로 돌아옴)
       if (DRon) drB.boss(boss, bf, T, tc, ph);
       else if (bAway) trB.boss(boss, bf, T, tc, ph, n);
@@ -5758,6 +5773,10 @@ C.registerMode({
         setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: anim && Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
         boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(trB.bossSay(tc)), true);
       }
+      else if (gagS && !thanker) {   // 🏗️ 아재 개그(머리 긁적)
+        setP(boss, { view: "front", seated: 1, legs: "s", eyes: Math.floor(tc * 2) % 2 ? "c" : "o", mouth: "o", arms: Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
+        boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(gagS), true);
+      }
       else if (thanker) { setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: "u" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: -ph.hop * 10 }); tagOn(boss, false); boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); bubble(boss, "✅ " + X("확인!", "Got it!"), true); }
       else {
         // 전력·날씨 연출(정전·리셋 말풍선)이 먼저, 없을 때 새 버전 알림(앱) → 누르면 업데이트 대화상자 (설치는 거기서 누를 때만)
@@ -5772,7 +5791,7 @@ C.registerMode({
         else bubble(boss, pq && pq.say || "", !!(pq && pq.say));
       }
       if (DRon || bAway) pkB.bossPaws(false);
-      else pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc));   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
+      else pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc) || !!gagS);   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
       if (!bAway) drB.paper(boss, bf, T, anim);   // 📋 알림 중이면 종이를 흔듦
       /* 질문 말풍선 (층 위로 넘칠 수 있게 건물 위에 직접) */
       const askL = asker && !DRon ? Math.round(asker.x + 6 - asker.w / 2 - 14 - 290) : null;   // 질문 말풍선 왼쪽 끝(폭 290)
@@ -5788,7 +5807,7 @@ C.registerMode({
         sty(askb, "left", askL + "px"); sty(askb, "top", (FT[n] - 34) + "px");
       } else sty(askb, "display", "none");
       ibDraw(bf, tc, anim, n);   // 🎫 번호표 전광판 · 머리 위 번호표 · 📥 결재함 · 도장
-      tagZone(boss, bf.F); ftagFit(bf, [boss], 170, 666, askL != null ? askL - 6 - 4 : 1e4);   // 1층 이름표 줄이 "사장님 (나)"를 덮지 않게 (#64). 옮길 땐 천장 등(x 135~165) 뒤로, 질문 말풍선이 있으면 그 왼쪽 끝 앞까지(칩이 말풍선 밑에 숨지 않게 · 6 = 층 왼쪽 테두리, 말풍선은 건물 좌표)
+      ftagFit(bf, [], 170, 666, askL != null ? askL - 6 - 4 : 1e4);   // 사장실 이름표 줄은 다른 층처럼 왼쪽 고정(사장님 머리 이름표는 숨김 · .bt). 질문 말풍선이 있으면 그 왼쪽 끝 앞까지(칩이 말풍선 밑에 숨지 않게 · 6 = 층 왼쪽 테두리, 말풍선은 건물 좌표)
       ftagFlush(); mbFlush();
       /* 완료 연출 (배너·+자금, 큰 완료면 색종이까지) */
       const fa = fx.sid && actors.get(fx.sid), fi = fa ? floorIdx.get(fx.sid) : undefined;
@@ -6298,7 +6317,7 @@ C.registerMode({
       const list = st.sessions.map(s => classify(s, st, now));
       wbT.sweep(tc);
       list.sort((a, b) => a.rank - b.rank || (a.kind === "ask" ? a.s.since - b.s.since : 0) || (a.sid < b.sid ? -1 : a.sid > b.sid ? 1 : 0));
-      const floors = list.slice(0, MAXF);
+      const floors = list.slice(0, maxF());
       model = { floors, more: list.length - floors.length, st, all: list };
       nSess = Math.max(1, floors.length);
       floorIdx = new Map(floors.map((f, i) => [f.sid, i]));
@@ -6457,7 +6476,7 @@ C.registerMode({
         return `<div class="card"><div class="th"><img alt="" src="${sp.url}" style="width:${sp.w}px;height:${sp.h}px"></div><div class="inf"><div class="r1"><span class="nm">${f.shiny ? "✨ " : ""}${esc(aName(f.animal))} <span style="color:${col}">· ${esc(f.pname)}</span></span><span class="role" style="background:${col}">${esc(roleOf(f.s))}</span><span style="margin-left:auto">Lv.${L.lv}</span></div><div class="xp"><i style="width:${L.pct}%"></i></div><div class="st">${esc(statusText(f, a))}</div></div></div>`;
       }).join("");
       if (!fl.length) cards = `<div class="none">${X("출근한 직원이 없어요. AI 코딩 세션을 켜면 동물 직원이 출근해요.", "Nobody is here yet. Start an AI coding session to hire your first animal.")}</div>`;
-      if (model.more) cards += `<div class="none">＋ ${X(`${model.more}명 더 있어요 (층은 최대 ${MAXF}개)`, `${model.more} more not shown (max ${MAXF} floors)`)}</div>`;
+      if (model.more) cards += `<div class="none">＋ ${X(`${model.more}명 더 있어요 (층은 최대 ${maxF()}개 · ⚙ 설정에서 바꿔요)`, `${model.more} more not shown (max ${maxF()} floors · change in ⚙ settings)`)}</div>`;
       setSec("emp", "", `<h3><span>👥 ${X("직원", "Staff")} (${model.all ? model.all.length : 0})</span><span>${X("Lv · 경험치", "Lv · XP")}</span></h3>${cards}`);
       const lg = logs.slice(0, 4).map((e, i) => `<div style="opacity:${1 - i * .15}"><b>[${esc(C.hms(e.t).slice(0, 5))}]</b> ${esc(e.icon)} ${esc(e.text)}</div>`).join("") || `<div class="none">${X("아직 기록이 없어요", "No activity yet")}</div>`;
       setSec("log", "", `<h3><span>📜 ${X("스튜디오 로그", "Studio log")}</span><span>⏱ ${esc(mmss(now - startedAt))}</span></h3><div class="log">${lg}</div>`);
@@ -6496,6 +6515,7 @@ C.registerMode({
       ${spB.dexHtml()}
       <div class="set"><div><h4>⚙ ${X("설정 · 동물별 켜기/끄기", "Settings · animals on/off")}</h4><div class="chips">${SP.map(id => lk(id) ? `<button class="chip off lock" type="button" disabled aria-disabled="true" title="${esc(lockT)}">🔒 ${esc(aName(id))}</button>` : `<button class="chip ${on(id) ? "" : "off"}" type="button" data-act="animal" data-id="${id}">${EMO[id]} ${esc(aName(id))} ${on(id) ? "ON" : "OFF"}</button>`).join("")}</div>
         <h4 style="margin-top:8px">${X("모두 ○○로 고정", "Everyone is a …")}</h4><div class="chips"><button class="chip fx2 ${cfg.fixed ? "" : "on"}" type="button" data-act="fixed" data-id="">🎲 ${X("랜덤 (기본)", "Random")}</button>${SP.map(id => lk(id) ? `<button class="chip fx2 lock" type="button" disabled aria-disabled="true" title="${esc(aName(id) + " · " + lockT)}" aria-label="${esc(aName(id) + " · " + lockT)}">🔒</button>` : `<button class="chip fx2 ${cfg.fixed === id ? "on" : ""}" type="button" data-act="fixed" data-id="${id}" title="${esc(aName(id))}">${EMO[id]}</button>`).join("")}</div>
+        <h4 style="margin-top:8px">🏢 ${X("보이는 직원 층 수", "Staff floors shown")}</h4><div class="chips">${Array.from({ length: FLOORS_MAX - FLOORS_MIN + 1 }, (_, i) => FLOORS_MIN + i).map(k => `<button class="chip fx2 ${maxF() === k ? "on" : ""}" type="button" data-act="floorscfg" data-id="${k}" title="${esc(X(`직원 층을 ${k}개까지 보여요 · 세션이 더 많으면 질문·일하는 순으로 앞에서부터 · 미니 보기는 다시 열면 반영`, `Show up to ${k} staff floors · extra sessions are cut by priority · mini view updates when reopened`))}">${k}${k === MAXF ? X(" (기본)", " (default)") : ""}</button>`).join("")}</div>
         <h4 style="margin-top:8px">${X("효과", "Effects")}</h4><div class="chips"><button class="chip ${cfg.sound ? "" : "off"}" type="button" data-act="soundcfg">🔊 ${X("타자 소리", "Typing sound")} ${cfg.sound ? "ON" : "OFF"}</button><button class="chip ${cfg.frags ? "" : "off"}" type="button" data-act="fragcfg">{ } ${X("코드 조각", "Code bits")} ${cfg.frags ? "ON" : "OFF"}</button><button class="chip ${cfg.weather ? "" : "off"}" type="button" data-act="wxcfg" title="${esc(X("평소엔 달력 날씨(계절·날짜)예요. 켜면 주간 한도가 60%를 넘을 때 한도가 날씨를 정해요: 60% 구름 · 80% 비 · 90% 눈(옥상에 쌓임). 건물 밖 하늘과 창에만", "Normally the weather follows the calendar (season and date). Turn this on and the weekly limit takes over above 60%: 60% clouds · 80% rain · 90% snow on the roof. Sky and windows only"))}">🌦️ ${X("한도 날씨", "Limit weather")} ${cfg.weather ? "ON" : "OFF"}</button></div></div>
         <div><h4>🤫 ${X("화면 공유용", "For screen sharing")}</h4><div class="chips"><button class="chip ${cfg.hideText ? "" : "off"}" type="button" data-act="hidetext" title="${esc(X("켜면 회의 보드에 \"🤫 비밀 회의\"와 물결 낙서만 (✓는 그대로) · 층 이름표의 프로젝트도 숨김 · 미니 보기·퇴근 일보 카드도 같이", "Meeting boards show \"🤫 Secret meeting\" and squiggles (✓ stays), floor tags hide project names, mini view and daily report card too"))}">🤫 ${X("프로젝트·작업 문구 숨김", "Hide project & task text")} ${cfg.hideText ? "ON" : "OFF"}</button></div>
         ${drB.can ? `<h4 style="margin-top:8px">📋 ${X("퇴근 일보 · 고급: 퇴근 시각", "Daily report · advanced: clock-out time")}</h4><div class="chips">${[null, "17:00", "18:00", "18:30", "19:00", "20:00", "21:00"].map(t => `<button class="chip fx2 ${(cfg.offAt || null) === t ? "on" : ""}" type="button" data-act="offat" data-id="${t || ""}" title="${esc(t ? X(`${t}이 지나면 사장님이 일보를 들고 알려요(누르면 발표)`, `After ${t} the boss holds up the report (click to present)`) : X("기본: 오후에 45분 동안 조용하면 자동으로 알려요", "Default: notifies after 45 quiet minutes in the afternoon"))}">${t ? "⏰ " + t : X("끄기 (기본: 자동)", "Off (default: auto)")}</button>`).join("")}</div>
@@ -6540,6 +6560,7 @@ C.registerMode({
         if (i >= 0) { if (onN > 1) cfg.animals.splice(i, 1); } else cfg.animals.push(id); saveCfg(); buildSig = ""; sync(); renderDex(); }
       else if (act === "fixed") { if (id && (!SP.includes(id) || hire.lockedReal(id))) return; cfg.fixed = id || null; saveCfg(); buildSig = ""; sync(); renderDex(); }
       else if (act === "soundcfg") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); renderDex(); if (cfg.sound) ctx.audio(); }
+      else if (act === "floorscfg") { const k = +id; if (!(k >= FLOORS_MIN && k <= FLOORS_MAX)) return; cfg.floors = k === MAXF ? undefined : k; saveCfg(); buildSig = ""; sync(); renderDex(); }
       else if (act === "fragcfg") { cfg.frags = !cfg.frags; saveCfg(); renderDex(); }
       else if (act === "wxcfg") { cfg.weather = !cfg.weather; saveCfg(); renderDex(); renderHud(); if (!animOn()) staticDraw(); }
       else if (act === "cardcheer") { cfg.cardCheer = !cfg.cardCheer; saveCfg(); renderDex(); }
