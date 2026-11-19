@@ -5317,6 +5317,7 @@ C.registerMode({
     /* ❓ 화면 밖 질문자 표시(#201): 스크롤로 안 보이는 입력 필요 직원이 있으면 그쪽 가장자리에 칩 · 누르면 가장 가까운 사람 층으로 */
     let eaT = -1, ea = null;
     const edgeAsk = (tc, off, force) => { if (mini || (!force && tc - eaT < .2)) return; eaT = tc;
+      off = off || !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on));   // 🙈 눈치 모드(퇴근 연출 포함)엔 숨김
       if (!ea) { vpinFit(); ea = { up: mkEl("button", "tbtn ea up", vpin), dn: mkEl("button", "tbtn ea dn", vpin) }; ea.up.dataset.act = ea.dn.dataset.act = "edgeask"; }
       const up = [], dn = [], th = dcB.trayH();   // 🎨 꾸미기 판이 열려 있으면 그 아래부터가 보이는 곳
       if (!off && model && view.scrollHeight > view.clientHeight + 1) { const vr = view.getBoundingClientRect(), vt = vr.top + th;

@@ -670,3 +670,4 @@ body[data-mode="studio"] .stu .vpin > .ea[hidden] { display: none; }
 @keyframes stu-ea-dn { 50% { translate: 0 2px; } }
 @media (prefers-reduced-motion: reduce) { body[data-mode="studio"] .stu .vpin > .ea { animation: none; } }
 body.quiet[data-mode="studio"] .stu .vpin > .ea { animation: none; }   /* 🤫 회의 모드도 멈춤 */
+body[data-mode="studio"] .stu.tiny .vpin > .ea.dn { bottom: 46px; }   /* 좁은 창: 📌 미니 보기 버튼 위로 */
