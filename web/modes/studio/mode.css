@@ -669,3 +669,4 @@ body[data-mode="studio"] .stu .vpin > .ea[hidden] { display: none; }
 @keyframes stu-ea { 50% { translate: 0 -2px; } }
 @keyframes stu-ea-dn { 50% { translate: 0 2px; } }
 @media (prefers-reduced-motion: reduce) { body[data-mode="studio"] .stu .vpin > .ea { animation: none; } }
+body.quiet[data-mode="studio"] .stu .vpin > .ea { animation: none; }   /* 🤫 회의 모드도 멈춤 */

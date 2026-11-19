@@ -5318,13 +5318,15 @@ C.registerMode({
     let eaT = -1, ea = null;
     const edgeAsk = (tc, off, force) => { if (mini || (!force && tc - eaT < .2)) return; eaT = tc;
       if (!ea) { vpinFit(); ea = { up: mkEl("button", "tbtn ea up", vpin), dn: mkEl("button", "tbtn ea dn", vpin) }; ea.up.dataset.act = ea.dn.dataset.act = "edgeask"; }
-      const vr = view.getBoundingClientRect(), up = [], dn = []; let boss = false;
-      if (!off && model && view.scrollHeight > view.clientHeight + 1) model.floors.forEach(f => { const a = f.kind === "ask" && actors.get(f.sid); if (!a || !a.el || !a.el.isConnected) return;
-        const r = a.el.getBoundingClientRect(); if (!r.height) return; const y = view.scrollTop + (r.top + r.bottom) / 2 - vr.top;
-        if (r.bottom < vr.top + 12) up.push(y); else if (r.top > vr.bottom - 12) { dn.push(y); if (a.loc === "boss") boss = true; } });
-      [[ea.up, up, "▲", Math.max], [ea.dn, dn, "▼", Math.min]].forEach(([b, ys, ar, pick]) => { b.hidden = !ys.length; if (!ys.length) return;
-        b.dataset.y = String(Math.round(pick(...ys)));
-        const t = ar + " " + (b === ea.dn && boss ? "💬 " + X("질문 중", "Asking") : "❓ " + X("입력 필요", "Needs input")) + (ys.length > 1 ? " " + ys.length : "");
+      const up = [], dn = [], th = dcB.trayH();   // 🎨 꾸미기 판이 열려 있으면 그 아래부터가 보이는 곳
+      if (!off && model && view.scrollHeight > view.clientHeight + 1) { const vr = view.getBoundingClientRect(), vt = vr.top + th;
+        model.floors.forEach(f => { const a = f.kind === "ask" && actors.get(f.sid); if (!a || !a.el || !a.el.isConnected) return;
+          const r = a.el.getBoundingClientRect(); if (!r.height) return; const o = { y: view.scrollTop + (r.top + r.bottom) / 2 - vr.top, boss: a.loc === "boss" };
+          if (r.bottom < vt + 12) up.push(o); else if (r.top > vr.bottom - 12) dn.push(o); }); }
+      sty(ea.up, "top", (th + 6) + "px");
+      [[ea.up, up, "▲", (p, q) => q.y > p.y], [ea.dn, dn, "▼", (p, q) => q.y < p.y]].forEach(([b, os, ar, nearer]) => { b.hidden = !os.length; if (!os.length) return;
+        const o = os.reduce((p, q) => nearer(p, q) ? q : p); b.dataset.y = String(Math.round(o.y));   // 가장 가까운 사람 · 글도 그 사람 기준
+        const t = ar + " " + (o.boss ? "💬 " + X("질문 중", "Asking") : "❓ " + X("입력 필요", "Needs input")) + (os.length > 1 ? " " + os.length : "");
         if (b.textContent !== t) { b.textContent = t; b.title = X("눌러서 그 층 보기", "Click to scroll there"); } }); };
     let vH = 0;   // 지난 layout 때 창(.view) 높이
     let zoomCenter = false;   // 🔍 1배를 켜고 끌 때 가로 가운데로
@@ -6575,7 +6577,7 @@ C.registerMode({
       else if (act === "decor") { side.classList.remove("on"); dcB.tap("dc-toggle", b); }   // 좁은 창: 열린 패널(z 150)이 꾸미기 판(z 80)을 덮지 않게 닫고 엶
       else if (act.startsWith("ga-")) gaB.tap(act, b);   // 🎰 뽑기 판 · 👒 착용
       else if (act.startsWith("dc-")) dcB.tap(act, b);   // 🎨 층 탭·칸·소품 카드·옮기기·되팔기
-      else if (act === "edgeask") view.scrollTo({ top: Math.max(0, +b.dataset.y - view.clientHeight / 2), behavior: rm.matches ? "auto" : "smooth" });   // ❓ 그 층이 화면 가운데로
+      else if (act === "edgeask") view.scrollTo({ top: Math.max(0, +b.dataset.y - view.clientHeight / 2), behavior: animOn() ? "smooth" : "auto" });   // 움직임 줄이기·🤫 회의 모드면 바로   // ❓ 그 층이 화면 가운데로
       else if (act === "zoom1") { cfg.zoom1 = !cfg.zoom1 || undefined; saveCfg(); zoomCenter = true; layout(); renderHud(); if (!animOn()) staticDraw(); }
       else if (act === "sound") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); if (cfg.sound) ctx.audio(); }
       else if (act === "quiet") ctx.settings.setQuiet && ctx.settings.setQuiet(!ctx.settings.quiet);
