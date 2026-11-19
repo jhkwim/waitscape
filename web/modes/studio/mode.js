@@ -652,17 +652,18 @@ function powerBig(h) {
   /* 하늘 소품: 달 · 별 · 이웃 건물(창은 저녁·정전 때 켜짐) · 회색 구름 · 날씨 캔버스 */
   const stu = view.closest(".stu"), sun = view.querySelector(".sun"), hills = [...view.querySelectorAll(".hill")], ground = view.querySelector(".ground"),
     birds = [...view.querySelectorAll(".bird")];
-  const moon = mkEl("img", "pw-moon", view, { display: "none" }); moon.alt = ""; moon.src = pwDisc(doc, 5, "#fff6d0", 3);
-  const stars = [...Array(30)].map((_, i) => mkEl("i", "pw-star", view, { left: (pwH(i) * 98).toFixed(1) + "%", top: Math.round(6 + pwH(i + 40) * 220) + "px" }));
-  const city = mkEl("div", "pw-city", view), cityW = [];
+  const bg = view.querySelector(".vbg") || view;   // 하늘 배경 층(건물 높이만큼 · 큰 화면 세로 스크롤 #201)
+  const moon = mkEl("img", "pw-moon", bg, { display: "none" }); moon.alt = ""; moon.src = pwDisc(doc, 5, "#fff6d0", 3);
+  const stars = [...Array(30)].map((_, i) => mkEl("i", "pw-star", bg, { left: (pwH(i) * 98).toFixed(1) + "%", top: Math.round(6 + pwH(i + 40) * 220) + "px" }));
+  const city = mkEl("div", "pw-city", bg), cityW = [];
   [[0, 132, 46], [52, 92, 38], [96, 156, 50], [200, 118, 40]].forEach(([x, hh, w]) => { const b = box(city, x, 156 - hh, w, hh, "var(--pw-city)"); for (let yy = 10; yy < hh - 10; yy += 16) for (let xx = 8; xx < w - 8; xx += 12) cityW.push(box(b, xx, yy, 4, 6, "#ffe27a", { opacity: "0" })); });
   const lampPost = box(city, 164, 66, 4, 90, "#4a4060"), lampHead = box(city, 154, 60, 24, 8, "#8a8098", { border: "2px solid #2e2040" });
   const gclouds = [[14, 10, 1.5], [40, 34, 1.25], [63, 6, 1.75], [84, 40, 1.25]].map(([l, t, k]) => {   // 날씨: 회색 도트 구름(시안과 같은 3조각)
-    const c = mkEl("div", "pw-gcl", view, { left: l + "%", top: t + "px", display: "none" });
+    const c = mkEl("div", "pw-gcl", bg, { left: l + "%", top: t + "px", display: "none" });
     [[0, 8, 64, 16], [12, 0, 28, 12], [36, 4, 20, 8]].forEach(([x, y, w, hh]) => box(c, Math.round(x * k / 4) * 4, Math.round(y * k / 4) * 4, Math.round(w * k / 4) * 4, Math.round(hh * k / 4) * 4, "currentColor"));
     return c; });
-  const wx = mkEl("canvas", "pw-wx", view);
-  const fog = mkEl("div", "pw-fog", view, { display: "none" });   // 🌫️ 달력 날씨 안개: 하늘 아래쪽 뿌연 막(건물 뒤)
+  const wx = mkEl("canvas", "pw-wx vstick", view);   // 비·눈은 창 크기 그대로 — 스크롤해도 화면에 붙음(.vstick)
+  const fog = mkEl("div", "pw-fog", bg, { display: "none" });   // 🌫️ 달력 날씨 안개: 하늘 아래쪽 뿌연 막(건물 뒤)
   /* HUD 단계 배지 */
   const badge = mkEl("div", "hb pwph", null, null, `<span class="ic"></span><b></b>`); badge.hidden = true;
   hud.insertBefore(badge, hud.querySelector(".askchip"));
@@ -2201,11 +2202,11 @@ function dayrepBig(h) {
   let today = null, note = null, noteAt = 0, lastPoll = -1e9, polling = false, S = null, G = null, card = null, opening = false;
   const born = h.clockT();
   /* 카드 겹: 연출 위 dim + 카드 + 버튼 + 토스트 */
-  const ov = mkEl("div", "dr-ov", view); ov.hidden = true;
+  const ov = mkEl("div", "dr-ov vstick", view); ov.hidden = true;
   ov.innerHTML = `<div class="dr-box"><canvas class="dr-cv" role="img"></canvas><div class="dr-btns">
     <button type="button" data-act="dr-save"></button><button type="button" data-act="dr-hide"></button><button type="button" data-act="dr-copy"></button><button type="button" data-act="dr-close" class="x"></button></div><div class="dr-btns dr-dn" hidden><button type="button" data-act="dn-go"></button></div><div class="dr-toast" role="status"></div></div>`;
   const box = ov.querySelector(".dr-box"), cv = ov.querySelector(".dr-cv"), toastEl = ov.querySelector(".dr-toast");
-  const skip = mkEl("button", "tbtn dr-skip", view); skip.type = "button"; skip.dataset.act = "dr-skip"; skip.hidden = true;
+  const skip = mkEl("button", "tbtn dr-skip vstick", view); skip.type = "button"; skip.dataset.act = "dr-skip"; skip.hidden = true;
   const who = (sid, prov) => { const an = h.animalOf(sid), pk = provKey(prov), ch = BYID[an.id]; const nm = NAME[an.id][en() ? 1 : 0], pname = h.provName(prov);
     return { id: an.id, ch, pk, shiny: an.shiny, emo: EMO[an.id], name: nm, pname, label: `${an.shiny ? "✨" : ""}${EMO[an.id]} ${nm}·${pname}` }; };
   const nowS = () => ctx.now();
@@ -2463,7 +2464,7 @@ function dayrepBig(h) {
   }
   function fitBox() {
     const W0 = view.clientWidth, H0 = view.clientHeight; if (!W0 || !H0) return 1;
-    sty(ov, "left", view.scrollLeft + "px"); sty(ov, "top", view.scrollTop + "px"); sty(ov, "width", W0 + "px"); sty(ov, "height", H0 + "px");   // 보이는 영역에 딱 맞춤(스크롤·좁은 창)
+    const pin = ov.parentNode !== view; sty(ov, "left", pin ? "0" : view.scrollLeft + "px"); sty(ov, "top", pin ? "0" : view.scrollTop + "px"); sty(ov, "width", W0 + "px"); sty(ov, "height", H0 + "px");   // 보이는 영역에 딱 맞춤(큰 화면은 스크롤 밖 .vpin 판이라 0)
     const k = Math.max(.4, Math.min(1.25, (W0 - 16) / (DR.W + 6), (H0 - 16) / (DR.H + 46 + (box.querySelector(".dr-dn").hidden ? 0 : 40))));   // 🍖 회식 버튼 줄이 있으면 그만큼
     sty(box, "transform", `scale(${k})`); return k;
   }
@@ -4475,7 +4476,8 @@ function eventBig(h) {
   const night = () => HABIT.isNight(ctx.now()) || (h.night() || 0) > .5;
   /* 하늘 자리(view 크기 · 건물 .sc 위치): 나올 때와 창 크기가 바뀔 때만 잼(매 프레임 레이아웃을 읽지 않게) */
   let geo = null;
-  function measure() { const S = view.querySelector(".sc"); geo = { vw: view.clientWidth, vh: view.clientHeight, l: S ? S.offsetLeft : 0, w: S ? S.offsetWidth : 0, top: S ? S.offsetTop : 120 }; }
+  let skyP = null;   // 하늘 이벤트 판(.vpin.back) — 큰 화면 첫 layout 뒤에 생김
+  function measure() { const S = view.querySelector(".sc"); geo = { vw: view.clientWidth, vh: view.clientHeight, l: S ? S.offsetLeft - view.scrollLeft : 0, w: S ? S.offsetWidth : 0, top: S ? S.offsetTop - view.scrollTop : 120 }; }   // 창 기준(하늘 이벤트는 스크롤 밖 .vpin.back 판 · #201)
   function resize() { if (E && (E.k === "balloon" || E.k === "star")) { measure(); E.bx = null; } }   // 풍선은 새 크기에서 빈 하늘을 다시 고름
   /* 🖨️ 프린터 자리(층 x 왼쪽): 창 아래 262~304 */
   const prnX = () => 262;
@@ -4691,7 +4693,7 @@ function eventBig(h) {
       }
     }
     if (!E) return;
-    const sky = E.k === "balloon" || E.k === "star", par = sky ? view : E.k === "pizza" ? G.F1 && G.F1.F : E.k === "box" ? G.LB && G.LB.F : (G.fl.find(f => f.sid === E.sid) || {}).F;
+    const sky = E.k === "balloon" || E.k === "star", par = sky ? (skyP || (skyP = view.parentNode.querySelector(":scope>.vpin.back")) || view) : E.k === "pizza" ? G.F1 && G.F1.F : E.k === "box" ? G.LB && G.LB.F : (G.fl.find(f => f.sid === E.sid) || {}).F;
     if (!par) return end();   // 그 층이 사라짐(직원 퇴근 등)
     if (!E.dom || E.dom.par !== par) { unmk(E); E.dom = mk(par, sky); }
     if (E.dom.lang !== ctx.lang) { E.dom.lang = ctx.lang; E.dom.hit.title = V.ICON[E.k] + " " + nm(E.k) + X(" · 눌러 보세요", " · click me"); E.dom.hit.setAttribute("aria-label", E.dom.hit.title); }   // 언어가 바뀌면 다시
@@ -5037,6 +5039,7 @@ C.registerMode({
         <button class="tbtn" data-act="dr-go" type="button" hidden></button>
         <button class="tbtn" data-act="dr-card" type="button" hidden></button>
         <button class="tbtn" data-act="decor" type="button"></button>
+        <button class="tbtn" data-act="zoom1" type="button"></button>
         <button class="tbtn" data-act="sound" type="button"></button>
         <button class="tbtn" data-act="quiet" type="button"></button>
         <button class="tbtn" data-act="dex" type="button"></button>
@@ -5057,9 +5060,10 @@ C.registerMode({
         + `<button type="button" data-act="quiet"></button>` + (ctx.api.showMain ? `<button type="button" data-act="m2big" aria-label="${X("크게 보기", "Full window")}">⤢</button>` : win.top === win ? `<button type="button" data-act="m2close" aria-label="${X("닫기", "Close")}">✕</button>` : ""));
       if (win.top === win) try { if (Math.abs(win.innerWidth - MINI2.W) > 2 || Math.abs(win.innerHeight - MINI2.H) > 2) win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {}
     }
-    mkEl("div", "sun", view); mkEl("div", "hill", view, { left: "-40px", width: "420px", height: "90px" }); mkEl("div", "hill", view, { right: "-60px", width: "520px", height: "120px", background: "" }); mkEl("div", "ground", view);
-    [["🕊️", 40, 0], ["🕊️", 70, -20], ["🕊️", 25, -35]].forEach(([e, t, d], i) => mkEl("div", "bird", view, { top: t + "px", animationDelay: d + "s", animationDuration: 55 + i * 12 + "s" }, e));
-    [[8, 60, 70], [34, 150, 56], [18, 250, 80], [12, 420, 64], [46, 330, 48]].forEach(([t, l, w], i) => mkEl("div", "cloud", view, { top: t * 3 + "px", left: l * 2 + "px", width: w + "px", animationDelay: -i * 30 + "s", animationDuration: 90 + i * 35 + "s" }));
+    const vbg = mkEl("div", "vbg", view);   // 하늘·언덕·땅 층: 가로는 창에 붙고(구름이 가로 스크롤을 늘리지 않게) 세로는 건물 높이만큼(땅이 건물 바닥에) — vbgFit
+    mkEl("div", "sun", vbg); mkEl("div", "hill", vbg, { left: "-40px", width: "420px", height: "90px" }); mkEl("div", "hill", vbg, { right: "-60px", width: "520px", height: "120px", background: "" }); mkEl("div", "ground", vbg);
+    [["🕊️", 40, 0], ["🕊️", 70, -20], ["🕊️", 25, -35]].forEach(([e, t, d], i) => mkEl("div", "bird", vbg, { top: t + "px", animationDelay: d + "s", animationDuration: 55 + i * 12 + "s" }, e));
+    [[8, 60, 70], [34, 150, 56], [18, 250, 80], [12, 420, 64], [46, 330, 48]].forEach(([t, l, w], i) => mkEl("div", "cloud", vbg, { top: t * 3 + "px", left: l * 2 + "px", width: w + "px", animationDelay: -i * 30 + "s", animationDuration: 90 + i * 35 + "s" }));
     view.insertBefore(sc, null);
     const pwB = powerBig({ spot: id => spB.see(id), doc, win, mkEl, sty, txt, html, X, view, hud, cfg: () => cfg, wear: sid => gaB.wearSid(sid) });   // 전력·날씨
     const pkB = pokeBig({ ctx, doc, win, mkEl, sty, html, X, view, main: $(".main"), cfg, car, actors, setP, canTerm, clockT, model: () => model, bossAct: () => bossAct, noPlant: f => dcB.noPlant(f),   // 👆 클릭 반응 (🎨 바닥 2에 소품이 있으면 화분 자리를 비킴)
@@ -5298,6 +5302,19 @@ C.registerMode({
       layout();
     }
 
+    const vbgFit = () => { if (mini) return; const mxL = Math.max(0, sc.offsetLeft + sc.offsetWidth - view.clientWidth); if (view.scrollLeft > mxL) view.scrollLeft = mxL;   // 건물 기준 최대로 자름(배경 층이 따라가며 스스로 넘침을 붙잡지 않게 · 창을 넓힐 때도)
+      vScroll(); vpinFit(); sty(vbg, "height", Math.max(view.clientHeight, sc.offsetTop + sc.offsetHeight + 30) + "px"); };   // 30 = .sc 아래 여백(땅)
+    const vScroll = () => sty(vbg, "left", view.scrollLeft + "px");
+    if (!mini) ctx.listen(view, "scroll", vScroll, { passive: true });
+    /* 창에 붙는 것(.vstick: 비·눈 캔버스 · 일보 화면·건너뛰기)은 스크롤 밖 .main의 판(vpinB 건물 뒤 · vpin 위)으로 옮겨 view 자리에 맞춤 — 스크롤 영역을 늘리지 않게 */
+    let vpinB = null, vpin = null;
+    const vpinFit = () => {
+      if (mini) return;
+      if (!vpin) { const mn = view.parentNode; vpinB = mkEl("div", "vpin back"); vpin = mkEl("div", "vpin"); mn.insertBefore(vpinB, view.nextSibling); mn.insertBefore(vpin, vpinB.nextSibling);   // back은 z 0: 하늘 소품(.vbg) 위, 건물(.sc z 1) 뒤
+        view.querySelectorAll(":scope>.vstick").forEach(e => (e.classList.contains("pw-wx") ? vpinB : vpin).appendChild(e)); }
+      [vpinB, vpin].forEach(p => { sty(p, "left", view.offsetLeft + "px"); sty(p, "top", view.offsetTop + "px"); sty(p, "width", view.clientWidth + "px"); sty(p, "height", view.clientHeight + "px"); });
+    };
+    let zoomCenter = false;   // 🔍 1배를 켜고 끌 때 가로 가운데로
     function layout() {
       if (mini) return miniLayout();
       const narrow = app.clientWidth < 900;
@@ -5308,10 +5325,16 @@ C.registerMode({
       const W = view.clientWidth, H = view.clientHeight - th;
       if (!W || !H) return;
       const rh = trB.roofH(), ws = 866, hs = (sceneH || 700) + rh;   // 🍖 회식 중엔 건물 위에 옥상 자리(바닥은 그대로, 하늘 쪽으로)
-      let k = [3, 2, 1.5, 1.25, 1, .75, .5].find(s => s * ws <= W && s * hs <= H + 24);
-      if (!k) k = Math.max(.25, Math.min(W / ws, H / hs));
-      scaleK = k;
-      sty(sc, "width", Math.round(ws * k) + "px"); sty(sc, "height", Math.round(hs * k) + "px");
+      let k = cfg.zoom1 ? 1 : [3, 2, 1.5, 1.25, 1, .75, .5].find(s => s * ws <= W && s * hs <= H + 24);   // 🔍 1배 고정이면 넘치는 만큼 가로·세로 스크롤
+      if (!k) k = Math.max(.5, Math.min(W / ws, H / hs));   // 층이 많아도 0.5배 밑으로는 안 줄이고 세로 스크롤 (#201)
+      const sw = Math.round(ws * k) + "px", sh = Math.round(hs * k) + "px";
+      if (sc.style.width !== sw || sc.style.height !== sh) {   // 크기가 바뀌면 아래(사장실·로비) 기준으로 스크롤 자리를 지킴 — 처음엔 맨 아래
+        const fromBot = sc.style.width ? view.scrollHeight - view.scrollTop - view.clientHeight : 0;   // 처음(아직 안 줄인 건물 높이)은 맨 아래
+        sty(sc, "width", sw); sty(sc, "height", sh); vbgFit();   // 배경 층 높이부터(줄일 때 옛 높이가 스크롤 길이를 붙잡지 않게)
+        view.scrollTop = view.scrollHeight - view.clientHeight - Math.max(0, fromBot);
+        if (zoomCenter) { zoomCenter = false; if (sc.offsetWidth > view.clientWidth) view.scrollLeft = Math.round(sc.offsetLeft + sc.offsetWidth / 2 - view.clientWidth / 2); }   // 건물 가운데
+      }
+      zoomCenter = false; scaleK = k; vbgFit();
       sty(bld, "transform", `scale(${k})`); sty(bld, "top", rh ? Math.round(rh * k) + "px" : ""); bld.style.setProperty("--inv", String(Math.min(2, Math.max(1, 1 / k))));
       pwB.resize(); evB.resize();   // 🎲 하늘 이벤트 자리 다시 재기
     }
@@ -6422,6 +6445,7 @@ C.registerMode({
       HUDQ.chip.hidden = !calling; setAge(HUDQ.chip, ageCls(longest));
       html(HUDQ.chip, `<span style="font-size:18px">${callers.every(it => it.kind === "permission") ? "🔑" : "❓"}</span>${calling} · ${lm >= 1 ? X(`최장 ${lm}분`, `longest ${lm}m`) : X("방금", "just now")}`);
       HUDQ.chip.title = X(`입력 대기 ${calling} · 가장 오래 기다린 질문 ${lm}분`, `${calling} waiting for input · longest ${lm}m`);
+      const zb = $('[data-act="zoom1"]'); txt(zb, "🔍"); zb.classList.toggle("on", !!cfg.zoom1); zb.title = cfg.zoom1 ? X("🔍 1배로 보는 중 · 누르면 창에 맞춤(0.5배까지, 넘치면 세로 스크롤)", "🔍 Viewing at 1× · click to fit the window (down to 0.5×, scroll if taller)") : X("🔍 1배로 크게 보기(가로·세로 스크롤)", "🔍 View at 1× (scroll both ways)"); zb.setAttribute("aria-pressed", String(!!cfg.zoom1));
       const sb = $('[data-act="sound"]'), qb = $('[data-act="quiet"]'), db = $('[data-act="dex"]');
       txt(sb, cfg.sound ? "🔊" : "🔈"); sb.classList.toggle("on", cfg.sound); sb.title = X("키보드 타자 소리 켜기/끄기", "Toggle keyboard typing sound");
       txt(qb, "🔇"); qb.classList.toggle("on", ctx.settings.quiet); qb.title = X("움직임과 소리를 꺼요", "Stop motion and sound");
@@ -6536,6 +6560,7 @@ C.registerMode({
       else if (act === "decor") { side.classList.remove("on"); dcB.tap("dc-toggle", b); }   // 좁은 창: 열린 패널(z 150)이 꾸미기 판(z 80)을 덮지 않게 닫고 엶
       else if (act.startsWith("ga-")) gaB.tap(act, b);   // 🎰 뽑기 판 · 👒 착용
       else if (act.startsWith("dc-")) dcB.tap(act, b);   // 🎨 층 탭·칸·소품 카드·옮기기·되팔기
+      else if (act === "zoom1") { cfg.zoom1 = !cfg.zoom1 || undefined; saveCfg(); zoomCenter = true; layout(); renderHud(); if (!animOn()) staticDraw(); }
       else if (act === "sound") { cfg.sound = !cfg.sound; saveCfg(); renderHud(); if (cfg.sound) ctx.audio(); }
       else if (act === "quiet") ctx.settings.setQuiet && ctx.settings.setQuiet(!ctx.settings.quiet);
       else if (act === "m2big") ctx.api.showMain();   // 📌 미니 보기 2: 큰 창으로
