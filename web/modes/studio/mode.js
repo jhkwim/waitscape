@@ -5626,7 +5626,8 @@ C.registerMode({
     const ensureBoss = () => {
       const l = X("사장님 (나)", "Boss (me)");
       if (bossAct && bossAct.opt.label !== l) { bossAct.opt.label = l; txt(bossAct.tag, l); }   // 언어를 바꾸면 머리 이름표도
-      return bossAct || (bossAct = mkActor(BOSS, { boss: 1, label: l, color: "#34457f" }));
+      if (!bossAct) { bossAct = mkActor(BOSS, { boss: 1, label: l, color: "#34457f" }); bossAct.tag.classList.add("bt"); }   // 머리 이름표는 숨김(CSS .bt) — 층 이름표 "2F 사장실 · 나"가 다른 층처럼 왼쪽에 그대로 있게
+      return bossAct;
     };
     const parentFor = (fi, x, feet) => x > 640 ? { p: bld, x: x + 6, feet: feet + FT[fi], z: 40 } : { p: FL[fi].F, x, feet, z: null };
 
@@ -5790,7 +5791,7 @@ C.registerMode({
         sty(askb, "left", askL + "px"); sty(askb, "top", (FT[n] - 34) + "px");
       } else sty(askb, "display", "none");
       ibDraw(bf, tc, anim, n);   // 🎫 번호표 전광판 · 머리 위 번호표 · 📥 결재함 · 도장
-      tagZone(boss, bf.F); ftagFit(bf, [boss], 170, 666, askL != null ? askL - 6 - 4 : 1e4);   // 1층 이름표 줄이 "사장님 (나)"를 덮지 않게 (#64). 옮길 땐 천장 등(x 135~165) 뒤로, 질문 말풍선이 있으면 그 왼쪽 끝 앞까지(칩이 말풍선 밑에 숨지 않게 · 6 = 층 왼쪽 테두리, 말풍선은 건물 좌표)
+      ftagFit(bf, [], 170, 666, askL != null ? askL - 6 - 4 : 1e4);   // 사장실 이름표 줄은 다른 층처럼 왼쪽 고정(사장님 머리 이름표는 숨김 · .bt). 질문 말풍선이 있으면 그 왼쪽 끝 앞까지(칩이 말풍선 밑에 숨지 않게 · 6 = 층 왼쪽 테두리, 말풍선은 건물 좌표)
       ftagFlush(); mbFlush();
       /* 완료 연출 (배너·+자금, 큰 완료면 색종이까지) */
       const fa = fx.sid && actors.get(fx.sid), fi = fa ? floorIdx.get(fx.sid) : undefined;
