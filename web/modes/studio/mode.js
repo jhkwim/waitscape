@@ -2694,12 +2694,12 @@ const DECOR = (() => {
   /* 칸 기준점: 벽 = 위 가운데, 책상·바닥 = 아래 가운데. 큰 화면(층 좌표, B = 층 바닥선) · 미니 보기(방 좌표, FY = 132).
      큰 화면 벽 2는 간판(x 522~, y 40~) 위로 올려 둠(시안보다 20px 위) */
   /* 🏢 사장실(2F)·로비(1F) 꾸미기 칸(#197 3b): 프로젝트가 아니라 건물에 붙음 — 저장 키 ":boss"·":lobby"(폴더 이름엔 ":"가 거의 없음) · 창고로 가지 않음.
-     칸은 벽 2 · 바닥 2(책상 칸 없음 — 사장님 책상은 머그·모니터·결재함으로 참). 사장실: 벽 1 = 왼쪽 창과 리셋 시계 사이 · 벽 2 = 모니터와 왼쪽 창 사이 · 바닥 = 창 아래 빈 바닥.
+     칸은 벽 2 · 바닥 2(책상 칸 없음 — 사장님 책상은 머그·모니터·결재함으로 참). 사장실: 벽 1 = 왼쪽 창과 리셋 시계 사이 · 벽 2 = 모니터와 왼쪽 창 사이 · 바닥 = 창 아래(질문 자리 왼쪽).
      로비: 벽 1·바닥 1 = 회전문 왼쪽 · 벽 2 = 자판기 위 · 바닥 2 = 뽑기 기계와 자판기 사이 */
   const HQ = [":boss", ":lobby"], isHQ = p => p === ":boss" || p === ":lobby";
   const HQ_SLOTS = ["W1", "W2", "F1", "F2"];
   const slotsFor = p => isHQ(p) ? HQ_SLOTS : SLOTS;
-  const HQ_AT = { ":boss": B => ({ W1: { x: 477, y: 24 }, W2: { x: 305, y: 24 }, F1: { x: 410, y: B - 2 }, F2: { x: 600, y: B - 2 } }),
+  const HQ_AT = { ":boss": B => ({ W1: { x: 477, y: 24 }, W2: { x: 305, y: 24 }, F1: { x: 410, y: B - 2 }, F2: { x: 502, y: B - 2 } }),   // 바닥 2는 질문 자리(ASK_X 598) 왼쪽 — 질문하는 직원이 소품을 가리지 않게
     ":lobby": B => ({ W1: { x: 66, y: 44 }, W2: { x: 505, y: 24 }, F1: { x: 66, y: B - 2 }, F2: { x: 455, y: B - 2 } }) };
   const bigAt = (slot, B, p) => (isHQ(p) ? HQ_AT[p](B) : { W1: { x: 296, y: 24 }, W2: { x: 600, y: 2 }, D1: { x: 320, y: B - 26 }, F1: { x: 160, y: B - 2 }, F2: { x: 618, y: B - 2 } })[slot];
   const MINI = { W1: { x: 69, y: 27 }, W2: { x: 207, y: 30 }, D1: { x: 57, y: 102 }, F1: { x: 33, y: 132 }, F2: { x: 194, y: 132 } };
@@ -3038,7 +3038,7 @@ function decorBig(h) {
     h.app.classList.toggle("dc-on", ui.on);
     renderTray(); h.layout(); h.kick(); h.hud();
   }
-  function deliver(p, slot, id, tc) { dl.push({ p, slot, id, t0: tc }); react.set(p, { id, t0: tc }); d.last = { p, slot, id, t: Date.now() }; }
+  function deliver(p, slot, id, tc) { dl.push({ p, slot, id, t0: tc }); if (!D.isHQ(p)) react.set(p, { id, t0: tc }); /* 직원 반응은 직원 층만(사장실·로비엔 pose가 없어 지워지지 않음) */ d.last = { p, slot, id, t: Date.now() }; }
   function tap(act, b) {
     const tc = h.clockT();
     if (act === "dc-toggle") return set(!ui.on);
@@ -3078,7 +3078,7 @@ function decorBig(h) {
     }
     else if (act === "dc-buy") {
       const id = b.dataset.id, it = D.ITEMS[id], p = ui.p, sl = ui.slot;
-      if (!it || !p || !sl || D.KIND[sl] !== it.slot || !D.onSale(id, nowS())) return renderTray();   // 🎃 시즌이 끝난 팩은 못 삼(판을 열어 둔 채 기간이 지나도)
+      if (!it || !p || !sl || D.KIND[sl] !== it.slot || !D.onSale(id, nowS()) || !okAt(id, p)) return renderTray();   // 🏢 사옥 소품은 사장실·로비에만   // 🎃 시즌이 끝난 팩은 못 삼(판을 열어 둔 채 기간이 지나도)
       const F = cell(p);
       if (F.s[sl] || h.lv() < it.lv || !h.pay(it.p)) return renderTray();   // 💰 결제가 되어야 놓음(지갑이 자금·읽기 전용 확인)
       F.s[sl] = id; F.at[sl] = nowS(); if (id === "plant") F.wilt = 0;
