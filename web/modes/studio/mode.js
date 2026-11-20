@@ -2839,9 +2839,10 @@ function decorBig(h) {
   const tray = mkEl("div", "dc-tray", h.main); tray.hidden = true;
   const dock = () => !h.app.classList.contains("narrow");   // 🎨 넓은 창이면 꾸미기 판이 오른쪽 패널(직원·로그) 자리에 — 건물은 원래 크기(#197 4단계) · 좁은 창은 건물 위
   /* 고른 층을 화면 가운데로(층이 많아 세로 스크롤일 때) */
-  const focusFl = () => { const r = G && G.fl.find(x => x.p === ui.p); if (!r || !r.F || !r.F.scrollIntoView) return;
-    const calm = !!(win.matchMedia && win.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    try { r.F.scrollIntoView({ block: "center", inline: "nearest", behavior: calm ? "auto" : "smooth" }); } catch {} };
+  const focusFl = () => { const r = G && G.fl.find(x => x.p === ui.p), v = h.main.querySelector(".view"); if (!r || !r.F || !v || v.scrollHeight <= v.clientHeight + 1) return;   // 건물 창(.view)만 — 바깥은 안 건드림
+    const calm = !!(win.matchMedia && win.matchMedia("(prefers-reduced-motion: reduce)").matches), fr = r.F.getBoundingClientRect(), vr = v.getBoundingClientRect(), th = ui.on && !dock() ? tray.offsetHeight + 8 : 0;   // 좁은 창이면 판 아래 보이는 곳 가운데
+    const top = Math.round(v.scrollTop + (fr.top + fr.bottom) / 2 - (vr.top + th + (vr.height - th) / 2));
+    try { v.scrollTo({ top: Math.max(0, top), behavior: calm ? "auto" : "smooth" }); } catch { v.scrollTop = Math.max(0, top); } };
   const plus = mkEl("div", "dc-plus", h.app, { display: "none" });
   const keyOf = f => f && f.s && f.s.project || "";
   const slotsOf = r => r.meet ? ["W2", "F1"] : D.slotsFor(r.p);   // 회의 배치(화이트보드·테이블)에선 벽 2·바닥 1만 보임 — 회의가 끝나면 그대로 돌아옴 · 🏢 사장실·로비는 벽 2·바닥 2
