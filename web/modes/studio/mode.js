@@ -3034,7 +3034,7 @@ function decorBig(h) {
     if (ui.hold) acts = `<span class="hold">↔ ${esc(nm(ui.hold.id))} · ${X("옮길 칸을 눌러요", "click where to put it")}</span><button type="button" class="dc-btn" data-act="dc-cancel">${X("취소", "Cancel")}</button>`;
     const out = `<div class="hd"><b class="ti">🎨 ${X("꾸미기", "Decorate")}</b>${D.seasons(nowS()).map(pk => `<span class="sea" data-dcap="${esc(X(`${pk.n[0]} 시즌 소품을 ${D.untilOf(pk)}까지 팔아요 · 칸을 누르면 보여요`, `${pk.n[1]} items on sale until ${D.untilOf(pk)} · pick a spot to see them`))}">${pk.e || "🎁"} ${X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`)}</span>`).join("")}<span class="sp"></span><span class="fund">💰 ${funds.toLocaleString("en-US")}</span><button type="button" class="dc-btn ok" data-act="dc-done">✓ ${X("완료", "Done")}</button></div><div class="chips">${chips}${gc ? `<span class="dc-gsep"></span><button type="button" class="dc-chip dc-ga" data-act="dc-ga" data-dcap="${esc(X(`캡슐 뽑기 · 한 번 💰${ga().price} · 1층 🎰 기계를 눌러도 돼요`, `Capsule machine · 💰${ga().price} a spin · or click the 🎰 machine on 1F`))}">🎰 ${X("뽑기", "Gacha")}</button><button type="button" class="dc-chip ga-dexb${ui.gdex ? " on" : ""}" data-act="dc-gdex" data-dcap="${esc(X("1층 🎰 뽑기 기계에서 모은 것 · 빈칸은 실루엣", "What you got from the 🎰 machine on 1F · blanks are silhouettes"))}">📖 ${gc.have}/${gc.all}</button>` : ""}</div><div class="bd">${body}</div><div class="dc-det"><div class="dt-info"></div>${acts ? `<div class="dt-acts">${acts}</div>` : ""}</div>`;
     if (out === lastOut) { if (!hov || cap) detail(cap ? null : hov); return; } lastOut = out;   // 읽기 전용 안내(cap)는 가리킨 카드보다 먼저   // 같은 내용이면 DOM을 건드리지 않음(상세 칸·포커스·스크롤 그대로)
-    const keyOf2 = e => e && e.dataset ? [e.dataset.act, e.dataset.id, e.dataset.p, e.dataset.slot, e.dataset.sid, e.dataset.k, e.dataset.s, e.dataset.dcap].join("|") : "";
+    const keyOf2 = e => !e || !e.dataset ? "" : e.dataset.act ? [e.dataset.act, e.dataset.id, e.dataset.p, e.dataset.slot, e.dataset.sid, e.dataset.k, e.dataset.s].join("|") : "cap|" + (e.dataset.dcap || "");   // 단추는 자리로(설명은 자금 따라 바뀜) · 설명만 있는 칸은 설명으로
     const bd0 = tray.querySelector(".bd"), cs0 = tray.querySelector(".cards"), sT = bd0 ? bd0.scrollTop : 0, sL = cs0 ? cs0.scrollLeft : 0;
     const hk = hov && hov.isConnected ? keyOf2(hov) : "", fa = doc.activeElement, fk = fa && tray.contains(fa) ? keyOf2(fa) : "";
     html(tray, out);
@@ -3085,6 +3085,7 @@ function decorBig(h) {
       ui.hold = null; cap = X("새 버전 저장이라 보기만 돼요 · 앱을 업데이트해요", "Saved by a newer version · update to edit");
       return renderTray();
     }
+    if (act === "dc-tab" || act === "dc-slot") cap = "";   // 다른 층·칸으로 가면 읽기 전용 안내를 걷음
     if (act === "dc-tab") { if (ui.p !== b.dataset.p) { ui.p = b.dataset.p; ui.slot = null; } if (b.classList.contains("dc-chip")) focusFl(); }   // 층 탭은 같은 층을 다시 눌러도 가운데로
     else if (act === "dc-slot") {
       const p = b.dataset.p, sl = b.dataset.slot;
@@ -3796,7 +3797,7 @@ function gachaBig(h) {
     const seen = new Set(), fs = h.model().floors.filter(f => f.s && f.s.project).filter(f => { const k = GA.staffKey(f.s.project, f.pk); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 8);
     if (!fs.length) return `<div class="ga-wp"><em>${X("지금 출근한 직원이 없어요 · 🎨 꾸미기 판에서 나중에 씌워요", "No one's in right now · put it on later from 🎨 Decorate")}</em></div>`;
     return `<div class="ga-wp">` + fs.map(f => { const k = GA.staffKey(f.s.project, f.pk), on = (d.wear[k] || {})[it.s] === it.id;
-      const dup = fs.filter(g => g.animal === f.animal).length > 1, tag = !dup ? "" : h.hideText() ? ` ${h.model().floors.length + 2 - h.model().floors.indexOf(f)}F` : `·${esc(String(f.s.project).slice(0, 12))}`;   // 같은 동물이 여럿이면 구별(🤫면 층 번호)
+      const dup = fs.filter(g => g.animal === f.animal).length > 1, tag = !dup ? "" : h.hideText() ? ` ${h.n() + 2 - h.model().floors.indexOf(f)}F` : `·${esc(String(f.s.project).slice(0, 12))}`;   // 같은 동물이 여럿이면 구별(🤫면 층 번호)
       return `<button type="button" class="dc-btn ga-w${on ? " on" : ""}" data-act="ga-wear" data-k="${esc(k)}" data-s="${it.s}" data-id="${it.id}">${EMO[f.animal]} ${esc(h.aName(f.animal))}${tag}${on ? " ✓" : ""}</button>`; }).join("") + `</div>`;
   }
   function showRes(r) { ui.res = r; ui.pop = "res"; render(); h.kick(); }
@@ -5146,7 +5147,7 @@ C.registerMode({
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
       lv: () => lvOf(), funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText, anim: () => animOn(),
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs), ga: () => gaB });   // 🍩 층을 고르면 간식 줄
-    const gaB = gachaBig({ hideText: () => !!cfg.hideText, ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
+    const gaB = gachaBig({ hideText: () => !!cfg.hideText, n: () => nSess, ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
       funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
       kick: () => { if (!animOn()) staticDraw(); }, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode), dr: () => drB.active() || trB.active(), setP,
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true) });
