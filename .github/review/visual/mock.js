@@ -7,7 +7,7 @@
    ?askkind=permission|question(질문 세션의 종류 · permission이면 note = 허락받을 도구 설명) · ?guess=1(그 질문이 추정) · ?hooks=partial(훅 일부만 등록 → 재설치 안내 창, #120)
    ?inbox=1(관제 인박스: 🔑 권한(cmux 세션) · ❓ 질문 · 💤 멈춤 · ✉️ 확인 안 한 완료 2 — 다음 칩·눈치·업무 모드 "다음에 볼 것") · ?inbox=2(질문 없이 멈춤 1 · 완료 4 — 전광판·결재함) · 두 장면 모두 🧪 테스트 통과·실패 완료 하나씩
    ?nunchi=1(🙈 눈치 모드로 시작) · ?nxlong=1(눈치 모드 긴 연출 — B 키로 퇴근·출근) · ?m=work(모드 덮어쓰기 — --extra는 mode=studio가 앞에 붙으므로)
-   ?seed=shop(스튜디오 상점·꾸미기 저장 fixture, #197: 자금 4,200 · Lv.5 · 사장실 화분·커피머신(옛 상점) · 2F 사장실 사옥 소품 4개 · 1F 로비 소파·정수기·시계 · waitscape 층 포스터·화분·선인장 · api-server 층 러그 — 열 때마다 덮어씀) */
+   ?seed=shop(스튜디오 상점·꾸미기 저장 fixture, #197: 자금 4,200 · Lv.5 · 사장실 화분·커피머신(옛 상점) · 2F 사장실 사옥 소품 4개 · 1F 로비 소파·정수기·시계 · 뽑기 5종·🧩 조각 7·⭐ 천장 31/40 · waitscape 층 포스터·화분·선인장 · api-server 층 러그 — 열 때마다 덮어씀) */
 (() => {
   const q = new URLSearchParams(location.search);
   if (q.get("seed") === "shop") try {
@@ -18,6 +18,8 @@
       "api-server": { s: { F2: "rug" }, at: { F2: now - 86400 }, seen: now },
       ":boss": { s: { W1: "of_portrait", W2: "of_motto", F1: "of_coffee", F2: "of_trophy" }, at: { W1: now - 86400, W2: now - 86400, F1: now - 3 * 86400, F2: now - 86400 }, seen: now },
       ":lobby": { s: { W1: "clock", F1: "of_sofa", F2: "of_water" }, at: { W1: now - 86400, W2: now - 86400, F1: now - 86400, F2: now - 86400 }, seen: now } }, wh: {}, last: null, sp: "" }));
+    localStorage.setItem(ns + "gacha", JSON.stringify({ v: 1, own: { cone: { n: 3, t: now - 9e4 }, ribbon: { n: 2, t: now - 8e4 }, phones: { n: 1, t: now - 7e4 }, ga_duck: { n: 4, t: now - 6e4 }, ga_globe: { n: 1, t: now - 5e4 } },
+      wear: {}, n: 11, spent: 1650, back: 0, last: null, pity: 31, sh: 7 }));   // 🧩 조각 7(흔함·드묾 하나 교환 가능) · ⭐ 전설까지 9번
   } catch {}
   const ROLE = q.get("role") === "widget" ? "widget" : "main";
   const T0 = Date.now() / 1000;
