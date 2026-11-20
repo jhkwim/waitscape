@@ -19,7 +19,7 @@
 Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code, Codex and more) into a **pixel-art office**. Each session becomes a staff member working on their own floor. When one has a question, they ride the elevator down to the boss (you) in the office. When they finish, they come to report. You can see who is doing what, and who is waiting on you, without watching your terminals.
 
 <div align="center">
-<img src="docs/assets/en/studio.gif" width="860" alt="Studio mode — animal staff working from their chairs, a penguin taking the elevator to ask a question, a meeting-room baby handing over a result envelope, a robot finishing a big job">
+<img src="docs/assets/en/studio.gif" width="860" alt="Studio mode — animal staff working from their chairs, a penguin taking the elevator to ask a question, a meeting-room baby handing over a result envelope, the boss office on 2F and the lobby on 1F">
 <br><sub>All sessions and projects shown are fake demo data. Korean is built in too.</sub>
 </div>
 
@@ -39,10 +39,10 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 
 <table>
 <tr>
-<td width="44%" align="center"><img src="docs/assets/en/mini.gif" width="300" alt="Mini view — question close-up, back to work, rooftop celebration, report to the boss"></td>
-<td width="56%" valign="middle">
+<td colspan="2" valign="middle">
 <h3>📌 Mini view</h3>
 A small always-on-top window. The big window hides and only this small one stays above your other apps. It shows the same building as the big window, one floor at a time. It watches the boss's office; when someone comes down with a question it follows them to the elevator, and when someone finishes or a subagent meeting starts it shows that floor for a moment. Scroll for floors and scroll sideways for the rest of a floor. All the tiny details from the big window show up in the mini view too.
+<p align="center"><img src="docs/assets/en/mini.gif" width="606" alt="Mini view — the camera following a penguin coming down with a question, the question bubble in the boss office, heading back after the answer"></p>
 </td>
 </tr>
 <tr>
