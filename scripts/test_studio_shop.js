@@ -91,6 +91,18 @@ const { SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn { SAVE,
   x = D.load(JSON.stringify(many)); D.sweep(x, t0, new Set());
   assert.strictEqual(Object.keys(x.wh).length, 100); assert.ok(!x.wh.w0 && !x.wh.w2 && x.wh.w3, "창고 넘침: 오래된 것부터 지움");
 
+  // 🏢 사장실·로비(#197 3b): 창고로 가지 않음 · 칸은 벽 2·바닥 2 · 사옥 소품(hq 팩)은 사장실·로비 전용 · 칸 자리는 직원 층과 다름
+  x = D.load(JSON.stringify({ v: 1, fl: { ":boss": { s: { F1: "of_coffee" }, at: {}, seen: t0 }, ":lobby": { s: { F2: "of_sofa" }, at: {}, seen: t0 } }, wh: {} }));
+  D.sweep(x, t0 + 30 * DAY, new Set());
+  assert.deepStrictEqual([Object.keys(x.fl).sort(), Object.keys(x.wh)], [[":boss", ":lobby"], []], "사장실·로비는 오래 안 보여도 창고로 가지 않음");
+  assert.deepStrictEqual(D.slotsFor(":boss"), ["W1", "W2", "F1", "F2"]); assert.deepStrictEqual(D.slotsFor("waitscape"), D.SLOTS);
+  assert.ok(D.isHQ(":lobby") && !D.isHQ("lobby") && !D.isHQ("boss"), "프로젝트 이름 boss·lobby는 건물 층이 아님");
+  assert.notDeepStrictEqual(D.bigAt("F1", 132, ":boss"), D.bigAt("F1", 132, "x"));
+  const ofs = D.CAT.packs.find(pk => pk.id === "office");
+  assert.ok(ofs && ofs.hq && !ofs.win && D.packOpen(ofs, t0), "사옥 소품 팩: 늘 팜 · hq 표시");
+  ofs.items.forEach(it => { assert.ok(D.ART[it.a], "그림: " + it.id); assert.ok(it.slot === "wall" || it.slot === "floor", "책상 칸 없음: " + it.id); });
+  ["coffee", "frame", "trophy"].forEach(k => assert.ok(ofs.items.some(it => it.id.includes(k === "frame" ? "portrait" : k)), "옛 상점 " + k + " 되살림"));
+
   // pull · findAt: 뽑기 소품은 하나뿐 — 층·창고 어디에 있든 모두 빼 옴
   x = D.load(JSON.stringify({ v: 1, fl: { a: { s: { D1: "g_x" }, at: { D1: 1 } } }, wh: { b: { s: { D1: "g_x", W1: "poster" }, at: {} } } }));
   assert.deepStrictEqual(D.findAt(x, "g_x"), { p: "a", sl: "D1", wh: false });
