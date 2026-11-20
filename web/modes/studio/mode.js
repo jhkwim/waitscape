@@ -423,7 +423,8 @@ const isBig = run => (run || 0) >= BIG_DONE_SEC;
    토큰 절약 +5 · 페이스 준수 1시간 +10은 그대로. 실행 시간을 모르는 완료(run 0)는 기본 +25. 저장된 자금은 건드리지 않음(앞으로 벌 때만 바뀜).
    대신 사장님이 잘한 일에 준다 — ⚡ 빠른 답장(FAST): 질문에 1분 안에 답해 다시 일하게 하면 +10, 이어지면 콤보마다 +5(최대 +20), 1분 넘게 걸리면 콤보 끊김.
    하루 예상(완료 30번 중 10분↑ 3번, 질문 10번 중 빠른 답 6번): 27 × 25 = 675 + 3 × 50 = 150 → 825, 빠른 답 ≈ +80, 페이스 +40, 절약 +10 ⇒ ≈ 955(예전 ≈ 950과 비슷).
-   층 꾸미기 가격(80~600)이면 소품 1~2개/일, 한 층 5칸 ≈ 1,200 = 하루 반, 6층 전부 ≈ 2주 */
+   🎨 소품 값(#197 5단계)은 하루 벌이 기준: 작은 것 0.1~0.2일(120~200) · 중간 0.3~0.5일(300~900) · 큰 것 1~2일(1,200~1,500) · 목표 약 5일(트로피 4,800).
+   Lv 잠금은 없음(전부 lv 1 — 모으는 기간은 값이 정함). 값을 올릴 땐 옛 값의 2배 이하(이미 산 것을 반값에 되팔아 이득 없게). 전부 한 번씩 ≈ 15,300 ≈ 16일 */
 /* 질문 종류(#120, state ask): 🔑 권한 승인 / ❓ 질문(없으면 모름 — 옛 Claude Code·트랜스크립트·MCP) */
 const askIco = a => a === "permission" ? "🔑" : "❓";
 /* 답을 기다리는 세션(❓ 대기 칩·미니 보기 대기 수, #184) = 관제 인박스의 🔑 권한 + ❓ 질문. 추정(guess)은 인박스처럼 빼고, 본 항목이어도 답할 때까지 센다 */
@@ -2598,16 +2599,16 @@ const DECOR = (() => {
   const POSTER = { claude: { T: "#ff9a5c", t: "#fff1e0", S: "#ffe36b", W: "#c8502a" }, codex: { T: "#5fcf8a", t: "#eafff0", S: "#fff6a0", W: "#2f8a55" }, gemini: { T: "#7a8cff", t: "#eef0ff", S: "#ffe36b", W: "#3a4ac0" }, other: { T: "#b4b8c8", t: "#f4f4f8", S: "#ffe36b", W: "#5a5f72" } };
   /* 카탈로그 (가격: 시안 4 가격표 — 작은 것 반나절 · 중간 하루 · 큰 것 1~2일, 한 층 5칸 ≈ 1,200 = 하루 반) */
   const CAT = { v: 1, packs: [{ id: "base", n: ["기본 소품", "Basics"], art: {}, items: [
-    { id: "cactus", slot: "desk", p: 80, lv: 1, a: "cactus", n: ["선인장", "Cactus"] },
-    { id: "plush", slot: "desk", p: 180, lv: 1, a: "plush", n: ["곰 인형", "Teddy"] },
-    { id: "tank", slot: "desk", p: 400, lv: 1, a: "tank", n: ["어항", "Fish tank"] },
+    { id: "cactus", slot: "desk", p: 120, lv: 1, a: "cactus", n: ["선인장", "Cactus"] },
+    { id: "plush", slot: "desk", p: 300, lv: 1, a: "plush", n: ["곰 인형", "Teddy"] },
+    { id: "tank", slot: "desk", p: 480, lv: 1, a: "tank", n: ["어항", "Fish tank"] },
     { id: "poster", slot: "wall", p: 150, lv: 1, a: "poster", n: ["포스터", "Poster"], note: ["AI 색 테마", "AI colors"] },
     { id: "clock", slot: "wall", p: 200, lv: 1, a: "clock", n: ["벽시계", "Clock"] },
-    { id: "neon", slot: "wall", p: 500, lv: 4, n: ["네온사인", "Neon sign"] },
-    { id: "plant", slot: "floor", p: 120, lv: 1, a: "plant3", n: ["화분", "Plant"], note: ["날마다 자라요", "Grows daily"] },
-    { id: "lamp", slot: "floor", p: 220, lv: 1, a: "lamp", n: ["스탠드", "Floor lamp"] },
-    { id: "rug", slot: "floor", p: 260, lv: 1, a: "rug", n: ["러그", "Rug"] },
-    { id: "snack", slot: "floor", p: 600, lv: 3, a: "snack", n: ["간식 바", "Snack bar"] },
+    { id: "neon", slot: "wall", p: 700, lv: 1, n: ["네온사인", "Neon sign"] },
+    { id: "plant", slot: "floor", p: 150, lv: 1, a: "plant3", n: ["화분", "Plant"], note: ["날마다 자라요", "Grows daily"] },
+    { id: "lamp", slot: "floor", p: 300, lv: 1, a: "lamp", n: ["스탠드", "Floor lamp"] },
+    { id: "rug", slot: "floor", p: 400, lv: 1, a: "rug", n: ["러그", "Rug"] },
+    { id: "snack", slot: "floor", p: 900, lv: 1, a: "snack", n: ["간식 바", "Snack bar"] },
   ] },
   /* 🎃 할로윈(10/20~11/7). 줄 그림 batg는 아래 stamp로 조립 */
   { id: "halloween", n: ["할로윈", "Halloween"], e: "🎃", win: { from: [10, 20], to: [11, 7] }, art: {
@@ -2618,11 +2619,11 @@ const DECOR = (() => {
     hwpot: { r: [".KKKKKKKKKKKKKK.", "KGGLGGGGGGLGGGGK", "KKKKKKKKKKKKKKKK", ".KDDDDDDDDDDDDK.", "KDDHDDDDDDDDDDDK", "KDHDDDDDDDDDDDDK", "KDHDDDDDDDDDDDDK", "KDDDDDDDDDDDDDDK", ".KDDDDDDDDDDDDK.", "..KKKKKKKKKKKK..", "..KK.RYR.RYR.KK.", ".KK..RRR.RRR..KK"], p: { K, G: "#7adf6a", L: "#c8ff9a", D: "#4a4060", H: "#7a7096", R: "#ff8a3d", Y: "#ffd23f" } },
   }, items: [
     { id: "hw_web", slot: "wall", p: 150, lv: 1, a: "hwweb", n: ["거미줄", "Spider web"] },
-    { id: "hw_bats", slot: "wall", p: 240, lv: 1, a: "hwbats", n: ["박쥐 가랜드", "Bat garland"], dx: -4 },
+    { id: "hw_bats", slot: "wall", p: 300, lv: 1, a: "hwbats", n: ["박쥐 가랜드", "Bat garland"], dx: -4 },
     { id: "hw_candy", slot: "desk", p: 180, lv: 1, a: "hwcandy", n: ["사탕 바구니", "Candy bucket"], hi: ["사탕이다! 하나만…", "Candy! Just one…"] },
-    { id: "hw_jack", slot: "desk", p: 300, lv: 1, a: "hwjack", n: ["호박 등불", "Pumpkin lamp"], note: ["반짝반짝", "Flickers"], hi: ["해피 할로윈! 🎃", "Happy Halloween! 🎃"] },
-    { id: "hw_ghost", slot: "floor", p: 380, lv: 1, a: "hwghost", n: ["꼬마 유령", "Little ghost"], note: ["둥실둥실", "Floats"], hi: ["으앗, 유령?! 👻", "Eek, a ghost?! 👻"] },
-    { id: "hw_pot", slot: "floor", p: 800, lv: 1, a: "hwpot", n: ["마녀 솥", "Cauldron"], ltd: 1, hi: ["보글보글… 뭐가 나올까?", "Bubble bubble… what's brewing?"] },
+    { id: "hw_jack", slot: "desk", p: 400, lv: 1, a: "hwjack", n: ["호박 등불", "Pumpkin lamp"], note: ["반짝반짝", "Flickers"], hi: ["해피 할로윈! 🎃", "Happy Halloween! 🎃"] },
+    { id: "hw_ghost", slot: "floor", p: 480, lv: 1, a: "hwghost", n: ["꼬마 유령", "Little ghost"], note: ["둥실둥실", "Floats"], hi: ["으앗, 유령?! 👻", "Eek, a ghost?! 👻"] },
+    { id: "hw_pot", slot: "floor", p: 1200, lv: 1, a: "hwpot", n: ["마녀 솥", "Cauldron"], ltd: 1, hi: ["보글보글… 뭐가 나올까?", "Bubble bubble… what's brewing?"] },
   ] },
   /* 🏢 사옥 소품(#197 3b): 사장실(2F)·로비(1F) 칸에만 놓음(hq: 1) — 옛 사장실 상점의 커피머신·액자·트로피를 도트 그림으로 되살림 + 소파·정수기·사훈 */
   { id: "office", n: ["사옥 소품", "Office"], e: "🏢", hq: 1, art: {
@@ -2634,11 +2635,11 @@ const DECOR = (() => {
     ofmotto: { r: ["KDDDDDDDDK", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPPPPK.", ".KPPPRRPK.", ".KPPPRRPK.", ".KPPPPPPK.", "KDDDDDDDDK", "..K....K.."], p: { K, D: "#6a3a2a", P: "#fff6e0", R: "#e04848" } },
   }, items: [
     { id: "of_motto", slot: "wall", p: 150, lv: 1, a: "ofmotto", n: ["사훈 족자", "Motto scroll"], note: ["칼퇴", "LGTM"] },
-    { id: "of_portrait", slot: "wall", p: 300, lv: 1, a: "ofportrait", n: ["사장님 초상화", "Boss portrait"] },
-    { id: "of_water", slot: "floor", p: 350, lv: 1, a: "ofwater", n: ["정수기", "Water cooler"], note: ["꼬르륵", "Glugs"] },
-    { id: "of_coffee", slot: "floor", p: 600, lv: 1, a: "ofcoffee", n: ["커피머신", "Coffee machine"], note: ["김이 나요", "Steams"] },
-    { id: "of_sofa", slot: "floor", p: 900, lv: 1, a: "ofsofa", n: ["소파", "Sofa"] },
-    { id: "of_trophy", slot: "floor", p: 2500, lv: 1, a: "oftrophy", n: ["트로피", "Trophy"], note: ["반짝", "Gleams"] },
+    { id: "of_portrait", slot: "wall", p: 400, lv: 1, a: "ofportrait", n: ["사장님 초상화", "Boss portrait"] },
+    { id: "of_water", slot: "floor", p: 450, lv: 1, a: "ofwater", n: ["정수기", "Water cooler"], note: ["꼬르륵", "Glugs"] },
+    { id: "of_coffee", slot: "floor", p: 800, lv: 1, a: "ofcoffee", n: ["커피머신", "Coffee machine"], note: ["김이 나요", "Steams"] },
+    { id: "of_sofa", slot: "floor", p: 1500, lv: 1, a: "ofsofa", n: ["소파", "Sofa"] },
+    { id: "of_trophy", slot: "floor", p: 4800, lv: 1, a: "oftrophy", n: ["트로피", "Trophy"], note: ["반짝", "Gleams"] },
   ] },
   /* 🎰 뽑기 소품(#86): 팔지 않음(gacha: 1 — packOpen false) · 1층 뽑기 기계에서 나오고 GACHA 저장의 보관함에서 책상 칸에 놓음. p = 도감 값어치(되팔기 없음, 빼면 보관함으로) */
   { id: "gacha", n: ["뽑기 소품", "Gacha finds"], e: "🎰", gacha: 1, art: {
