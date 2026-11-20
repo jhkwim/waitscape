@@ -392,6 +392,8 @@ body[data-mode="studio"] .stu .dc-slot.off { opacity: .35; cursor: default; }
 body[data-mode="studio"] .stu .dc-slot:hover { border-style: solid; }
 body[data-mode="studio"] .stu .dc-plus { position: absolute; z-index: 90; font-weight: 900; font-size: 18px; text-shadow: 2px 2px 0 #2e2040; white-space: nowrap; pointer-events: none; }
 body[data-mode="studio"] .stu.dc-on .pk-hit, body[data-mode="studio"] .stu.dc-on [data-act="jump"] { pointer-events: none; cursor: default; }
+/* 🏢 꾸미기 중엔 사장실 질문 말풍선이 벽 칸 클릭을 막지 않게 흐리고 통과(#197 3b) — 질문은 계속 보임 */
+body[data-mode="studio"] .stu.dc-on .bub.ask { pointer-events: none; opacity: .45; }
 body[data-mode="studio"] .stu .sb.dcgo { width: 100%; margin-top: 6px; }
 body[data-mode="studio"] .stu .bub.dcr { left: 100%; bottom: auto !important; top: 4px; transform: none; margin-left: 6px; }
 body[data-mode="studio"] .stu .bub.dcr:after { left: -9px; bottom: auto; top: 8px; margin: 0; border: 6px solid transparent; border-right: 6px solid var(--deep); border-left: 0; }
