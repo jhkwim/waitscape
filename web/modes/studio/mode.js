@@ -3652,7 +3652,7 @@ const GACHA = (() => {
   const cost = id => BY[id] && BY[id].k !== "app" ? SH[BY[id].t] : 0;
   const canSwap = (d, id) => !d.ro && cost(id) > 0 && !has(d, id) && d.sh >= cost(id);
   function swap(d, id, now) { if (!canSwap(d, id)) return false; d.sh -= cost(id); d.own[id] = { n: 1, t: now }; d.last = { id, t: now, dup: false, swap: 1 }; return true; }
-  const left = d => PITY - d.pity;   // 전설까지 남은 횟수(이번 포함)
+  const left = d => Math.max(1, PITY - d.pity);   // 전설까지 남은 횟수(이번 포함 · 옛·손댄 저장의 큰 pity도 1)
   /* 착용: 가진(그리고 이 버전이 아는) 액세서리만, 슬롯이 맞을 때만 */
   function wearOf(d, key) {
     const w = d.wear[key]; if (!w) return null;
@@ -3840,9 +3840,11 @@ function gachaBig(h) {
     if (act === "ga-dex") { close(); return h.openDex(); }
     if (act === "ga-decor") { close(); return h.openDecor(); }
     if (act === "ga-swap") {   // 🧩 조각으로 고르기(📖 도감 칸)
-      const id = b.dataset.id; if (dev.any || !GA.BY[id] || h.ro()) return; reload();
+      const id = b.dataset.id, kb = doc.activeElement === b; if (dev.any || !GA.BY[id] || h.ro()) return; reload();
       if (!GA.swap(d, id, Date.now() / 1000)) return h.tray();
-      save(); read(h.model().floors); h.log("🧩", X(`조각 ${GA.cost(id)}개로 ${nm(GA.BY[id])} 받았어요`, `Traded ${GA.cost(id)} shards for ${nm(GA.BY[id])}`)); h.tray(); h.kick(); if (ui.pop) render(); return;
+      save(); read(h.model().floors); h.log("🧩", X(`조각 ${GA.cost(id)}개로 ${nm(GA.BY[id])} 받았어요`, `Traded ${GA.cost(id)} shards for ${nm(GA.BY[id])}`)); h.tray(); h.kick(); if (ui.pop) render();
+      if (kb) { const nx = doc.querySelector(".dc-tray button.ga-cell.swp") || doc.querySelector(".dc-tray .ga-dexb"); if (nx) try { nx.focus({ preventScroll: true }); } catch {} }   // 키보드로 바꿨으면 다음 교환 칸(없으면 📖)으로
+      return;
     }
     if (act === "ga-wear") {   // 🎨 꾸미기 판 👒 줄: 같은 걸 다시 누르면 벗음
       const k = b.dataset.k, s = b.dataset.s, id = b.dataset.id || "";
@@ -3871,7 +3873,7 @@ function gachaBig(h) {
   /* 📖 뽑기 도감(꾸미기 판 본문) */
   function dex() {
     const c = GA.count(d), grp = [["acc", X("👒 액세서리", "👒 Accessories")], ["desk", X("🗃️ 책상 소품", "🗃️ Desk toys")], ["app", X("📄 입사 지원서", "📄 Job applications")]];
-    return `<div class="ga-dex"><div class="ga-dh">📖 ${X("뽑기 도감", "Gacha collection")} <b>${c.have}/${c.all}</b> · 🧩 <b>${d.sh}</b> · ${X(`⭐ 전설까지 ${GA.left(d)}번`, `⭐ legendary within ${GA.left(d)}`)}</div>` + grp.map(([k, t]) => `<div class="ga-dg"><span class="ga-dt">${t}</span>${GA.ITEMS.filter(it => it.k === k).map(it => { const o = GA.has(d, it.id), n = o ? d.own[it.id].n : 0, co = GA.cost(it.id), ok = !o && !dev.any && GA.canSwap(d, it.id);
+    return `<div class="ga-dex"><div class="ga-dh">📖 ${X("뽑기 도감", "Gacha collection")} <b>${c.have}/${c.all}</b> · 🧩 <b>${d.sh}</b> · ${X(`⭐ 전설까지 ${GA.left(d)}번`, `⭐ legendary within ${GA.left(d)}`)}</div>` + grp.map(([k, t]) => `<div class="ga-dg"><span class="ga-dt">${t}</span>${GA.ITEMS.filter(it => it.k === k).map(it => { const o = GA.has(d, it.id), n = o ? d.own[it.id].n : 0, co = GA.cost(it.id), ok = !o && !dev.any && !h.ro() && GA.canSwap(d, it.id);   // 본체 저장이 읽기 전용(#197)이어도 교환 칸을 잠금
       const cap = o ? `${nm(it)} · ${GA.TIER[it.t].n[en() ? 1 : 0]}${n > 1 ? " · ×" + n : ""}` : !co ? X(`??? · ${GA.TIER[it.t].n[0]} · 뽑기로만 나와요`, `??? · ${GA.TIER[it.t].n[1]} · only from spins`)
         : ok ? X(`??? · ${GA.TIER[it.t].n[0]} · 🧩 ${co}개로 바로 받아요`, `??? · ${GA.TIER[it.t].n[1]} · trade 🧩 ${co} for it`) : X(`??? · ${GA.TIER[it.t].n[0]} · 🧩 ${co}개면 바꿀 수 있어요(지금 ${d.sh})`, `??? · ${GA.TIER[it.t].n[1]} · trade 🧩 ${co} (you have ${d.sh})`);
       const inner = `${artHTML(it, 2, !o)}<em>${o ? esc((it.sn || it.n)[en() ? 1 : 0]) : "???"}</em>${n > 1 ? `<u>×${n}</u>` : !o && co ? `<u class="sw${ok ? " ok" : ""}">🧩${co}</u>` : ""}`;

@@ -37,7 +37,7 @@ assert.strictEqual(GA.roll(d, seq([.5, 0]), allLocked, { id: "crown" }).sh, 0, "
 
 // ⭐ 전설 천장: 전설 없이 39번이면 40번째는 전설 · 전설이 나오면 0부터 · 그 전엔 확률대로
 { const e = GA.load(""); for (let i = 0; i < 39; i++) { const r = GA.roll(e, seq([.99, 0]), allLocked); assert.strictEqual(r.it.t, "c"); GA.apply(e, r, i); }
-  assert.strictEqual(e.pity, 39); assert.strictEqual(GA.left(e), 1);
+  assert.strictEqual(e.pity, 39); assert.strictEqual(GA.left(e), 1); assert.strictEqual(GA.left(GA.load(JSON.stringify({ v: 1, pity: 99 }))), 1, "큰 pity도 1");
   const r40 = GA.roll(e, seq([.99, 0]), allLocked); assert.strictEqual(r40.it.t, "l", "40번째는 전설"); GA.apply(e, r40, 40); assert.strictEqual(e.pity, 0); assert.strictEqual(GA.left(e), 40);
   const lucky = GA.roll(e, seq([0, 0]), allLocked); GA.apply(e, lucky, 41); assert.strictEqual(e.pity, 0, "운 좋게 전설이어도 0부터"); }
 
