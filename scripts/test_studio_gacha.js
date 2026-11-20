@@ -14,7 +14,7 @@ assert.strictEqual(GA.ITEMS.length, 16);
 assert.deepStrictEqual(["acc", "desk", "app"].map(k => GA.ITEMS.filter(it => it.k === k).length), [8, 6, 2]);
 GA.ITEMS.filter(it => it.k === "desk").forEach(it => { assert.ok(DECOR.ITEMS[it.id] && DECOR.ITEMS[it.id].slot === "desk"); assert.strictEqual(DECOR.onSale(it.id, 1e9), false, it.id + " 는 팔지 않음"); });
 assert.strictEqual(DECOR.onSale("cactus", 1e9), true, "기본 소품은 그대로 판매");
-assert.strictEqual(GA.PRICE, 150); assert.strictEqual(GA.back(), 60);
+assert.strictEqual(GA.PRICE, 150); assert.strictEqual(GA.back(), 0, "중복은 💰 대신 🧩 조각(#197 5단계)");
 
 // 확률: rng 주입 — 등급 경계(전설 < 5 ≤ 드묾 < 30 ≤ 흔함)
 const seq = a => { let i = 0; return () => a[i++ % a.length]; };
@@ -27,11 +27,34 @@ const cnt = { c: 0, r: 0, l: 0 }, N = 200000, d0 = GA.load("");
 for (let i = 0; i < N; i++) cnt[GA.roll(d0, lcg, allLocked).it.t]++;
 Object.entries(GA.RATES).forEach(([k, p]) => assert.ok(Math.abs(cnt[k] / N * 100 - p) < .6, `${k} ${cnt[k] / N * 100}%`));
 
-// 중복 환급 · 저장 반영
+// 중복 → 🧩 조각 · 저장 반영
 let d = GA.load("");
 const r1 = GA.roll(d, seq([.5, 0]), allLocked); assert.strictEqual(r1.dup, false); assert.strictEqual(r1.back, 0); GA.apply(d, r1, 100);
-const r2 = GA.roll(d, seq([.5, 0]), allLocked); assert.strictEqual(r2.it.id, r1.it.id); assert.strictEqual(r2.dup, true); assert.strictEqual(r2.back, 60); GA.apply(d, r2, 200);
-assert.deepStrictEqual(d.own[r1.it.id], { n: 2, t: 100 }); assert.strictEqual(d.n, 2); assert.strictEqual(d.spent, 300); assert.strictEqual(d.back, 60);
+const r2 = GA.roll(d, seq([.5, 0]), allLocked); assert.strictEqual(r2.it.id, r1.it.id); assert.strictEqual(r2.dup, true); assert.strictEqual(r2.back, 0); assert.strictEqual(r2.sh, 1); GA.apply(d, r2, 200);
+assert.deepStrictEqual(d.own[r1.it.id], { n: 2, t: 100 }); assert.strictEqual(d.n, 2); assert.strictEqual(d.spent, 300); assert.strictEqual(d.back, 0); assert.strictEqual(d.sh, 1);
+assert.strictEqual(GA.roll(d, seq([.5, 0]), allLocked, { id: "crown" }).sh, 0, "처음 나온 건 조각 없음");
+{ const e = GA.load(""); GA.apply(e, { it: GA.BY.crown, dup: false, back: 0, sh: 0 }, 1); const rl = GA.roll(e, seq([0, 0]), allLocked, { id: "crown" }); assert.strictEqual(rl.sh, 3, "전설 중복은 조각 3"); }
+
+// ⭐ 전설 천장: 전설 없이 39번이면 40번째는 전설 · 전설이 나오면 0부터 · 그 전엔 확률대로
+{ const e = GA.load(""); for (let i = 0; i < 39; i++) { const r = GA.roll(e, seq([.99, 0]), allLocked); assert.strictEqual(r.it.t, "c"); GA.apply(e, r, i); }
+  assert.strictEqual(e.pity, 39); assert.strictEqual(GA.left(e), 1); assert.strictEqual(GA.left(GA.load(JSON.stringify({ v: 1, pity: 99 }))), 1, "큰 pity도 1");
+  const r40 = GA.roll(e, seq([.99, 0]), allLocked); assert.strictEqual(r40.it.t, "l", "40번째는 전설"); GA.apply(e, r40, 40); assert.strictEqual(e.pity, 0); assert.strictEqual(GA.left(e), 40);
+  const lucky = GA.roll(e, seq([0, 0]), allLocked); GA.apply(e, lucky, 41); assert.strictEqual(e.pity, 0, "운 좋게 전설이어도 0부터"); }
+
+// 🧩 조각 교환: 없는 것만 · 흔함·드묾 5 · 전설 15 · 지원서는 교환 없음 · 모자라면 안 됨 · 새 버전 저장(ro)이면 안 됨
+{ const e = GA.load(""); assert.deepStrictEqual([GA.cost("cone"), GA.cost("phones"), GA.cost("crown"), GA.cost("app_owl"), GA.cost("nope")], [5, 5, 15, 0, 0]);
+  e.sh = 4; assert.strictEqual(GA.swap(e, "cone", 1), false, "모자람");
+  e.sh = 20; assert.strictEqual(GA.swap(e, "cone", 2), true); assert.strictEqual(e.sh, 15); assert.ok(GA.has(e, "cone"));
+  assert.strictEqual(GA.swap(e, "cone", 3), false, "이미 있음"); assert.strictEqual(GA.swap(e, "app_owl", 3), false, "지원서는 교환 없음");
+  assert.strictEqual(GA.swap(e, "crown", 4), true); assert.strictEqual(e.sh, 0); assert.strictEqual(e.n, 0, "교환은 뽑은 횟수가 아님");
+  const ro = GA.load(JSON.stringify({ v: 2, sh: 99 })); assert.strictEqual(GA.swap(ro, "cone", 1), false); }
+// 도감 완성 기대 횟수(시뮬레이션 1,500회): 천장·조각으로 40~50회 안 — 조각은 전설 먼저, 그다음 흔함·드묾
+{ let y = 777; const rr = () => (y = (Math.imul(y, 1103515245) + 12345) >>> 0) / 4294967296; let sum = 0; const T = 1500;
+  for (let i = 0; i < T; i++) { const e = GA.load(""), lockd = new Set(["owl", "hog"]); let n = 0;
+    while (GA.count(e).have < GA.ITEMS.length && n < 2000) { n++; const r = GA.draw(e, rr, an => lockd.has(an), null, an => lockd.delete(an)); GA.apply(e, r, n);
+      for (;;) { const miss = GA.ITEMS.filter(it => !GA.has(e, it.id) && GA.cost(it.id)), m = miss.find(it => it.t === "l" && GA.canSwap(e, it.id)) || miss.find(it => it.t !== "l" && GA.canSwap(e, it.id)); if (!m) break; GA.swap(e, m.id, n); } }
+    sum += n; }
+  const avg = sum / T; assert.ok(avg >= 40 && avg <= 52, "완성 평균 " + avg.toFixed(1)); }
 
 // 입사 지원서: 잠긴 동물만 · 뽑으면 다시 안 나옴 · 둘 다 풀리면 풀에서 빠짐 · 비면 다른 등급으로
 const apps = d1 => GA.poolOf(d1, allLocked).filter(it => it.k === "app").map(it => it.id);
@@ -53,9 +76,9 @@ for (let i = 0; i < 230; i++) GA.setWear(d, "p|" + i, "h", "crown", 100 + i);
 assert.ok(Object.keys(d.wear).length <= 200 && d.wear["p|229"] && !d.wear["p|0"], "착용 200개까지(오래된 것부터 정리)");
 
 // 저장: 왕복 · 모르는 id 보존 · 잘못된 값 버림 · 새 버전은 읽기만(ro)
-const raw = JSON.stringify({ v: 1, own: { crown: { n: 2, t: 9 }, future_hat: { n: 1, t: 3 }, bad: { n: "x" } }, wear: { "claude|a": { h: "crown", t: 1 }, "x|y": { h: 5 } }, n: 3, spent: 450, back: 60, last: { id: "crown", t: 9, dup: true } });
+const raw = JSON.stringify({ v: 1, own: { crown: { n: 2, t: 9 }, future_hat: { n: 1, t: 3 }, bad: { n: "x" } }, wear: { "claude|a": { h: "crown", t: 1 }, "x|y": { h: 5 } }, n: 3, spent: 450, back: 60, last: { id: "crown", t: 9, dup: true }, pity: 7, sh: 4 });
 const L = GA.load(raw);
-assert.deepStrictEqual(Object.keys(L.own).sort(), ["crown", "future_hat"]); assert.deepStrictEqual(Object.keys(L.wear), ["claude|a"]);
+assert.deepStrictEqual(Object.keys(L.own).sort(), ["crown", "future_hat"]); assert.deepStrictEqual([L.pity, L.sh, L.back], [7, 4, 60], "천장·조각·옛 환급 합 읽기"); assert.deepStrictEqual([GA.load(JSON.stringify({ v: 1 })).pity, GA.load(JSON.stringify({ v: 1, sh: -3 })).sh], [0, 0], "없거나 잘못되면 0"); assert.deepStrictEqual(Object.keys(L.wear), ["claude|a"]);
 assert.deepStrictEqual(JSON.parse(GA.dump(L)), JSON.parse(GA.dump(GA.load(GA.dump(L)))), "왕복");
 assert.ok(!L.ro && GA.load(JSON.stringify({ v: 2 })).ro && !GA.load("깨짐").ro);
 assert.strictEqual(GA.count(L).have, 1, "모르는 id는 도감 수에서 빠짐");

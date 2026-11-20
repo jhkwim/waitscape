@@ -3583,7 +3583,9 @@ function habitBig(h) {
 /* ================= 🎰 캡슐 뽑기 (GACHA: 카탈로그·뽑기·저장 공용 · 큰 화면 gachaBig · 미니 보기는 착용만 읽음, jhkwim/waitscape#86 · #53 다음 단계) =================
    1층 화분과 커피머신 자리 사이에 캡슐 뽑기 기계. 누르면 작은 판 → [돌리기 💰150] → 동전 · 손잡이 드르륵(90°씩 4번) · 캡슐이 굴러 나와 톡 열림 → 결과 카드.
    움직임 줄이기·회의 모드(정적)면 연출 없이 결과 카드만. 보기용(기능·보상 없음), 결제는 간식·회식과 같은 길(h.pay → 본체 지갑, #197).
-   - 값 150(간식 2~3개 · 하루 벌이 ≈ 950의 1/6) · 하루 횟수 제한 없음 · 같은 게 또 나오면 40%(💰60) 돌려받음(입사 지원서는 중복 없음)
+   - 값 150(간식 2~3개 · 하루 벌이 ≈ 950의 1/6) · 하루 횟수 제한 없음
+   - 🧩 중복 조각(#197 5단계, 옛 💰60 환급 대신): 같은 게 또 나오면 조각 1(전설은 3) · 조각 5 = 아직 없는 흔함·드묾 하나 고르기, 15 = 전설 하나(입사 지원서는 교환 없음)
+   - ⭐ 전설 천장: 전설 없이 39번 돌렸으면 40번째는 전설(전설이 나오면 0부터). 시뮬레이션(2만 회): 도감 완성 평균 80 → 48회(중앙 42)
    - 등급 흔함 70 · 드묾 25 · 전설 5(%) → 그 등급 안에서 고르게. 비어 있는 등급은 흔함 → 드묾 → 전설 순으로 대신
    - 나오는 것 16종: 직원 액세서리 8(머리 7 · 얼굴 1, GA_ACC) · 책상 소품 6(DECOR "gacha" 팩) · 입사 지원서 2(🦉·🦔, 드묾 — 뽑으면 hire.unlock → 새 세션부터 출근,
      이미 풀린 동물의 지원서는 풀에서 빠짐). 전설(👑 왕관 · 🏆 트로피)이면 금빛 반짝 + 자리에 있는 직원들이 3초 박수
@@ -3592,11 +3594,12 @@ function habitBig(h) {
      sid는 세션마다 바뀌고 동물도 sid 해시라 매번 다를 수 있어서, 층 꾸밈(프로젝트)과 같은 기준에 프로바이더(Claude·Codex 등 서로 다른 일꾼)를 더함.
      같은 프로젝트·프로바이더로 다시 출근하면(새 세션 · 다른 동물이어도) 그대로 씀. 큰 화면 배우(아기·📋 일보 연출 포함)·사이드 직원 카드·미니 보기가 반영
    - 🎨 꾸미기 판 머리의 [📖 뽑기 도감 n/16]: 얻은 것은 그림·등급·개수, 못 얻은 칸은 실루엣("???")
-   - 저장 ctx.store "gacha" = { v: 1, own: { id: { n: 뽑은 수, t: 처음 뽑은 시각(초) } }, wear: { staffKey: { h: 머리 id, f: 얼굴 id, t } }, n: 뽑은 횟수, spent, back: 돌려받은 합, last: { id, t, dup } }
+   - 저장 ctx.store "gacha" = { v: 1, own: { id: { n: 뽑은 수, t: 처음 뽑은 시각(초) } }, wear: { staffKey: { h: 머리 id, f: 얼굴 id, t } }, n: 뽑은 횟수, spent, back: 돌려받은 합(옛 환급), last: { id, t, dup },
+     pity: 마지막 전설 뒤 돌린 수, sh: 🧩 조각 } — pity·sh는 v 1에 더한 필드(없으면 0)
      모르는 id(새 버전에서 뽑은 것)는 저장에 그대로 두되 그리지 않음 · wear는 200개까지(오래된 것부터) · 모르는 새 버전(v > 1)이면 읽기만(뽑기 막음). 큰 화면만 쓰고 미니 보기는 읽기만
    - 개발용 ?gacha=free(돈 안 듦) · legend · rare(그 등급 강제) · <아이템 id>(그것만) · all(이 창에서 모두 가진 것으로) — 쉼표로 여럿, 개발용이면 저장하지 않음 */
 const GACHA = (() => {
-  const VER = 1, PRICE = 150, BACK = .4, WEAR_MAX = 200;
+  const VER = 1, PRICE = 150, BACK = 0, WEAR_MAX = 200, PITY = 40, SH = { c: 5, r: 5, l: 15 }, SH_DUP = { c: 1, r: 1, l: 3 };   // BACK 0: 중복은 💰 대신 🧩 조각
   const TIER = { c: { n: ["흔함", "Common"], col: "#6adf8a", cap: "#6adf8a" }, r: { n: ["드묾", "Rare"], col: "#5aa8ff", cap: "#5aa8ff" }, l: { n: ["전설", "Legendary"], col: "#ffd23f", cap: "#ffd23f" } };
   const RATES = { c: 70, r: 25, l: 5 };
   const ACC_N = { cone: ["고깔모자", "Party hat"], ribbon: ["리본", "Ribbon"], beanie: ["털모자", "Knit hat"], pin: ["꽃 머리핀", "Flower pin"], phones: ["헤드폰", "Headphones"], straw: ["밀짚모자", "Straw hat"], crown: ["왕관", "Crown"], sun: ["선글라스", "Sunglasses"] };
@@ -3611,18 +3614,18 @@ const GACHA = (() => {
   const staffKey = (project, pk) => (pk || "other") + "|" + (project || "");
   const num = v => typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
   const obj = v => v && typeof v === "object" && !Array.isArray(v) ? v : {};
-  const blank = () => ({ v: VER, own: Object.create(null), wear: Object.create(null), n: 0, spent: 0, back: 0, last: null });
+  const blank = () => ({ v: VER, own: Object.create(null), wear: Object.create(null), n: 0, spent: 0, back: 0, last: null, pity: 0, sh: 0 });
   function load(raw) {
     let j = null; try { j = JSON.parse(raw || "null"); } catch {}
     const d = blank(); if (!j || typeof j !== "object" || typeof j.v !== "number") return d;
     Object.keys(obj(j.own)).forEach(id => { const e = obj(j.own[id]); if (num(e.n) >= 1) d.own[id] = { n: Math.floor(e.n), t: num(e.t) }; });   // 모르는 id도 그대로 둠(새 버전에서 뽑은 것)
     Object.keys(obj(j.wear)).forEach(k => { const e = obj(j.wear[k]), w = {}; ["h", "f"].forEach(s => { if (typeof e[s] === "string" && e[s].length < 40) w[s] = e[s]; }); if (w.h || w.f) d.wear[k] = Object.assign(w, { t: num(e.t) }); });
-    d.n = num(j.n); d.spent = num(j.spent); d.back = num(j.back);
+    d.n = num(j.n); d.spent = num(j.spent); d.back = num(j.back); d.pity = Math.floor(num(j.pity)); d.sh = Math.floor(num(j.sh));
     const L = obj(j.last); if (typeof L.id === "string") d.last = { id: L.id, t: num(L.t), dup: !!L.dup };
     d.ro = j.v > VER;
     return d;
   }
-  const dump = d => JSON.stringify({ v: VER, own: d.own, wear: d.wear, n: d.n, spent: d.spent, back: d.back, last: d.last });
+  const dump = d => JSON.stringify({ v: VER, own: d.own, wear: d.wear, n: d.n, spent: d.spent, back: d.back, last: d.last, pity: d.pity, sh: d.sh });
   const has = (d, id) => !!(d.own[id] && d.own[id].n >= 1);
   /* 이번에 나올 수 있는 것: 지원서는 그 동물이 아직 잠겨 있고 아직 안 뽑았을 때만 */
   const poolOf = (d, locked) => ITEMS.filter(it => it.k !== "app" || (locked(it.an) && !has(d, it.id)));
@@ -3631,19 +3634,25 @@ const GACHA = (() => {
     const pool = poolOf(d, locked);
     let it = force && force.id ? pool.find(x => x.id === force.id) || BY[force.id] : null;
     if (!it) {
-      const r = rng() * 100, want = force && force.tier || (r < RATES.l ? "l" : r < RATES.l + RATES.r ? "r" : "c");
+      const r = rng() * 100, want = force && force.tier || (d.pity >= PITY - 1 ? "l" : r < RATES.l ? "l" : r < RATES.l + RATES.r ? "r" : "c");   // ⭐ 천장: 40번째는 전설
       let ps = pool.filter(x => x.t === want);
       for (const t of ["c", "r", "l"]) if (!ps.length) ps = pool.filter(x => x.t === t);
       it = ps[Math.min(ps.length - 1, Math.floor(rng() * ps.length))];
     }
     const dup = it.k !== "app" && has(d, it.id);
-    return { it, dup, back: dup ? back() : 0 };
+    return { it, dup, back: dup ? back() : 0, sh: dup ? SH_DUP[it.t] : 0 };
   }
   /* 결과를 저장 객체에 반영(돈은 본체가) */
   function apply(d, res, now) {
     const e = d.own[res.it.id]; d.own[res.it.id] = { n: (e ? e.n : 0) + 1, t: e && e.t ? e.t : now };
-    d.n += 1; d.spent += PRICE; d.back += res.back; d.last = { id: res.it.id, t: now, dup: res.dup };
+    d.n += 1; d.spent += PRICE; d.back += res.back || 0; d.last = { id: res.it.id, t: now, dup: res.dup };
+    d.pity = res.it.t === "l" ? 0 : d.pity + 1; d.sh += res.sh || 0;
   }
+  /* 🧩 조각 교환: 아직 없는 액세서리·책상 소품 하나(지원서 빼고) — 흔함·드묾 5 · 전설 15 */
+  const cost = id => BY[id] && BY[id].k !== "app" ? SH[BY[id].t] : 0;
+  const canSwap = (d, id) => !d.ro && cost(id) > 0 && !has(d, id) && d.sh >= cost(id);
+  function swap(d, id, now) { if (!canSwap(d, id)) return false; d.sh -= cost(id); d.own[id] = { n: 1, t: now }; d.last = { id, t: now, dup: false, swap: 1 }; return true; }
+  const left = d => Math.max(1, PITY - d.pity);   // 전설까지 남은 횟수(이번 포함 · 옛·손댄 저장의 큰 pity도 1)
   /* 착용: 가진(그리고 이 버전이 아는) 액세서리만, 슬롯이 맞을 때만 */
   function wearOf(d, key) {
     const w = d.wear[key]; if (!w) return null;
@@ -3665,7 +3674,7 @@ const GACHA = (() => {
   }
   /* 돌릴 수 있나: "" | ro(새 버전 저장) | poor */
   const why = (d, funds, free) => d.ro ? "ro" : !free && funds < PRICE ? "poor" : "";
-  return { VER, PRICE, BACK, RATES, TIER, ITEMS, BY, back, staffKey, load, dump, has, poolOf, roll, draw, why, apply, wearOf, setWear, count };
+  return { VER, PRICE, BACK, PITY, SH, SH_DUP, cost, canSwap, swap, left, RATES, TIER, ITEMS, BY, back, staffKey, load, dump, has, poolOf, roll, draw, why, apply, wearOf, setWear, count };
 })();
 
 /* @test-end GACHA */
@@ -3780,13 +3789,14 @@ function gachaBig(h) {
         : it.k === "acc" ? X("누구에게 씌울까요? · 다시 누르면 벗어요", "Who should wear it? · click again to take it off")
         : X("🎨 꾸미기 판 → 책상 칸에 놓아요", "Place it on a desk spot in 🎨 Decorate");
       b = `<div class="ga-res${L ? " leg" : ""}">${L ? `<i class="ga-sp a">✦</i><i class="ga-sp b">✦</i><i class="ga-sp c">✦</i>` : ""}<div class="ga-art">${artHTML(it, 3, false, it.k === "acc" ? (h.model().floors[0] || {}).animal : null)}</div>
-        <div class="ga-tx">${tierB(it.t)}<b class="ga-nm">${esc(nm(it))}</b>${r.dup ? `<span class="ga-dup">${X(`이미 있어요 · 💰${r.back} 돌려받음`, `Already have it · 💰${r.back} back`)}</span>` : `<span class="ga-new">NEW!</span>`}<span class="ga-msg">${esc(msg)}</span></div></div>
+        <div class="ga-tx">${tierB(it.t)}<b class="ga-nm">${esc(nm(it))}</b>${r.dup ? `<span class="ga-dup">${X(`이미 있어요 · 🧩 조각 +${r.sh}`, `Already have it · 🧩 +${r.sh} shard${r.sh > 1 ? "s" : ""}`)}</span>` : `<span class="ga-new">NEW!</span>`}<span class="ga-msg">${esc(msg)}</span></div></div>
         ${it.k === "acc" ? wearPick(it) : ""}<div class="ga-acts">${spinBtn(X("한 번 더", "Again"))}${it.k === "desk" ? `<button type="button" class="dc-btn" data-act="ga-decor">🎨 ${X("꾸미기", "Decorate")}</button>` : ""}<button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
     } else {
       b = `<div class="ga-menu"><div class="ga-art">${img(WB.pix(ART.mach, 2))}</div><div class="ga-tx"><span>${X(`한 번 💰${GA.PRICE} · 횟수 제한 없음`, `💰${GA.PRICE} a spin · no daily limit`)}</span>
         <span class="ga-odds">${["c", "r", "l"].map(t => `<span class="ga-o">${tierB(t)} ${GA.RATES[t]}%</span>`).join("")}</span>
         <span>${X("직원 액세서리 · 책상 소품 · 📄 입사 지원서", "Accessories · desk toys · 📄 job applications")}</span>
-        <span>${X(`같은 게 나오면 💰${GA.back()} 돌려받아요`, `Duplicates refund 💰${GA.back()}`)}</span></div></div>
+        <span>${X(`⭐ 전설까지 ${GA.left(d)}번 · 🧩 조각 ${d.sh}`, `⭐ Legendary within ${GA.left(d)} · 🧩 ${d.sh} shards`)}</span>
+        <span class="ga-sm">${X(`중복은 조각 1(전설 3) · 조각 ${GA.SH.c}개로 흔함·드묾, ${GA.SH.l}개로 전설을 📖 도감에서 골라요`, `Dupes give 1 shard (legendary 3) · trade ${GA.SH.c} for a common/rare, ${GA.SH.l} for a legendary in 📖`)}</span></div></div>
         <div class="ga-acts">${spinBtn(X("돌리기", "Spin"))}<button type="button" class="dc-btn" data-act="ga-dex">📖 ${X("도감", "Collection")} ${c.have}/${c.all}</button><button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
     }
     html(pop, `<div class="ga-hd">🎰 ${X("캡슐 뽑기", "Capsule machine")}<span class="ga-fund">💰 ${funds.toLocaleString("en-US")}</span></div>${b}`);
@@ -3817,7 +3827,7 @@ function gachaBig(h) {
     GA.apply(d, res, now); save();
     if (!dev.any) { h.pay(GA.PRICE - res.back); h.float(-(GA.PRICE - res.back)); h.saveNow(); }   // 개발용 쿼리(?gacha=)면 자금도 건드리지 않음
     const it = res.it;
-    h.log("🎰", X(`뽑기: ${nm(it)} (${GA.TIER[it.t].n[0]})${res.dup ? ` · 중복 +${res.back}` : ""}`, `Gacha: ${nm(it)} (${GA.TIER[it.t].n[1]})${res.dup ? ` · dup +${res.back}` : ""}`));
+    h.log("🎰", X(`뽑기: ${nm(it)} (${GA.TIER[it.t].n[0]})${res.dup ? ` · 중복 🧩+${res.sh}` : ""}`, `Gacha: ${nm(it)} (${GA.TIER[it.t].n[1]})${res.dup ? ` · dup 🧩+${res.sh}` : ""}`));
     ui.res = null; ui.pop = h.anim() ? "" : "res"; if (!h.anim()) ui.res = res;
     spin = { t0: tc, res, fast: !h.anim() };
     if (it.t === "l" && h.anim()) clap = { a: tc + T_POP, b: tc + T_POP + 3 };
@@ -3829,6 +3839,13 @@ function gachaBig(h) {
     if (act === "ga-close") return close();
     if (act === "ga-dex") { close(); return h.openDex(); }
     if (act === "ga-decor") { close(); return h.openDecor(); }
+    if (act === "ga-swap") {   // 🧩 조각으로 고르기(📖 도감 칸)
+      const id = b.dataset.id, kb = doc.activeElement === b; if (dev.any || !GA.BY[id] || h.ro()) return; reload();
+      if (!GA.swap(d, id, Date.now() / 1000)) return h.tray();
+      save(); read(h.model().floors); h.log("🧩", X(`조각 ${GA.cost(id)}개로 ${nm(GA.BY[id])} 받았어요`, `Traded ${GA.cost(id)} shards for ${nm(GA.BY[id])}`)); h.tray(); h.kick(); if (ui.pop) render();
+      if (kb) { const nx = doc.querySelector(".dc-tray button.ga-cell.swp") || doc.querySelector(".dc-tray .ga-dexb"); if (nx) try { nx.focus({ preventScroll: true }); } catch {} }   // 키보드로 바꿨으면 다음 교환 칸(없으면 📖)으로
+      return;
+    }
     if (act === "ga-wear") {   // 🎨 꾸미기 판 👒 줄: 같은 걸 다시 누르면 벗음
       const k = b.dataset.k, s = b.dataset.s, id = b.dataset.id || "";
       if (!k || !["h", "f"].includes(s) || (id && (!GA.BY[id] || !GA.has(d, id) || GA.BY[id].s !== s))) return;
@@ -3856,8 +3873,11 @@ function gachaBig(h) {
   /* 📖 뽑기 도감(꾸미기 판 본문) */
   function dex() {
     const c = GA.count(d), grp = [["acc", X("👒 액세서리", "👒 Accessories")], ["desk", X("🗃️ 책상 소품", "🗃️ Desk toys")], ["app", X("📄 입사 지원서", "📄 Job applications")]];
-    return `<div class="ga-dex"><div class="ga-dh">📖 ${X("뽑기 도감", "Gacha collection")} <b>${c.have}/${c.all}</b> · ${X(`뽑은 횟수 ${d.n} · 돌려받은 💰${d.back}`, `${d.n} spins · 💰${d.back} refunded`)}</div>` + grp.map(([k, t]) => `<div class="ga-dg"><span class="ga-dt">${t}</span>${GA.ITEMS.filter(it => it.k === k).map(it => { const o = GA.has(d, it.id), n = o ? d.own[it.id].n : 0;
-      return `<span class="ga-cell t-${it.t}${o ? "" : " un"}" data-dcap="${esc(o ? `${nm(it)} · ${GA.TIER[it.t].n[en() ? 1 : 0]}${n > 1 ? " · ×" + n : ""}` : X(`??? · ${GA.TIER[it.t].n[0]} · 아직 못 뽑았어요`, `??? · ${GA.TIER[it.t].n[1]} · not found yet`))}">${artHTML(it, 2, !o)}<em>${o ? esc((it.sn || it.n)[en() ? 1 : 0]) : "???"}</em>${n > 1 ? `<u>×${n}</u>` : ""}</span>`; }).join("")}</div>`).join("") + `</div>`;
+    return `<div class="ga-dex"><div class="ga-dh">📖 ${X("뽑기 도감", "Gacha collection")} <b>${c.have}/${c.all}</b> · 🧩 <b>${d.sh}</b> · ${X(`⭐ 전설까지 ${GA.left(d)}번`, `⭐ legendary within ${GA.left(d)}`)}</div>` + grp.map(([k, t]) => `<div class="ga-dg"><span class="ga-dt">${t}</span>${GA.ITEMS.filter(it => it.k === k).map(it => { const o = GA.has(d, it.id), n = o ? d.own[it.id].n : 0, co = GA.cost(it.id), ok = !o && !dev.any && !h.ro() && GA.canSwap(d, it.id);   // 본체 저장이 읽기 전용(#197)이어도 교환 칸을 잠금
+      const cap = o ? `${nm(it)} · ${GA.TIER[it.t].n[en() ? 1 : 0]}${n > 1 ? " · ×" + n : ""}` : !co ? X(`??? · ${GA.TIER[it.t].n[0]} · 뽑기로만 나와요`, `??? · ${GA.TIER[it.t].n[1]} · only from spins`)
+        : ok ? X(`??? · ${GA.TIER[it.t].n[0]} · 🧩 ${co}개로 바로 받아요`, `??? · ${GA.TIER[it.t].n[1]} · trade 🧩 ${co} for it`) : X(`??? · ${GA.TIER[it.t].n[0]} · 🧩 ${co}개면 바꿀 수 있어요(지금 ${d.sh})`, `??? · ${GA.TIER[it.t].n[1]} · trade 🧩 ${co} (you have ${d.sh})`);
+      const inner = `${artHTML(it, 2, !o)}<em>${o ? esc((it.sn || it.n)[en() ? 1 : 0]) : "???"}</em>${n > 1 ? `<u>×${n}</u>` : !o && co ? `<u class="sw${ok ? " ok" : ""}">🧩${co}</u>` : ""}`;
+      return ok ? `<button type="button" class="ga-cell t-${it.t} un swp" data-act="ga-swap" data-id="${it.id}" data-dcap="${esc(cap)}">${inner}</button>` : `<span class="ga-cell t-${it.t}${o ? "" : " un"}" data-dcap="${esc(cap)}">${inner}</span>`; }).join("")}</div>`).join("") + `</div>`;
   }
   /* 🎉 전설: 자리에 있는 직원들 박수(만세 ↔ 내림, 3초) — 정적이면 없음 */
   function actor(i, fl, f, a, T, tc, anim) {
