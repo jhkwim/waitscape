@@ -131,4 +131,8 @@ const { SAVE, DECOR: D, GACHA: GA } = new Function("C", code + "\nreturn { SAVE,
   assert.strictEqual(Object.keys(D.LIKES).length, 11, "동물 11종 모두 좋아하는 소품");
   assert.ok(!/\bconst SHOP = \[/.test(src), "사장실 상점(SHOP)은 #197에서 꾸미기로 합침 — 파는 곳은 DECOR 하나");
 }
+// 💰 값·Lv(#197 5단계): Lv 잠금 없음 · 파는 소품 값은 하루 벌이(≈955) 기준 120~4,800 · 대표 값
+{ const sale = Object.values(D.ITEMS).filter(it => D.PACK[it.pack] && !D.PACK[it.pack].gacha);
+  sale.forEach(it => { assert.strictEqual(it.lv, 1, it.id + " Lv 잠금 없음"); assert.ok(it.p >= 120 && it.p <= 4800, it.id + " 값 " + it.p); });
+  assert.deepStrictEqual(["cactus", "rug", "neon", "snack", "of_sofa", "of_trophy"].map(id => D.ITEMS[id].p), [120, 400, 700, 900, 1500, 4800]); }
 console.log("✅ studio shop safety ok");
