@@ -3059,12 +3059,12 @@ function decorBig(h) {
   let hov = null;
   const point = e => { const t = e.target.closest ? e.target : null; if (!t || t.closest(".dt-info")) return;   // 상세 그림·글 위에선 그대로 · 옮기기·되팔기 단추(.dt-acts)는 설명만 바꿈(단추 줄은 다시 그리지 않음)
     if (t.closest(".dc-det") && !t.closest("[data-dcap]")) return;
-    const c = t.closest("[data-dcap]"); if (c === hov) return; hov = c; detail(c); };
+    const c = t.closest("[data-dcap]"); if (c === hov) return; hov = c; cap = ""; detail(c); };   // 다른 것을 가리키면 읽기 전용 안내도 걷음
   ctx.listen(tray, "mouseover", point); ctx.listen(tray, "focusin", point);
   ctx.listen(tray, "mouseleave", () => { hov = null; if (cap) cap = ""; detail(null); });
 
   function set(on) {
-    if (ui.on === !!on) return; lastOut = "";
+    if (ui.on === !!on) return; lastOut = ""; hov = null;
     ui.on = !!on; ui.slot = null; ui.hold = null; ui.gdex = false; cap = "";
     if (on && !ui.p) { const fs = floorsUI().filter(x => !x.hq); if (fs.length === 1) ui.p = fs[0].p; }   // 직원 층이 하나면 그 층부터(🏢 사장실·로비 탭은 늘 있음)
     if (on && !D.devSeason()) { const ks = seaKeys().map(x => x.k), sp = ks.join(","); if (ks.length && ks.some(k => !seenSet().has(k))) { d.sp = sp; save(); } }   // 🎃 이번 시즌 판을 열어 봄 → 버튼 점 거둠(개발용 ?season= 쿼리면 저장 안 함)
@@ -5407,8 +5407,8 @@ C.registerMode({
       const narrow = app.clientWidth < 900;
       app.classList.toggle("narrow", narrow); app.classList.toggle("tiny", app.clientWidth < 560);
       if (!narrow) side.classList.remove("on");
-      const th = dcB.trayH();   // 🎨 꾸미기 판이 열려 있으면 그만큼 건물을 아래로
-      sty(view, "paddingTop", th ? th + "px" : ""); dcB.size(view.clientWidth);
+      dcB.size(view.clientWidth); const th = dcB.trayH();   // 🎨 꾸미기 판 폭을 먼저 맞추고 높이를 읽음(좁은 창으로 바뀔 때) · 열려 있으면 그만큼 건물을 아래로
+      sty(view, "paddingTop", th ? th + "px" : "");
       const W = view.clientWidth, H = view.clientHeight - th;
       if (!W || !H) return;
       const rh = trB.roofH(), ws = 866, hs = (sceneH || 700) + rh;   // 🍖 회식 중엔 건물 위에 옥상 자리(바닥은 그대로, 하늘 쪽으로)
