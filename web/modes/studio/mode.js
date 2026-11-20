@@ -3154,7 +3154,7 @@ function decorBig(h) {
     /* 🏢 사장님 도착 반응: free = 사장실이 한가함(질문·인사·다른 말풍선 없음) → 그때부터 4.5초 */
     bossHQ: (tc, free) => { if (!hqR) return ""; const p = hqR;
       if (p.t0 == null) { if (tc - p.tq > 60) { hqR = null; return ""; } if (!free || tc - p.tq < 1.4) return ""; p.t0 = tc; }
-      if (tc - p.t0 > 4.5) { hqR = null; return ""; }
+      if (tc - p.t0 > 4.5 || !free) { hqR = null; return ""; }   // 말하는 중 사장실이 바빠지면(질문 직원 도착 등) 거기서 끝
       const L = HQ_BOSS[p.id], n = nm(p.id); return L ? L[en() ? 1 : 0] : X(`${n}${josa(n, "이", "가")} 들어왔다! 👍`, `A new ${n.toLowerCase()}! 👍`); },
     bossHQt: tc => hqR && hqR.t0 != null ? tc - hqR.t0 : 9,
     /* 🏢 질문 마친 직원 한마디: 사장실 소품 중 하나(사옥 소품 먼저) · 3번에 1번 · 없으면 "" */
@@ -5907,7 +5907,7 @@ C.registerMode({
       if (n !== gagN && (n < gagN || n < 8 || !gagHold)) gagN = n;
       if (gag && (tc - gag.t0 > 4.5 || gagHold)) gag = null;
       const gagS = gag ? X(...GAG[gag.i]) : "";
-      const hqS = DRon ? "" : dcB.bossHQ(tc, !bossBusy && !ch && !trB.bossSay(tc) && !gagS && !trB.bossAway(tc));   // 🏢 사옥 소품 도착 한마디
+      const hqS = DRon ? "" : dcB.bossHQ(tc, !bossBusy && !ch && !trB.bossSay(tc) && !gagS && !trB.bossAway(tc) && !NX.hidden && !NX.mode);   // 🙈 블라인드 뒤·눈치 연출 중엔 아껴 둠   // 🏢 사옥 소품 도착 한마디
       const bAway = !DRon && trB.bossAway(tc);   // 👔 사장님이 회식하러 옥상에(사장실이 바빠지면 바로 돌아옴)
       if (DRon) drB.boss(boss, bf, T, tc, ph);
       else if (bAway) trB.boss(boss, bf, T, tc, ph, n);
@@ -6001,6 +6001,7 @@ C.registerMode({
 
     /* 한 층의 동물 놓기 — 반환 { babies } */
     function placeActor(i, fl, f, a, T, tc, ph, anim) {
+      if (a.bub && a.bub.classList.contains("lf")) a.bub.classList.remove("lf");   // 🏢 소품 한마디 자리(왼쪽)는 감사 인사 가지에서만 다시 붙임
       const F = fl.F, B = fl.B, meet = f.layout === "meet", deskx = meet ? BOARD_X : DESK_X, k = f.kind, d = fl.desk;
       const lau = anim && a.launchUntil > tc;
       const setScreen = (mode, tt) => { if (!d) return; const on = mode !== "off"; sty(d.sc, "background", on ? "#16213a" : "#1a1a28");
