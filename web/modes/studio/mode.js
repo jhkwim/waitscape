@@ -3033,15 +3033,15 @@ function decorBig(h) {
     }
     if (ui.hold) acts = `<span class="hold">↔ ${esc(nm(ui.hold.id))} · ${X("옮길 칸을 눌러요", "click where to put it")}</span><button type="button" class="dc-btn" data-act="dc-cancel">${X("취소", "Cancel")}</button>`;
     const out = `<div class="hd"><b class="ti">🎨 ${X("꾸미기", "Decorate")}</b>${D.seasons(nowS()).map(pk => `<span class="sea" data-dcap="${esc(X(`${pk.n[0]} 시즌 소품을 ${D.untilOf(pk)}까지 팔아요 · 칸을 누르면 보여요`, `${pk.n[1]} items on sale until ${D.untilOf(pk)} · pick a spot to see them`))}">${pk.e || "🎁"} ${X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`)}</span>`).join("")}<span class="sp"></span><span class="fund">💰 ${funds.toLocaleString("en-US")}</span><button type="button" class="dc-btn ok" data-act="dc-done">✓ ${X("완료", "Done")}</button></div><div class="chips">${chips}${gc ? `<span class="dc-gsep"></span><button type="button" class="dc-chip dc-ga" data-act="dc-ga" data-dcap="${esc(X(`캡슐 뽑기 · 한 번 💰${ga().price} · 1층 🎰 기계를 눌러도 돼요`, `Capsule machine · 💰${ga().price} a spin · or click the 🎰 machine on 1F`))}">🎰 ${X("뽑기", "Gacha")}</button><button type="button" class="dc-chip ga-dexb${ui.gdex ? " on" : ""}" data-act="dc-gdex" data-dcap="${esc(X("1층 🎰 뽑기 기계에서 모은 것 · 빈칸은 실루엣", "What you got from the 🎰 machine on 1F · blanks are silhouettes"))}">📖 ${gc.have}/${gc.all}</button>` : ""}</div><div class="bd">${body}</div><div class="dc-det"><div class="dt-info"></div>${acts ? `<div class="dt-acts">${acts}</div>` : ""}</div>`;
-    if (out === lastOut) { if (!hov) detail(null); return; } lastOut = out;   // 같은 내용이면 DOM을 건드리지 않음(상세 칸·포커스·스크롤 그대로)
-    const keyOf2 = e => e && e.dataset ? [e.dataset.act, e.dataset.id, e.dataset.p, e.dataset.slot, e.dataset.sid, e.dataset.k, e.dataset.s].join("|") : "";
+    if (out === lastOut) { if (!hov || cap) detail(cap ? null : hov); return; } lastOut = out;   // 읽기 전용 안내(cap)는 가리킨 카드보다 먼저   // 같은 내용이면 DOM을 건드리지 않음(상세 칸·포커스·스크롤 그대로)
+    const keyOf2 = e => e && e.dataset ? [e.dataset.act, e.dataset.id, e.dataset.p, e.dataset.slot, e.dataset.sid, e.dataset.k, e.dataset.s, e.dataset.dcap].join("|") : "";
     const bd0 = tray.querySelector(".bd"), cs0 = tray.querySelector(".cards"), sT = bd0 ? bd0.scrollTop : 0, sL = cs0 ? cs0.scrollLeft : 0;
     const hk = hov && hov.isConnected ? keyOf2(hov) : "", fa = doc.activeElement, fk = fa && tray.contains(fa) ? keyOf2(fa) : "";
     html(tray, out);
     const bd1 = tray.querySelector(".bd"), cs1 = tray.querySelector(".cards"); if (bd1) bd1.scrollTop = sT; if (cs1) cs1.scrollLeft = sL;
-    const find = k => k ? [...tray.querySelectorAll("[data-act]")].find(e => keyOf2(e) === k) || null : null;
+    const find = k => k ? [...tray.querySelectorAll("[data-act],[data-dcap]")].find(e => keyOf2(e) === k) || null : null;
     const fe = find(fk); if (fe) try { fe.focus({ preventScroll: true }); } catch {}
-    hov = find(hk); detail(hov);
+    hov = find(hk); detail(cap ? null : hov);
   }
   let lastOut = "";
   /* 📋 고정 상세 영역(#197 4단계): 가리킨(포커스한) 카드의 그림·이름·값·잠금 이유·좋아함 — 아무것도 안 가리키면 이 칸에 놓인 소품, 없으면 안내 */
