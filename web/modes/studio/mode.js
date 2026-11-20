@@ -6001,7 +6001,8 @@ C.registerMode({
 
     /* 한 층의 동물 놓기 — 반환 { babies } */
     function placeActor(i, fl, f, a, T, tc, ph, anim) {
-      if (a.bub && a.bub.classList.contains("lf")) a.bub.classList.remove("lf");   // 🏢 소품 한마디 자리(왼쪽)는 감사 인사 가지에서만 다시 붙임
+      const lfOn = !!(a.loc === "boss" && a.goal === "home" && !a.moving && a.thanksT != null && a.hqC && tc - a.thanksT >= 1.6 && !a.nx);   // 🏢 소품 한마디 중이면 말풍선을 왼쪽에(오른쪽 엘리베이터에 안 가리게)
+      if (a.bub && a.bub.classList.contains("lf") !== lfOn) a.bub.classList.toggle("lf", lfOn);   // 바뀔 때만 건드림
       const F = fl.F, B = fl.B, meet = f.layout === "meet", deskx = meet ? BOARD_X : DESK_X, k = f.kind, d = fl.desk;
       const lau = anim && a.launchUntil > tc;
       const setScreen = (mode, tt) => { if (!d) return; const on = mode !== "off"; sty(d.sc, "background", on ? "#16213a" : "#1a1a28");
@@ -6072,7 +6073,6 @@ C.registerMode({
         sty(a.el, "zIndex", String(tgt.z || (onBoss ? 20 : 8)));
         bubble(a, alert ? "❗ " + X("입력 필요!", "Needs input!") : queued ? "❗ " + X("입력 필요 (순서 대기)", "Needs input (waiting)") : thanks ? (a.hqC && tc - a.thanksT >= 1.6 ? esc(a.hqC) : X("확인했어요! 계속할게요 🚀", "Thanks! Back to work 🚀")) : "", alert || queued || thanks);
         if (a.el.contains(a.bub) && asking) bubble(a, "", false);
-        if (a.bub) a.bub.classList.toggle("lf", !!(thanks && a.hqC && tc - a.thanksT >= 1.6));   // 🏢 소품 한마디는 직원 왼쪽(오른쪽 엘리베이터에 안 가리게)
         setScreen("off"); hands(false, 0);
         return res;
       }
