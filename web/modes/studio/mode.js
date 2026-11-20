@@ -2835,7 +2835,15 @@ function decorBig(h) {
   /* 🎰 뽑기 소품: 가졌고(한 개) 아직 어느 책상(층·창고)에도 안 놓였으면 놓을 수 있음 */
   const gaPk = id => !!D.ITEMS[id] && D.ITEMS[id].pack === "gacha";
   const placedAt = id => D.findAt(d, id);
-  const dl = [], react = new Map(), water = new Map();   // 택배 { p, slot, id, t0 } · 새 소품 반응 프로젝트 → { id, t0 } · 물 주기 프로젝트 → t0
+  const dl = [], react = new Map(), water = new Map();
+  /* 🏢 사옥 소품 반응(#197 5c): 사장실·로비에 산 소품이 도착하면 사장님 한마디(사장실이 한가할 때 4.5초, 1분 넘게 밀리면 생략) · 질문 마친 직원이 가끔(3번에 1번) 사장실 소품에 한마디 */
+  let hqR = null;   // { id, tq: 도착 시각, t0: 말하기 시작 }
+  const HQ_BOSS = { of_motto: ["사훈 걸었다! 오늘도 칼퇴 📜", "Motto's up! Ship it and go home 📜"], of_portrait: ["내 초상화 잘 나왔네~ 😎", "My portrait came out great~ 😎"],
+    of_water: ["정수기 왔다! 다들 물 많이 마셔요 💧", "Water cooler's here! Stay hydrated 💧"], of_coffee: ["커피머신 왔다! 김 나는 것 좀 봐 ☕", "Coffee machine! Look at that steam ☕"],
+    of_sofa: ["소파 푹신하다~ 손님 오면 여기 앉혀야지 🛋️", "So comfy~ guests sit here from now on 🛋️"], of_trophy: ["트로피다! 우리 스튜디오 최고 🏆", "A trophy! Best studio ever 🏆"] };
+  const HQ_STAFF = { of_motto: ["사훈… 칼퇴 꼭 지킬게요! 📜", "That motto… I'll leave on time! 📜"], of_portrait: ["초상화 사장님 닮았어요 ㅎㅎ", "The portrait looks just like you!"],
+    of_water: ["물 한 잔 마시고 갈게요 💧", "Grabbing some water on the way 💧"], of_coffee: ["커피 향 좋네요 ☕", "Smells like good coffee ☕"],
+    of_sofa: ["소파 한 번 앉아 봐도 돼요? 🛋️", "Can I try the sofa? 🛋️"], of_trophy: ["트로피 멋져요! ✨", "Nice trophy! ✨"] };   // 택배 { p, slot, id, t0 } · 새 소품 반응 프로젝트 → { id, t0 } · 물 주기 프로젝트 → t0
   let G = null, float = null, cap = "";
   const tray = mkEl("div", "dc-tray", h.main); tray.hidden = true;
   const dock = () => !h.app.classList.contains("narrow");   // 🎨 넓은 창이면 꾸미기 판이 오른쪽 패널(직원·로그) 자리에 — 건물은 원래 크기(#197 4단계) · 좁은 창은 건물 위
@@ -3119,6 +3127,7 @@ function decorBig(h) {
       if (F.s[sl] || h.lv() < it.lv || !h.pay(it.p)) return renderTray();   // 💰 결제가 되어야 놓음(지갑이 자금·읽기 전용 확인)
       F.s[sl] = id; F.at[sl] = nowS(); if (id === "plant") F.wilt = 0;
       deliver(p, sl, id, tc); float = { amt: -it.p, t0: tc }; save(); h.saveNow();
+      if (D.isHQ(p)) hqR = { id, tq: tc, t0: null };   // 🏢 사장님 한마디(택배가 열린 뒤)
       const f = h.model().floors.find(x => keyOf(x) === p), lk = f && liked(f.animal, id);
       h.log("📦", X(`${nm(id)} 샀어요 · ${pName(p)} ${sn(sl)} −${it.p}${lk ? ` · ${h.aName(f.animal)}${josa(h.aName(f.animal), "이", "가")} 좋아해요 ♥` : ""}`, `Bought ${nm(id)} for ${pName(p)} ${sn(sl)} −${it.p}${lk ? ` · ${h.aName(f.animal)} loves it ♥` : ""}`));
       if (sl === "F2") h.rebuild();
@@ -3142,6 +3151,16 @@ function decorBig(h) {
     read, build, frame, restX, pose, earn, tap, noPlant, sig, set,
     gdex: () => { set(true); ui.gdex = true; renderTray(); h.layout(); },   // 🎰 뽑기 판의 [📖 도감]
     restSay: f => { const F = d.fl[keyOf(f)], sl = D.likeSlot(F, f.animal), id = sl && F.s[sl]; return !id ? "" : id === "rug" ? X("러그 위가 최고 ♥", "Best spot: the rug ♥") : X(`${nm(id)} 옆이 최고 ♥`, `Love this ${nm(id).toLowerCase()} ♥`); },
+    /* 🏢 사장님 도착 반응: free = 사장실이 한가함(질문·인사·다른 말풍선 없음) → 그때부터 4.5초 */
+    bossHQ: (tc, free) => { if (!hqR) return ""; const p = hqR;
+      if (p.t0 == null) { if (tc - p.tq > 60) { hqR = null; return ""; } if (!free || tc - p.tq < 1.4) return ""; p.t0 = tc; }
+      if (tc - p.t0 > 4.5) { hqR = null; return ""; }
+      const L = HQ_BOSS[p.id], n = nm(p.id); return L ? L[en() ? 1 : 0] : X(`${n}${josa(n, "이", "가")} 들어왔다! 👍`, `A new ${n.toLowerCase()}! 👍`); },
+    bossHQt: tc => hqR && hqR.t0 != null ? tc - hqR.t0 : 9,
+    /* 🏢 질문 마친 직원 한마디: 사장실 소품 중 하나(사옥 소품 먼저) · 3번에 1번 · 없으면 "" */
+    thankLine: () => { const F = d.fl[":boss"], ids = F ? D.SLOTS.map(sl => F.s[sl]).filter(id => id && D.ITEMS[id]) : []; if (!ids.length || Math.random() >= 1 / 3) return "";
+      const of = ids.filter(id => HQ_STAFF[id]), id = (of.length ? of : ids)[Math.floor(Math.random() * (of.length || ids.length))], n = nm(id);
+      return HQ_STAFF[id] ? HQ_STAFF[id][en() ? 1 : 0] : X(`${n} 예뻐요!`, `Love the ${n.toLowerCase()}!`); },
     on: () => ui.on, tray: renderTray, float: amt => { float = { amt, t0: h.clockT() }; },   // 🍩 간식·🍖 회식도 자금 옆 −숫자
     trayH: () => ui.on && !dock() ? tray.offsetHeight + 8 : 0,   // 넓은 창: 오른쪽 패널 자리라 건물을 밀지 않음
     size: w => sty(tray, "width", dock() ? "" : Math.max(240, w) + "px"),
@@ -5666,8 +5685,8 @@ C.registerMode({
         } else if (a.loc === "lobby") liftWalk(a, nSess + 1, sp);   // ☕ 출근: 로비 → 사장실
         else if (a.loc === "boss") { a.lift = null; moveX(a, ASK_X, sp); if (!a.moving) a.flip = true; }   // ☕ 출근하자마자 커피를 든 채로 질문(해결되면 자리에 가서 내려놓음)
       } else if (a.loc === "boss") {
-        if (!a.moving && a.x === ASK_X && a.thanksT == null) a.thanksT = tc;      // 해결 → 감사 인사
-        if (a.thanksT != null && tc - a.thanksT < 1.8) { a.moving = false; return; }
+        if (!a.moving && a.x === ASK_X && a.thanksT == null) { a.thanksT = tc; a.hqC = anim ? dcB.thankLine() : ""; }      // 해결 → 감사 인사(🏢 가끔 사장실 소품 한마디 — 정적이면 생략)
+        if (a.thanksT != null && tc - a.thanksT < (a.hqC ? 3.6 : 1.8)) { a.moving = false; return; }
         liftWalk(a, nSess, sp);
       } else if (a.loc === "lobby") { a.thanksT = null; liftWalk(a, nSess + 1, sp);   // ☕ 출근: 로비 → 제자리
       } else if (a.loc === "home") {
@@ -5888,6 +5907,7 @@ C.registerMode({
       if (n !== gagN && (n < gagN || n < 8 || !gagHold)) gagN = n;
       if (gag && (tc - gag.t0 > 4.5 || gagHold)) gag = null;
       const gagS = gag ? X(...GAG[gag.i]) : "";
+      const hqS = DRon ? "" : dcB.bossHQ(tc, !bossBusy && !ch && !trB.bossSay(tc) && !gagS && !trB.bossAway(tc));   // 🏢 사옥 소품 도착 한마디
       const bAway = !DRon && trB.bossAway(tc);   // 👔 사장님이 회식하러 옥상에(사장실이 바빠지면 바로 돌아옴)
       if (DRon) drB.boss(boss, bf, T, tc, ph);
       else if (bAway) trB.boss(boss, bf, T, tc, ph, n);
@@ -5905,6 +5925,11 @@ C.registerMode({
       else if (!thanker && trB.bossSay(tc)) {   // 🍖 "오늘 회식은 옥상 바베큐!"(처음 3.5초)
         setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: anim && Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
         boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(trB.bossSay(tc)), true);
+      }
+      else if (hqS && !thanker) {   // 🏢 사옥 소품 도착: 처음 1.2초 만세 깡충 → 한마디
+        const u = dcB.bossHQt(tc);
+        setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: u < 1.2 ? (anim && Math.floor(u * 6) % 2 ? "u" : "r") : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: anim && u < 1.2 ? -Math.round(ph.hop * 2) * 3 : 0 }); tagOn(boss, false);
+        boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(hqS), true);
       }
       else if (gagS && !thanker) {   // 🏗️ 아재 개그(머리 긁적)
         setP(boss, { view: "front", seated: 1, legs: "s", eyes: Math.floor(tc * 2) % 2 ? "c" : "o", mouth: "o", arms: Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
@@ -5924,7 +5949,7 @@ C.registerMode({
         else bubble(boss, pq && pq.say || "", !!(pq && pq.say));
       }
       if (DRon || bAway) pkB.bossPaws(false);
-      else pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc) || !!gagS);   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
+      else pkB.bossAfter(boss, bf, T, tc, anim, n, !!thanker || !!pqB || updB || !!ch || !!nb || !!trB.bossSay(tc) || !!gagS || !!hqS);   // 👆 사장님: 꾸벅·커피 한 모금 · 누르면 반응 (말풍선이 있으면 양보)
       if (!bAway) drB.paper(boss, bf, T, anim);   // 📋 알림 중이면 종이를 흔듦
       /* 질문 말풍선 (층 위로 넘칠 수 있게 건물 위에 직접) */
       const askL = asker && !DRon ? Math.round(asker.x + 6 - asker.w / 2 - 14 - 290) : null;   // 질문 말풍선 왼쪽 끝(폭 290)
@@ -6044,8 +6069,9 @@ C.registerMode({
         tgt = parentFor(fiP, x, feet);
         put(a, tgt.p, tgt.x, tgt.feet, { dy, flip: a.flip || asking, rot: walking ? (ph.wk ? 3 : -3) : 0 });
         sty(a.el, "zIndex", String(tgt.z || (onBoss ? 20 : 8)));
-        bubble(a, alert ? "❗ " + X("입력 필요!", "Needs input!") : queued ? "❗ " + X("입력 필요 (순서 대기)", "Needs input (waiting)") : thanks ? X("확인했어요! 계속할게요 🚀", "Thanks! Back to work 🚀") : "", alert || queued || thanks);
+        bubble(a, alert ? "❗ " + X("입력 필요!", "Needs input!") : queued ? "❗ " + X("입력 필요 (순서 대기)", "Needs input (waiting)") : thanks ? (a.hqC && tc - a.thanksT >= 1.6 ? esc(a.hqC) : X("확인했어요! 계속할게요 🚀", "Thanks! Back to work 🚀")) : "", alert || queued || thanks);
         if (a.el.contains(a.bub) && asking) bubble(a, "", false);
+        if (a.bub) a.bub.classList.toggle("lf", !!(thanks && a.hqC && tc - a.thanksT >= 1.6));   // 🏢 소품 한마디는 직원 왼쪽(오른쪽 엘리베이터에 안 가리게)
         setScreen("off"); hands(false, 0);
         return res;
       }
