@@ -394,6 +394,39 @@ body[data-mode="studio"] .stu .dc-plus { position: absolute; z-index: 90; font-w
 body[data-mode="studio"] .stu.dc-on .pk-hit, body[data-mode="studio"] .stu.dc-on [data-act="jump"] { pointer-events: none; cursor: default; }
 /* 🏢 꾸미기 중엔 사장실 질문 말풍선이 벽 칸 클릭을 막지 않게 흐리고 통과(#197 3b) — 질문은 계속 보임 */
 body[data-mode="studio"] .stu.dc-on .bub.ask { pointer-events: none; opacity: .45; }
+/* 🎨 꾸미기 판 구조(#197 4단계): 머리줄 · 층 탭 · 카드 · 고정 상세 영역 — 넓은 창은 오른쪽 패널 자리(건물 크기 그대로), 좁은 창은 건물 위 */
+body[data-mode="studio"] .stu .dc-tray .chips { display: flex; gap: 6px; padding: 6px 8px; white-space: nowrap; overflow-x: auto; scrollbar-width: thin; border-bottom: 3px solid #e9dcc0; }
+body[data-mode="studio"] .stu .dc-det { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; border-top: 3px solid #e9dcc0; background: #fffaf0; }
+body[data-mode="studio"] .stu .dc-det .dt-info { display: flex; gap: 8px; align-items: center; min-height: 64px; }
+body[data-mode="studio"] .stu .dc-det .dt-tx { margin: 0; flex: 1; min-width: 0; font-size: 12px; font-weight: 700; color: #6d5d7d; line-height: 17px; }
+body[data-mode="studio"] .stu .dc-det .dt-tx p { margin: 2px 0 0; }
+body[data-mode="studio"] .stu .dc-det .dt-h { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #3a2a4a; }
+body[data-mode="studio"] .stu .dc-det .dt-h i { font-style: normal; font-size: 12px; border: 2px solid var(--deep); background: #ffd23f; padding: 0 4px; }
+body[data-mode="studio"] .stu .dc-det .it.lock .dt-h i { background: #ddd5e4; }
+body[data-mode="studio"] .stu .dc-det .it.poor .dt-h i { background: #ffd0d0; }
+body[data-mode="studio"] .stu .dc-det .it.lock .dt-tx p { color: #8a4a9a; }
+body[data-mode="studio"] .stu .dc-det .dt-m { display: flex; gap: 8px; }
+body[data-mode="studio"] .stu .dc-det .dt-m .lk { color: #ff5a8a; }
+body[data-mode="studio"] .stu .dc-det .dt-art { position: relative; flex: none; width: 76px; height: 64px; border: 3px solid var(--deep); background: #fff; overflow: hidden; }
+body[data-mode="studio"] .stu .dc-det .dt-art .art { position: absolute; left: 50%; top: 2px; transform-origin: 50% 0; pointer-events: none; }
+body[data-mode="studio"] .stu .dc-det .dt-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+body[data-mode="studio"] .stu .dc-det .dt-on, body[data-mode="studio"] .stu .dc-det .hold { color: #6d5d7d; font-size: 12px; }
+body[data-mode="studio"] .stu .dc-det .dt-acts .dc-btn { min-height: 32px; }
+/* 넓은 창: 오른쪽 패널(372px) 자리에 세로로 · 카드 두 줄 격자 · 패널은 꾸미는 동안 숨김 */
+body[data-mode="studio"] .stu:not(.narrow) .dc-tray { left: auto; right: 8px; top: 8px; bottom: 8px; width: 372px; display: flex; flex-direction: column; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-tray[hidden] { display: none; }
+body[data-mode="studio"] .stu:not(.narrow).dc-on .side { visibility: hidden; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-tray .chips { flex-wrap: wrap; overflow: visible; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-tray .bd { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-tray .cards { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-card { width: auto; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-sec { grid-column: 1 / -1; width: auto; height: 30px; flex-direction: row; gap: 6px; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-sec b { font-size: 16px; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-tray .tr-row { flex-wrap: wrap; white-space: normal; }
+body[data-mode="studio"] .stu:not(.narrow) .dc-gsep { flex-basis: 100%; width: auto; height: 0; }   /* 🎰 뽑기·📖 도감은 층 탭 아래 줄로 */
+/* 칸: 건물을 줄여 보여도 누르는 자리는 화면에서 44px 이상(--inv = 1/배율, 1~2) */
+body[data-mode="studio"] .stu .dc-hit { z-index: 65; cursor: pointer; }
+body[data-mode="studio"] .stu .dc-hit::after { content: ""; position: absolute; inset: calc((var(--inv, 1) - 1) * -22px); }
 body[data-mode="studio"] .stu .sb.dcgo { width: 100%; margin-top: 6px; }
 body[data-mode="studio"] .stu .bub.dcr { left: 100%; bottom: auto !important; top: 4px; transform: none; margin-left: 6px; }
 body[data-mode="studio"] .stu .bub.dcr:after { left: -9px; bottom: auto; top: 8px; margin: 0; border: 6px solid transparent; border-right: 6px solid var(--deep); border-left: 0; }
@@ -574,6 +607,10 @@ body[data-mode="studio"] .stu .ga-sep { color: #b8a8c8; }
 body[data-mode="studio"] .stu .ga-none { font-style: normal; color: #6d5d7d; }
 body[data-mode="studio"] .stu .dc-sec.ga { background: #5a2a4a; color: #ffe08a; }
 body[data-mode="studio"] .stu .dc-btn.ga-dexb.on { background: #ffd9a8; }
+body[data-mode="studio"] .stu .dc-chip.dc-ga { background: #ffe9a8; }
+body[data-mode="studio"] .stu .dc-gsep { flex: none; width: 3px; align-self: stretch; background: #e9dcc0; }
+body[data-mode="studio"] .stu .ga-wp { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 8px 8px; }
+body[data-mode="studio"] .stu .ga-wp em { font-style: normal; font-size: 12px; color: #6d5d7d; }
 body[data-mode="studio"] .stu .ga-dex { padding: 2px 2px 6px; }
 body[data-mode="studio"] .stu .ga-dh { padding: 2px 2px 6px; color: #6d5d7d; }
 body[data-mode="studio"] .stu .ga-dh b { color: #3a2a4a; }

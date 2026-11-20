@@ -2837,6 +2837,12 @@ function decorBig(h) {
   const dl = [], react = new Map(), water = new Map();   // 택배 { p, slot, id, t0 } · 새 소품 반응 프로젝트 → { id, t0 } · 물 주기 프로젝트 → t0
   let G = null, float = null, cap = "";
   const tray = mkEl("div", "dc-tray", h.main); tray.hidden = true;
+  const dock = () => !h.app.classList.contains("narrow");   // 🎨 넓은 창이면 꾸미기 판이 오른쪽 패널(직원·로그) 자리에 — 건물은 원래 크기(#197 4단계) · 좁은 창은 건물 위
+  /* 고른 층을 화면 가운데로(층이 많아 세로 스크롤일 때) */
+  const focusFl = now => { const r = G && G.fl.find(x => x.p === ui.p), v = h.main.querySelector(".view"); if (!r || !r.F || !v || v.scrollHeight <= v.clientHeight + 1) return;   // 건물 창(.view)만 — 바깥은 안 건드림
+    const calm = now || !h.anim(), fr = r.F.getBoundingClientRect(), vr = v.getBoundingClientRect(), th = ui.on && !dock() ? tray.offsetHeight + 8 : 0;   // 좁은 창이면 판 아래 보이는 곳 가운데
+    const top = Math.round(v.scrollTop + (fr.top + fr.bottom) / 2 - (vr.top + th + (vr.height - th) / 2));
+    try { v.scrollTo({ top: Math.max(0, top), behavior: calm ? "auto" : "smooth" }); } catch { v.scrollTop = Math.max(0, top); } };
   const plus = mkEl("div", "dc-plus", h.app, { display: "none" });
   const keyOf = f => f && f.s && f.s.project || "";
   const slotsOf = r => r.meet ? ["W2", "F1"] : D.slotsFor(r.p);   // 회의 배치(화이트보드·테이블)에선 벽 2·바닥 1만 보임 — 회의가 끝나면 그대로 돌아옴 · 🏢 사장실·로비는 벽 2·바닥 2
@@ -2873,7 +2879,7 @@ function decorBig(h) {
     G = { fl: [] };
     o.FL.forEach((fl, i) => {
       const hq = i === o.n ? ":boss" : fl.lobby ? ":lobby" : "", f = hq ? null : fl.f; if (!hq && !f) return;   // 🏢 사장실(2F)·로비(1F)도 꾸밀 층(#197 3b)
-      const r = { i, F: fl.F, B: fl.B, f, p: hq || keyOf(f), hq: !!hq, meet: !!f && f.layout === "meet", el: {}, sl: {}, fishX: 1 };
+      const r = { i, F: fl.F, B: fl.B, f, p: hq || keyOf(f), hq: !!hq, meet: !!f && f.layout === "meet", el: {}, sl: {}, hit: {}, fishX: 1 };
       D.SLOTS.forEach(sl => { r.el[sl] = mkEl("div", "b dc-it", fl.F, { display: "none" }); });
       r.fx = mkEl("div", "b dc-fx", fl.F, { left: "0", top: "0", zIndex: "41" });
       r.dim = mkEl("div", "b dc-dim", fl.F, { left: "0", top: "0", width: "860px", height: "100%", display: "none", zIndex: "58" }); r.dim.dataset.act = "dc-tab"; r.dim.dataset.p = r.p;
@@ -2881,6 +2887,8 @@ function decorBig(h) {
         const a = D.bigAt(sl, fl.B, r.p), k = D.KIND[sl], w = k === "wall" ? 56 : k === "desk" ? 50 : 70, hh = k === "wall" ? 56 : k === "desk" ? 44 : 50;
         const e = r.sl[sl] = mkEl("div", "b dc-slot", fl.F, { left: (a.x - w / 2) + "px", top: (k === "wall" ? a.y - 4 : a.y - hh) + "px", width: w + "px", height: hh + "px", display: "none" });
         e.dataset.act = "dc-slot"; e.dataset.slot = sl; e.dataset.p = r.p;
+        const hb = r.hit[sl] = mkEl("div", "b dc-hit", fl.F, { left: e.style.left, top: e.style.top, width: w + "px", height: hh + "px", display: "none" });   // 건물이 작게 보일 때 넓힌 누르기 자리(본체 z 66 아래)
+        hb.dataset.act = "dc-slot"; hb.dataset.slot = sl; hb.dataset.p = r.p;
       });
       G.fl.push(r);
     });
@@ -2944,7 +2952,7 @@ function decorBig(h) {
       sty(r.dim, "display", ui.on && ui.p && !sel ? "block" : "none");
       Object.keys(r.sl).forEach(sl => {
         const e = r.sl[sl], on = sel, cur = on && ui.slot === sl, hold = ui.hold && D.KIND[ui.hold.slot] === D.KIND[sl] && !(ui.hold.p === r.p && ui.hold.slot === sl) && okAt(ui.hold.id, r.p) && okAt(s[sl], ui.hold.p);
-        sty(e, "display", on ? "flex" : "none"); if (!on) return;
+        sty(e, "display", on ? "flex" : "none"); sty(r.hit[sl], "display", on ? "block" : "none"); if (!on) return;
         const c = "b dc-slot" + (s[sl] ? " full" : "") + (cur ? " cur" : "") + (cur && anim && Math.floor(T * 4) % 2 ? " blk" : "") + (hold ? " drop" : "") + (ui.hold && !hold && !(ui.hold.p === r.p && ui.hold.slot === sl) ? " off" : "");
         if (e.className !== c) e.className = c;
         txt(e, s[sl] ? "" : "+ " + sn(sl));
@@ -3001,7 +3009,7 @@ function decorBig(h) {
     const fs = floorsUI(), cur = fs.find(x => x.p === ui.p), hide = h.hideText(), funds = h.funds();
     const chips = fs.map(x => `<button type="button" class="dc-chip${x.p === ui.p ? " on" : ""}" data-act="dc-tab" data-p="${esc(x.p)}" data-dcap="${esc(x.hq ? X(`${floorN({ i: x.i })} ${pName(x.p)} 꾸미기 · 건물에 붙어 있어서 늘 그대로예요`, `Decorate ${floorN({ i: x.i })} ${pName(x.p)} · it belongs to the building, so it always stays`) : X(`${floorN({ i: x.i })} ${hide ? "🤫" : x.p} 층 꾸미기 · 꾸밈은 프로젝트에 붙어 있어요`, `Decorate ${floorN({ i: x.i })} ${hide ? "🤫" : x.p} · decor stays with the project`))}">${x.hq || EMO[x.f.animal]} ${floorN({ i: x.i })} ${esc(x.hq ? pName(x.p) : hide ? "🤫" : cut(x.p, 14))}</button>`).join("");
     const whN = Object.keys(d.wh).length;
-    let body;
+    let body, acts = "";
     const gc = ga() ? ga().count() : null;
     if (ui.gdex && ga()) body = ga().dex();
     else if (!cur) body = `<div class="msg">👆 ${X("꾸밀 층을 골라요 · 층 꾸밈은 <b>프로젝트</b>에 붙어서 세션이 새로 열려도 그대로예요", "Pick a floor · decor sticks to the <b>project</b>, so it stays when a new session opens")}${whN ? ` · 📦 ${X(`창고에 ${whN}층 보관 중(7일 넘게 안 온 프로젝트, 다시 오면 복원)`, `${whN} floor(s) in storage (back when the project returns)`)}` : ""}</div>`;
@@ -3021,22 +3029,47 @@ function decorBig(h) {
         /* ❔ 이 버전이 모르는 소품(새 버전에서 산 시즌 팩 등 — 다운그레이드): 저장은 그대로 두고 카드만 보여 줌 · 되팔기 없음(값을 모름) · 옮기기는 같은 종류 칸끼리라 안전 */
         + (have && !ownIt(have) ? `<button type="button" class="dc-card here unk" aria-disabled="true" data-dcap="${esc(X("새 버전에서 산 소품이에요 · 이 버전에선 보이지 않지만 저장은 그대로라 앱을 다시 올리면 돌아와요 · 옮기기만 돼요", "Item from a newer version · hidden here but kept, it comes back when you update · move only"))}"><span class="art unk">❔</span><span class="ft"><span>${X("새 버전 소품", "Newer item")}</span><b>✓ ${X("놓음", "Placed")}</b></span></button>` : "") + `</div>`;
       const hv = ownIt(have) ? D.ITEMS[have] : null, back = hv ? Math.floor(hv.p / 2) : 0;
-      if (have && !ui.hold) body = body.replace(/<\/div>$/, `<div class="acts"><button type="button" class="dc-btn" data-act="dc-move" data-dcap="${esc(X("다른 칸(같은 종류 · 다른 층도)으로 옮겨요 · 무료", "Move to another spot of the same kind (any floor) · free"))}">↔ ${X("옮기기", "Move")}</button>${hv && gaPk(have) ? `<button type="button" class="dc-btn" data-act="dc-sell" data-dcap="${esc(X("뽑기 소품은 팔지 않아요 · 빼면 보관함으로 가고 다른 책상에 다시 놓을 수 있어요", "Gacha finds aren't sold · removing puts it back in storage for another desk"))}">📦 ${X("빼기", "Remove")}</button>` : hv ? `<button type="button" class="dc-btn sell" data-act="dc-sell" data-dcap="${esc(X(`되팔면 산 값의 반 💰${back}을 돌려받아요`, `Sell back for half: 💰${back}`))}">💰 ${X("되팔기", "Sell")} +${back}</button>` : ""}</div></div>`);
+      if (have && !ui.hold) acts = `<span class="dt-on">✓ ${esc(sn(ui.slot))}</span><button type="button" class="dc-btn" data-act="dc-move" data-dcap="${esc(X("다른 칸(같은 종류 · 다른 층도)으로 옮겨요 · 무료", "Move to another spot of the same kind (any floor) · free"))}">↔ ${X("옮기기", "Move")}</button>${hv && gaPk(have) ? `<button type="button" class="dc-btn" data-act="dc-sell" data-dcap="${esc(X("뽑기 소품은 팔지 않아요 · 빼면 보관함으로 가고 다른 책상에 다시 놓을 수 있어요", "Gacha finds aren't sold · removing puts it back in storage for another desk"))}">📦 ${X("빼기", "Remove")}</button>` : hv ? `<button type="button" class="dc-btn sell" data-act="dc-sell" data-dcap="${esc(X(`되팔면 산 값의 반 💰${back}을 돌려받아요`, `Sell back for half: 💰${back}`))}">💰 ${X("되팔기", "Sell")} +${back}</button>` : ""}`;
     }
-    const holdT = ui.hold ? `<span class="hold">↔ ${esc(nm(ui.hold.id))} · ${X("옮길 칸을 눌러요", "click where to put it")} <button type="button" class="dc-btn" data-act="dc-cancel">${X("취소", "Cancel")}</button></span>` : "";
-    html(tray, `<div class="hd"><b class="ti">🎨 ${X("꾸미기", "Decorate")}</b>${chips}<span class="sp"></span>${D.seasons(nowS()).map(pk => `<span class="sea" data-dcap="${esc(X(`${pk.n[0]} 시즌 소품을 ${D.untilOf(pk)}까지 팔아요 · 칸을 누르면 보여요`, `${pk.n[1]} items on sale until ${D.untilOf(pk)} · pick a spot to see them`))}">${pk.e || "🎁"} ${X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`)}</span>`).join("")}${holdT}${cur && ui.slot && !ui.hold ? `<span class="where">${floorN({ i: cur.i })} · ${esc(sn(ui.slot))} ${X("칸", "")}</span>` : ""}${gc ? `<button type="button" class="dc-btn ga-dexb${ui.gdex ? " on" : ""}" data-act="dc-gdex" data-dcap="${esc(X("1층 🎰 뽑기 기계에서 모은 것 · 빈칸은 실루엣", "What you got from the 🎰 machine on 1F · blanks are silhouettes"))}">📖 ${X("뽑기 도감", "Gacha")} ${gc.have}/${gc.all}</button>` : ""}<span class="fund">💰 ${funds.toLocaleString("en-US")}</span><button type="button" class="dc-btn ok" data-act="dc-done">✓ ${X("완료", "Done")}</button></div><div class="bd">${body}</div><div class="dc-cap"></div>`);
-    txt(tray.querySelector(".dc-cap"), cap || X("옮기기 무료 · 되팔기 50% · 7일 넘게 안 온 프로젝트의 소품은 창고로 갔다가 다시 오면 돌아와요", "Moving is free · selling returns 50% · items of projects unseen for 7 days go to storage and come back with the project"));
+    if (ui.hold) acts = `<span class="hold">↔ ${esc(nm(ui.hold.id))} · ${X("옮길 칸을 눌러요", "click where to put it")}</span><button type="button" class="dc-btn" data-act="dc-cancel">${X("취소", "Cancel")}</button>`;
+    const out = `<div class="hd"><b class="ti">🎨 ${X("꾸미기", "Decorate")}</b>${D.seasons(nowS()).map(pk => `<span class="sea" data-dcap="${esc(X(`${pk.n[0]} 시즌 소품을 ${D.untilOf(pk)}까지 팔아요 · 칸을 누르면 보여요`, `${pk.n[1]} items on sale until ${D.untilOf(pk)} · pick a spot to see them`))}">${pk.e || "🎁"} ${X(`${D.untilOf(pk)}까지`, `until ${D.untilOf(pk)}`)}</span>`).join("")}<span class="sp"></span><span class="fund">💰 ${funds.toLocaleString("en-US")}</span><button type="button" class="dc-btn ok" data-act="dc-done">✓ ${X("완료", "Done")}</button></div><div class="chips">${chips}${gc ? `<span class="dc-gsep"></span><button type="button" class="dc-chip dc-ga" data-act="dc-ga" data-dcap="${esc(X(`캡슐 뽑기 · 한 번 💰${ga().price} · 1층 🎰 기계를 눌러도 돼요`, `Capsule machine · 💰${ga().price} a spin · or click the 🎰 machine on 1F`))}">🎰 ${X("뽑기", "Gacha")}</button><button type="button" class="dc-chip ga-dexb${ui.gdex ? " on" : ""}" data-act="dc-gdex" data-dcap="${esc(X("1층 🎰 뽑기 기계에서 모은 것 · 빈칸은 실루엣", "What you got from the 🎰 machine on 1F · blanks are silhouettes"))}">📖 ${gc.have}/${gc.all}</button>` : ""}</div><div class="bd">${body}</div><div class="dc-det"><div class="dt-info"></div>${acts ? `<div class="dt-acts">${acts}</div>` : ""}</div>`;
+    if (out === lastOut) { if (!hov || cap) detail(cap ? null : hov); return; } lastOut = out;   // 읽기 전용 안내(cap)는 가리킨 카드보다 먼저   // 같은 내용이면 DOM을 건드리지 않음(상세 칸·포커스·스크롤 그대로)
+    const keyOf2 = e => !e || !e.dataset ? "" : e.dataset.act ? [e.dataset.act, e.dataset.id, e.dataset.p, e.dataset.slot, e.dataset.sid, e.dataset.k, e.dataset.s].join("|") : "cap|" + (e.dataset.dcap || "");   // 단추는 자리로(설명은 자금 따라 바뀜) · 설명만 있는 칸은 설명으로
+    const bd0 = tray.querySelector(".bd"), cs0 = tray.querySelector(".cards"), sT = bd0 ? bd0.scrollTop : 0, sL = cs0 ? cs0.scrollLeft : 0;
+    const hk = hov && hov.isConnected ? keyOf2(hov) : "", fa = doc.activeElement, fk = fa && tray.contains(fa) ? keyOf2(fa) : "";
+    html(tray, out);
+    const bd1 = tray.querySelector(".bd"), cs1 = tray.querySelector(".cards"); if (bd1) bd1.scrollTop = sT; if (cs1) cs1.scrollLeft = sL;
+    const find = k => k ? [...tray.querySelectorAll("[data-act],[data-dcap]")].find(e => keyOf2(e) === k) || null : null;
+    const fe = find(fk); if (fe) try { fe.focus({ preventScroll: true }); } catch {}
+    hov = find(hk); detail(cap ? null : hov);
   }
-  ctx.listen(tray, "mouseover", e => { const c = e.target.closest ? e.target.closest("[data-dcap]") : null, v = c ? c.dataset.dcap : ""; if (v !== cap) { cap = v; const ce = tray.querySelector(".dc-cap"); if (ce) txt(ce, cap || X("옮기기 무료 · 되팔기 50% · 7일 넘게 안 온 프로젝트의 소품은 창고로 갔다가 다시 오면 돌아와요", "Moving is free · selling returns 50% · items of projects unseen for 7 days go to storage and come back with the project")); } });
-  ctx.listen(tray, "mouseleave", () => { if (cap) { cap = ""; renderTray(); } });
+  let lastOut = "";
+  /* 📋 고정 상세 영역(#197 4단계): 가리킨(포커스한) 카드의 그림·이름·값·잠금 이유·좋아함 — 아무것도 안 가리키면 이 칸에 놓인 소품, 없으면 안내 */
+  const HINT = () => X("옮기기 무료 · 되팔기 50% · 7일 넘게 안 온 프로젝트의 소품은 창고로 갔다가 다시 오면 돌아와요", "Moving is free · selling returns 50% · items of projects unseen for 7 days go to storage and come back with the project");
+  function detail(c) {
+    const box = tray.querySelector(".dt-info"); if (!box) return;
+    if (!c && !cap) c = tray.querySelector(".dc-card.here");   // 기본: 이 칸에 놓인 소품
+    const v = c ? c.dataset.dcap : cap, a = c && c.classList.contains("dc-card") ? c.querySelector(".art") : null;
+    if (!a) { html(box, `<p class="dt-tx">${esc(v || (ui.gdex ? X("📖 칸에 올리면 이름·등급이 나와요 · 빈칸은 아직 못 뽑은 것", "📖 Hover a cell for its name and tier · blanks are not found yet") : HINT()))}</p>`); box.className = "dt-info"; return; }
+    const nmE = c.querySelector(".ft span"), pr = c.querySelector(".ft b"), lk = c.querySelector(".like"), nt = c.querySelector(".note");
+    const aw = parseFloat(a.style.width) || 64, ah = parseFloat(a.style.height) || 64, k = Math.min(1, 58 / ah, 70 / aw);   // 상세 칸(76×64) 안에 맞춤
+    html(box, `<div class="dt-art"><span class="art" style="width:${aw}px;height:${ah}px;transform:translateX(-50%) scale(${k.toFixed(3)})">${a.innerHTML}</span></div><div class="dt-tx"><div class="dt-h"><b>${esc(nmE ? nmE.textContent : "")}</b>${pr ? `<i>${esc(pr.textContent)}</i>` : ""}</div>${nt || lk ? `<div class="dt-m">${nt ? `<span>${esc(nt.textContent)}</span>` : ""}${lk ? `<span class="lk">${esc(lk.textContent)}</span>` : ""}</div>` : ""}<p>${esc(v || "")}</p></div>`);
+    box.className = "dt-info it" + (c.classList.contains("lock") ? " lock" : c.classList.contains("poor") ? " poor" : "");
+  }
+  let hov = null;
+  const point = e => { const t = e.target.closest ? e.target : null; if (!t || t.closest(".dt-info")) return;   // 상세 그림·글 위에선 그대로 · 옮기기·되팔기 단추(.dt-acts)는 설명만 바꿈(단추 줄은 다시 그리지 않음)
+    if (t.closest(".dc-det") && !t.closest("[data-dcap]")) return;
+    const c = t.closest("[data-dcap]"); if (c === hov) return; hov = c; cap = ""; detail(c); };   // 다른 것을 가리키면 읽기 전용 안내도 걷음
+  ctx.listen(tray, "mouseover", point); ctx.listen(tray, "focusin", point);
+  ctx.listen(tray, "mouseleave", () => { hov = null; if (cap) cap = ""; detail(null); });
 
   function set(on) {
-    if (ui.on === !!on) return;
+    if (ui.on === !!on) return; lastOut = ""; hov = null;
     ui.on = !!on; ui.slot = null; ui.hold = null; ui.gdex = false; cap = "";
     if (on && !ui.p) { const fs = floorsUI().filter(x => !x.hq); if (fs.length === 1) ui.p = fs[0].p; }   // 직원 층이 하나면 그 층부터(🏢 사장실·로비 탭은 늘 있음)
     if (on && !D.devSeason()) { const ks = seaKeys().map(x => x.k), sp = ks.join(","); if (ks.length && ks.some(k => !seenSet().has(k))) { d.sp = sp; save(); } }   // 🎃 이번 시즌 판을 열어 봄 → 버튼 점 거둠(개발용 ?season= 쿼리면 저장 안 함)
     h.app.classList.toggle("dc-on", ui.on);
-    renderTray(); h.layout(); h.kick(); h.hud();
+    renderTray(); h.layout(); h.kick(); h.hud(); if (ui.on && ui.p) focusFl();
   }
   function deliver(p, slot, id, tc) { dl.push({ p, slot, id, t0: tc }); if (!D.isHQ(p)) react.set(p, { id, t0: tc }); /* 직원 반응은 직원 층만(사장실·로비엔 pose가 없어 지워지지 않음) */ d.last = { p, slot, id, t: Date.now() }; }
   function tap(act, b) {
@@ -3045,13 +3078,15 @@ function decorBig(h) {
     if (!ui.on) return;
     if (act === "dc-done") return set(false);
     if (act === "dc-gdex") { ui.gdex = !ui.gdex; ui.hold = null; return renderTray(); }
+    if (act === "dc-ga") { if (!ga()) return; const p0 = ui.p; ui.p = ":lobby"; focusFl(true); ui.p = p0; ga().open(); return; }   // 🎰 뽑기 판(1층 기계 위)을 엶 — 기계가 화면 밖이면 로비로 스크롤 · 꾸미기 판은 그대로
     if (act === "dc-tab" || act === "dc-slot") ui.gdex = false;
     /* 더 새 버전이 쓴 꾸밈 저장(d.ro)·본체 저장(h.ro, #197 — 되팔면 소품만 지워지고 대금은 저장 안 됨)은 저장이 막히므로 사기·되팔기·옮기기도 막는다(#195 — 되팔면 자금만 오르고 소품은 새로고침 때 돌아와 무한 되팔기) */
     if ((d.ro || h.ro()) && (act === "dc-buy" || act === "dc-sell" || act === "dc-move" || (act === "dc-slot" && ui.hold))) {
       ui.hold = null; cap = X("새 버전 저장이라 보기만 돼요 · 앱을 업데이트해요", "Saved by a newer version · update to edit");
       return renderTray();
     }
-    if (act === "dc-tab") { if (ui.p !== b.dataset.p) { ui.p = b.dataset.p; ui.slot = null; } }
+    if (act === "dc-tab" || act === "dc-slot") cap = "";   // 다른 층·칸으로 가면 읽기 전용 안내를 걷음
+    if (act === "dc-tab") { if (ui.p !== b.dataset.p) { ui.p = b.dataset.p; ui.slot = null; } if (b.classList.contains("dc-chip")) focusFl(); }   // 층 탭은 같은 층을 다시 눌러도 가운데로
     else if (act === "dc-slot") {
       const p = b.dataset.p, sl = b.dataset.slot;
       if (ui.hold) {   // 옮기기: 같은 종류 칸이면 놓기(차 있으면 맞바꿈)
@@ -3107,9 +3142,9 @@ function decorBig(h) {
     gdex: () => { set(true); ui.gdex = true; renderTray(); h.layout(); },   // 🎰 뽑기 판의 [📖 도감]
     restSay: f => { const F = d.fl[keyOf(f)], sl = D.likeSlot(F, f.animal), id = sl && F.s[sl]; return !id ? "" : id === "rug" ? X("러그 위가 최고 ♥", "Best spot: the rug ♥") : X(`${nm(id)} 옆이 최고 ♥`, `Love this ${nm(id).toLowerCase()} ♥`); },
     on: () => ui.on, tray: renderTray, float: amt => { float = { amt, t0: h.clockT() }; },   // 🍩 간식·🍖 회식도 자금 옆 −숫자
-    trayH: () => ui.on ? tray.offsetHeight + 8 : 0,
-    size: w => sty(tray, "width", Math.max(240, w) + "px"),
-    key: e => { if (!ui.on || e.key !== "Escape") return false; if (ui.hold) { ui.hold = null; renderTray(); } else set(false); return true; },
+    trayH: () => ui.on && !dock() ? tray.offsetHeight + 8 : 0,   // 넓은 창: 오른쪽 패널 자리라 건물을 밀지 않음
+    size: w => sty(tray, "width", dock() ? "" : Math.max(240, w) + "px"),
+    key: e => { if (!ui.on || e.key !== "Escape" || (ga() && ga().on())) return false; /* 🎰 뽑기 판이 열려 있으면 그쪽만 닫힘 */ if (ui.hold) { ui.hold = null; renderTray(); } else set(false); return true; },
     hudBtn: b => { const seen = seenSet(), nw = ui.on ? null : seaKeys().find(x => !seen.has(x.k)), pk = nw && nw.pk;   // 🎃 열린 시즌 중 아직 판을 안 열어 본 게 있으면 작은 점
       html(b, "🎨 " + X("꾸미기", "Decorate") + (pk ? `<span class="dc-new" aria-hidden="true">${pk.e || "🎁"}</span>` : ""));
       const lab = pk ? X(`꾸미기 · ${pk.n[0]} 시즌 소품이 왔어요 (${D.untilOf(pk)}까지)`, `Decorate · ${pk.n[1]} items are here (until ${D.untilOf(pk)})`) : "";
@@ -3742,11 +3777,11 @@ function gachaBig(h) {
     if (ui.pop === "res" && ui.res) {
       const r = ui.res, it = r.it, L = it.t === "l";
       const msg = it.k === "app" ? X(`${EMO[it.an]} ${h.aName(it.an)}${h.josa(h.aName(it.an), "이", "가")} 입사했어요! 다음 새 세션부터 출근해요`, `${EMO[it.an]} ${h.aName(it.an)} joined! Shows up from the next new session`)
-        : it.k === "acc" ? X("🎨 꾸미기 판에서 층을 고르면 직원에게 씌워 줄 수 있어요", "Pick a floor in 🎨 Decorate to put it on someone")
+        : it.k === "acc" ? X("누구에게 씌울까요? · 다시 누르면 벗어요", "Who should wear it? · click again to take it off")
         : X("🎨 꾸미기 판 → 책상 칸에 놓아요", "Place it on a desk spot in 🎨 Decorate");
       b = `<div class="ga-res${L ? " leg" : ""}">${L ? `<i class="ga-sp a">✦</i><i class="ga-sp b">✦</i><i class="ga-sp c">✦</i>` : ""}<div class="ga-art">${artHTML(it, 3, false, it.k === "acc" ? (h.model().floors[0] || {}).animal : null)}</div>
         <div class="ga-tx">${tierB(it.t)}<b class="ga-nm">${esc(nm(it))}</b>${r.dup ? `<span class="ga-dup">${X(`이미 있어요 · 💰${r.back} 돌려받음`, `Already have it · 💰${r.back} back`)}</span>` : `<span class="ga-new">NEW!</span>`}<span class="ga-msg">${esc(msg)}</span></div></div>
-        <div class="ga-acts">${spinBtn(X("한 번 더", "Again"))}${it.k !== "app" ? `<button type="button" class="dc-btn" data-act="ga-decor">🎨 ${X("꾸미기", "Decorate")}</button>` : ""}<button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
+        ${it.k === "acc" ? wearPick(it) : ""}<div class="ga-acts">${spinBtn(X("한 번 더", "Again"))}${it.k === "desk" ? `<button type="button" class="dc-btn" data-act="ga-decor">🎨 ${X("꾸미기", "Decorate")}</button>` : ""}<button type="button" class="dc-btn" data-act="ga-close">${X("닫기", "Close")}</button></div>${why ? `<div class="ga-why">${esc(why)}</div>` : ""}`;
     } else {
       b = `<div class="ga-menu"><div class="ga-art">${img(WB.pix(ART.mach, 2))}</div><div class="ga-tx"><span>${X(`한 번 💰${GA.PRICE} · 횟수 제한 없음`, `💰${GA.PRICE} a spin · no daily limit`)}</span>
         <span class="ga-odds">${["c", "r", "l"].map(t => `<span class="ga-o">${tierB(t)} ${GA.RATES[t]}%</span>`).join("")}</span>
@@ -3756,6 +3791,14 @@ function gachaBig(h) {
     }
     html(pop, `<div class="ga-hd">🎰 ${X("캡슐 뽑기", "Capsule machine")}<span class="ga-fund">💰 ${funds.toLocaleString("en-US")}</span></div>${b}`);
     place();
+  }
+  /* 👒 뽑기 결과에서 바로 씌우기(#197 4단계): 지금 보이는 직원(같은 프로젝트·직원은 한 번) — 누르면 그 직원에게, 씌운 사람을 다시 누르면 벗음 */
+  function wearPick(it) {
+    const seen = new Set(), fs = h.model().floors.filter(f => f.s && f.s.project).filter(f => { const k = GA.staffKey(f.s.project, f.pk); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 8);
+    if (!fs.length) return `<div class="ga-wp"><em>${X("지금 출근한 직원이 없어요 · 🎨 꾸미기 판에서 나중에 씌워요", "No one's in right now · put it on later from 🎨 Decorate")}</em></div>`;
+    return `<div class="ga-wp">` + fs.map(f => { const k = GA.staffKey(f.s.project, f.pk), on = (d.wear[k] || {})[it.s] === it.id;
+      const dup = fs.filter(g => g.animal === f.animal).length > 1, tag = !dup ? "" : h.hideText() ? ` ${h.n() + 2 - h.model().floors.indexOf(f)}F` : `·${esc(String(f.s.project).slice(0, 12))}`;   // 같은 동물이 여럿이면 구별(🤫면 층 번호)
+      return `<button type="button" class="dc-btn ga-w${on ? " on" : ""}" data-act="ga-wear" data-k="${esc(k)}" data-s="${it.s}" data-id="${it.id}">${EMO[f.animal]} ${esc(h.aName(f.animal))}${tag}${on ? " ✓" : ""}</button>`; }).join("") + `</div>`;
   }
   function showRes(r) { ui.res = r; ui.pop = "res"; render(); h.kick(); }
   function open() { if (h.hidden() || h.dr() || !G) return; ui.pop = spin ? "res" : "menu"; if (!spin) ui.res = null; render(); }
@@ -3790,7 +3833,7 @@ function gachaBig(h) {
       const k = b.dataset.k, s = b.dataset.s, id = b.dataset.id || "";
       if (!k || !["h", "f"].includes(s) || (id && (!GA.BY[id] || !GA.has(d, id) || GA.BY[id].s !== s))) return;
       reload(); const cur = d.wear[k] && d.wear[k][s];
-      GA.setWear(d, k, s, cur === id ? "" : id, Date.now() / 1000); save(); read(h.model().floors); h.tray(); h.kick();
+      GA.setWear(d, k, s, cur === id ? "" : id, Date.now() / 1000); save(); read(h.model().floors); h.tray(); h.kick(); if (ui.pop) render();   // 뽑기 결과의 씌우기 줄도 다시
     }
   }
   /* 기계 누르기(캡처 단계 — 👆 창·화분 반응으로 넘기지 않음) · Enter/Space */
@@ -3798,7 +3841,7 @@ function gachaBig(h) {
   ctx.listen(doc, "keydown", e => {
     const t = e.target, typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ""));
     if (e.repeat && pop.contains(t)) { e.preventDefault(); return; }   // [한 번 더]에서 Enter를 꾹 눌러도 연달아 돌지 않게
-    if (G && t === G.hit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } else if (ui.pop && e.key === "Escape" && !typing) close(); });
+    if (G && t === G.hit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } else if (ui.pop && e.key === "Escape" && !typing) { close(); e.stopImmediatePropagation(); } });   // Escape는 뽑기 판만 닫음(꾸미기 판은 그대로)
   /* 🎨 꾸미기 판 👒 줄(층을 고르면, 간식 줄 아래) */
   function row(fs) {
     const seen = new Set(), owned = GA.ITEMS.filter(it => it.k === "acc" && GA.has(d, it.id));
@@ -3822,7 +3865,7 @@ function gachaBig(h) {
     if (a.loc !== "home" || a.moving || a.par !== fl.F) return;
     const o = JSON.parse(a.pose || "{}"); h.setP(a, Object.assign(o, { arms: Math.floor(tc / .14) % 2 ? "u" : "", mouth: "o", eyes: "o" }));
   }
-  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, busy: () => !!spin || !!ui.pop, spinning: () => !!spin, close };
+  return { build, read, frame, tap, row, dex, actor, reload, render, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, busy: () => !!spin || !!ui.pop, spinning: () => !!spin, close, open, price: GA.PRICE };
 }
 
 /* ================= 🍩 간식 · 🍖 회식 (TREAT: 카탈로그·저장·그림 공용 · 큰 화면 treatBig — 미니 보기는 책상 위 간식 그림만 읽기(#157). 본체에는 연결 줄만, jhkwim/waitscape#79) =================
@@ -5102,9 +5145,9 @@ C.registerMode({
       box: (...a) => box(...a), parentFor: (...a) => parentFor(...a), model: () => model, n: () => nSess, bossAct: () => bossAct, floorOf: sid => floorIdx.get(sid),
       provName: id => C.provider(ctx.state, { provider: id }).name, anim: () => animOn(), kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), dinner: c => trB.cardBtn(c) });   // 🍖 카드 아래 회식 버튼
     const dcB = decorBig({ ctx, doc, win, mkEl, sty, txt, html, X, app, main: $(".main"), actors, aName, clockT, model: () => model, n: () => nSess,   // 🎨 층 꾸미기
-      lv: () => lvOf(), funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText,
+      lv: () => lvOf(), funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, log: pushLog, hideText: () => !!cfg.hideText, anim: () => animOn(),
       money: () => HUDQ.money, kick: () => { if (!animOn()) staticDraw(); }, hud: () => renderHud(), layout: () => layout(), rebuild: () => { buildSig = ""; sync(); }, treats: fs => trB.row(fs), ga: () => gaB });   // 🍩 층을 고르면 간식 줄
-    const gaB = gachaBig({ ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
+    const gaB = gachaBig({ hideText: () => !!cfg.hideText, n: () => nSess, ctx, doc, mkEl, sty, txt, html, X, app, clockT, hire, model: () => model, aName, josa: (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b; },   // 🎰 1층 뽑기 기계(#86)
       funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
       kick: () => { if (!animOn()) staticDraw(); }, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode), dr: () => drB.active() || trB.active(), setP,
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true) });
@@ -5365,8 +5408,8 @@ C.registerMode({
       const narrow = app.clientWidth < 900;
       app.classList.toggle("narrow", narrow); app.classList.toggle("tiny", app.clientWidth < 560);
       if (!narrow) side.classList.remove("on");
-      const th = dcB.trayH();   // 🎨 꾸미기 판이 열려 있으면 그만큼 건물을 아래로
-      sty(view, "paddingTop", th ? th + "px" : ""); dcB.size(view.clientWidth);
+      dcB.size(view.clientWidth); const th = dcB.trayH();   // 🎨 꾸미기 판 폭을 먼저 맞추고 높이를 읽음(좁은 창으로 바뀔 때) · 열려 있으면 그만큼 건물을 아래로
+      sty(view, "paddingTop", th ? th + "px" : "");
       const W = view.clientWidth, H = view.clientHeight - th;
       if (!W || !H) return;
       const rh = trB.roofH(), ws = 866, hs = (sceneH || 700) + rh;   // 🍖 회식 중엔 건물 위에 옥상 자리(바닥은 그대로, 하늘 쪽으로)
