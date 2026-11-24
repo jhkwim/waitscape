@@ -98,6 +98,8 @@ body[data-mode="studio"] .stu .bub { position: absolute; left: 50%; transform: t
 body[data-mode="studio"] .stu .bub:after { content: ""; position: absolute; left: 50%; margin-left: -6px; bottom: -9px; border: 6px solid transparent; border-top: 6px solid var(--deep); border-bottom: 0; }
 body[data-mode="studio"] .stu .bub.side { left: auto; right: 100%; transform: none; margin-right: 2px; bottom: auto !important; }
 body[data-mode="studio"] .stu .bub.side:after { left: auto; right: -9px; bottom: auto; top: 40px; margin: 0; border: 6px solid transparent; border-left: 6px solid var(--deep); border-right: 0; }
+body[data-mode="studio"] .stu .bub.lf { transform: translateX(-82%); }   /* 🏢 사장실 소품 한마디: 직원 왼쪽으로(오른쪽 엘리베이터에 안 가리게) · 꼬리는 직원 위 */
+body[data-mode="studio"] .stu .bub.lf:after { left: 82%; }
 body[data-mode="studio"] .stu .bub.r { transform: none; left: auto; white-space: normal; width: 150px; line-height: 1.35; text-align: center; display: block; }
 body[data-mode="studio"] .stu .bub.r:after { left: -9px; bottom: auto; top: 22px; margin: 0; border: 6px solid transparent; border-right: 6px solid var(--deep); border-left: 0; }
 /* 새 버전 알림: 사장님 말풍선이 버튼 (코어의 배너는 스튜디오에서는 숨김 — 이 CSS는 스튜디오가 켜져 있을 때만 붙는다) */
