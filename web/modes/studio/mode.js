@@ -5761,7 +5761,7 @@ C.registerMode({
       return new Promise(res => { NX.res = res; });
     }
     function nxHide() {
-      for (const a of actors.values()) Object.assign(a, { goal: "out", loc: "out", lift: null, moving: false, nx: null });
+      for (const a of actors.values()) Object.assign(a, { goal: "out", loc: "out", lift: null, moving: false, nx: null, hq: null });
       Object.assign(car, { st: "idle", door: 0, row: nSess, dir: 0, owner: null });
       Object.assign(NX, { mode: null, hidden: true, hold: null, sayAt: null });
       if (NX.res) { NX.res(); NX.res = null; }
@@ -5774,7 +5774,7 @@ C.registerMode({
       /* 질문은 가장 오래 기다린 한 명만 사장님 앞으로(평소 규칙) */
       visitor = null;
       const askers = model.floors.filter(f => f.kind === "ask").sort((a, b) => a.s.since - b.s.since);
-      for (const a of actors.values()) Object.assign(a, { goal: "home", askAt: tc - 9, thanksT: null, lift: null, moving: false, nx: null });
+      for (const a of actors.values()) Object.assign(a, { goal: "home", askAt: tc - 9, thanksT: null, lift: null, moving: false, nx: null, hq: null });
       if (askers.length && actors.get(askers[0].sid)) { visitor = askers[0].sid; actors.get(visitor).goal = "boss"; }
       if (!long) {
         for (const a of actors.values()) Object.assign(a, a.goal === "boss" ? { loc: "boss", x: ASK_X, flip: true } : { loc: "home", x: null, flip: false });
@@ -6060,7 +6060,7 @@ C.registerMode({
       if (a.bub.classList.contains("dcr")) a.bub.classList.remove("dcr");   // 🎨 쉬기 한마디(머리 오른쪽 옆)는 그 장면에서만
       const res = { babies: meet };
       /* 🙈 퇴근·출근: 밖(안 보임) · 현관문 · ❗ · 가방/커피 들고 걷기 · 엘리베이터 기다리기 */
-      sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.img, "filter", "");
+      sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.el, "pointerEvents", a.hq && a.goal === "home" && a.loc !== "home" ? "none" : "");   // 🏢 마시러 간 동안은 로비 회전문·사장실 누를 자리를 가리지 않게 sty(a.img, "filter", "");
       if (a.loc === "out" || (a.goal === "out" && a.nx && tc >= a.nx.at) || (a.nx && a.nx.carry === "cup")) {   // 아기(서브에이전트)는 본체와 함께 자리를 비움
         res.babies = false; a.babies.forEach(b => { if (b.el.parentNode) b.el.parentNode.removeChild(b.el); b.par = null; });
         if (fl.wbd) { fl.wbd.env.forEach(e => sty(e, "display", "none")); fl.wbd.ch.forEach(e => sty(e, "display", "none")); fl.wbd.dn.forEach(e => sty(e, "display", "none")); sty(fl.wbd.yawn, "display", "none"); }   // 봉투·도넛·하품 글자도 함께 걷음
@@ -6105,8 +6105,10 @@ C.registerMode({
         const q = a.hq, fiP = a.loc === "boss" ? nSess : nSess + 1, g = parentFor(fiP, a.x, BASE[fiP] - 2), use = q.ph === "use" && !a.moving, u = use ? tc - q.t : 0;
         const sip = use && anim && u > 1.2 && Math.floor((u - 1.2) / 1.1) % 2 === 1;
         setP(a, { view: "front", legs: a.moving && anim ? (wk ? "a" : "b") : "s", eyes: sip || (!use && ph.blink) ? "c" : "o", mouth: sip ? "o" : "", arms: use && u < 1.2 ? "r" : sip ? "u" : "" });
-        put(a, g.p, g.x, g.feet, { dy: a.moving && anim && wk ? -3 : 0, flip: a.flip, rot: a.moving && anim ? (wk ? 2 : -2) : 0 }); const say = use && u >= 1.2 && u < 4 ? X(...q.say) : "";
-        sty(a.el, "zIndex", String(g.z || (say ? 21 : a.loc === "boss" ? 20 : 8)));   // 한마디는 층 이름표(z 20)·LOBBY 표지 위로 tagOn(a, false); bubble(a, esc(say), !!say);
+        put(a, g.p, g.x, g.feet, { dy: a.moving && anim && wk ? -3 : 0, flip: a.flip, rot: a.moving && anim ? (wk ? 2 : -2) : 0 });
+        const say = use && u >= 1.2 && u < 4 ? X(...q.say) : "";
+        sty(a.el, "zIndex", String(g.z || (say ? 21 : a.loc === "boss" ? 20 : 8)));   // 한마디는 층 이름표(z 20)·LOBBY 표지 위로
+        tagOn(a, false); bubble(a, esc(say), !!say);
         nxCarry(a, hqCup(a), a.flip, sip ? -24 : 0); setScreen("off"); hands(false, 0); return res;
       }
       nxCarry(a, a.loc === "boss" ? carry : a.hq && a.moving ? hqCup(a) : null, a.loc === "boss" ? true : a.flip, 0);   // 질문하러 온 직원은 커피를 든 채로 · 🏢 컵 들고 자리로
