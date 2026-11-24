@@ -204,6 +204,7 @@ function sprite(doc, ch, o, scale) {
 const NXP = {
   bag: { s: ["..KKKK..", "..K..K..", "KKKKKKKK", "KBBBBBBK", "KBBYYBBK", "KDDDDDDK", "KKKKKKKK"], c: { K: "#2e2040", B: "#a8693a", D: "#7a4a2a", Y: "#ffd23f" } },
   cup: { s: [".KKKK.", "KWWWWK", ".KCCK.", ".KSSK.", ".KCCK.", "..KK.."], c: { K: "#2e2040", W: "#fff8e8", C: "#f6efdc", S: "#3fa35a" } },
+  water: { s: ["KKKKK", "KWWWK", "KAAAK", ".KAK.", ".KKK."], c: { K: "#2e2040", W: "#ffffff", A: "#5aa8ff" } },   // 🏢 정수기 종이컵
   bell: { s: ["..K..", ".KYK.", "KYYYK", "KYYYK", "KKKKK", "..K.."], c: { K: "#2e2040", Y: "#ffd23f" } },
 };
 const nxpCache = {};
@@ -2777,7 +2778,8 @@ const DECOR = (() => {
     }
     if (id === "of_motto") h += `<b style="position:absolute;left:${sc * 2}px;top:${sc * 2}px;width:${sc * 6}px;font:900 ${sc * 5}px/1.1 sans-serif;color:#2e2040;text-align:center;writing-mode:vertical-rl;letter-spacing:${o.en ? 0 : sc}px">${o.en ? "LGTM" : "칼퇴"}</b>`;   // 🏢 사훈(세로 글씨)
     if (id === "of_coffee" && o.anim) for (let i = 0; i < 2; i++) { const u = (t * .5 + i / 2) % 1; h += `<i style="position:absolute;left:${sc * (6 + i) + Math.round(Math.sin(u * 6 + i) * sc)}px;top:${Math.round(sc * (6 - u * 9))}px;width:${sc}px;height:${sc}px;background:#fff;opacity:${(.8 * (1 - u)).toFixed(2)}"></i>`; }   // ☕ 잔에서 김
-    if (id === "of_water" && o.anim && t % 9 < 1.2) { const u = (t % 9) / 1.2; h += `<i style="position:absolute;left:${sc * 4}px;top:${Math.round(sc * (6 - u * 4))}px;width:${sc * 2}px;height:${sc * 2}px;border-radius:50%;background:#fff;opacity:.85"></i>`; }   // 💧 9초마다 꼬르륵(기포 하나)
+    if (id === "of_coffee" && o.pour) h += `<i style="position:absolute;left:${Math.round(sc * 6.5)}px;top:${sc * 6}px;width:${sc}px;height:${sc * (Math.floor(t * 5) % 2 ? 2 : 1)}px;background:#6a3a1e"></i>`;   // 🏢 직원이 따르는 중: 졸졸
+    if (id === "of_water" && o.anim && (o.pour || t % 9 < 1.2)) { const u = o.pour ? (t % .7) / .7 : (t % 9) / 1.2; h += `<i style="position:absolute;left:${sc * 4}px;top:${Math.round(sc * (6 - u * 4))}px;width:${sc * 2}px;height:${sc * 2}px;border-radius:50%;background:#fff;opacity:.85"></i>`; }   // 💧 9초마다 꼬르륵(기포 하나) · 🏢 직원이 따르면 0.7초마다
     if (id === "of_trophy" && o.anim && t % 6 < .6) h += `<i style="position:absolute;left:${sc * 3}px;top:${sc}px;width:${sc}px;height:${sc * 3}px;background:#fff"></i><i style="position:absolute;left:${sc * 2}px;top:${sc * 2}px;width:${sc * 3}px;height:${sc}px;background:#fff"></i>`;   // 🏆 6초마다 반짝(+)
     if (id === "ga_fan" && o.anim && Math.floor(t * 8) % 2) h = pimg(ART.gafan2, sc, 0, 0);   // 🎰 날개가 빙글(정지면 그대로)
     if (id === "ga_lava" && o.anim && Math.floor(t / 1.6) % 2) h = pimg(ART.galava2, sc, 0, 0);   // 몽글몽글(1.6초마다 덩어리가 오르내림)
@@ -2938,7 +2940,8 @@ function decorBig(h) {
         if (!id || !D.ITEMS[id] || u < 1.1) { sty(e, "display", "none"); return; }
         const at = D.bigAt(sl, r.B, r.p), tgt = ax < at.x ? .1 : .85;
         if (id === "tank") r.fishX = anim ? lerp(r.fishX, tgt, .05) : tgt;
-        const it = D.place(id, sl, at, 3, { t: T, anim, en: en(), fishX: r.fishX + (anim ? .06 * Math.sin(T * 1.7) : 0), fishDir: tgt < .5 ? -1 : 1, dark: dk, prov: r.f ? r.f.pk : "claude", plant: id === "plant" ? (water.has(r.p) && tc < water.get(r.p) + 1.1 ? "wilt" : D.plantArt(F, sl, now)) : null, now: date });
+        const pour = anim && (id === "of_water" || id === "of_coffee") && [...h.actors.values()].some(x => x.hq && x.hq.ph === "use" && x.hq.p === r.p && x.hq.sl === sl && !x.moving);   // 🏢 직원이 따르는 중
+        const it = D.place(id, sl, at, 3, { t: T, anim, pour, en: en(), fishX: r.fishX + (anim ? .06 * Math.sin(T * 1.7) : 0), fishDir: tgt < .5 ? -1 : 1, dark: dk, prov: r.f ? r.f.pk : "claude", plant: id === "plant" ? (water.has(r.p) && tc < water.get(r.p) + 1.1 ? "wilt" : D.plantArt(F, sl, now)) : null, now: date });
         sty(e, "display", "block"); sty(e, "left", it.x + "px"); sty(e, "top", it.y + "px"); sty(e, "width", it.w + "px"); sty(e, "height", it.ht + "px"); sty(e, "zIndex", String(it.z));
         const pop = u < 1.35 ? ease((u - 1.1) / .25) : 1; sty(e, "transform", pop < 1 ? `scale(${pop.toFixed(2)})` : "");
         html(e, it.h);
@@ -3157,6 +3160,9 @@ function decorBig(h) {
       if (tc - p.t0 > 4.5 || !free) { hqR = null; return ""; }   // 말하는 중 사장실이 바빠지면(질문 직원 도착 등) 거기서 끝
       const L = HQ_BOSS[p.id], n = nm(p.id); return L ? L[en() ? 1 : 0] : X(`${n}${josa(n, "이", "가")} 들어왔다! 👍`, `A new ${n.toLowerCase()}! 👍`); },
     bossHQt: tc => hqR && hqR.t0 != null ? tc - hqR.t0 : 9,
+    /* 🏢 직원이 쓰러 가는 정수기·커피머신(#197 5c): 사장실·로비 바닥 칸 · x = 서 있을 자리(소품 옆) · face −1 = 왼쪽을 봄.
+       옆자리: 로비 바닥 1 = 오른쪽(왼쪽은 벽) · 로비 바닥 2 = 왼쪽(오른쪽은 자판기) · 사장실 바닥 2 = 오른쪽(질문 자리 앞) · 사장실 바닥 1 = 바닥 2가 차 있으면 왼쪽(화분 쪽) */
+    hqSpots: () => { const out = []; D.HQ.forEach(p => { const F = d.fl[p]; if (F) ["F1", "F2"].forEach(sl => { const id = F.s[sl]; if (id !== "of_water" && id !== "of_coffee") return; const L = p === ":lobby" ? sl === "F2" : sl === "F1" && !!F.s.F2; out.push({ p, sl, id, x: D.bigAt(sl, 0, p).x + (L ? -46 : 46), face: L ? 1 : -1 }); }); }); return out; },
     /* 🏢 질문 마친 직원 한마디: 사장실 소품 중 하나(사옥 소품 먼저) · 3번에 1번 · 없으면 "" */
     thankLine: () => { const F = d.fl[":boss"], ids = F ? D.SLOTS.map(sl => F.s[sl]).filter(id => id && D.ITEMS[id]) : []; if (!ids.length || Math.random() >= 1 / 3) return "";
       const of = ids.filter(id => HQ_STAFF[id]), id = (of.length ? of : ids)[Math.floor(Math.random() * (of.length || ids.length))], n = nm(id);
@@ -4123,7 +4129,7 @@ function treatBig(h) {
   const busy = () => !!h.nx();   // 🙈 눈치 모드 중엔 못 감(📋 일보 연출은 카드를 닫으며 끝남)
   /* 갈 직원: 화면의 직원(제자리 · 책상 배치 · 질문·멈춤 아님) 먼저, 모자라면 오늘 일보의 workers(화면에 없는 직원은 옥상 계단실로만 옴) */
   /* 사장실이 바쁨: 질문 중이거나 질문하러 가는 직원 · 감사 인사 · 돌아가는 엘리베이터 — 이때 사장님은 옥상에 안 감(사장실 질문 흐름은 사장님 자리를 전제로 함) */
-  const askBusy = () => h.model().floors.some(f => f.kind === "ask") || [...h.actors.values()].some(a => a.goal === "boss" || a.loc === "boss" || (a.loc === "car" && a.goal === "home"));
+  const askBusy = () => h.model().floors.some(f => f.kind === "ask") || [...h.actors.values()].some(a => a.goal === "boss" || (a.loc === "boss" && !a.hq) || (a.loc === "car" && a.goal === "home" && !a.hq));   // 🏢 커피 마시러 온 직원은 빼고
   /* 저녁: 17시 ~ 다음 날 새벽 4시(하루 경계와 같음) · 개발용 쿼리는 시간 제한 없음 */
   const evening = () => { if (dev.any) return true; const hh = new Date(nowS() * 1000).getHours(); return hh >= 17 || hh < 4; };
   const cap = () => askBusy() ? R.W_MAX : R.W_MAX - 1;   // 사장님이 올라가면 옥상 자리 하나를 사장님이 씀
@@ -5062,7 +5068,8 @@ C.registerMode({
     const car = { row: 0, st: "idle", t: 0, door: 0, owner: null, dir: 0, exitAt: 0 };
     let nSess = 1;      // 사람이 있는 층 수 (2층 사장실은 인덱스 nSess · 1층 로비는 nSess + 1, #201)
     const homeIdx = a => { const i = floorIdx.get(a.sid); return i == null ? 0 : i; };
-    const destOf = a => a.goal === "home" ? homeIdx(a) : a.goal === "out" ? nSess + 1 : nSess;   // 🏛️ 퇴근 = 1층 로비(#201)
+    const hqRow = a => a.hq.p === ":boss" ? nSess : nSess + 1;
+    const destOf = a => a.goal === "home" ? (a.hq && a.hq.ph === "go" ? hqRow(a) : homeIdx(a)) : a.goal === "out" ? nSess + 1 : nSess;   // 🏛️ 퇴근 = 1층 로비(#201)
     const fromOf = a => a.loc === "boss" ? nSess : a.loc === "lobby" ? nSess + 1 : homeIdx(a);
     const liftX = (fi, k) => (fi >= nSess ? LIFT_1F : model.floors[fi] && model.floors[fi].layout === "meet" ? LIFT_MEET : LIFT_STAFF) - k * LIFT_GAP;
     const fastLift = () => !!NX.mode;   // 눈치 모드 연출은 빠르게(퇴장 1~2초 안에)
@@ -5651,7 +5658,7 @@ C.registerMode({
     function stepActor(a, f, dt, anim, tc) {
       const deskx = f.layout === "meet" ? BOARD_X : DESK_X;
       if (!anim) {   // 정지 모드: 목적지로 바로 이동
-        a.moving = false; a.lift = null;
+        a.moving = false; a.lift = null; a.hq = null;
         if (a.goal === "out" || NX.hidden) { a.loc = "out"; return; }   // 🙈 블라인드 뒤: 모두 퇴근한 텅 빈 스튜디오
         if (a.nx && a.nx.carry) a.nx = null;
         if (a.goal === "boss" && tc - a.askAt > 0) { a.loc = "boss"; a.x = ASK_X; a.flip = true; } else { a.loc = "home"; a.x = a.restX != null ? a.restX : deskx; }
@@ -5660,6 +5667,7 @@ C.registerMode({
       }
       if (a.x == null) { a.x = deskx; a.loc = "home"; }
       if (a.loc === "car") return;   // 엘리베이터가 내려 줌(carStep)
+      if (a.hq && (a.goal !== "home" || a.nx)) a.hq = null;   // 🏢 질문하러 가거나 눈치 연출(퇴근·출근)이면 그만둠
       const d = 120 * dt, run = (NX.mode ? 330 : 120) * dt;
       /* 🙈 현관문: 밖(out) → 문으로 들어옴 / 문으로 나감 → 밖 */
       if (a.loc === "out") { if (a.goal !== "out" && a.nx && tc >= a.nx.inAt) { a.loc = "door"; a.nx.door = tc; a.nx.dir = "in"; NX.ring(tc); } return; }
@@ -5677,6 +5685,7 @@ C.registerMode({
         return;
       }
       const sp = a.nx && a.nx.carry ? 260 * dt : d;   // ☕ 출근하는 길은 조금 빠르게
+      if (a.hq && hqStep(a, f, d, tc)) return;
       if (a.goal === "boss") {
         a.thanksT = null;
         if (a.loc === "home") {
@@ -5693,7 +5702,40 @@ C.registerMode({
         a.thanksT = null; a.lift = null;
         moveX(a, a.restX != null ? a.restX : deskx, a.nx && a.nx.carry ? 200 * dt : d);   // 🎨 쉴 때는 좋아하는 소품 옆으로
         if (!a.moving && a.nx && a.nx.carry) { a.nx = null; a.seatAt = tc; }   // 자리에 앉으면 커피는 책상에
+        if (!a.moving && a.hq) { a.hq = null; a.hqLast = tc; }   // 🏢 컵 들고 자리로 돌아옴
       }
+    }
+    /* ---------- 🏢 정수기·커피머신 쓰기(#197 5c) ----------
+       쉬는(idle) 직원이 25초 넘게 쉬면 가끔(한 번에 한 명 · 1~2분 간격 · 같은 직원은 4분에 한 번) 엘리베이터로 사장실·로비에 놓인 정수기·커피머신에 감.
+       a.hq.ph: go(가는 중) → use(옆에 서서 따르고 마심, HQ_USE초) → back(엘리베이터로 돌아감) → home(자기 층에서 컵 들고 자리로). 일이 생기면 바로 돌아가고, 질문이면 그 자리에서 사장님께 */
+    const HQ_USE = 5.5;
+    let hqNext = 0;
+    const HQ_SAY = { of_water: [["꿀꺽꿀꺽 💧", "Glug glug 💧"], ["물 한 잔 하고 갈게요 💧", "Quick water break 💧"]], of_coffee: [["커피 한 잔 충전 ☕", "Coffee refill ☕"], ["음~ 향 좋다 ☕", "Mmm, smells great ☕"]] };
+    const hqCup = a => a.hq && a.hq.ph !== "go" && !(a.hq.ph === "use" && clockT() - a.hq.t < 1.2) ? (a.hq.id === "of_coffee" ? "cup" : "water") : null;   // 따르고 난 뒤부터 컵을 듦
+    function hqStep(a, f, d, tc) {
+      const q = a.hq, at = q.p === ":boss" ? "boss" : "lobby";
+      if ((q.ph === "go" || q.ph === "use") && (f.kind !== "idle" || !dcB.hqSpots().some(s => s.p === q.p && s.sl === q.sl && s.id === q.id))) q.ph = "back";   // 일이 생김 · 소품을 치움
+      if (q.ph === "home") return false;
+      if (a.loc === "home") {
+        if (q.ph === "go") { liftWalk(a, homeIdx(a), d); return true; }
+        if (q.ph === "back" && q.t2 == null) { a.hq = null; return false; }   // 타기 전에 그만둠
+        q.ph = "home"; return false;   // 돌아옴 → 보통처럼 자리로(컵을 든 채)
+      }
+      if (q.ph === "back" || a.loc !== at) { q.ph = "back"; liftWalk(a, a.loc === "boss" ? nSess : nSess + 1, d); return true; }
+      if (q.ph === "go") { a.lift = null; q.t2 = tc; moveX(a, q.x, d); if (!a.moving) { q.ph = "use"; q.t = tc; a.flip = q.face < 0; } return true; }
+      a.moving = false; a.flip = q.face < 0; if (tc - q.t >= HQ_USE) q.ph = "back";
+      return true;
+    }
+    function hqPick(tc, anim) {
+      if (!anim || drB.active() || NX.mode || NX.hidden || dcB.on() || tc < hqNext) return;
+      hqNext = tc + 6;
+      if ([...actors.values()].some(a => a.hq)) return;
+      const bz = [...actors.values()].some(a => a.goal === "boss" || a.loc === "boss"), sp = dcB.hqSpots().filter(s => s.p !== ":boss" || !bz); if (!sp.length) return;   // 질문하러 온 직원이 있으면 사장실은 빼고(질문 말풍선이 소품을 덮음)
+      const c = model.floors.filter(f => { const a = actors.get(f.sid); return a && f.kind === "idle" && f.layout !== "meet" && a.goal === "home" && a.loc === "home" && !a.moving && !a.lift && !a.nx && a.idle0 != null && tc - a.idle0 >= 25 && tc - (a.hqLast == null ? -1e9 : a.hqLast) >= 240 && !trB.member(f.sid); });
+      if (!c.length) return;
+      const a = actors.get(c[Math.floor(Math.random() * c.length)].sid), s = sp[Math.floor(Math.random() * sp.length)], L = HQ_SAY[s.id];
+      a.hq = Object.assign({ ph: "go", t: tc, say: L[Math.floor(Math.random() * L.length)] }, s);
+      hqNext = tc + 60 + Math.random() * 60;
     }
 
     /* ---------- 🙈 눈치 모드 연출 (코어 core/nunchi.js가 부름: leave → hide → arrive | show) ----------
@@ -5794,6 +5836,7 @@ C.registerMode({
       const k = f.kind, away = a.loc !== "home" || a.moving;
       if (k === "ask") return a.goal === "boss" ? (a.loc === "boss" && !a.moving ? [X("질문 중", "Asking"), STAT_COL.ask] : away ? [X("질문하러 이동", "Heading down"), STAT_COL.away] : [X("입력 필요", "Needs input"), STAT_COL.ask]) : [X("입력 필요 · 대기", "Needs input · queued"), STAT_COL.ask];
       if (k === "stall") return [X("멈춤 의심", "Stalled?"), STAT_COL.stall];
+      if (away && a.hq) return [a.hq.id === "of_coffee" ? X("커피 타임", "Coffee break") : X("물 마시러", "Water break"), STAT_COL.away];
       if (away && k !== "ask") return [X("자리 비움", "Away"), STAT_COL.away];
       if (f.layout === "meet") { const d = f.agAll.filter(x => x.status === "done").length; return [X(`서브 회의 ${d}/${f.agAll.length}`, `Sub meeting ${d}/${f.agAll.length}`), STAT_COL.meet]; }
       if (k === "work" || k === "agents") return f.s.health && f.s.health.level === "slow" ? [X("생각이 길어요", "Slow…"), STAT_COL.slow] : [X("작업 중", "Working"), STAT_COL.work];
@@ -5839,6 +5882,7 @@ C.registerMode({
       sty(carEl, "top", Math.round(yb - FT[0] - 114 + 8) + "px"); txt(lamp, pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F");
       const pw = 44 * (1 - car.door) + 4 * car.door; sty(dl, "width", pw + "px"); sty(dr, "width", pw + "px");
       let asker = null, thanker = null;
+      hqPick(tc, anim);   // 🏢 쉬는 직원이 가끔 정수기·커피머신에
       /* 층마다 */
       for (let i = 0; i < n; i++) {
         const fl = FL[i], f = model.floors[i];
@@ -5846,14 +5890,16 @@ C.registerMode({
         const a = actors.get(f.sid); if (!a) continue;
         a.restX = !DRon && f.kind === "idle" && a.goal === "home" ? dcB.restX(f) : null;   // 🎨 좋아하는 소품 옆(없으면 책상)
         if (a.restX == null || a.x !== a.restX) a.restAt = null;
+        a.idle0 = f.kind === "idle" ? (a.idle0 == null ? tc : a.idle0) : null;   // 🏢 쉰 지 얼마나 됐나
         const dnm = !DRon && trB.member(f.sid);   // 🍖 회식 간 직원: 회식 연출이 그림
+        if (dnm && a.hq) { a.hq = null; a.lift = null; a.moving = false; if (a.loc !== "car") { a.loc = "home"; a.x = null; } }   // 🏢 커피 마시러 갔다가 회식에 불려 가면 자리로
         if (!DRon && !dnm) stepActor(a, f, dt, anim, tc);
         if (fl.wbd) boardDraw(i, fl, f, tc, anim);
         if (fl.aib) aiBoardDraw(i, fl, f, tc, anim);
         if (fl.stp) stepDraw(fl, f, a, tc, anim);
         if (fl.cap) capDraw(fl, f);
         const info = DRon ? (drB.staff(i, fl, f, a, T, tc, ph), null) : dnm ? (trB.staff(i, fl, f, a, T, tc, ph), null) : placeActor(i, fl, f, a, T, tc, ph, anim);
-        if (!DRon && a.loc === "boss" && !a.moving) { if (a.goal === "boss") asker = a; else thanker = a; }
+        if (!DRon && a.loc === "boss" && !a.moving) { if (a.goal === "boss") asker = a; else if (!a.hq) thanker = a; }   // 🏢 커피 마시러 온 직원은 인사 안 함
         /* 표시 정보 */
         const [ct, cc] = chipOf(f, a), tg = fl.tag.children;
         txt(tg[0], (n + 2 - i) + "F"); txt(tg[1].children[0], cfg.hideText ? "🤫 " + X("비공개", "Private") : f.s.project); txt(tg[1].children[1], ` · ${f.label.replace("·", " · ")}`); txt(tg[2], ct); sty(tg[2], "background", cc); if (dnm) trB.chip(tg[2]);
@@ -6034,7 +6080,7 @@ C.registerMode({
         const sl = a.slot || 0;
         setP(a, { view: "front", legs: "s", eyes: anim && Math.floor(tc * 1.7 + sl) % 3 === 0 ? "c" : "o", mouth: carry === "bag" ? "o" : "" }); tagOn(a, false); bubble(a, "", false);
         put(a, carEl, [44, 26, 62, 35, 53, 18][sl % 6], 106, { dy: -(sl % 2) * 2 }); sty(a.el, "zIndex", String(3 + sl % 3));
-        nxCarry(a, carry, sl % 2 === 1, 0); setScreen("off"); hands(false, 0); return res;
+        nxCarry(a, carry || hqCup(a), sl % 2 === 1, 0); setScreen("off"); hands(false, 0); return res;
       }
       const lift = a.lift === "wait" || a.lift === "board" || (carry && a.moving);
       const react = a.goal === "out" && a.loc === "home" && !a.lift && !a.moving && tc >= a.nx.at;
@@ -6052,10 +6098,18 @@ C.registerMode({
           setP(a, walkP); dy = anim && wk ? (carry === "bag" ? -5 : -3) : 0; rot = anim ? (wk ? 1 : -1) * (carry === "bag" ? 4 : 2) : 0; sw = carry === "bag" ? (wk ? 14 : -10) : 0;
         }
         put(a, g.p, g.x, g.feet, { dy, flip: a.flip, rot }); sty(a.el, "zIndex", String(g.z || (a.loc === "boss" ? 20 : 8)));
-        tagOn(a, false); bubble(a, esc(say), !!say); nxCarry(a, carry || (react ? "bag" : null), a.flip, sw, pop, a.lift === "wait");   // 기다릴 땐 두 손으로 앞에 들고(책상·화분과 안 겹치게)
+        tagOn(a, false); bubble(a, esc(say), !!say); nxCarry(a, carry || (react ? "bag" : null) || hqCup(a), a.flip, sw, pop, a.lift === "wait");   // 기다릴 땐 두 손으로 앞에 들고(책상·화분과 안 겹치게)
         setScreen("off"); hands(false, 0); return res;
       }
-      nxCarry(a, a.loc === "boss" ? carry : null, true, 0);   // 질문하러 온 직원은 커피를 든 채로
+      if (a.hq && a.goal === "home" && a.loc !== "home") {   // 🏢 정수기·커피머신 옆: 따르고(1.2초) → 한마디 → 홀짝(눈 감고 팔 올림)
+        const q = a.hq, fiP = a.loc === "boss" ? nSess : nSess + 1, g = parentFor(fiP, a.x, BASE[fiP] - 2), use = q.ph === "use" && !a.moving, u = use ? tc - q.t : 0;
+        const sip = use && anim && u > 1.2 && Math.floor((u - 1.2) / 1.1) % 2 === 1;
+        setP(a, { view: "front", legs: a.moving && anim ? (wk ? "a" : "b") : "s", eyes: sip || (!use && ph.blink) ? "c" : "o", mouth: sip ? "o" : "", arms: use && u < 1.2 ? "r" : sip ? "u" : "" });
+        put(a, g.p, g.x, g.feet, { dy: a.moving && anim && wk ? -3 : 0, flip: a.flip, rot: a.moving && anim ? (wk ? 2 : -2) : 0 }); sty(a.el, "zIndex", String(g.z || (a.loc === "boss" ? 20 : 8)));
+        const say = use && u >= 1.2 && u < 4 ? X(...q.say) : ""; tagOn(a, false); bubble(a, esc(say), !!say);
+        nxCarry(a, hqCup(a), a.flip, sip ? -24 : 0); setScreen("off"); hands(false, 0); return res;
+      }
+      nxCarry(a, a.loc === "boss" ? carry : a.hq && a.moving ? hqCup(a) : null, a.loc === "boss" ? true : a.flip, 0);   // 질문하러 온 직원은 커피를 든 채로 · 🏢 컵 들고 자리로
       /* 이동 중 / 엘리베이터 / 사장실 */
       const onBoss = a.loc === "boss", fiP = onBoss ? nSess : i;
       const alert = a.goal === "boss" && !a.moving && a.loc === "home";
@@ -6165,9 +6219,10 @@ C.registerMode({
     /* 🙈 손에 든 가방·커피(직원 요소 안의 도트 이미지). 손 높이는 캐릭터 팔 위치(ch.arm.y)에서 */
     function nxCarry(a, name, flip, swing, pop, front) {
       if (!a.nxBag) { a.nxBag = mkEl("img", "nxp", a.el); a.nxCup = mkEl("img", "nxp", a.el); [a.nxBag, a.nxCup].forEach((e, k) => { const s = nxPix(doc, k ? "cup" : "bag", 4); e.src = s.url; e.alt = ""; e.draggable = false; e.style.width = s.w + "px"; e.style.height = s.h + "px"; }); }
-      sty(a.nxBag, "display", name === "bag" ? "block" : "none"); sty(a.nxCup, "display", name === "cup" ? "block" : "none");
+      if (name === "water" && !a.nxWat) { a.nxWat = mkEl("img", "nxp", a.el); const s = nxPix(doc, "water", 4); a.nxWat.src = s.url; a.nxWat.alt = ""; a.nxWat.draggable = false; a.nxWat.style.width = s.w + "px"; a.nxWat.style.height = s.h + "px"; }   // 🏢 정수기 종이컵(처음 쓸 때 만듦)
+      sty(a.nxBag, "display", name === "bag" ? "block" : "none"); sty(a.nxCup, "display", name === "cup" ? "block" : "none"); if (a.nxWat) sty(a.nxWat, "display", name === "water" ? "block" : "none");
       if (!name) return;
-      const e = name === "bag" ? a.nxBag : a.nxCup, s = nxPix(doc, name, 4), legs = a.pose.includes('"seated":1') ? 0 : a.ch.legs.s.length;
+      const e = name === "bag" ? a.nxBag : name === "water" ? a.nxWat : a.nxCup, s = nxPix(doc, name, 4), legs = a.pose.includes('"seated":1') ? 0 : a.ch.legs.s.length;
       const hy = (a.ch.arm.y + 2) * S + (a.h - (a.ch.rows.length + legs + 2) * S), cx = a.w / 2 + (front ? 0 : (flip ? -1 : 1) * 30);
       sty(e, "left", Math.round(cx - s.w / 2) + "px"); sty(e, "top", Math.round(name === "bag" ? hy - (front ? 4 : 12) : hy - s.h - 2) + "px");
       sty(e, "transform", `${pop != null && pop < 1 ? `scale(${pop.toFixed(2)}) ` : ""}rotate(${(swing || 0).toFixed(1)}deg)`);
