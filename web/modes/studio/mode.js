@@ -5836,7 +5836,7 @@ C.registerMode({
       const k = f.kind, away = a.loc !== "home" || a.moving;
       if (k === "ask") return a.goal === "boss" ? (a.loc === "boss" && !a.moving ? [X("질문 중", "Asking"), STAT_COL.ask] : away ? [X("질문하러 이동", "Heading down"), STAT_COL.away] : [X("입력 필요", "Needs input"), STAT_COL.ask]) : [X("입력 필요 · 대기", "Needs input · queued"), STAT_COL.ask];
       if (k === "stall") return [X("멈춤 의심", "Stalled?"), STAT_COL.stall];
-      if (away && a.hq) return [a.hq.id === "of_coffee" ? X("커피 타임", "Coffee break") : X("물 마시러", "Water break"), STAT_COL.away];
+      if (a.hq && (away || a.lift)) return [a.hq.id === "of_coffee" ? X("커피 타임", "Coffee break") : X("물 마시러", "Water break"), STAT_COL.away];
       if (away && k !== "ask") return [X("자리 비움", "Away"), STAT_COL.away];
       if (f.layout === "meet") { const d = f.agAll.filter(x => x.status === "done").length; return [X(`서브 회의 ${d}/${f.agAll.length}`, `Sub meeting ${d}/${f.agAll.length}`), STAT_COL.meet]; }
       if (k === "work" || k === "agents") return f.s.health && f.s.health.level === "slow" ? [X("생각이 길어요", "Slow…"), STAT_COL.slow] : [X("작업 중", "Working"), STAT_COL.work];
