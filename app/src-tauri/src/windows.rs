@@ -329,7 +329,8 @@ pub fn open_widget(app: &AppHandle, mode: Option<&str>) -> tauri::Result<()> {
         .always_on_top(true)
         .skip_taskbar(true)
         .visible_on_all_workspaces(true)
-        .resizable(true)
+        // 크기는 위젯 내용이 정한다(resize_widget) — 손으로 늘리면 미니 보기 모양이 망가져 막음(#224)
+        .resizable(false)
         .focused(false)
         // 비활성(키 윈도가 아닌) 위젯에서도 첫 클릭이 바로 버튼에 먹게 (창 활성화용으로 버려지지 않게)
         .accept_first_mouse(true);
