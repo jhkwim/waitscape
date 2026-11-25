@@ -4925,12 +4925,12 @@ function spotBig(h) {
   return { see, frame, dexHtml, n, total, reload: sync };
 }
 
-/* 📌 미니 보기 2(#204): 작은 창(앱 위젯·PiP)에 큰 화면 건물의 한 층을 창 높이에 꼭 맞게(약 1.16배) 비추는 보기 전용 창.
-   위 TOP 줄은 전력·작업 수 자리(2단계). 기본 606×180 · 창을 줄이면 MIN_W(직원 책상 ~ 엘리베이터)까지 · 층의 나머지는 가로로 넘겨 보고 엘리베이터는 창 오른쪽에 고정.
+/* 📌 미니 보기 2(#204): 작은 창(앱 위젯·PiP)에 큰 화면 건물의 한 층을 창 높이에 꼭 맞게(0.8배) 비추는 보기 전용 창.
+   위 TOP 줄은 전력·작업 수 자리(2단계). 창은 420×130 고정(#224 — 앱 위젯은 크기 조절 없음) · 층의 나머지는 가로로 넘겨 보고 엘리베이터는 창 오른쪽에 고정(층마다 문 + 칸 위치 표시).
    저장·자금·소리는 건드리지 않음(메인 창이 주인) — 쓰기는 버리고 메인끼리 주고받는 신호(drOpen)는 안 읽음.
    옛 미니 보기(282×162 전용 그림 mountLobby·*Mini 모듈)를 대신함 — 기능을 큰 화면에만 만들면 미니에도 나옴 */
 const MINI2 = {
-  K: 162 / 140, W: 606, H: 180, TOP: 18, MIN_W: 540, HOLD: 10, FULL: 866, SHAFT: 674, SHAFT_W: 110,   // K: 한 층(140)이 창 높이(H − TOP 줄)에 꼭 맞게 · MIN_W: 직원 책상 320 ~ 엘리베이터 792
+  K: 112 / 140, W: 420, H: 130, TOP: 18, HOLD: 10, FULL: 866, SHAFT: 674, SHAFT_W: 110,   // K: 한 층(140)이 창 높이(H − TOP 줄)에 꼭 맞게(#224: 1.16배 606×180은 너무 큼)
   ctx(c) {
     const st = c.store, hide = new Set(["drOpen"]);
     return Object.create(c, { store: { value: { get: (k, d) => hide.has(k) ? d : st.get(k, d), set: () => {} } } });
@@ -5216,7 +5216,7 @@ C.registerMode({
       redex: () => { if (dexEl && dexEl.classList.contains("on")) renderDex(); } });
     const pwWins = [];
 
-    let shaftEl = null, FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, tkHead, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
+    let shaftEl = null, hallDoors = [], hallRow = null, FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, tkHead, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
     const OY = 6;
     const box = (p, x, y, w, h, bg, o) => mkEl("div", "b", p, Object.assign({ left: x + "px", top: y + "px", width: w + "px", height: h + "px", background: bg, zIndex: 2 }, o || {}));
     const bx = (p, x, y, w, h, bg, bd, z) => box(p, x, y, w, h, bg, { border: "3px solid " + (bd || "#4a3560"), zIndex: z || 1 });
@@ -5403,6 +5403,7 @@ C.registerMode({
       const shaft = mkEl("div", "shaft", bld, { top: (40 + OY) + "px", height: (FT[L] + FH[L] - FT[0]) + "px" }); shaftEl = shaft;   // 📌 미니 보기 2가 통로를 창 오른쪽에 고정
       carEl = mkEl("div", "car", shaft); lamp = mkEl("div", "lamp", carEl);
       dl = mkEl("div", "dr", carEl, { left: "0" }); dr = mkEl("div", "dr", carEl, { right: "0" });
+      hallRow = null; hallDoors = mini ? FT.map((t, i) => { const d = mkEl("div", "ld", shaft, { top: Math.round(t + BASE[i] - FT[0] - 114 + 8) + "px" }); mkEl("i", "", d); mkEl("i", "", d); return mkEl("b", "", d); }) : [];   // 📌 미니: 층마다 엘리베이터 문 + 칸 위치(#224 — 칸이 다른 층이면 빈 통로만 보이던 것)
       banner = mkEl("div", "banner", bld);
       plusEl = mkEl("div", "fx", bld, { fontWeight: 900, fontSize: "calc(20px*var(--inv))", color: "#e8a020", textShadow: "2px 2px 0 #2e2040", display: "none", whiteSpace: "nowrap" });
       quickEl = mkEl("div", "fx", bld, { fontWeight: 900, fontSize: "calc(15px*var(--inv))", color: "#7fe0ff", textShadow: "2px 2px 0 #2e2040", display: "none", whiteSpace: "nowrap", transform: "translateX(-50%)", zIndex: "62", pointerEvents: "none" });   // ⚡ 빠른 답장(자기 층에서 받을 때)
@@ -5594,7 +5595,8 @@ C.registerMode({
         else if (e.key === "Escape" && cam.hold > clockT()) { cam.hold = -1e9; camApply(); }
       });
       ctx.listen(win, "click", e => { if (cam.moved) { cam.moved = false; e.preventDefault(); e.stopPropagation(); } }, { capture: true });   // 끌어서 넘긴 뒤 손을 떼면 누르기로 치지 않음(창 capture = 문서 capture로 받는 머그·뽑기·이벤트보다 먼저)
-      ctx.listen(win, "resize", () => { if (win.top === win && win.innerWidth < MINI2.MIN_W - 2) try { win.resizeTo(MINI2.MIN_W + (win.outerWidth - win.innerWidth), win.outerHeight); } catch {} });
+      let fitAt = -1e9, fitN = 0;   // 독립 창은 한 크기로(#224): 크기 바뀜이 멎고 0.3초 뒤 맞춤 · 맞춘 직후(0.5초) 오는 resize는 그 결과라 무시(창이 요청 크기를 못 맞춰도 되풀이하지 않게)
+      ctx.listen(win, "resize", () => { if (win.top !== win || clockT() - fitAt < .5) return; const k = ++fitN; ctx.after(300, () => { if (k !== fitN || (Math.abs(win.innerWidth - MINI2.W) <= 2 && Math.abs(win.innerHeight - MINI2.H) <= 2)) return; fitAt = clockT(); try { win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {} }); });
     }
 
     /* ---------- 소리: 키보드 타자 (Web Audio 합성, 작은 볼륨) ---------- */
@@ -5882,6 +5884,7 @@ C.registerMode({
       const r = clamp(car.row, 0, n + 1), i0 = Math.floor(r), i1 = Math.min(n + 1, i0 + 1), kk = r - i0;   // 로비(n + 1)까지
       const yb = lerp(FT[i0] + BASE[i0], FT[i1] + BASE[i1], kk);
       sty(carEl, "top", Math.round(yb - FT[0] - 114 + 8) + "px"); txt(lamp, pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F");
+      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (!anim || hallRow == null || Math.abs(r - hallRow) < 1e-4 || Math.abs(r - hallRow) > .9 ? "" : r > hallRow ? "▼" : "▲"); hallRow = r; hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 지난 프레임보다 실제로 조금 움직인 쪽 — 손으로 부를 때·일보 연출도 같게, 순간 이동(숨김·층 다시 짓기)은 빼고)
       const pw = 44 * (1 - car.door) + 4 * car.door; sty(dl, "width", pw + "px"); sty(dr, "width", pw + "px");
       let asker = null, thanker = null;
       hqPick(tc, anim);   // 🏢 쉬는 직원이 가끔 정수기·커피머신에
