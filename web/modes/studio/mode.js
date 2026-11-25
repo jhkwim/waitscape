@@ -6061,7 +6061,7 @@ C.registerMode({
       if (a.bub.classList.contains("dcr")) a.bub.classList.remove("dcr");   // 🎨 쉬기 한마디(머리 오른쪽 옆)는 그 장면에서만
       const res = { babies: meet };
       /* 🙈 퇴근·출근: 밖(안 보임) · 현관문 · ❗ · 가방/커피 들고 걷기 · 엘리베이터 기다리기 */
-      sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.el, "pointerEvents", a.hq && a.goal === "home" && a.loc !== "home" ? "none" : ""); sty(a.img, "filter", ""); if (a.sofaF) { sty(a.sofaF, "display", "none"); sty(a.hqZ, "display", "none"); }   // 🏢 마시러 간 동안은 로비 회전문·사장실 누를 자리를 가리지 않게
+      sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.el, "pointerEvents", a.hq && a.goal === "home" && a.loc !== "home" ? "none" : ""); sty(a.img, "filter", ""); if (a.sofaF) { sty(a.sofaF, "display", "none"); sty(a.hqZ, "display", "none"); sty(a.bub, "marginLeft", ""); a.bub.style.setProperty("--bx", "0px"); }   // 🏢 마시러 간 동안은 로비 회전문·사장실 누를 자리를 가리지 않게
       if (a.loc === "out" || (a.goal === "out" && a.nx && tc >= a.nx.at) || (a.nx && a.nx.carry === "cup")) {   // 아기(서브에이전트)는 본체와 함께 자리를 비움
         res.babies = false; a.babies.forEach(b => { if (b.el.parentNode) b.el.parentNode.removeChild(b.el); b.par = null; });
         if (fl.wbd) { fl.wbd.env.forEach(e => sty(e, "display", "none")); fl.wbd.ch.forEach(e => sty(e, "display", "none")); fl.wbd.dn.forEach(e => sty(e, "display", "none")); sty(fl.wbd.yawn, "display", "none"); }   // 봉투·도넛·하품 글자도 함께 걷음
@@ -6111,6 +6111,7 @@ C.registerMode({
           if (!a.sofaF) { const A = DECOR.ART.ofsofa, pz = WB.pix({ r: A.r.slice(5), p: A.p }, 3, "ofsofa:front"); a.sofaF = mkEl("img", "nxp", a.el); a.sofaF.src = pz.url; a.sofaF.alt = ""; a.sofaF.draggable = false; Object.assign(a.sofaF.style, { width: pz.w + "px", height: pz.h + "px" }); a.sofaF._h = pz.h; a.sofaF._w = pz.w; }
           sty(a.sofaF, "display", "block"); sty(a.sofaF, "left", Math.round(a.w / 2 + q.x0 - q.x - a.sofaF._w / 2) + "px"); sty(a.sofaF, "top", Math.round(a.h + HQ_SEAT - a.sofaF._h - nod) + "px");   // 소파 앞(방석·팔걸이)을 직원 위에 겹쳐 — 파묻혀 앉은 모습
           sty(a.el, "zIndex", String(g.z || (say ? 21 : 8))); tagOn(a, false); bubble(a, esc(say), !!say);   // 한마디는 층 이름표·LOBBY 표지 위로
+          const bx = say ? Math.max(0, Math.ceil(a.bub.offsetWidth / 2 + 4 - g.x)) : 0; sty(a.bub, "marginLeft", bx ? bx + "px" : ""); a.bub.style.setProperty("--bx", bx + "px");   // 왼쪽 쿠션이면 층 왼쪽 끝에 안 잘리게 말풍선만 오른쪽으로(꼬리는 머리 위 그대로)
           if (!a.hqZ) a.hqZ = mkEl("i", "z", a.el, { fontStyle: "normal", lineHeight: "1", whiteSpace: "nowrap" });   // 낮잠 z와 같은 모양(.z: 외곽선 · --inv 배율)
           sty(a.hqZ, "display", nod || (anim && u >= 9) ? "block" : "none"); if (u >= 9) { const zk = Math.floor(u / .8) % 3; const zt = "z".repeat(zk + 1); if (a.hqZ.textContent !== zt) a.hqZ.textContent = zt; sty(a.hqZ, "left", Math.round(a.w * .72) + "px"); sty(a.hqZ, "top", Math.round(-4 - zk * 5) + "px"); }   // 💤 머리 옆 z z z(말풍선 대신 — 이름표에 안 가리게)
           nxCarry(a, null); setScreen("off"); hands(false, 0); return res;
