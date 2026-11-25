@@ -5216,7 +5216,7 @@ C.registerMode({
       redex: () => { if (dexEl && dexEl.classList.contains("on")) renderDex(); } });
     const pwWins = [];
 
-    let shaftEl = null, hallDoors = [], FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, tkHead, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
+    let shaftEl = null, hallDoors = [], hallRow = null, FL = [], FT = [], FH = [], BASE = [], carEl, dl, dr, lamp, banner, plusEl, quickEl, confs = [], askb, tkHead, bossFl, moreEl, scaleK = 1, sceneH = 0, buildSig = "";
     const OY = 6;
     const box = (p, x, y, w, h, bg, o) => mkEl("div", "b", p, Object.assign({ left: x + "px", top: y + "px", width: w + "px", height: h + "px", background: bg, zIndex: 2 }, o || {}));
     const bx = (p, x, y, w, h, bg, bd, z) => box(p, x, y, w, h, bg, { border: "3px solid " + (bd || "#4a3560"), zIndex: z || 1 });
@@ -5884,7 +5884,7 @@ C.registerMode({
       const r = clamp(car.row, 0, n + 1), i0 = Math.floor(r), i1 = Math.min(n + 1, i0 + 1), kk = r - i0;   // 로비(n + 1)까지
       const yb = lerp(FT[i0] + BASE[i0], FT[i1] + BASE[i1], kk);
       sty(carEl, "top", Math.round(yb - FT[0] - 114 + 8) + "px"); txt(lamp, pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F");
-      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (anim && !DRon && car.st === "move" ? car.dir > 0 ? "▼" : car.dir < 0 ? "▲" : "" : ""); hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 움직이는 쪽)
+      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (hallRow == null || Math.abs(r - hallRow) < 1e-4 ? "" : r > hallRow ? "▼" : "▲"); hallRow = r; hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 지난 프레임보다 실제로 움직인 쪽 — 손으로 부를 때·일보 연출도 같게)
       const pw = 44 * (1 - car.door) + 4 * car.door; sty(dl, "width", pw + "px"); sty(dr, "width", pw + "px");
       let asker = null, thanker = null;
       hqPick(tc, anim);   // 🏢 쉬는 직원이 가끔 정수기·커피머신에
