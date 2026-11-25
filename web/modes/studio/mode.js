@@ -5595,7 +5595,8 @@ C.registerMode({
         else if (e.key === "Escape" && cam.hold > clockT()) { cam.hold = -1e9; camApply(); }
       });
       ctx.listen(win, "click", e => { if (cam.moved) { cam.moved = false; e.preventDefault(); e.stopPropagation(); } }, { capture: true });   // 끌어서 넘긴 뒤 손을 떼면 누르기로 치지 않음(창 capture = 문서 capture로 받는 머그·뽑기·이벤트보다 먼저)
-      ctx.listen(win, "resize", () => { if (win.top === win && (Math.abs(win.innerWidth - MINI2.W) > 2 || Math.abs(win.innerHeight - MINI2.H) > 2)) try { win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {} });   // 독립 창은 한 크기로(#224)
+      let fitAt = -1e9;   // 창이 요청 크기를 못 맞춰도 resize ↔ resizeTo가 되풀이되지 않게 1초에 한 번만
+      ctx.listen(win, "resize", () => { if (win.top === win && clockT() - fitAt > 1 && (Math.abs(win.innerWidth - MINI2.W) > 2 || Math.abs(win.innerHeight - MINI2.H) > 2)) try { fitAt = clockT(); win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {} });   // 독립 창은 한 크기로(#224)
     }
 
     /* ---------- 소리: 키보드 타자 (Web Audio 합성, 작은 볼륨) ---------- */
@@ -5883,7 +5884,7 @@ C.registerMode({
       const r = clamp(car.row, 0, n + 1), i0 = Math.floor(r), i1 = Math.min(n + 1, i0 + 1), kk = r - i0;   // 로비(n + 1)까지
       const yb = lerp(FT[i0] + BASE[i0], FT[i1] + BASE[i1], kk);
       sty(carEl, "top", Math.round(yb - FT[0] - 114 + 8) + "px"); txt(lamp, pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F");
-      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (car.st === "move" ? car.dir > 0 ? "▼" : car.dir < 0 ? "▲" : "" : ""); hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 움직이는 쪽)
+      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (anim && car.st === "move" ? car.dir > 0 ? "▼" : car.dir < 0 ? "▲" : "" : ""); hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 움직이는 쪽)
       const pw = 44 * (1 - car.door) + 4 * car.door; sty(dl, "width", pw + "px"); sty(dr, "width", pw + "px");
       let asker = null, thanker = null;
       hqPick(tc, anim);   // 🏢 쉬는 직원이 가끔 정수기·커피머신에
