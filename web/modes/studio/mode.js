@@ -5403,7 +5403,7 @@ C.registerMode({
       const shaft = mkEl("div", "shaft", bld, { top: (40 + OY) + "px", height: (FT[L] + FH[L] - FT[0]) + "px" }); shaftEl = shaft;   // 📌 미니 보기 2가 통로를 창 오른쪽에 고정
       carEl = mkEl("div", "car", shaft); lamp = mkEl("div", "lamp", carEl);
       dl = mkEl("div", "dr", carEl, { left: "0" }); dr = mkEl("div", "dr", carEl, { right: "0" });
-      hallDoors = mini ? FT.map((t, i) => { const d = mkEl("div", "ld", shaft, { top: Math.round(t + BASE[i] - FT[0] - 114 + 8) + "px" }); mkEl("i", "", d); mkEl("i", "", d); return mkEl("b", "", d); }) : [];   // 📌 미니: 층마다 엘리베이터 문 + 칸 위치(#224 — 칸이 다른 층이면 빈 통로만 보이던 것)
+      hallRow = null; hallDoors = mini ? FT.map((t, i) => { const d = mkEl("div", "ld", shaft, { top: Math.round(t + BASE[i] - FT[0] - 114 + 8) + "px" }); mkEl("i", "", d); mkEl("i", "", d); return mkEl("b", "", d); }) : [];   // 📌 미니: 층마다 엘리베이터 문 + 칸 위치(#224 — 칸이 다른 층이면 빈 통로만 보이던 것)
       banner = mkEl("div", "banner", bld);
       plusEl = mkEl("div", "fx", bld, { fontWeight: 900, fontSize: "calc(20px*var(--inv))", color: "#e8a020", textShadow: "2px 2px 0 #2e2040", display: "none", whiteSpace: "nowrap" });
       quickEl = mkEl("div", "fx", bld, { fontWeight: 900, fontSize: "calc(15px*var(--inv))", color: "#7fe0ff", textShadow: "2px 2px 0 #2e2040", display: "none", whiteSpace: "nowrap", transform: "translateX(-50%)", zIndex: "62", pointerEvents: "none" });   // ⚡ 빠른 답장(자기 층에서 받을 때)
@@ -5884,7 +5884,7 @@ C.registerMode({
       const r = clamp(car.row, 0, n + 1), i0 = Math.floor(r), i1 = Math.min(n + 1, i0 + 1), kk = r - i0;   // 로비(n + 1)까지
       const yb = lerp(FT[i0] + BASE[i0], FT[i1] + BASE[i1], kk);
       sty(carEl, "top", Math.round(yb - FT[0] - 114 + 8) + "px"); txt(lamp, pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F");
-      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (hallRow == null || Math.abs(r - hallRow) < 1e-4 ? "" : r > hallRow ? "▼" : "▲"); hallRow = r; hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 지난 프레임보다 실제로 움직인 쪽 — 손으로 부를 때·일보 연출도 같게)
+      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (!anim || hallRow == null || Math.abs(r - hallRow) < 1e-4 || Math.abs(r - hallRow) > .3 ? "" : r > hallRow ? "▼" : "▲"); hallRow = r; hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 지난 프레임보다 실제로 조금 움직인 쪽 — 손으로 부를 때·일보 연출도 같게, 순간 이동(숨김·층 다시 짓기)은 빼고)
       const pw = 44 * (1 - car.door) + 4 * car.door; sty(dl, "width", pw + "px"); sty(dr, "width", pw + "px");
       let asker = null, thanker = null;
       hqPick(tc, anim);   // 🏢 쉬는 직원이 가끔 정수기·커피머신에
