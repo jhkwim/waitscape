@@ -42,7 +42,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 <td colspan="2" valign="middle">
 <h3>📌 Mini view</h3>
 A small always-on-top window. The big window hides and only this small one stays above your other apps. It shows the same building as the big window, one floor at a time. It watches the boss's office; when someone comes down with a question it follows them to the elevator, and when someone finishes or a subagent meeting starts it shows that floor for a moment. Scroll for floors and scroll sideways for the rest of a floor. All the tiny details from the big window show up in the mini view too.
-<p align="center"><img src="docs/assets/en/mini.gif" width="606" alt="Mini view — the camera following a penguin coming down with a question, the question bubble in the boss office, heading back after the answer"></p>
+<p align="center"><img src="docs/assets/en/mini.gif" width="420" alt="Mini view — the camera following a penguin coming down with a question, the question bubble in the boss office, heading back after the answer"></p>
 </td>
 </tr>
 <tr>
