@@ -5595,8 +5595,8 @@ C.registerMode({
         else if (e.key === "Escape" && cam.hold > clockT()) { cam.hold = -1e9; camApply(); }
       });
       ctx.listen(win, "click", e => { if (cam.moved) { cam.moved = false; e.preventDefault(); e.stopPropagation(); } }, { capture: true });   // 끌어서 넘긴 뒤 손을 떼면 누르기로 치지 않음(창 capture = 문서 capture로 받는 머그·뽑기·이벤트보다 먼저)
-      let fitAt = -1e9, fitN = 0;   // 독립 창은 한 크기로(#224): 크기 바뀜이 멎고 0.3초 뒤 한 번 맞춤 · 창이 요청 크기를 못 맞춰도 1초에 한 번만(resize ↔ resizeTo 되풀이 막기)
-      ctx.listen(win, "resize", () => { if (win.top !== win) return; const k = ++fitN; ctx.after(300, () => { if (k !== fitN || clockT() - fitAt < 1 || (Math.abs(win.innerWidth - MINI2.W) <= 2 && Math.abs(win.innerHeight - MINI2.H) <= 2)) return; fitAt = clockT(); try { win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {} }); });
+      let fitAt = -1e9, fitN = 0;   // 독립 창은 한 크기로(#224): 크기 바뀜이 멎고 0.3초 뒤 맞춤 · 맞춘 직후(0.5초) 오는 resize는 그 결과라 무시(창이 요청 크기를 못 맞춰도 되풀이하지 않게)
+      ctx.listen(win, "resize", () => { if (win.top !== win || clockT() - fitAt < .5) return; const k = ++fitN; ctx.after(300, () => { if (k !== fitN || (Math.abs(win.innerWidth - MINI2.W) <= 2 && Math.abs(win.innerHeight - MINI2.H) <= 2)) return; fitAt = clockT(); try { win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {} }); });
     }
 
     /* ---------- 소리: 키보드 타자 (Web Audio 합성, 작은 볼륨) ---------- */
