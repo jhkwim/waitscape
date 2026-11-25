@@ -736,7 +736,7 @@ function powerBig(h) {
     if (q.off) { if (L) { sty(L, "display", "none"); sty(src, "visibility", ""); } return; }
     if (!L || !L.isConnected) { L = src._pwl = mkEl("div", "", G.bld); G.lifts.push(L); }
     if (L.className !== src.className + " pw-lift") L.className = src.className + " pw-lift";
-    html(L, src.innerHTML); sty(L, "background", src.style.background || ""); sty(L, "bottom", "auto"); sty(L, "left", q.x + "px"); sty(L, "top", q.y + "px"); sty(L, "display", "block");
+    html(L, src.innerHTML); sty(L, "background", src.style.background || ""); const bx = src.style.getPropertyValue("--bx"); if (L.style.getPropertyValue("--bx") !== bx) L.style.setProperty("--bx", bx); sty(L, "bottom", "auto"); sty(L, "left", q.x + "px"); sty(L, "top", q.y + "px"); sty(L, "display", "block");   // 🛋️ --bx = 소파 말풍선 꼬리 위치
     sty(src, "visibility", "hidden");
   }
   let E = null, wxSig = "", liftT = -1, liftOn = false, vwS = [0, 0];
@@ -3162,7 +3162,7 @@ function decorBig(h) {
     bossHQt: tc => hqR && hqR.t0 != null ? tc - hqR.t0 : 9,
     /* 🏢 직원이 쓰러 가는 정수기·커피머신(#197 5c): 사장실·로비 바닥 칸 · x = 서 있을 자리(소품 옆) · face −1 = 왼쪽을 봄.
        옆자리: 로비 바닥 1 = 오른쪽(왼쪽은 벽) · 로비 바닥 2 = 왼쪽(오른쪽은 자판기) · 사장실 바닥 2 = 오른쪽(질문 자리 앞) · 사장실 바닥 1 = 바닥 2가 차 있으면 왼쪽(화분 쪽) */
-    hqSpots: () => { const out = []; D.HQ.forEach(p => { const F = d.fl[p]; if (F) ["F1", "F2"].forEach(sl => { const id = F.s[sl]; if (id !== "of_water" && id !== "of_coffee") return; const L = p === ":lobby" ? sl === "F2" : sl === "F1" && !!F.s.F2; out.push({ p, sl, id, x: D.bigAt(sl, 0, p).x + (L ? -46 : 46), face: L ? 1 : -1 }); }); }); return out; },
+    hqSpots: () => { const out = []; D.HQ.forEach(p => { const F = d.fl[p]; if (F) ["F1", "F2"].forEach(sl => { const id = F.s[sl]; if (id === "of_sofa" && p === ":lobby") return out.push({ p, sl, id, x: D.bigAt(sl, 0, p).x, face: 1, sofa: true }); if (id !== "of_water" && id !== "of_coffee") return; const L = p === ":lobby" ? sl === "F2" : sl === "F1" && !!F.s.F2; out.push({ p, sl, id, x: D.bigAt(sl, 0, p).x + (L ? -46 : 46), face: L ? 1 : -1 }); }); }); return out; },
     /* 🏢 질문 마친 직원 한마디: 사장실 소품 중 하나(사옥 소품 먼저) · 3번에 1번 · 없으면 "" */
     thankLine: () => { const F = d.fl[":boss"], ids = F ? D.SLOTS.map(sl => F.s[sl]).filter(id => id && D.ITEMS[id]) : []; if (!ids.length || Math.random() >= 1 / 3) return "";
       const of = ids.filter(id => HQ_STAFF[id]), id = (of.length ? of : ids)[Math.floor(Math.random() * (of.length || ids.length))], n = nm(id);
@@ -5708,10 +5708,11 @@ C.registerMode({
     /* ---------- 🏢 정수기·커피머신 쓰기(#197 5c) ----------
        쉬는(idle) 직원이 25초 넘게 쉬면 가끔(한 번에 한 명 · 1~2분 간격 · 같은 직원은 4분에 한 번) 엘리베이터로 사장실·로비에 놓인 정수기·커피머신에 감.
        a.hq.ph: go(가는 중) → use(옆에 서서 따르고 마심, HQ_USE초) → back(엘리베이터로 돌아감) → home(자기 층에서 컵 들고 자리로). 일이 생기면 바로 돌아가고, 질문이면 그 자리에서 사장님께 */
-    const HQ_USE = 5.5;
+    const HQ_USE = 5.5, HQ_SOFA = 14, HQ_SEAT = 12;   // 🛋️ 소파는 좀 더 오래 앉아 쉼
     let hqNext = 0;
-    const HQ_SAY = { of_water: [["꿀꺽꿀꺽 💧", "Glug glug 💧"], ["물 한 잔 하고 갈게요 💧", "Quick water break 💧"]], of_coffee: [["커피 한 잔 충전 ☕", "Coffee refill ☕"], ["음~ 향 좋다 ☕", "Mmm, smells great ☕"]] };
-    const hqCup = a => a.hq && a.hq.cup ? (a.hq.id === "of_coffee" ? "cup" : "water") : null;   // 다 따른 뒤(1.2초)부터 컵을 듦 — 따르다 그만두면 빈손
+    const HQ_SAY = { of_water: [["꿀꺽꿀꺽 💧", "Glug glug 💧"], ["물 한 잔 하고 갈게요 💧", "Quick water break 💧"]], of_coffee: [["커피 한 잔 충전 ☕", "Coffee refill ☕"], ["음~ 향 좋다 ☕", "Mmm, smells great ☕"]], of_sofa: [["아이고 푹신하다~ 🛋️", "Ahh, so comfy~ 🛋️"], ["잠깐만 앉았다 갈게요 🛋️", "Just a quick sit 🛋️"]] };
+    function sofaOff(a) { if (!a.sofaF) return; sty(a.sofaF, "display", "none"); sty(a.hqZ, "display", "none"); sty(a.bub, "marginLeft", ""); if (a.bub.style.getPropertyValue("--bx")) a.bub.style.removeProperty("--bx"); }   // 🛋️ 소파 앞부분·z z z·말풍선 밀기 끄기
+    const hqCup = a => a.hq && a.hq.cup && !a.hq.sofa ? (a.hq.id === "of_coffee" ? "cup" : "water") : null;   // 다 따른 뒤(1.2초)부터 컵을 듦 — 따르다 그만두면 빈손
     function hqStep(a, f, d, tc) {
       const q = a.hq, at = q.p === ":boss" ? "boss" : "lobby";
       if ((q.ph === "go" || q.ph === "use") && (f.kind !== "idle" || !dcB.hqSpots().some(s => s.p === q.p && s.sl === q.sl && s.id === q.id))) q.ph = "back";   // 일이 생김 · 소품을 치움
@@ -5723,7 +5724,7 @@ C.registerMode({
       }
       if (q.ph === "back" || a.loc !== at) { q.ph = "back"; liftWalk(a, a.loc === "boss" ? nSess : nSess + 1, d); return true; }
       if (q.ph === "go") { a.lift = null; q.t2 = tc; moveX(a, q.x, d); if (!a.moving) { q.ph = "use"; q.t = tc; a.flip = q.face < 0; } return true; }
-      a.moving = false; a.flip = q.face < 0; if (tc - q.t >= 1.2) q.cup = true; if (tc - q.t >= HQ_USE) q.ph = "back";
+      a.moving = false; a.flip = q.face < 0; if (tc - q.t >= 1.2) q.cup = true; if (tc - q.t >= (q.sofa ? HQ_SOFA : HQ_USE)) q.ph = "back";
       return true;
     }
     function hqPick(tc, anim) {
@@ -5735,6 +5736,7 @@ C.registerMode({
       if (!c.length) return;
       const a = actors.get(c[Math.floor(Math.random() * c.length)].sid), s = sp[Math.floor(Math.random() * sp.length)], L = HQ_SAY[s.id];
       a.hq = Object.assign({ ph: "go", t: tc, say: L[Math.floor(Math.random() * L.length)] }, s);
+      if (s.sofa) { a.hq.x0 = s.x; a.hq.x += Math.random() < .5 ? -18 : 18; a.hq.face = a.hq.x < s.x ? 1 : -1; }   // 🛋️ 쿠션 두 칸 중 하나
       hqNext = tc + 60 + Math.random() * 60;
     }
 
@@ -5836,7 +5838,7 @@ C.registerMode({
       const k = f.kind, away = a.loc !== "home" || a.moving;
       if (k === "ask") return a.goal === "boss" ? (a.loc === "boss" && !a.moving ? [X("질문 중", "Asking"), STAT_COL.ask] : away ? [X("질문하러 이동", "Heading down"), STAT_COL.away] : [X("입력 필요", "Needs input"), STAT_COL.ask]) : [X("입력 필요 · 대기", "Needs input · queued"), STAT_COL.ask];
       if (k === "stall") return [X("멈춤 의심", "Stalled?"), STAT_COL.stall];
-      if (a.hq && (away || a.lift)) return [a.hq.id === "of_coffee" ? X("커피 타임", "Coffee break") : X("물 마시러", "Water break"), STAT_COL.away];
+      if (a.hq && (away || a.lift)) return [a.hq.sofa ? X("소파에서 쉬는 중", "Sofa break") : a.hq.id === "of_coffee" ? X("커피 타임", "Coffee break") : X("물 마시러", "Water break"), STAT_COL.away];
       if (away && k !== "ask") return [X("자리 비움", "Away"), STAT_COL.away];
       if (f.layout === "meet") { const d = f.agAll.filter(x => x.status === "done").length; return [X(`서브 회의 ${d}/${f.agAll.length}`, `Sub meeting ${d}/${f.agAll.length}`), STAT_COL.meet]; }
       if (k === "work" || k === "agents") return f.s.health && f.s.health.level === "slow" ? [X("생각이 길어요", "Slow…"), STAT_COL.slow] : [X("작업 중", "Working"), STAT_COL.work];
@@ -5892,7 +5894,7 @@ C.registerMode({
         if (a.restX == null || a.x !== a.restX) a.restAt = null;
         a.idle0 = f.kind === "idle" ? (a.idle0 == null ? tc : a.idle0) : null;   // 🏢 쉰 지 얼마나 됐나
         const dnm = !DRon && trB.member(f.sid);   // 🍖 회식 간 직원: 회식 연출이 그림
-        if ((DRon || dnm) && a.hq) { a.hq = null; a.lift = null; a.moving = false; nxCarry(a, null); if (a.loc !== "car") { a.loc = "home"; a.x = null; } }   // 🏢 커피 마시러 갔다가 퇴근 일보·회식 연출이 시작되면 자리로(컵도 내려놓음)
+        if ((DRon || dnm) && a.hq) { a.hq = null; a.lift = null; a.moving = false; nxCarry(a, null); sofaOff(a); if (a.loc !== "car") { a.loc = "home"; a.x = null; } }   // 🏢 커피 마시러 갔다가 퇴근 일보·회식 연출이 시작되면 자리로(컵도 내려놓음)
         if (!DRon && !dnm) stepActor(a, f, dt, anim, tc);
         if (fl.wbd) boardDraw(i, fl, f, tc, anim);
         if (fl.aib) aiBoardDraw(i, fl, f, tc, anim);
@@ -6060,7 +6062,7 @@ C.registerMode({
       if (a.bub.classList.contains("dcr")) a.bub.classList.remove("dcr");   // 🎨 쉬기 한마디(머리 오른쪽 옆)는 그 장면에서만
       const res = { babies: meet };
       /* 🙈 퇴근·출근: 밖(안 보임) · 현관문 · ❗ · 가방/커피 들고 걷기 · 엘리베이터 기다리기 */
-      sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.el, "pointerEvents", a.hq && a.goal === "home" && a.loc !== "home" ? "none" : ""); sty(a.img, "filter", "");   // 🏢 마시러 간 동안은 로비 회전문·사장실 누를 자리를 가리지 않게
+      sty(a.el, "display", a.loc === "out" ? "none" : ""); sty(a.el, "opacity", ""); sty(a.el, "pointerEvents", a.hq && a.goal === "home" && a.loc !== "home" ? "none" : ""); sty(a.img, "filter", ""); if (!(a.hq && a.hq.sofa && a.hq.ph === "use" && !a.moving && a.goal === "home" && a.loc !== "home")) sofaOff(a);   // 🏢 소파에 앉은 동안은 그대로(매 프레임 껐다 켜지 않게) 마시러 간 동안은 로비 회전문·사장실 누를 자리를 가리지 않게
       if (a.loc === "out" || (a.goal === "out" && a.nx && tc >= a.nx.at) || (a.nx && a.nx.carry === "cup")) {   // 아기(서브에이전트)는 본체와 함께 자리를 비움
         res.babies = false; a.babies.forEach(b => { if (b.el.parentNode) b.el.parentNode.removeChild(b.el); b.par = null; });
         if (fl.wbd) { fl.wbd.env.forEach(e => sty(e, "display", "none")); fl.wbd.ch.forEach(e => sty(e, "display", "none")); fl.wbd.dn.forEach(e => sty(e, "display", "none")); sty(fl.wbd.yawn, "display", "none"); }   // 봉투·도넛·하품 글자도 함께 걷음
@@ -6103,6 +6105,19 @@ C.registerMode({
       }
       if (a.hq && a.goal === "home" && a.loc !== "home") {   // 🏢 정수기·커피머신 옆: 따르고(1.2초) → 한마디 → 홀짝(눈 감고 팔 올림)
         const q = a.hq, fiP = a.loc === "boss" ? nSess : nSess + 1, g = parentFor(fiP, a.x, BASE[fiP] - 2), use = q.ph === "use" && !a.moving, u = use ? tc - q.t : 0;
+        if (q.sofa && use) {   // 🛋️ 소파: 앉아서 한마디 → 기지개(6초쯤) → 꾸벅꾸벅(눈 감고 살짝 끄덕)
+          const st = anim && u >= 6 && u < 7.6, nod = anim && u >= 9 ? Math.floor(u / .8) % 2 : 0, say = u >= 1.2 && u < 4 ? X(...q.say) : "";
+          setP(a, { view: "front", seated: 1, eyes: st || u >= 9 || ph.blink ? "c" : "o", mouth: st ? "o" : "", arms: st ? "u" : "" });
+          put(a, g.p, g.x, g.feet - HQ_SEAT, { dy: nod, flip: false });
+          if (!a.sofaF) { const A = DECOR.ART.ofsofa, pz = WB.pix({ r: A.r.slice(5), p: A.p }, 3, "ofsofa:front"); a.sofaF = mkEl("img", "nxp", a.el); a.sofaF.src = pz.url; a.sofaF.alt = ""; a.sofaF.draggable = false; Object.assign(a.sofaF.style, { width: pz.w + "px", height: pz.h + "px" }); a.sofaF._h = pz.h; a.sofaF._w = pz.w; }
+          sty(a.sofaF, "display", "block"); sty(a.sofaF, "left", Math.round(a.w / 2 + q.x0 - q.x - a.sofaF._w / 2) + "px"); sty(a.sofaF, "top", Math.round(a.h + HQ_SEAT - a.sofaF._h - nod) + "px");   // 소파 앞(방석·팔걸이)을 직원 위에 겹쳐 — 파묻혀 앉은 모습
+          sty(a.el, "zIndex", String(g.z || (say ? 21 : 8))); tagOn(a, false); bubble(a, esc(say), !!say);   // 한마디는 층 이름표·LOBBY 표지 위로
+          const bk = say + "|" + doc.defaultView.innerWidth; if (say && q.bxS !== bk) { q.bxS = bk; q.bx = Math.max(0, Math.ceil(a.bub.offsetWidth / 2 + 4 - g.x)); }   // 너비는 글(언어)·창 너비(--inv 배율)가 바뀔 때만 다시 잼
+          const bx = say ? q.bx : 0; sty(a.bub, "marginLeft", bx ? bx + "px" : ""); if (a.bub.style.getPropertyValue("--bx") !== bx + "px") a.bub.style.setProperty("--bx", bx + "px");   // 왼쪽 쿠션이면 층 왼쪽 끝에 안 잘리게 말풍선만 오른쪽으로(꼬리는 머리 위 그대로)
+          if (!a.hqZ) a.hqZ = mkEl("i", "z", a.el, { fontStyle: "normal", lineHeight: "1", whiteSpace: "nowrap" });   // 낮잠 z와 같은 모양(.z: 외곽선 · --inv 배율)
+          sty(a.hqZ, "display", nod || (anim && u >= 9) ? "block" : "none"); if (u >= 9) { const zk = Math.floor(u / .8) % 3; const zt = "z".repeat(zk + 1); if (a.hqZ.textContent !== zt) a.hqZ.textContent = zt; sty(a.hqZ, "left", Math.round(a.w * .72) + "px"); sty(a.hqZ, "top", Math.round(-4 - zk * 5) + "px"); }   // 💤 머리 옆 z z z(말풍선 대신 — 이름표에 안 가리게)
+          nxCarry(a, null); setScreen("off"); hands(false, 0); return res;
+        }
         const sip = use && anim && u > 1.2 && Math.floor((u - 1.2) / 1.1) % 2 === 1;
         setP(a, { view: "front", legs: a.moving && anim ? (wk ? "a" : "b") : "s", eyes: sip || (!use && ph.blink) ? "c" : "o", mouth: sip ? "o" : "", arms: use && u < 1.2 ? "r" : sip ? "u" : "" });
         put(a, g.p, g.x, g.feet, { dy: a.moving && anim && wk ? -3 : 0, flip: a.flip, rot: a.moving && anim ? (wk ? 2 : -2) : 0 });
