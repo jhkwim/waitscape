@@ -5893,7 +5893,7 @@ C.registerMode({
         if (a.restX == null || a.x !== a.restX) a.restAt = null;
         a.idle0 = f.kind === "idle" ? (a.idle0 == null ? tc : a.idle0) : null;   // 🏢 쉰 지 얼마나 됐나
         const dnm = !DRon && trB.member(f.sid);   // 🍖 회식 간 직원: 회식 연출이 그림
-        if ((DRon || dnm) && a.hq) { a.hq = null; a.lift = null; a.moving = false; nxCarry(a, null); if (a.loc !== "car") { a.loc = "home"; a.x = null; } }   // 🏢 커피 마시러 갔다가 퇴근 일보·회식 연출이 시작되면 자리로(컵도 내려놓음)
+        if ((DRon || dnm) && a.hq) { a.hq = null; a.lift = null; a.moving = false; nxCarry(a, null); if (a.sofaF) { sty(a.sofaF, "display", "none"); sty(a.hqZ, "display", "none"); } if (a.loc !== "car") { a.loc = "home"; a.x = null; } }   // 🏢 커피 마시러 갔다가 퇴근 일보·회식 연출이 시작되면 자리로(컵도 내려놓음)
         if (!DRon && !dnm) stepActor(a, f, dt, anim, tc);
         if (fl.wbd) boardDraw(i, fl, f, tc, anim);
         if (fl.aib) aiBoardDraw(i, fl, f, tc, anim);
@@ -6112,7 +6112,7 @@ C.registerMode({
           sty(a.sofaF, "display", "block"); sty(a.sofaF, "left", Math.round(a.w / 2 + q.x0 - q.x - a.sofaF._w / 2) + "px"); sty(a.sofaF, "top", Math.round(a.h + HQ_SEAT - a.sofaF._h - nod) + "px");   // 소파 앞(방석·팔걸이)을 직원 위에 겹쳐 — 파묻혀 앉은 모습
           sty(a.el, "zIndex", String(g.z || (say ? 21 : 8))); tagOn(a, false); bubble(a, esc(say), !!say);   // 한마디는 층 이름표·LOBBY 표지 위로
           if (!a.hqZ) a.hqZ = mkEl("i", "", a.el, { position: "absolute", fontStyle: "normal", fontWeight: "900", fontSize: "13px", lineHeight: "1", color: "#5a6ad0", pointerEvents: "none", whiteSpace: "nowrap" });
-          sty(a.hqZ, "display", nod || (anim && u >= 9) ? "block" : "none"); if (u >= 9) { const zk = Math.floor(u / .8) % 3; a.hqZ.textContent = "z".repeat(zk + 1); sty(a.hqZ, "left", Math.round(a.w * .72) + "px"); sty(a.hqZ, "top", Math.round(-4 - zk * 5) + "px"); }   // 💤 머리 옆 z z z(말풍선 대신 — 이름표에 안 가리게)
+          sty(a.hqZ, "display", nod || (anim && u >= 9) ? "block" : "none"); if (u >= 9) { const zk = Math.floor(u / .8) % 3; const zt = "z".repeat(zk + 1); if (a.hqZ.textContent !== zt) a.hqZ.textContent = zt; sty(a.hqZ, "left", Math.round(a.w * .72) + "px"); sty(a.hqZ, "top", Math.round(-4 - zk * 5) + "px"); }   // 💤 머리 옆 z z z(말풍선 대신 — 이름표에 안 가리게)
           nxCarry(a, null); setScreen("off"); hands(false, 0); return res;
         }
         const sip = use && anim && u > 1.2 && Math.floor((u - 1.2) / 1.1) % 2 === 1;
