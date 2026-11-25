@@ -5584,7 +5584,7 @@ C.registerMode({
         else { cam.acc += ddy; if (Math.abs(cam.acc) >= 40) { const fi = clamp(curFi() + Math.sign(cam.acc), 0, FL.length - 1); cam.up = FL.length - 1 - fi; cam.acc = 0; cam.cx = null; } }
         camApply();
       }, { passive: false });
-      if (!ctx.api.startDrag) ctx.listen(view, "pointerdown", e => { cam.drag = { x: e.clientX, cx: curX() }; cam.moved = false; });   // 끌어서 넘기기는 브라우저 PiP만 — 앱 위젯은 빈 곳을 끌면 창이 움직임(코어)
+      if (!ctx.api.showMain) ctx.listen(view, "pointerdown", e => { cam.drag = { x: e.clientX, cx: curX() }; cam.moved = false; });   // 끌어서 넘기기는 브라우저 PiP만 — 앱 위젯(showMain이 있음)은 빈 곳을 끌면 창이 움직임(코어). ctx.api엔 startDrag가 없어 그걸로 가르면 앱에서도 넘겨져 창과 함께 흔들림(#227)
       ctx.listen(win, "pointermove", e => { if (!cam.drag || !e.buttons) { cam.drag = null; return; } const dx = e.clientX - cam.drag.x; if (!cam.moved && Math.abs(dx) < 4) return; cam.moved = true; look(); cam.cx = cam.drag.cx - dx / MINI2.K; camApply(); });
       ctx.listen(win, "pointerup", () => { cam.drag = null; });
       ctx.listen(win, "pointerdown", () => { cam.moved = false; }, { capture: true });   // 새로 누르면 지난 끌기의 "클릭 막기"는 끝
