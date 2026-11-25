@@ -6111,7 +6111,7 @@ C.registerMode({
           if (!a.sofaF) { const A = DECOR.ART.ofsofa, pz = WB.pix({ r: A.r.slice(5), p: A.p }, 3, "ofsofa:front"); a.sofaF = mkEl("img", "nxp", a.el); a.sofaF.src = pz.url; a.sofaF.alt = ""; a.sofaF.draggable = false; Object.assign(a.sofaF.style, { width: pz.w + "px", height: pz.h + "px" }); a.sofaF._h = pz.h; a.sofaF._w = pz.w; }
           sty(a.sofaF, "display", "block"); sty(a.sofaF, "left", Math.round(a.w / 2 + q.x0 - q.x - a.sofaF._w / 2) + "px"); sty(a.sofaF, "top", Math.round(a.h + HQ_SEAT - a.sofaF._h - nod) + "px");   // 소파 앞(방석·팔걸이)을 직원 위에 겹쳐 — 파묻혀 앉은 모습
           sty(a.el, "zIndex", String(g.z || (say ? 21 : 8))); tagOn(a, false); bubble(a, esc(say), !!say);   // 한마디는 층 이름표·LOBBY 표지 위로
-          if (!a.hqZ) a.hqZ = mkEl("i", "", a.el, { position: "absolute", fontStyle: "normal", fontWeight: "900", fontSize: "13px", lineHeight: "1", color: "#5a6ad0", pointerEvents: "none", whiteSpace: "nowrap" });
+          if (!a.hqZ) a.hqZ = mkEl("i", "z", a.el, { fontStyle: "normal", lineHeight: "1", whiteSpace: "nowrap" });   // 낮잠 z와 같은 모양(.z: 외곽선 · --inv 배율)
           sty(a.hqZ, "display", nod || (anim && u >= 9) ? "block" : "none"); if (u >= 9) { const zk = Math.floor(u / .8) % 3; const zt = "z".repeat(zk + 1); if (a.hqZ.textContent !== zt) a.hqZ.textContent = zt; sty(a.hqZ, "left", Math.round(a.w * .72) + "px"); sty(a.hqZ, "top", Math.round(-4 - zk * 5) + "px"); }   // 💤 머리 옆 z z z(말풍선 대신 — 이름표에 안 가리게)
           nxCarry(a, null); setScreen("off"); hands(false, 0); return res;
         }
