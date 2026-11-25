@@ -5884,7 +5884,7 @@ C.registerMode({
       const r = clamp(car.row, 0, n + 1), i0 = Math.floor(r), i1 = Math.min(n + 1, i0 + 1), kk = r - i0;   // 로비(n + 1)까지
       const yb = lerp(FT[i0] + BASE[i0], FT[i1] + BASE[i1], kk);
       sty(carEl, "top", Math.round(yb - FT[0] - 114 + 8) + "px"); txt(lamp, pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F");
-      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (!anim || hallRow == null || Math.abs(r - hallRow) < 1e-4 || Math.abs(r - hallRow) > .3 ? "" : r > hallRow ? "▼" : "▲"); hallRow = r; hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 지난 프레임보다 실제로 조금 움직인 쪽 — 손으로 부를 때·일보 연출도 같게, 순간 이동(숨김·층 다시 짓기)은 빼고)
+      if (hallDoors.length) { const hl = pwB.out() ? "--" : (n + 2 - Math.round(r)) + "F" + (!anim || hallRow == null || Math.abs(r - hallRow) < 1e-4 || Math.abs(r - hallRow) > .9 ? "" : r > hallRow ? "▼" : "▲"); hallRow = r; hallDoors.forEach(e => txt(e, hl)); }   // 📌 문 위 칸 위치(▲▼ = 지난 프레임보다 실제로 조금 움직인 쪽 — 손으로 부를 때·일보 연출도 같게, 순간 이동(숨김·층 다시 짓기)은 빼고)
       const pw = 44 * (1 - car.door) + 4 * car.door; sty(dl, "width", pw + "px"); sty(dr, "width", pw + "px");
       let asker = null, thanker = null;
       hqPick(tc, anim);   // 🏢 쉬는 직원이 가끔 정수기·커피머신에
