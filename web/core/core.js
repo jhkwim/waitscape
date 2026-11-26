@@ -1081,7 +1081,8 @@ async function bootWidget(fallback) {
     if (Math.abs(e.screenX - press.x) > 4 || Math.abs(e.screenY - press.y) > 4) { press = null; dragged = true; api.startDrag(); }
   });
   document.addEventListener("mouseup", () => { press = null; });
-  document.addEventListener("click", e => { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  // 끌기 뒤 마우스 click만 버림 — 네이티브 끌기가 mouseup을 삼켜 표시가 남아도 키보드로 누른 click(detail 0)은 막지 않게
+  document.addEventListener("click", e => { if (dragged) { dragged = false; if (e.detail) { e.stopPropagation(); e.preventDefault(); } } }, true);
   api.subscribe(onState);
   const [, b, s, ai] = await Promise.all([discover(), api.brand().catch(() => ({})), api.settings.get().catch(() => null),
     api.appInfo ? api.appInfo().catch(() => null) : null]);
