@@ -1065,23 +1065,24 @@ async function bootWidget(fallback) {
     else if (a === "inbox") inboxGo(); else if (a === "inbox-skip") inboxSkip();   // 관제 인박스 N · Shift+N
     else if (a === "settings" && (e.metaKey || e.ctrlKey) && api.menuAction) { e.preventDefault(); api.menuAction("settings-mini").catch(() => {}); }   // ⌘, = 큰 화면 + 설정(닫으면 미니로)
   });
-  // 창 끌기: 빈 자리는 누르자마자 끌기. 모드가 "누르면 반응"으로 표시한 자리([data-act="poke"])는 누른 채 4px 넘게 움직일 때만 끌기로 넘기고,
-  // 그때 이어지는 click은 버린다(반응 없이 창만 움직임). 버튼·[data-act]는 끌기 대상이 아님. 상단 바·하단 자막 줄은 늘 빈 자리라 바로 끌림
+  // 창 끌기: 빈 자리와 모드가 "누르면 반응"으로 표시한 자리([data-act="poke"])는 누른 채 4px 넘게 움직일 때만 끌기로 넘기고,
+  // 그때 이어지는 click은 버린다(반응 없이 창만 움직임). 버튼·그 밖의 [data-act]는 끌기 대상이 아님.
+  // 누르자마자 끌지 않는 까닭: macOS는 끌기 명령이 닿은 순간의 이벤트로 창을 끄는데, 비활성 창을 누른 직후엔 그게 마우스 누름이 아닐 수 있어 창이 튐(#230)
   let press = null, dragged = false;
   document.addEventListener("mousedown", e => {
     press = null; dragged = false;
     if (e.button !== 0 || e.target.closest("button, textarea, input, select, a, label, [contenteditable]")) return;
     const act = e.target.closest("[data-act]");
-    if (act && act.dataset.act === "poke") { press = { x: e.screenX, y: e.screenY }; return; }
-    if (act) return;
-    api.startDrag();
+    if (act && act.dataset.act !== "poke") return;
+    press = { x: e.screenX, y: e.screenY };
   });
   document.addEventListener("mousemove", e => {
     if (!press || !(e.buttons & 1)) { press = null; return; }
     if (Math.abs(e.screenX - press.x) > 4 || Math.abs(e.screenY - press.y) > 4) { press = null; dragged = true; api.startDrag(); }
   });
   document.addEventListener("mouseup", () => { press = null; });
-  document.addEventListener("click", e => { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  // 끌기 뒤 마우스 click만 버림 — 네이티브 끌기가 mouseup을 삼켜 표시가 남아도 키보드로 누른 click(detail 0)은 막지 않게
+  document.addEventListener("click", e => { if (dragged) { dragged = false; if (e.detail) { e.stopPropagation(); e.preventDefault(); } } }, true);
   api.subscribe(onState);
   const [, b, s, ai] = await Promise.all([discover(), api.brand().catch(() => ({})), api.settings.get().catch(() => null),
     api.appInfo ? api.appInfo().catch(() => null) : null]);
