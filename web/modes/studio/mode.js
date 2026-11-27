@@ -4232,8 +4232,8 @@ function gachaBig(h) {
     const o = JSON.parse(a.pose || "{}"); h.setP(a, Object.assign(o, { arms: Math.floor(tc / .14) % 2 ? "u" : "", mouth: "o", eyes: "o" }));
   }
   /* 📌 미니 보기에서 누른 뽑기 기계(gaOpen, 2분 안) → 큰 창에서 판을 엶 */
-  const born = Date.now();
-  function poll() { let t = 0; try { t = +ctx.store.get("gaOpen", "") || 0; } catch {} if (!t || Date.now() - born < 1500) return; ctx.store.set("gaOpen", ""); if (Date.now() - t < 120000) open(); }
+  const born = h.clockT();
+  function poll() { let t = 0; try { t = +ctx.store.get("gaOpen", "") || 0; } catch {} if (!t || h.clockT() - born < 1.5) return; ctx.store.set("gaOpen", ""); if (Date.now() - t < 120000) open(); }
   return { build, read, frame, tap, row, dex, actor, reload, render, poll, dev: () => dev.any, wearSid: sid => wmap.get(sid) || null, count: () => GA.count(d), has: id => GA.has(d, id), on: () => !!ui.pop, busy: () => !!spin || !!ui.pop, spinning: () => !!spin, close, open, price: GA.PRICE };
 }
 
@@ -5521,7 +5521,7 @@ C.registerMode({
       funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, hud: () => renderHud(), tray: () => dcB.tray(),
       kick: () => { if (!animOn()) staticDraw(); }, anim: () => animOn(), hidden: () => !!(NX.hidden || NX.mode), dr: () => drB.active() || trB.active(), setP,
       snd: (n, at) => { if (soundOk()) ctx.after(Math.round(at * 1000), () => { if (soundOk()) PK.play(ctx.audio(), n); }); }, openDex: () => dcB.gdex(), openDecor: () => dcB.set(true),
-      toMain: mini ? () => { if (!ctx.api.showMain) return; try { ctx0.store.set("gaOpen", String(Date.now())); } catch {} ctx.api.showMain(); } : null });   // 📌 미니 보기: 뽑기 기계 → 큰 창에서 뽑기 판(#240)
+      toMain: mini ? () => { try { ctx0.store.set("gaOpen", String(Date.now())); } catch {} if (ctx.api.showMain) ctx.api.showMain(); } : null });   /* 브라우저 PiP는 신호만 — 옆 큰 탭이 엶 */   // 📌 미니 보기: 뽑기 기계 → 큰 창에서 뽑기 판(#240)
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ spot: id => spB.see(id), ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
