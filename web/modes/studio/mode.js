@@ -5249,7 +5249,7 @@ function spotBig(h) {
    저장·자금·소리는 건드리지 않음(메인 창이 주인) — 쓰기는 버리고 메인끼리 주고받는 신호(drOpen)는 안 읽음.
    옛 미니 보기(282×162 전용 그림 mountLobby·*Mini 모듈)를 대신함 — 기능을 큰 화면에만 만들면 미니에도 나옴 */
 const MINI2 = {
-  K: 112 / 140, W: 420, H: 130, TOP: 18, HOLD: 10, FULL: 866, SHAFT: 674, SHAFT_W: 110,   // K: 한 층(140)이 창 높이(H − TOP 줄)에 꼭 맞게(#224: 1.16배 606×180은 너무 큼)
+  K: 112 / 140, W: 420, H: 130, TOP: 18, HOLD: 10, SUB: 12, FULL: 866, SHAFT: 674, SHAFT_W: 110,   // K: 한 층(140)이 창 높이(H − TOP 줄)에 꼭 맞게(#224: 1.16배 606×180은 너무 큼)
   ctx(c) {
     const st = c.store, hide = new Set(["drOpen"]);
     return Object.create(c, { store: { value: { get: (k, d) => hide.has(k) ? d : st.get(k, d), set: () => {} } } });
@@ -5268,7 +5268,7 @@ C.registerMode({
   mount(root, ctx0) {
     const mini = !ctx0.isMain;   // 작은 창(앱 위젯·PiP) = 📌 미니 보기(#204: 큰 화면 건물을 한 층씩)
     const ctx = mini ? MINI2.ctx(ctx0) : ctx0;   // 📌 미니 보기 2: 보기 전용(#204)
-    let m2h = null;   // 📌 미니 보기 2 위 줄
+    let m2h = null, m2s = null;   // 📌 미니 보기 2 위 줄 · 아래 소식 줄
     const doc = ctx.doc, win = ctx.win, $ = s => root.querySelector(s);
     const X = (ko, en) => ctx.lang === "en" ? en : ko;
     const aName = id => NAME[id][ctx.lang === "en" ? 1 : 0];
@@ -5496,6 +5496,7 @@ C.registerMode({
       app.classList.add("mini2"); doc.documentElement.classList.add("stu-lobby");
       m2h = mkEl("div", "m2h", app, null, '<span>⚡</span><div class="g"><i class="seg"></i><u></u></div><b class="pv"></b><span class="dots"></span><b class="wk"></b><b class="ak" hidden></b><span class="sp"></span>'
         + `<button type="button" data-act="quiet"></button>` + (ctx.api.showMain ? `<button type="button" data-act="m2big" aria-label="${X("크게 보기", "Full window")}">⤢</button>` : win.top === win ? `<button type="button" data-act="m2close" aria-label="${X("닫기", "Close")}">✕</button>` : ""));
+      m2s = mkEl("div", "m2s", app); m2s.hidden = true; m2s.setAttribute("role", "status");   // 📌 아래 소식 줄(#239)
       if (win.top === win) try { if (Math.abs(win.innerWidth - MINI2.W) > 2 || Math.abs(win.innerHeight - MINI2.H) > 2) win.resizeTo(MINI2.W + (win.outerWidth - win.innerWidth), MINI2.H + (win.outerHeight - win.innerHeight)); } catch {}
     }
     const vbg = mkEl("div", "vbg", view);   // 하늘·언덕·땅 층: 가로는 창에 붙고(구름이 가로 스크롤을 늘리지 않게) 세로는 건물 높이만큼(땅이 건물 바닥에) — vbgFit
@@ -5822,6 +5823,22 @@ C.registerMode({
       const working = model.floors.filter(f => f.kind === "work" || f.kind === "agents").length, waiting = model.floors.filter(f => f.kind === "ask").length;
       txt(q(".wk"), X(`작업 ${working}`, `Busy ${working}`));
       const ak = q(".ak"); ak.hidden = !waiting; txt(ak, X(`❓ 대기 ${waiting}`, `❓ Wait ${waiting}`));
+      miniSub(now);
+    }
+    /* 📌 아래 소식 줄(#239, 옛 미니 보기 자막 자리): 스튜디오 로그 새 줄을 MINI2.SUB초 동안 → 없으면 ❓ 답 기다리는 직원(가장 오래 기다린 순) → 없으면 숨김.
+       🙈 눈치 모드·글자 숨김(hideText)이면 숨김. 창 끌기를 막지 않게 pointer-events 없음(mode.css) */
+    function miniSub(now) {
+      if (!m2s) return;
+      let t = "";
+      if (!(NX.hidden || NX.mode || cfg.hideText)) {
+        const e = logs[0];
+        if (e && now - e.t < MINI2.SUB) t = `${e.icon} ${e.text}`;
+        else {
+          const a = model.floors.filter(f => f.kind === "ask").sort((x, y) => (+x.s.since || now) - (+y.s.since || now))[0];
+          if (a) { const n = aName(a.animal), c = n.charCodeAt(n.length - 1), ig = c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? "이" : "가"; t = X(`❓ ${EMO[a.animal]} ${n}${ig} 답을 기다려요 · ${mmss(now - (+a.s.since || now))}`, `❓ ${EMO[a.animal]} ${n} is waiting for you · ${mmss(now - (+a.s.since || now))}`); }
+        }
+      }
+      m2s.hidden = !t; if (t && m2s.textContent !== t) txt(m2s, t);
     }
     const cam = { up: null, cx: null, hold: -1e9, acc: 0, drag: null, moved: false, x: null, y: null, tl: [], tlFor: null, sl: null };   // up: 로비에서 몇 층 위(세션 수가 바뀌어도 같은 층) · x·y: 지금 카메라(부드럽게 따라감)
     function miniLayout() {
@@ -6075,6 +6092,7 @@ C.registerMode({
       NX.mode = null; NX.hold = null;
     }
     function nxLeave() {
+      if (m2s) m2s.hidden = true;   // 📌 아래 소식 줄도 바로(매초 갱신을 기다리지 않음)
       const tc = clockT();
       if (!animOn() || drB.active()) return null;   // 연출 없이 블라인드만
       if (dcB.on()) dcB.set(false);
@@ -6087,6 +6105,7 @@ C.registerMode({
       return new Promise(res => { NX.res = res; });
     }
     function nxHide() {
+      if (m2s) m2s.hidden = true;
       for (const a of actors.values()) Object.assign(a, { goal: "out", loc: "out", lift: null, moving: false, nx: null, hq: null });
       Object.assign(car, { st: "idle", door: 0, row: nSess, dir: 0, owner: null });
       Object.assign(NX, { mode: null, hidden: true, hold: null, sayAt: null });
@@ -7164,8 +7183,8 @@ C.registerMode({
 
     sync();
     if (!FL.length) { buildSig = "init"; build(); renderHud(); renderSide(); }
-    if (mini && ctx.state) renderMiniHud();   // 📌 위 줄을 첫 1초 비우지 않게
     if (ctx.nunchi && ctx.nunchi.phase === "plain") nxHide();   // 🙈 눈치 화면이 덮은 채로 올라옴(다시 켠 앱·모드 전환)
+    if (mini && ctx.state) renderMiniHud();   // 📌 위 줄을 첫 1초 비우지 않게(눈치로 숨긴 뒤라 소식 줄도 숨김 유지)
     ensureLoop();
     return {
       update() { sync(); if (mini && ctx.state) renderMiniHud(); },
