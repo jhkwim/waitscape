@@ -3649,7 +3649,7 @@ function palsBig(h) {
     const start = (k, i, j, t0, gap) => { const u = Math.min(i, j), l = Math.max(i, j), key = pk(k, fs[u].sid, fs[l].sid); if ((pairT.get(key) || -1e9) > tc - gap) return false;
       pairT.set(key, tc); ev.push({ k, up: fs[u].sid, lo: fs[l].sid, iu: u, il: l, t0 });
       [u, l].forEach(x => { const a = A.get(fs[x].sid); if (a) a.fragAt = Math.max(a.fragAt || 0, t0 + dur(k)); }); return true; };
-    ev = ev.filter(e => tc - e.t0 < dur(e.k) && idx.get(e.up) === e.iu && idx.get(e.lo) === e.il && (tc >= e.t0 || (ok(e.iu, 1) && ok(e.il, 1))));   // 층 순서가 바뀌거나 시작 전에 자리를 뜨면 그만
+    ev = ev.filter(e => tc - e.t0 < dur(e.k) && idx.get(e.up) === e.iu && idx.get(e.lo) === e.il && ok(e.iu, 1) && ok(e.il, 1));   // 층 순서가 바뀌거나 한쪽이라도 자리를 뜨면 그만
     /* 🙌 완료 → 하이파이브 */
     for (let k = pend.length - 1; k >= 0; k--) {
       const P = pend[k]; if (tc < P.at - PALS.LEAD) continue; pend.splice(k, 1);
@@ -3708,7 +3708,8 @@ function palsBig(h) {
     if (!on || !a.par) return;
     const E = lab(a), D = fl.desk, noHands = () => { if (D) { D.hands.forEach(x => sty(x, "display", "none")); if (D.tent) sty(D.tent, "display", "none"); } };
     const H = ev.find(e => e.up === f.sid || e.lo === f.sid);
-    if (H && tc >= H.t0 && seated(f, a, fl.F)) {
+    const quiet = () => { if (a.tnx) sty(a.tnx.yw, "display", "none"); if (a.hb) { sty(a.hb.bam, "display", "none"); sty(a.hb.lab, "display", "none"); } };   // 앞선 몸짓 딱지·대나무와 겹치지 않게
+    if (H && tc >= H.t0 && seated(f, a, fl.F)) { quiet();
       const u = tc - H.t0, o = JSON.parse(a.pose), up = H.up === f.sid;
       if (H.k === "hi") {   /* 🙌 */
         const hit = u >= 1.05 && u < 1.9;
@@ -3752,7 +3753,7 @@ function palsBig(h) {
     const Y = yw.find(e => e.sid === f.sid);
     if (Y && seated(f, a, fl.F)) {
       const u = tc - Y.t0;
-      if (u >= 0 && u < PALS.YAWN_LEN) {
+      if (u >= 0 && u < PALS.YAWN_LEN) { quiet();
         const o = JSON.parse(a.pose), big = u > .3 && u < 1.9;
         repose(a, Object.assign(o, { seated: 1, eyes: "c", mouth: big ? "o" : "", arms: big ? "r" : "" }), big ? -1 : 0); noHands();
         sty(E.lab, "display", "block"); sty(E.lab, "color", ""); txt(E.lab, Y.k ? X("나도… 하암", "me too… yawn") : X("하아암~", "yaaawn~")); sty(E.lab, "left", Y.k ? "-38px" : "-24px");
