@@ -41,7 +41,7 @@ Waitscape is a desktop app that turns your AI coding agent sessions (Claude Code
 <tr>
 <td colspan="2" valign="middle">
 <h3>📌 Mini view</h3>
-A small always-on-top window. The big window hides and only this small one stays above your other apps. It shows the same building as the big window, one floor at a time. It watches the boss's office; when someone comes down with a question it follows them to the elevator, and when someone finishes or a subagent meeting starts it shows that floor for a moment. Scroll for floors and scroll sideways for the rest of a floor. All the tiny details from the big window show up in the mini view too.
+A small 420×130 always-on-top window. The big window hides and only this small one stays above your other apps. It shows the same building as the big window, one floor at a time. It watches the boss's office; when someone comes down with a question it follows them to the elevator, and when someone finishes or a subagent meeting starts it shows that floor for a moment. The elevator shaft has a door on every floor, showing which floor the car is on and which way (▲▼) it's going. A black news line along the bottom briefly shows who just did what, and when there's no news it shows who is waiting for your answer. Scroll for floors and scroll sideways for the rest of a floor. All the tiny details from the big window show up in the mini view too.
 <p align="center"><img src="docs/assets/en/mini.gif" width="420" alt="Mini view — the camera following a penguin coming down with a question, the question bubble in the boss office, heading back after the answer"></p>
 </td>
 </tr>
@@ -69,7 +69,7 @@ When the AI hands work to subagents, that floor turns into a meeting room. Baby 
 <tr>
 <td colspan="2" valign="middle">
 <h3>🔍 Tiny details</h3>
-Look closer at Studio and small things keep showing up. The boss sits in a red executive chair, the staff in blue office chairs, and the meeting-room babies in mint meeting chairs. Empty coffee cups pile up during long sessions, a jacket goes up on the wall hook, and papers stack up as the context fills. Hit 100, 500 and 1,000 tool calls and a flag pops up on the monitor; the robot plugs in a cable when its battery runs out. Staff waiting to ask a question start tapping their feet after a minute, and on Friday evenings everyone switches to Hawaiian shirts and a flower. Pigeons visit the window sills, a guard cat patrols at night, the boss's mug changes its slogan when you click it, and a cake appears on your install anniversary.
+Look closer at Studio and small things keep showing up. The boss sits in a red executive chair, the staff in blue office chairs, and the meeting-room babies in mint meeting chairs. Empty coffee cups pile up during long sessions, a jacket goes up on the wall hook, and papers stack up as the context fills. Hit 100, 500 and 1,000 tool calls and a flag pops up on the monitor; the robot plugs in a cable when its battery runs out. Every staff member blinks at their own pace and has a habit, like sniffing or perking up their ears. They stick their tongue out when focused, blush ^^ when they finish, and break into a sweat when stuck for long. Finish a job and a neighbor's hand pokes through the ceiling for a high five, cookies get shared with the floor above, and yawns spread from floor to floor. Staff waiting to ask a question start tapping their feet after a minute, and on Friday evenings everyone switches to Hawaiian shirts and a flower. Pigeons visit the window sills, a spider dangles from the ceiling, and a ladybug walks across a monitor. At night moths circle the lamp and a guard cat patrols; on rainy days a snail climbs the plant pot, and planes and hot-air balloons drift past the window (and, very rarely at night, a UFO). The boss's mug changes its slogan when you click it, and a cake appears on your install anniversary.
 <p align="center"><img src="docs/assets/en/details.png" width="860" alt="Tiny details — staff in their chairs, robot battery and charging cable, jacket on the wall hook, paper stacks, empty coffee cups, 500-tool flags, streak calendars, Friday hibiscus, anniversary cake and the boss's mug"></p>
 </td>
 </tr>
@@ -106,7 +106,9 @@ Besides Studio there are 🐹 Hamster, 🏟️ Scoreboard, 🪐 Orbit, 💼 Work
 
 - You see either the big window or the mini view, never both. If you quit in the mini view, the next launch starts there too.
 - Click a floor's name tag to jump straight to that session's terminal (app).
-- In a narrow window you scroll sideways for the rest of the floor and the elevator stays on the right. Even at the narrowest you see from the desk to the elevator.
+- The window is fixed at 420×130. Scroll sideways for the rest of the floor; the elevator stays on the right. In the app, press on an empty spot and drag a little to move the window (in a browser PiP window, dragging scrolls the floor instead).
+- The black line at the bottom shows new news (arrivals, finished work, questions) for 12 seconds; when there's none it shows who is waiting for your answer and for how long. It hides in 🙈 low-profile mode or when 🤫 hide project and task text is on.
+- Clicking the 🎰 capsule machine on the 1st floor opens the big window with the capsule panel.
 - In 📌 Pocket mode, the pin button that floats it on top is the mini view (app; a PiP window in the browser). The widget expands by itself when input is needed.
 
 ### 📥 Up next
