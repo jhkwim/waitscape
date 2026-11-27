@@ -3606,6 +3606,160 @@ function habitBig(h) {
   return { pre, actor, off };
 }
 
+/* ================= 🤝 직원끼리 (PALS: 둘 이상이 엮이는 짧은 순간 · 큰 화면 palsBig(미니 보기도 같은 코드). 본체에는 연결 줄만) =================
+   tinyBig·napBig·habitBig 몸짓 다음(간식·뽑기·👆 반응보다 먼저)에 덮어씀. 저장 없음 · 이미 있는 모델 값(층 순서·직원 자리·완료 축하 시각)만 읽음.
+   모두 "책상 배치 층에서 자기 의자에 앉아 있는" 직원끼리만 — 질문 대기(ask)·멈춤 의심·회의 배치·걷기·엘리베이터·커피 심부름·😴 조는 자세는 끼지 않음(질문 표시·발 동동은 그대로).
+   층 사이는 천장(= 위층 바닥)으로 이어짐: 위층 직원 쪽에서 무언가 아래층 천장을 뚫고 내려옴(.fl overflow 안에서 위에서부터 자라남).
+   - 🙌 층 너머 하이파이브: 일을 마친 직원(완료 축하 만세 4.5초가 끝난 뒤) ↔ 바로 아래(없으면 위) 층 직원. 위층 직원의 손이 아래층 천장에서 쑥(.6초)
+     → 아래층 직원이 두 손 들고 콩 뛰어 "짝!" ✨ → 손 흔들고 쏙(3.2초). 위층 직원은 그동안 바닥 쪽으로 몸을 숙이고 "짝!" 순간 눈웃음. 같은 둘은 40초에 한 번
+   - 🍪 간식 나눔: 6분마다(벽시계) 일하는(일함·에이전트) 직원 바로 아래층에 쉬는(쉼·완료) 직원이 있으면(층은 일함 → 완료 → 쉼 순이라 경계에서 자주 만남)
+     아래층 직원이 쿠키를 번쩍 들어 올림 → 위층 직원 손이 천장에서 내려와 집어 감 → 위층에서 "고마워!" 오물오물 · 아래층은 눈웃음(4.4초). 같은 둘은 10분에 한 번
+   - 🥱 하품 전염: 4분 30초마다(벽시계) 앉아 있는 직원 하나가 하품 → .9초 뒤 다른 층 직원이 "나도… 하암" → 또 한 명(최대 셋).
+     같은 동물이 있으면 그 직원이 먼저 따라 함, 없으면 가까운 층. 앉아 있는 직원이 둘 이상일 때만(혼자 하품은 월요일 하품이 맡음)
+   - 시작 1.6초 전에 짝을 정하고 그 둘의 코드 조각(frags)을 멈춤(날던 조각이 사라진 뒤 시작 — 내려온 손·쿠키를 안 가리게). 그 사이 자리를 뜨면 취소
+   - 🙈 눈치 모드·📋 일보 연출·🍖 회식·움직임 줄이기·회의 모드(anim false)면 모두 쉼(소품도 걷음)
+   - 개발용 ?tiny=hi5(18초마다 이웃한 두 층 하이파이브) · snack(16초마다 간식 — 짝 조건은 그대로) · yawn(15초마다 하품 전염) */
+const PALS = {
+  /* 위층 직원 팔(아래층 천장을 뚫고 내려옴) — C = 그 동물 손 색. 위는 길게(내려온 만큼만 보임) · 아래는 손바닥(분홍 젤리) */
+  arm: { r: Array(12).fill("..KCCCCK..").concat([".KWWWWWWK.", ".KWWWWWWK.", "KCCCCCCCCK", "KCCCPPCCCK", "KCCPPPPCCK", "KCCCPPCCCK", "KCCCCCCCCK", "KCCKCCKCCK", ".KK.KK.KK."]), p: { K: "#2e2040", P: "#ff9ab0", W: "#fff3e0" } },   // 소매 끝(흰 줄) + 손바닥 젤리 한 점 + 손가락 셋 — 분홍 덩어리로 안 보이게
+  cookie: { r: ["..KKKK..", ".KCCDCK.", "KCDCCCCK", "KCCCCDCK", "KDCCCCCK", ".KCDCCK.", "..KKKK.."], p: { K: "#5a3a2a", C: "#e8b06a", D: "#6a3a22" } },
+  HI: 3.2, HI_GAP: 40, SN: 4.4, SN_PER: 360, SN_GAP: 600, YAWN: 270, YAWN_LEN: 2.4, YAWN_STEP: .9, LEAD: 1.6,
+};
+function palsBig(h) {
+  const { mkEl, sty, txt, X, put } = h, dev = TINY.dev;
+  let on = false, ev = [], yw = [], ywC = -1, snC = -1, devHi = -1;
+  const pend = [], seenL = new Map(), pairT = new Map();   // pend: 축하가 끝나길 기다리는 완료 { sid, at } · seenL: sid → 본 완료 축하 시각 · pairT: "종류:쌍" → 마지막 순간
+  const pk = (k, p, q) => k + ":" + (p < q ? p + "|" + q : q + "|" + p);
+  const lab = a => a.pl || (a.pl = { lab: mkEl("div", "tn-yawn", a.el, { display: "none", fontSize: "15px", fontStyle: "normal" }) });   // 고마워!·냠냠·하암 — 기본 12px보다 크게
+  /* 책상 배치 층에서 자기 의자에 앉아 있음 · L: 완료 축하 만세 중이어도 됨(곧 끝나는 하이파이브 예약) */
+  const seated = (f, a, F, L) => !!(f && a && F && f.layout !== "meet" && ["work", "agents", "idle", "done"].includes(f.kind) && a.loc === "home" && a.goal === "home" && !a.moving && !a.lift && !a.hq && !a.nx
+    && a.x === DESK_X && a.par === F && !(a.nap && a.nap.set) && (L || !(a.launchUntil > h.clockT())));
+  const WORK = ["work", "agents"], REST = ["idle", "done"];
+  function pre(tc, anim) {
+    on = !!anim && !h.hidden() && !h.busy();
+    const fs = h.floors() || [], A = h.actors, FL = h.FL();
+    fs.forEach(f => { const a = A.get(f.sid); if (!a) return; const ls = a.launchStart || 0, p = seenL.get(f.sid); seenL.set(f.sid, ls); if (p != null && ls > p && on) pend.push({ sid: f.sid, at: ls + 4.6 }); });   // 새 완료 축하 → 끝난 뒤 하이파이브
+    if (!on) { ev = []; yw = []; pend.length = 0; return; }
+    const idx = new Map(fs.map((f, i) => [f.sid, i])), ok = (i, L) => { const f = fs[i], fl = FL[i]; return !!f && seated(f, A.get(f.sid), fl && fl.F, L); };
+    const busy = sid => ev.some(e => e.up === sid || e.lo === sid) || yw.some(e => e.sid === sid);
+    const dur = k => k === "hi" ? PALS.HI : PALS.SN;
+    /* 짝 짓기: i·j는 이웃한 층(위 = 작은 번호). 코드 조각은 끝날 때까지 쉼 */
+    const start = (k, i, j, t0, gap) => { const u = Math.min(i, j), l = Math.max(i, j), key = pk(k, fs[u].sid, fs[l].sid); if ((pairT.get(key) || -1e9) > tc - gap) return false;
+      pairT.set(key, tc); ev.push({ k, up: fs[u].sid, lo: fs[l].sid, iu: u, il: l, t0 });
+      [u, l].forEach(x => { const a = A.get(fs[x].sid); if (a) a.fragAt = Math.max(a.fragAt || 0, t0 + dur(k)); }); return true; };
+    ev = ev.filter(e => tc - e.t0 < dur(e.k) && idx.get(e.up) === e.iu && idx.get(e.lo) === e.il && (tc >= e.t0 || (ok(e.iu, 1) && ok(e.il, 1))));   // 층 순서가 바뀌거나 시작 전에 자리를 뜨면 그만
+    /* 🙌 완료 → 하이파이브 */
+    for (let k = pend.length - 1; k >= 0; k--) {
+      const P = pend[k]; if (tc < P.at - PALS.LEAD) continue; pend.splice(k, 1);
+      const i = idx.get(P.sid); if (i == null || !ok(i, 1) || fs[i].kind !== "done" || busy(P.sid)) continue;
+      for (const j of [i + 1, i - 1]) if (j >= 0 && j < fs.length && ok(j) && !busy(fs[j].sid) && start("hi", i, j, P.at, PALS.HI_GAP)) break;
+    }
+    if (dev.has("hi5") && tc >= 2) { const c = Math.floor((tc - 2) / 18); if (c !== devHi) { devHi = c; for (let i = 0; i + 1 < fs.length; i++) if (ok(i) && ok(i + 1) && !busy(fs[i].sid) && !busy(fs[i + 1].sid) && start("hi", i, i + 1, tc + PALS.LEAD, 0)) break; } }
+    /* 🍪 쉬는 아래층 → 일하는 위층 간식 */
+    const ds = dev.has("snack"), sc = ds ? (tc >= 2 ? Math.floor((tc - 2) / 16) : -2) : Math.floor(h.ctx.now() / PALS.SN_PER);
+    if (sc !== snC && sc !== -2) {
+      const first = snC < 0 && !ds; snC = sc;
+      const cand = []; for (let i = 0; i + 1 < fs.length; i++) if (WORK.includes(fs[i].kind) && REST.includes(fs[i + 1].kind) && ok(i) && ok(i + 1) && !busy(fs[i].sid) && !busy(fs[i + 1].sid)) cand.push(i);
+      if (!first && cand.length) { const i = cand[fnv("snack" + sc) % cand.length]; start("sn", i, i + 1, tc + PALS.LEAD, ds ? 0 : PALS.SN_GAP); }
+    }
+    /* 🥱 하품 전염: 주기마다 한 번 줄을 짬(벽시계 — 창마다 같은 때) · 페이지를 연 첫 주기는 건너뜀 */
+    const dy = dev.has("yawn"), cyc = dy ? (tc >= 2 ? Math.floor((tc - 2) / 15) : -2) : Math.floor(h.ctx.now() / PALS.YAWN);
+    yw = yw.filter(e => tc - e.t0 < PALS.YAWN_LEN);
+    if (cyc !== ywC && cyc !== -2) {
+      const first = ywC < 0 && !dy; ywC = cyc;
+      const el = fs.map((f, i) => i).filter(i => ok(i) && !busy(fs[i].sid));
+      if (!first && el.length >= 2) {
+        const s0 = el[fnv("yawn" + cyc) % el.length], chain = [s0], an = i => fs[i].animal;
+        while (chain.length < 3) {
+          const rest = el.filter(i => !chain.includes(i)); if (!rest.length) break;
+          const last = chain[chain.length - 1], same = rest.filter(i => an(i) === an(s0)), pool = same.length ? same : rest;
+          pool.sort((p, q) => Math.abs(p - last) - Math.abs(q - last) || p - q);
+          if (chain.length === 2 && !same.length && fnv("y2" + cyc) % 2) break;   // 셋째는 같은 동물이 아니면 반만
+          chain.push(pool[0]);
+        }
+        yw = chain.map((i, k) => ({ sid: fs[i].sid, t0: tc + .4 + k * PALS.YAWN_STEP, k }));
+      }
+    }
+  }
+  /* 자세를 바꾸고(setP) 발끝·가운데는 그대로 둔 채 dy만 더해 다시 놓음(자세에 따라 그림 크기가 달라도 제자리) */
+  function repose(a, o, dy) {
+    const L = parseFloat(a.el.style.left) || 0, Tp = parseFloat(a.el.style.top) || 0, cx = L + a.w / 2, feet = Tp + a.h, flip = a.img.style.transform.includes("scaleX(-1)");
+    h.setP(a, o); put(a, a.par, cx, feet, { dy, flip });
+  }
+  /* 아래층 천장에서 내려오는 것(팔 · 실 + 쿠키) — 층마다 한 벌, 처음 쓸 때 만듦 */
+  function gear(fl) {
+    if (fl.pl) return fl.pl;
+    const g = fl.pl = { arm: mkEl("div", "b", fl.F, { display: "none", top: "0px", overflow: "hidden", zIndex: 9, pointerEvents: "none" }) };
+    g.armI = mkEl("img", "", g.arm, { position: "absolute", left: "0px", bottom: "0px" }); g.armI.alt = ""; g.armI.draggable = false;
+    g.str = mkEl("div", "b", fl.F, { display: "none", top: "0px", width: "2px", background: "#5a4a6a", zIndex: 9, pointerEvents: "none" });
+    g.ck = mkEl("img", "b", fl.F, { display: "none", zIndex: 10, pointerEvents: "none" }); g.ck.alt = ""; g.ck.draggable = false;
+    const c = WB.pix(PALS.cookie, 3); g.ck.src = c.url; sty(g.ck, "width", c.w + "px"); sty(g.ck, "height", c.h + "px"); g.cw = c.w; g.chh = c.h;
+    g.say = mkEl("div", "tn-yawn", fl.F, { display: "none", fontStyle: "normal", fontSize: "22px", color: "#e8506a", zIndex: 31 });
+    return g;
+  }
+  function off(a, fl) {
+    if (a && a.pl) sty(a.pl.lab, "display", "none");
+    if (fl && fl.pl) { const g = fl.pl; [g.arm, g.str, g.ck, g.say].forEach(e => sty(e, "display", "none")); }
+  }
+  function actor(i, fl, f, a, T, tc, anim) {
+    off(a, fl);
+    if (!on || !a.par) return;
+    const E = lab(a), D = fl.desk, noHands = () => { if (D) { D.hands.forEach(x => sty(x, "display", "none")); if (D.tent) sty(D.tent, "display", "none"); } };
+    const H = ev.find(e => e.up === f.sid || e.lo === f.sid);
+    if (H && tc >= H.t0 && seated(f, a, fl.F)) {
+      const u = tc - H.t0, o = JSON.parse(a.pose), up = H.up === f.sid;
+      if (H.k === "hi") {   /* 🙌 */
+        const hit = u >= 1.05 && u < 1.9;
+        if (up) {   // 위층: 바닥 쪽으로 몸을 숙임 · 짝! 순간 눈웃음
+          const lean = u < .5 ? ease(u / .5) : u < 2.6 ? 1 : 1 - ease((u - 2.6) / .5);
+          repose(a, Object.assign(o, { seated: 1, arms: "", mouth: "o", eyes: hit ? "c" : "o" }), Math.round(lean * 3)); noHands(); return;
+        }
+        const top0 = parseFloat(a.el.style.top) || 0, rise = u >= .5 && u < 1.6, wave = u >= 1.6 && u < 2.6, jump = u >= .85 && u < 1.35 ? Math.sin((u - .85) / .5 * Math.PI) : 0;
+        repose(a, Object.assign(o, { seated: 1, arms: rise ? "u" : wave ? (Math.floor(u * 6) % 2 ? "r" : "") : "", mouth: rise || wave ? "o" : "", eyes: hit ? "c" : "o" }), -Math.round(jump * 12)); noHands();
+        sty(a.tag, "display", "none");   // 머리 이름표는 잠깐 걷음(내려온 손이 가려지지 않게)
+        const g = gear(fl), ua = h.actors.get(H.up), s = WB.pix(PALS.arm, 4, ua && ua.ch.hands ? ua.ch.hands.c : "#e9a352");
+        if (g.armI._u !== s.url) { g.armI._u = s.url; g.armI.src = s.url; sty(g.armI, "width", s.w + "px"); sty(g.armI, "height", s.h + "px"); }
+        const reach = Math.max(10, Math.min(s.h, Math.round(top0 - 4))), d = u < .6 ? ease(u / .6) : u < 2.6 ? 1 : 1 - ease((u - 2.6) / .55), wv = wave ? Math.round(Math.sin(u * 14) * 3) : 0;
+        const cx = Math.round(parseFloat(a.el.style.left) + a.w / 2 + wv);
+        sty(g.arm, "display", d > .02 ? "block" : "none"); sty(g.arm, "left", (cx - s.w / 2) + "px"); sty(g.arm, "width", s.w + "px"); sty(g.arm, "height", Math.round(d * reach) + "px");
+        if (hit) { const tw = Math.floor(u * 8) % 2; sty(g.say, "display", "block"); txt(g.say, (tw ? "✨" : "") + X("짝!", "Slap!") + (tw ? "" : "✨")); sty(g.say, "left", (cx + 14) + "px"); sty(g.say, "top", Math.max(2, Math.round(reach - 18 - (u - 1.05) * 10)) + "px"); }
+        return;
+      }
+      /* 🍪 아래층(쉼)이 쿠키를 들어 올림(0~.5) → 위층(일함) 손이 천장에서 내려옴(.4~1.1) → 집음(1.1) → 손이 쿠키와 함께 올라감(1.3~1.9) → 위층 "고마워!" · 오물오물(~4.4) */
+      const g = up ? null : gear(fl), hand = u >= 1.1 && u < 1.9;
+      if (up) {   // 위층: 바닥 쪽으로 손을 뻗느라 숙임(타자는 멈춤) → 받아서 오물오물
+        const lean = u < .4 ? ease(u / .4) : u < 1.9 ? 1 : u < 2.3 ? 1 - ease((u - 1.9) / .4) : 0, chew = u >= 2.1 && u < PALS.SN - .2, nom = chew && Math.floor(u * 5) % 2;
+        repose(a, Object.assign(o, { seated: 1, arms: chew && u < 2.6 ? "r" : "", mouth: u < 1.9 ? "" : nom || u < 2.6 ? "o" : "", eyes: chew && nom ? "c" : "o" }), Math.round(lean * 3) - (nom ? 1 : 0)); noHands();
+        if (u >= 1.9 && u < 3.6) { sty(E.lab, "display", "block"); txt(E.lab, u < 2.8 ? X("고마워!", "Thanks!") : X("냠냠", "nom nom")); sty(E.lab, "left", "-22px"); sty(E.lab, "color", "#e8506a"); }
+        return;
+      }
+      const top0 = parseFloat(a.el.style.top) || 0, cx = parseFloat(a.el.style.left) + a.w / 2, lift = u < .5 ? ease(u / .5) : 1;
+      repose(a, Object.assign(o, { seated: 1, arms: u < 1.3 ? "r" : "", mouth: u >= 1.1 && u < 2.6 ? "o" : "", eyes: u >= 1.2 && u < 2.6 ? "c" : "o" }), u < 1.3 ? -Math.round(lift * 3) : 0); noHands();
+      sty(a.tag, "display", "none"); sty(fl.sweat, "display", "none");   // 머리 이름표·☕ 커피잔 표시는 잠깐 걷음(내려온 손·쿠키가 가려지지 않게)
+      const hx = Math.round(cx + a.w * .27), hy = Math.round(top0 + a.h * .22 - lift * 10);   // 쿠키 자리: 들어 올린 손(머리 오른쪽 위)
+      const ua = h.actors.get(H.up), s = WB.pix(PALS.arm, 4, ua && ua.ch.hands ? ua.ch.hands.c : "#e9a352");
+      if (g.armI._u !== s.url) { g.armI._u = s.url; g.armI.src = s.url; sty(g.armI, "width", s.w + "px"); sty(g.armI, "height", s.h + "px"); }
+      const reach = Math.max(10, Math.min(s.h, hy - 2)), d = u < .4 ? 0 : u < 1.1 ? ease((u - .4) / .7) : u < 1.3 ? 1 : 1 - ease((u - 1.3) / .6);
+      sty(g.arm, "display", d > .02 ? "block" : "none"); sty(g.arm, "left", Math.round(hx - s.w / 2) + "px"); sty(g.arm, "width", s.w + "px"); sty(g.arm, "height", Math.round(d * reach) + "px");
+      const cy = u < 1.1 ? hy : Math.round(d * reach) - 6;   // 집은 뒤엔 손바닥 끝에 붙어 같이 올라감
+      sty(g.ck, "display", u < 1.85 ? "block" : "none"); sty(g.ck, "left", Math.round(hx - g.cw / 2) + "px"); sty(g.ck, "top", Math.round(cy) + "px");
+      if (u < 1.1 && u > .2) { sty(g.say, "display", "block"); txt(g.say, X("자!", "Here!")); sty(g.say, "left", Math.round(cx - a.w * .42) + "px"); sty(g.say, "top", Math.max(2, Math.round(hy - 4)) + "px"); }   // "자!"는 머리 왼쪽(오른쪽은 모니터·🎉 딱지)
+      return;
+    }
+    /* 🥱 하품 전염 */
+    const Y = yw.find(e => e.sid === f.sid);
+    if (Y && seated(f, a, fl.F)) {
+      const u = tc - Y.t0;
+      if (u >= 0 && u < PALS.YAWN_LEN) {
+        const o = JSON.parse(a.pose), big = u > .3 && u < 1.9;
+        repose(a, Object.assign(o, { seated: 1, eyes: "c", mouth: big ? "o" : "", arms: big ? "r" : "" }), big ? -1 : 0); noHands();
+        sty(E.lab, "display", "block"); sty(E.lab, "color", ""); txt(E.lab, Y.k ? X("나도… 하암", "me too… yawn") : X("하아암~", "yaaawn~")); sty(E.lab, "left", Y.k ? "-38px" : "-24px");
+      }
+    }
+  }
+  return { pre, actor, off };
+}
+
 /* ================= 🎰 캡슐 뽑기 (GACHA: 카탈로그·뽑기·저장 공용 · 큰 화면 gachaBig · 미니 보기는 착용만 읽음, jhkwim/waitscape#86 · #53 다음 단계) =================
    1층 화분과 커피머신 자리 사이에 캡슐 뽑기 기계. 누르면 작은 판 → [돌리기 💰150] → 동전 · 손잡이 드르륵(90°씩 4번) · 캡슐이 굴러 나와 톡 열림 → 결과 카드.
    움직임 줄이기·회의 모드(정적)면 연출 없이 결과 카드만. 보기용(기능·보상 없음), 결제는 간식·회식과 같은 길(h.pay → 본체 지갑, #197).
@@ -5201,6 +5355,7 @@ C.registerMode({
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ spot: id => spB.see(id), ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
+    const plB = palsBig({ ctx, mkEl, sty, txt, X, setP, put, clockT, actors, floors: () => model.floors, FL: () => FL, hidden: () => !!(NX.hidden || NX.mode), busy: () => drB.active() || trB.active() });   // 🤝 직원끼리: 층 너머 하이파이브 · 🍪 간식 내려보내기 · 하품 전염
     const trB = treatBig({ bossAct: () => bossAct, ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
       funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
@@ -5888,6 +6043,7 @@ C.registerMode({
       const pw = 44 * (1 - car.door) + 4 * car.door; sty(dl, "width", pw + "px"); sty(dr, "width", pw + "px");
       let asker = null, thanker = null;
       hqPick(tc, anim);   // 🏢 쉬는 직원이 가끔 정수기·커피머신에
+      plB.pre(tc, anim && !DRon);   // 🤝 직원끼리 순간 고르기(지난 프레임 자리 기준)
       /* 층마다 */
       for (let i = 0; i < n; i++) {
         const fl = FL[i], f = model.floors[i];
@@ -5920,6 +6076,7 @@ C.registerMode({
         if (!DRon && !dnm) tnB.actor(i, fl, f, a, T, tc, anim);   // 🤸 질문 대기 발 동동·주저앉기 · 문어 다리 타자 · 월요일 하품
         if (!DRon && !dnm) napB.actor(i, fl, f, a, T, tc, anim); else napB.off(a, f);   // 😴 졸음 깊어짐 · ❗ 화들짝 · 🍱 점심(#106)
         if (!DRon && !dnm) hbB.actor(i, fl, f, a, T, tc, anim); else hbB.off(a, f);   // 🐾 새 직원 버릇(#85): 여우 꼬리 · 판다 대나무 · 부엉이 밤눈/꾸벅 · 고슴도치 쭈뼛/굴러가기
+        if (!DRon && !dnm) plB.actor(i, fl, f, a, T, tc, anim); else plB.off(a, fl);   // 🤝 하이파이브 · 🍪 간식 · 하품 전염
         if (!DRon && !dnm) trB.actor(i, fl, f, a, T, tc, anim);   // 🍩 간식 받은 만세 · 한 입 · 회식에서 돌아옴
         if (!DRon && !dnm) gaB.actor(i, fl, f, a, T, tc, anim);   // 🎰 전설이 나오면 박수
         if (!DRon && !dnm) pkB.actor(i, fl, f, a, T, tc, anim);   // 👆 누르면 몸짓·둘레 효과

@@ -42,6 +42,7 @@
       x.agents = [ag(0, "스튜디오 봉투 연출 찾기", n), ag(1, "목업 장면 확인", all ? 2 * n : null), ag(2, "문서 갱신 위치", all ? 3 * n : null)];
       x.status = x.agents.some(a => a.status === "running") ? "agents" : "done";
     }
+    if (q.has("fin")) { const x = S.find(x => x.sid === "4ddee2"), at = T0 + +q.get("fin"); if (now >= at) Object.assign(x, { status: "done", since: at, run: 700 }); }   // ?fin=N: api-server가 N초 뒤 완료(🤝 층 너머 하이파이브)
     if (q.has("askkind")) { const x = S.find(x => x.sid === "8bbce2"), k = q.get("askkind"); x.ask = k; x.source = "hook"; if (k === "permission") x.note = "DB 마이그레이션 실행"; }   // #120 질문 종류
     if (q.has("guess")) Object.assign(S.find(x => x.sid === "8bbce2"), { confidence: "guess" });
     if (q.has("ask2")) Object.assign(S.find(x => x.sid === "4ddee2"), { status: "needs_input", since: T0 - 30, note: "테스트 먼저 돌려도 될까요?" });   // ?ask2=1: 질문 두 명(뒷사람은 자기 층에서 순서 대기)
