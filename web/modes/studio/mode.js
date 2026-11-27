@@ -6092,6 +6092,7 @@ C.registerMode({
       NX.mode = null; NX.hold = null;
     }
     function nxLeave() {
+      if (m2s) m2s.hidden = true;   // 📌 아래 소식 줄도 바로(매초 갱신을 기다리지 않음)
       const tc = clockT();
       if (!animOn() || drB.active()) return null;   // 연출 없이 블라인드만
       if (dcB.on()) dcB.set(false);
@@ -6104,6 +6105,7 @@ C.registerMode({
       return new Promise(res => { NX.res = res; });
     }
     function nxHide() {
+      if (m2s) m2s.hidden = true;
       for (const a of actors.values()) Object.assign(a, { goal: "out", loc: "out", lift: null, moving: false, nx: null, hq: null });
       Object.assign(car, { st: "idle", door: 0, row: nSess, dir: 0, owner: null });
       Object.assign(NX, { mode: null, hidden: true, hold: null, sayAt: null });
@@ -7181,8 +7183,8 @@ C.registerMode({
 
     sync();
     if (!FL.length) { buildSig = "init"; build(); renderHud(); renderSide(); }
-    if (mini && ctx.state) renderMiniHud();   // 📌 위 줄을 첫 1초 비우지 않게
     if (ctx.nunchi && ctx.nunchi.phase === "plain") nxHide();   // 🙈 눈치 화면이 덮은 채로 올라옴(다시 켠 앱·모드 전환)
+    if (mini && ctx.state) renderMiniHud();   // 📌 위 줄을 첫 1초 비우지 않게(눈치로 숨긴 뒤라 소식 줄도 숨김 유지)
     ensureLoop();
     return {
       update() { sync(); if (mini && ctx.state) renderMiniHud(); },
