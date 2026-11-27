@@ -3629,7 +3629,7 @@ function lifeBig(h) {
         else { const a = (u - 12) / 2; put(r.bug, L_.ART.bugF, 3, x1 + a * 26, my - 15 - a * 34 - Math.sin(a * 9) * 2, ""); } }); }
     /* 🦋 나방(밤 · 불 켜짐) */
     { const s = L_.slot("moth", now, D ? 12 : 90, 0), on = !hid && !still && !out && night && (D ? dev.has("moth") : s.u < 40), mf = fls.filter(r => !r.boss), who = D ? null : pick(mf, L_.slot("mf", now, 90, 0).h);
-      fls.forEach(r => { if (r.boss) { off(r.moth); return; }   // 사장실은 전등이 층 이름표 곁이라 나방 없음 const me = on && (D || r === who); if (!me) { off(r.moth); return; }
+      fls.forEach(r => { if (r.boss) { off(r.moth); return; }   /* 사장실은 전등이 층 이름표 곁이라 나방 없음 */ const me = on && (D || r === who); if (!me) { off(r.moth); return; }
         const a = tc * 2.4 + r.i, art = Math.floor(tc * 10) % 2 ? L_.ART.mothB : L_.ART.mothA;
         put(r.moth, art, 2, r.lx - 5 + Math.cos(a) * 20, 22 + Math.sin(a) * 7 + Math.sin(tc * 7) * 1.5, ""); }); }
     /* 🌿 화분 살랑 · 🐌 달팽이 */
