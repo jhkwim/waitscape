@@ -3595,7 +3595,7 @@ function lifeBig(h) {
       const boss = i === o.n, lob = !!fl.lobby, F = fl.F, B = fl.B, has = boss || lob || !!fl.f, meet = !!(fl.f && fl.f.layout === "meet");
       if (!has) { G.fl.push(null); return; }
       const r = { i, F, B, boss, lob, meet };
-      r.spx = boss ? 245 : 500; r.drop = boss ? 16 : 20;   /* 직원 층은 모니터 위 — 미니 보기 층 이름표·큰 화면 상태 칩과 겹치지 않게 */ r.thr = mkEl("div", "b", F, { left: r.spx + "px", top: "0", width: "2px", height: "0", background: "rgba(90,80,110,.55)", zIndex: "12", display: "none", pointerEvents: "none" }); r.sp = im(F, 12);
+      r.spx = boss ? 245 : lob ? 430 : 500; r.drop = boss ? 16 : 20;   /* 직원 층은 모니터 위 — 미니 보기 층 이름표·큰 화면 상태 칩과 겹치지 않게 */ r.thr = mkEl("div", "b", F, { left: r.spx + "px", top: "0", width: "2px", height: "0", background: "rgba(90,80,110,.55)", zIndex: "12", display: "none", pointerEvents: "none" }); r.sp = im(F, 12);
       r.lx = boss ? 150 : lob ? 470 : meet ? 485 : 470; r.moth = im(F, 24);   // 🦋 전구 불빛(라이트맵 18) 위
       if (boss && fl.mon) r.mon = [200, B - 98, 76];
       else if (fl.desk && !meet) r.mon = [444, B - 92, 68];
@@ -3605,7 +3605,7 @@ function lifeBig(h) {
     (o.wins || []).forEach(w => { const c = mkEl("div", "b", w.f, { left: (w.x + 3) + "px", top: (w.y + 3) + "px", width: (w.w - 6) + "px", height: (w.h - 6) + "px", overflow: "hidden", zIndex: "2", display: "none", pointerEvents: "none" });
       G.wins.push({ c, w: w.w - 6, h: w.h - 6, el: im(c, 1), tr: mkEl("div", "b", c, { height: "2px", background: "rgba(255,255,255,.85)", display: "none" }) }); });
     (o.plants || []).forEach((p, i) => { if (!p || !p.el) return; const base = p.el.querySelector("img"); if (!base) return;
-      G.plants.push({ i, p, base, src: base.src, sc: p.fs, sn: im(p.el.parentNode, 8) }); });
+      G.plants.push({ i, p, base, src: base.src, sc: p.fs, sn: im(p.el.parentNode, 10) /* 책상(9) 앞 — 사장실에서 기어 오는 길이 가리지 않게 */ }); });
   }
   function frame(T, tc, anim) {
     if (!G) return;
