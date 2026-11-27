@@ -3637,6 +3637,8 @@ function palsBig(h) {
   const WORK = ["work", "agents"], REST = ["idle", "done"];
   function pre(tc, anim) {
     on = !!anim && !h.hidden() && !h.busy();
+    if (pairT.size > 64) for (const [k, v] of pairT) if (v < tc - PALS.SN_GAP) pairT.delete(k);   // 오래된 짝 기록 정리
+    if (seenL.size > 64) { const live = new Set((h.floors() || []).map(f => f.sid)); for (const k of seenL.keys()) if (!live.has(k)) seenL.delete(k); }
     const fs = h.floors() || [], A = h.actors, FL = h.FL();
     fs.forEach(f => { const a = A.get(f.sid); if (!a) return; const ls = a.launchStart || 0, p = seenL.get(f.sid); seenL.set(f.sid, ls); if (p != null && ls > p && on) pend.push({ sid: f.sid, at: ls + 4.6 }); });   // 새 완료 축하 → 끝난 뒤 하이파이브
     if (!on) { ev = []; yw = []; pend.length = 0; return; }
@@ -5355,7 +5357,7 @@ C.registerMode({
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ spot: id => spB.see(id), ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
-    const plB = palsBig({ ctx, mkEl, sty, txt, X, setP, put, clockT, actors, floors: () => model.floors, FL: () => FL, hidden: () => !!(NX.hidden || NX.mode), busy: () => drB.active() || trB.active() });   // 🤝 직원끼리: 층 너머 하이파이브 · 🍪 간식 내려보내기 · 하품 전염
+    const plB = palsBig({ ctx, mkEl, sty, txt, X, setP, put, clockT, actors, floors: () => model.floors, FL: () => FL, hidden: () => !!(NX.hidden || NX.mode), busy: () => drB.active() || trB.active() || ["out", "reset"].includes(pwB.phase()) });   // 🤝 직원끼리: 층 너머 하이파이브 · 🍪 간식 내려보내기 · 하품 전염
     const trB = treatBig({ bossAct: () => bossAct, ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
       funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
