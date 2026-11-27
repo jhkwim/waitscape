@@ -1954,6 +1954,7 @@ function pokeBig(h) {
   }
   return { build, tap, jump, actor, bossIdle, bossAfter, car, carBusy, frame, bossPaws: on => { const r = G && G.fl[G.n]; if (r && r.paws && !on) r.paws.forEach(e => sty(e, "display", "none")); },
     bossCof: () => !!(G && G.fl[G.n] && G.fl[G.n].cof), bossBub: () => !!(G && G.fl[G.n] && G.fl[G.n].bbub),   // ☕🎂 TINY 사장님 묶음: 커피 드는 중 · 👆 사장님 반응 말풍선
+    plants: () => G ? G.fl.map(r => r && r.plant) : [],   // 🌱 LIFE: 화분 살랑·달팽이가 읽음
     dexHtml, eggN: () => (P.load(), P.eggN()), reload: () => { if (P.load()) dirty = true; }, busy: tc => P.busy(tc) || !!pkCar.cur };
 }
 
@@ -3538,6 +3539,122 @@ function tinyBig(h) {
   /* 요일·시각 판정은 본체 frame 맨 앞에서(경계에서 한 프레임 늦지 않게: setP·actor가 같은 프레임에 씀) */
   function pre() { const now = ctx.now(); T_.fri = dev.has("friday") || T_.friday(now); T_.mon = dev.has("monday") || T_.monday(now); }
   return { read, build, frame, actor, pre };
+}
+
+/* ================= 🌱 공간의 생활감 (LIFE: 그림·일정 공용 · 큰 화면 lifeBig(미니 보기도 같은 코드). 본체에는 연결 줄만) =================
+   직원이 아니라 건물·소품이 사는 작은 일들. 모두 작고 가끔, 누를 수 없음(👆 자리를 가로채지 않게) · 저장 없음.
+   시각은 벽시계(ctx.now)로 정해서 큰 화면과 미니 보기가 같은 순간 같은 층에서 같은 것을 봄(층은 시간 칸 해시로 고름).
+   - 🕷️ 거미: 6분마다 한 층(밤 22~6시엔 3분 20초마다) 천장에서 실을 타고 스르륵(3초) → 대롱대롱 다리 꼼지락(9초) → 다시 올라감(3초).
+     자리: 직원 층·로비 x 306(왼쪽 창과 직원 이름표 사이 천장) · 사장실 x 245(층 이름표와 모니터 사이, 모니터 위까지만) — 큰 화면·미니 둘 다 보이는 곳
+   - 🐞 무당벌레: 5분마다 한 층(책상 층·사장실) 모니터 위 테두리를 아장아장 걸어가다(20초, 가운데서 잠깐 멈춤) 끝에서 날개를 펴고 포르르 날아감(2초)
+   - 🦋 나방: 밤(벽시계 22~6시 또는 하늘이 어두울 때)·불이 켜져 있으면 1분 30초 중 40초 동안 한 층 천장등 둘레를 빙글빙글(⚡ 정전이면 없음)
+   - 🌿 화분 살랑: 화분마다 31초에 한 번(층마다 시차) 1.2초 잎이 좌우로 살랑(잎 줄만 한 칸씩 — 화분은 그대로)
+   - 🐌 달팽이: 비·눈·안개 날엔 2분 30초 중 90초, 맑은 날엔 10분 중 90초 — 한 화분으로 바닥을 기어 와서 화분 옆면을 올라 테두리에 앉아 더듬이 꼼지락
+   - ✈️ 창밖 지나가는 것: 2분 30초마다 창 하나(어느 층이든) 안쪽 하늘로 — 낮: 비행기(구름 꼬리, 7초) · 열기구(14초, 비 오면 없음) · 밤: 가끔(1/4) 작은 UFO(쓩 사라짐)
+   - 🙈 눈치 모드·숨김·📋 일보 연출 동안은 모두 걷음 · 움직임 줄이기·회의 모드(정적)면 움직이는 것은 없고, 달팽이만 테두리에 가만히 앉아 있음
+   - 개발용 ?life=spider,bug,moth,leaf,snail,plane,balloon,ufo — 연 뒤 곧바로 모든 층에서 짧은 주기(12~20초)로 되풀이(밤·날씨 조건 무시) */
+const LIFE = (() => {
+  const K = "#3a2a4a";
+  const ART = {
+    spA: { r: ["..KKK..", ".KKKKK.", "KKWKWKK", "K.KKK.K", ".K...K."], p: { K, W: "#ffffff" } },
+    spB: { r: ["..KKK..", ".KKKKK.", "KKWKWKK", ".KKKKK.", "K.K.K.K"], p: { K, W: "#ffffff" } },
+    bugA: { r: ["..RRR..", ".RKRRK.", "RRRRKKK", "RKRRKWK", ".K.K.K."], p: { K: "#2e2040", R: "#e8404a", W: "#ffffff" } },
+    bugB: { r: ["..RRR..", ".RKRRK.", "RRRRKKK", "RKRRKWK", "K.K.K.."], p: { K: "#2e2040", R: "#e8404a", W: "#ffffff" } },
+    bugF: { r: ["W.W....", "WWWW...", ".RRRK..", "RKRRKKK", "RRKRKWK"], p: { K: "#2e2040", R: "#e8404a", W: "#e4f0ff" } },
+    mothA: { r: ["LL.LL", "LLKLL", ".LKL."], p: { K: "#4a3a30", L: "#c8b490" } },
+    mothB: { r: ["..K..", "LLKLL", "L.K.L"], p: { K: "#4a3a30", L: "#c8b490" } },
+    snA: { r: ["......K.K", ".SSS...KK", "SSBSS..Y.", "SBSBS.YY.", "YYYYYYYY."], p: { K: "#4a3560", S: "#d9844a", B: "#8a4a2a", Y: "#f0d8a0" } },
+    snB: { r: [".......K.", ".SSS..KK.", "SSBSS.YY.", "SBSBS.YY.", "YYYYYYYY."], p: { K: "#4a3560", S: "#d9844a", B: "#8a4a2a", Y: "#f0d8a0" } },
+    /* 화분 옆면 오르기: 돌린 그림 대신 세로 그림(머리·더듬이 위, 등껍질은 벽 반대쪽) */
+    snC: { r: ["..K.K", "...KK", "...YY", ".SSYY", "SSBYY", "SBSYY", "SSBYY", ".SSYY", "...Y."], p: { K: "#4a3560", S: "#d9844a", B: "#8a4a2a", Y: "#f0d8a0" } },
+    snD: { r: ["...K.", "..KKK", "...YY", ".SSYY", "SSBYY", "SBSYY", "SSBYY", ".SSYY", "...Y."], p: { K: "#4a3560", S: "#d9844a", B: "#8a4a2a", Y: "#f0d8a0" } },
+    plane: { r: ["G.........", "GG...GW...", "WWWWWWWWWB", ".....GW..."], p: { W: "#ffffff", G: "#b8c4d4", B: "#5a7ae0" } },
+    balloon: { r: [".RRR.", "RYRYR", "RYRYR", "RYRYR", ".RYR.", "..K..", ".BBB.", ".BBB."], p: { R: "#ff6b8a", Y: "#ffd23f", K: "#4a3560", B: "#a8703e" } },
+    ufo: { r: ["..GGG..", ".GCCCG.", "SSSSSSS", ".Y.Y.Y."], p: { G: "#bfefff", C: "#7dff9c", S: "#b8c4d4", Y: "#ffd23f" } },
+  };
+  /* 🌿 잎 줄(화분 그림 위 7줄)만 한 칸 옆으로 — PK.ART.plant와 같은 그림 */
+  const LV = new Map(), leaves = (base, d) => { const k = d > 0 ? 1 : -1; if (!LV.has(k)) LV.set(k, { r: base.r.map((s, j) => j < 5 ? (k > 0 ? "." + s.slice(0, -1) : s.slice(1) + ".") : s), p: base.p }); return LV.get(k); };
+  const dev = (() => { try { return new Set((new URLSearchParams(location.search).get("life") || "").split(",").filter(Boolean)); } catch { return new Set(); } })();
+  /* 시간 칸 일정: per초마다 dur초 · 칸 해시(키·칸 번호) — 개발용이면 per·dur 짧게, 연 시각(tc) 기준 */
+  const slot = (key, t, per, off) => { const u = t + (off || 0), n = Math.floor(u / per); return { n, u: u - n * per, h: fnv(key + n) }; };
+  return { ART, leaves, dev, slot };
+})();
+
+/* ---------- 🌱 큰 화면(미니 보기도): h = 스튜디오 본체 연결 ---------- */
+function lifeBig(h) {
+  const { ctx, mkEl, sty } = h, L_ = LIFE, dev = L_.dev;
+  let G = null;
+  const px = (art, sc) => art["_p" + sc] || (art["_p" + sc] = WB.pix(art, sc));   // 그림마다 한 번만(매 프레임 문자열 키를 만들지 않게)
+  const im = (p, z) => { const e = mkEl("img", "b", p, { display: "none", zIndex: String(z), pointerEvents: "none" }); e.alt = ""; e.draggable = false; return e; };
+  const put = (e, art, sc, x, y, extra) => { const s = px(art, sc); if (e._u !== s.url) { e._u = s.url; e.src = s.url; sty(e, "width", s.w + "px"); sty(e, "height", s.h + "px"); }
+    sty(e, "display", "block"); sty(e, "left", Math.round(x) + "px"); sty(e, "top", Math.round(y) + "px"); sty(e, "transform", extra || ""); return s; };
+  const off = e => sty(e, "display", "none");
+  function build(o) {
+    G = { fl: [], wins: [], plants: [] };
+    o.FL.forEach((fl, i) => {
+      const boss = i === o.n, lob = !!fl.lobby, F = fl.F, B = fl.B, has = boss || lob || !!fl.f, meet = !!(fl.f && fl.f.layout === "meet");
+      if (!has) { G.fl.push(null); return; }
+      const r = { i, F, B, boss, lob, meet };
+      r.spx = boss ? 245 : 500; r.drop = boss ? 16 : 20;   /* 직원 층은 모니터 위 — 미니 보기 층 이름표·큰 화면 상태 칩과 겹치지 않게 */ r.thr = mkEl("div", "b", F, { left: r.spx + "px", top: "0", width: "2px", height: "0", background: "rgba(90,80,110,.55)", zIndex: "12", display: "none", pointerEvents: "none" }); r.sp = im(F, 12);
+      r.lx = boss ? 150 : lob ? 470 : meet ? 485 : 470; r.moth = im(F, 24);   // 🦋 전구 불빛(라이트맵 18) 위
+      if (boss && fl.mon) r.mon = [200, B - 98, 76];
+      else if (fl.desk && !meet) r.mon = [444, B - 92, 68];
+      if (r.mon) r.bug = im(F, 13);
+      G.fl.push(r);
+    });
+    (o.wins || []).forEach(w => { const c = mkEl("div", "b", w.f, { left: (w.x + 3) + "px", top: (w.y + 3) + "px", width: (w.w - 6) + "px", height: (w.h - 6) + "px", overflow: "hidden", zIndex: "2", display: "none", pointerEvents: "none" });
+      G.wins.push({ c, w: w.w - 6, h: w.h - 6, el: im(c, 1), tr: mkEl("div", "b", c, { height: "2px", background: "rgba(255,255,255,.85)", display: "none" }) }); });
+    (o.plants || []).forEach((p, i) => { if (!p || !p.el) return; const base = p.el.querySelector("img"); if (!base) return;
+      G.plants.push({ i, p, base, src: base.src, sc: p.fs, sn: im(p.el.parentNode, 8) }); });
+  }
+  function frame(T, tc, anim) {
+    if (!G) return;
+    const hid = h.hidden() || (h.dr && h.dr()), still = !anim, D = dev.size > 0, now = D ? tc : ctx.now();
+    const night = D || (h.night() > .5 || TINY.night(new Date(ctx.now() * 1000))), out = h.out();
+    const pick = (list, hh) => list.length ? list[hh % list.length] : null;
+    const fls = G.fl.filter(Boolean);
+    /* 🕷️ 거미 */
+    { const per = D ? 18 : night ? 200 : 360, s = L_.slot("sp", now, per, D ? 16 : 0), on = !hid && !still && s.u < 15 && (!D || dev.has("spider")), who = D ? null : pick(fls, s.h);
+      fls.forEach(r => { const me = on && (D || r === who);
+        if (!me) { off(r.sp); off(r.thr); return; }
+        const u = s.u, drop = r.drop, y = u < 3 ? drop * (u / 3) : u < 12 ? drop + Math.sin((u - 3) * 2.2) * 2 : drop * (1 - (u - 12) / 3), sw = u >= 3 && u < 12 ? Math.sin((u - 3) * 1.3) * 3 : 0;
+        const art = u >= 3 && u < 12 && Math.floor(u * 4) % 2 ? L_.ART.spB : L_.ART.spA, sz = px(art, 3);
+        put(r.sp, art, 3, r.spx - sz.w / 2 + 1 + sw, Math.max(0, y) - 2, ""); sty(r.thr, "display", "block"); sty(r.thr, "height", Math.max(0, Math.round(y)) + "px"); sty(r.thr, "transform", sw ? `skewX(${(-sw * 2).toFixed(1)}deg)` : ""); sty(r.thr, "transformOrigin", "0 0"); }); }
+    /* 🐞 무당벌레(모니터 위 테두리) */
+    { const per = D ? 16 : 300, s = L_.slot("bug", now, per, D ? 15 : 120), on = !hid && !still && s.u < 14 && (!D || dev.has("bug")), mons = fls.filter(r => r.mon), who = D ? null : pick(mons, s.h);
+      mons.forEach(r => { const me = on && (D || r === who); if (!me) { off(r.bug); return; }
+        const [mx, my, mw] = r.mon, x0 = mx + (r.boss ? 4 : 12), x1 = mx + mw - 24, u = s.u;
+        if (u < 12) { const a = u < 5 ? u / 5 * .5 : u < 7 ? .5 : .5 + (u - 7) / 5 * .5, walk = !(u >= 5 && u < 7), art = walk && Math.floor(u * 5) % 2 ? L_.ART.bugB : L_.ART.bugA;
+          put(r.bug, art, 3, x0 + (x1 - x0) * a, my - 15, ""); }
+        else { const a = (u - 12) / 2; put(r.bug, L_.ART.bugF, 3, x1 + a * 26, my - 15 - a * 34 - Math.sin(a * 9) * 2, ""); } }); }
+    /* 🦋 나방(밤 · 불 켜짐) */
+    { const s = L_.slot("moth", now, D ? 12 : 90, 0), on = !hid && !still && !out && night && (D ? dev.has("moth") : s.u < 40), who = D ? null : pick(fls, L_.slot("mf", now, 90, 0).h);
+      fls.forEach(r => { const me = on && (D || r === who); if (!me) { off(r.moth); return; }
+        const a = tc * 2.4 + r.i, art = Math.floor(tc * 10) % 2 ? L_.ART.mothB : L_.ART.mothA;
+        put(r.moth, art, 2, r.lx - 5 + Math.cos(a) * 20, 22 + Math.sin(a) * 7 + Math.sin(tc * 7) * 1.5, ""); }); }
+    /* 🌿 화분 살랑 · 🐌 달팽이 */
+    { const wet = !!h.wet(), sper = D ? 20 : wet ? 150 : 600, s = L_.slot("sn", now, sper, D ? 18 : 40), sdur = D ? 18 : 90, son = !hid && s.u < sdur && (!D || dev.has("snail")), who = D ? null : pick(G.plants, s.h);
+      G.plants.forEach(q => {
+        const pe = q.p.el; if (!pe.isConnected || pe.style.display === "none") { off(q.sn); return; }
+        const ls = L_.slot("lf" + q.i, now, D ? 4 : 31, q.i * 7), lu = ls.u, sway = !hid && !still && lu < 1.2 && (!D || dev.has("leaf")), d = sway ? (Math.floor(lu / .2) % 4 === 0 ? 1 : Math.floor(lu / .2) % 4 === 2 ? -1 : 0) : 0;
+        const src = d ? px(L_.leaves(PK.ART.plant, d), q.sc).url : q.src; if (q.base._sw !== src) { q.base._sw = src; q.base.src = src; }
+        const me = son && (D || q === who); if (!me) { off(q.sn); return; }
+        const sc = q.sc, pX = q.p.x, py = q.p.y, rimY = py + 7 * sc, leftX = pX + 2 * sc, u = still ? 90 : D ? s.u * 5 : s.u, fr = Math.floor(u * 1.5) % 2 ? L_.ART.snB : L_.ART.snA, sz = px(fr, 3);
+        const floorY = py + 12 * sc;   // 화분 바닥(= 층 바닥)
+        if (u < 30) put(q.sn, fr, 3, leftX - sz.w - 16 + 16 * (u / 30), floorY - sz.h, "");
+        else if (u < 55) { const a = (u - 30) / 25, cf = Math.floor(u * 1.5) % 2 ? L_.ART.snD : L_.ART.snC, cz = px(cf, 3); put(q.sn, cf, 3, leftX - cz.w, floorY - cz.h - a * (floorY - rimY), ""); }
+        else put(q.sn, still ? L_.ART.snA : (Math.floor(u * 1.2) % 3 === 0 ? L_.ART.snB : L_.ART.snA), 3, leftX, rimY - sz.h + 1, ""); }); }
+    /* ✈️ 창밖 지나가는 것 */
+    { const per = D ? 14 : 150, s = L_.slot("sky", now, per, D ? 13 : 70), dayOk = D || h.night() < .3, k = s.h % 8;
+      let kind = D ? (dev.has("ufo") ? "ufo" : dev.has("balloon") ? "balloon" : dev.has("plane") ? "plane" : "") : night && !dayOk ? (k === 0 || k === 5 ? "ufo" : "") : dayOk ? (k < 5 ? "plane" : h.wet() ? "" : "balloon") : "";
+      const dur = kind === "balloon" ? 14 : kind === "ufo" ? 6 : 7, on = !hid && !still && !!kind && s.u < dur, wi = D ? -1 : (s.h >>> 5) % Math.max(1, G.wins.length);
+      G.wins.forEach((W, j) => { const me = on && (D || j === wi); if (!me) { off(W.c); return; }
+        sty(W.c, "display", "block"); const a = s.u / dur;
+        if (kind === "plane") { const sz = px(L_.ART.plane, 2), x = -sz.w + a * (W.w + sz.w * 2), y = Math.round(W.h * .3); put(W.el, L_.ART.plane, 2, x, y, ""); sty(W.tr, "display", "block"); sty(W.tr, "left", Math.round(Math.max(0, x - 40)) + "px"); sty(W.tr, "width", Math.round(Math.max(0, Math.min(40, x))) + "px"); sty(W.tr, "top", (y + 4) + "px"); }
+        else if (kind === "balloon") { off(W.tr); const sz = px(L_.ART.balloon, 2); put(W.el, L_.ART.balloon, 2, W.w * .15 + a * W.w * .5 + Math.sin(a * 9) * 2, W.h - a * (W.h + sz.h + 4), ""); }
+        else { off(W.tr); const sz = px(L_.ART.ufo, 2), hov = a < .7, x = hov ? W.w * .3 + Math.sin(a * 14) * 4 : W.w * .3 + (a - .7) / .3 * W.w, y = hov ? W.h * .25 + Math.sin(a * 20) * 2 : W.h * .25 - (a - .7) / .3 * W.h * .5; put(W.el, L_.ART.ufo, 2, x - sz.w / 2, y, ""); } }); }
+  }
+  return { build, frame };
 }
 
 /* ================= 🐾 새 직원 버릇(#85, 큰 화면 · 부엉이 밤눈만 미니 보기도) =================
@@ -5201,6 +5318,7 @@ C.registerMode({
     const hbB = habitBig({ ctx, mkEl, sty, txt, X, setP, hidden: () => !!(NX.hidden || NX.mode), pwPh: () => pwB.phase(),
       aiSt: (fl, f, tc, anim) => !!fl.aib && WB.aiStretch(aiT.get(f.sid), tc, !anim) });   // 🐾 새 직원 버릇(#85)
     const tnB = tinyBig({ spot: id => spB.see(id), ctx, doc, mkEl, sty, html, X, clockT, kick: () => { if (!animOn()) staticDraw(); }, floors: () => model.floors, hidden: () => !!(NX.hidden || NX.mode), askOn: () => !!askb && askb.style.display !== "none", actors, dr: () => drB.active(), setP, put, txt, view, wk: () => pwB.wk(), night: () => pwB.night(), out: () => pwB.out(), door: () => car.door, boss: () => bossAct, cof: () => pkB.bossCof(), pkBub: () => pkB.bossBub() });   // ☕ 깨알 디테일: 빈 잔 · 연속 출근 달력 · 야간 경비 고양이 · 🗂️ 책상 묶음(서류·겉옷·깃발·로봇 배터리)
+    const lfB = lifeBig({ ctx, mkEl, sty, hidden: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), dr: () => drB.active(), night: () => pwB.night(), out: () => pwB.out(), wet: () => pwB.wet() });   // 🌱 공간의 생활감: 거미·무당벌레·나방·화분 살랑·달팽이·창밖
     const trB = treatBig({ bossAct: () => bossAct, ctx, doc, mkEl, sty, txt, html, X, view, clockT, actors, setP, put, bubble, tagOn, dropActor, mkActor, animalOf, aName, model: () => model, parentFor: (...a) => parentFor(...a),   // 🍩 간식 · 🍖 회식 · 📷 회식 사진
       funds: wallet.funds, ro: wallet.ro, can: wallet.can, pay: wallet.pay, give: wallet.give, saveNow: () => { dirty = true; flush(); }, float: v => dcB.float(v), log: pushLog, tray: () => dcB.tray(),
       nx: () => !!(NX.hidden || NX.mode || (ctx.nunchi && ctx.nunchi.on)), drActive: () => drB.active(), drClose: () => drB.close(), drCard: () => drB.card(),
@@ -5416,6 +5534,7 @@ C.registerMode({
       drB.build({ bld, FL, FT, BASE, FH, n, carEl });   // 📋 불 끄기 덮개·1층 발표판·포인터·꽃가루·종이
       dcB.build({ FL, n });   // 🎨 칸마다 소품 · 꾸미기 칸 표시 · 다른 층 어둡게
       tnB.build({ FL, n, carEl });   // ☕ 빈 잔 · 📅 달력 · 🔦 1층 고양이
+      lfB.build({ FL, n, wins: pwWins, plants: pkB.plants() });   // 🌱 생활감(👆 화분 다음)
       trB.build({ bld, FL, n });   // 🍩 책상 위 간식 · 🍖 옥상 겹 · 📷 1층 회식 사진
       gaB.build({ FL, n }); gaB.read(model.floors);   // 🎰 1층 뽑기 기계
       evB.build({ FL, n });   // 🎲 랜덤 이벤트 자리(1층 · 직원 층)
@@ -6042,6 +6161,7 @@ C.registerMode({
       drB.frame(T, tc, anim);   // 📋 불 끄기·발표판·꽃가루·카드 등장(연출 중일 때만)
       dcB.frame(T, tc, anim);   // 🎨 소품·택배·하트·물 주기 · 꾸미기 칸 · 자금 옆 숫자
       tnB.frame(T, tc, anim);   // ☕ 빈 잔 · 📅 연속 출근 · 🔦 순찰
+      lfB.frame(T, tc, anim);   // 🌱 거미·무당벌레·나방·화분·달팽이·창밖
       trB.frame(T, tc, anim);   // 🍩 책상 위 간식 · 🍖 옥상 회식 · 📷 회식 사진
       gaB.frame(T, tc, anim);   // 🎰 뽑기 연출 · 판 자리
       evB.frame(T, tc, anim);   // 🎲 랜덤 이벤트(25~50분마다 하나)
