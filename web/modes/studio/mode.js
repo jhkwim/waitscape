@@ -3622,7 +3622,7 @@ function habitBig(h) {
     } else if (an === "panda") {
       if (seated && !busy && (f.kind === "idle" || f.kind === "done") && !(a.restX != null && a.x === a.restX)) {
         const u = (tc + fnv(f.sid) % 5) % 2.8, chew = anim && u < 1.6, o = pose();
-        h.setP(a, Object.assign(o, { eyes: anim && u > 2.2 && u < 2.36 ? "c" : "o", mouth: chew && Math.floor(tc / .2) % 2 ? "o" : "", arms: "" }));
+        h.setP(a, Object.assign(o, { eyes: o.eyes === "h" ? "h" : anim && u > 2.2 && u < 2.36 ? "c" : "o", mouth: chew && Math.floor(tc / .2) % 2 ? "o" : "", arms: "" }));
         fl.zs.forEach(z => sty(z, "display", "none")); sty(fl.sweat, "display", "none");   // 꾸벅 z · ☕ 대신 대나무
         bam = true;
         const p = WB.pix(BAMBOO, 3); if (E.bam._u !== p.url) { E.bam._u = p.url; E.bam.src = p.url; E.bam.alt = ""; E.bam.draggable = false; sty(E.bam, "width", p.w + "px"); sty(E.bam, "height", p.h + "px"); }
@@ -6186,7 +6186,7 @@ C.registerMode({
       const queued = k === "ask" && a.goal !== "boss" && a.loc === "home" && !a.moving;
       if (a.moving || onBoss || alert || queued) {
         const walking = a.moving;
-        const wt = queued || alert ? Math.max(0, ctx.now() - (f.s.since || ctx.now())) : 0;   // ⏱ 기다린 시간 — 5분 넘으면 💧 땀방울(LIFE)
+        const wt = (k === "ask" && !thanks) || alert ? Math.max(0, ctx.now() - (f.s.since || ctx.now())) : 0;   // ⏱ 기다린 시간 — 5분 넘으면 💧 땀방울(LIFE)
         setP(a, { view: "front", legs: walking ? (ph.wk ? "a" : "b") : "s", eyes: thanks ? "h" : ph.blink ? "c" : asking ? "t" : "o", mouth: asking || thanks || alert || queued ? "o" : "", arms: asking ? "r" : thanks || alert || queued ? "u" : "", bl: thanks ? 1 : 0, sw: wt >= AGE5 ? 1 : 0 });   // 💗 부탁할 땐 초롱초롱 · 감사 인사는 ^^ 발그레
         tagOn(a, !(asking || thanks || alert || queued));
         let x = a.x == null ? deskx : a.x, feet = (onBoss ? BASE[nSess] : B) - 2, tgt;
