@@ -3645,7 +3645,7 @@ function lifeBig(h) {
         else if (u < 55) { const a = (u - 30) / 25, cf = Math.floor(u * 1.5) % 2 ? L_.ART.snD : L_.ART.snC, cz = px(cf, 3); put(q.sn, cf, 3, leftX - cz.w, floorY - cz.h - a * (floorY - rimY), ""); }
         else put(q.sn, still ? L_.ART.snA : (Math.floor(u * 1.2) % 3 === 0 ? L_.ART.snB : L_.ART.snA), 3, leftX, rimY - sz.h + 1, ""); }); }
     /* ✈️ 창밖 지나가는 것 */
-    { const per = D ? 14 : 150, s = L_.slot("sky", now, per, D ? 13 : 70), dayOk = D || h.night() < .3, k = s.h % 8;
+    { const per = D ? 14 : 150, s = L_.slot("sky", now, per, D ? 13 : 70), dayOk = D || (!night && h.night() < .3), k = s.h % 8;
       let kind = D ? (dev.has("ufo") ? "ufo" : dev.has("balloon") ? "balloon" : dev.has("plane") ? "plane" : "") : night && !dayOk ? (k === 0 || k === 5 ? "ufo" : "") : dayOk ? (k < 5 ? "plane" : h.wet() ? "" : "balloon") : "";
       const dur = kind === "balloon" ? 14 : kind === "ufo" ? 6 : 7, on = !hid && !still && !!kind && s.u < dur, wi = D ? -1 : (s.h >>> 5) % Math.max(1, G.wins.length);
       G.wins.forEach((W, j) => { const me = on && (D || j === wi); if (!me) { off(W.c); return; }
