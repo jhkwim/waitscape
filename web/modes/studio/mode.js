@@ -65,6 +65,7 @@ const CH = [
   meta: { er: 5, xl: 4, xr: 10, neck: 9, n0: 3, n1: 12, hat: 1, h0: 2, h1: 13 }, hands: { w: 16, c: "#f2d6b0" } },
 ];
 const BYID = {}; CH.forEach(c => (BYID[c.id] = c));
+BYID.panda.hc = "W";   // 🐼 웃는 눈 ^^은 검은 눈 무늬 위라 흰색으로(LIFE)
 const SP = CH.map(c => c.id);
 const BOSS = Object.assign({}, CH[0], { id: "boss", pal: { F: "#b87a4a", L: "#ffe7c4", B: "#34457f", A: "#ffd23f", T: "#e85050" } });
 BYID.boss = BOSS;
@@ -107,6 +108,35 @@ const GA_ACC = {
   /* 선글라스: 렌즈 안에 눈동자 P를 한 칸 남김 — 정전 때 눈빛(pwEyes는 P 자리)이 렌즈 안에서 반짝 */
   sun: { s: "f", pal: { 5: "#1f1f2e", 6: "#8a9ad8" }, pts: m => [...[m.xl, m.xr].flatMap(x => [...gaRow(m.er, x - 1, x + 2, "5"), ...gaRow(m.er + 1, x - 1, x + 2, "5"), [m.er, x, "6"], [m.er, x + 1, "P"]]), ...gaRow(m.er, m.xl + 3, m.xr - 2, "5")] },
 };
+/* 💗 생명감(LIFE, 2라운드): 가만히 있어도 살아 있게 — 직원마다 다른 박자의 눈 깜빡임 · 동물별 버릇 · 상태별 표정.
+   - 깜빡임: 예전엔 모든 직원이 같은 순간(T % 3.7) 깜빡였음 → 직원마다 주기 3.1~5.3초·위상이 다르고, 세 번에 한 번은 두 번 깜빡 · 🐱 고양이는 네 번에 한 번 느린 깜빡(눈키스)
+   - 버릇(LIFE_Q, 9~15초마다 0.6초): 🐹🦔 코 킁킁 · 🐱🦊🐼🦫🦦🦉 귀 쫑긋 · 🐧 날개 파닥 · 🐙 몸이 잠깐 분홍 · 🤖 안테나 반짝
+   - 표정(mkGrid eyes): 일할 때 가끔 집중 실눈 + 혀 빼꼼 · 완료면 웃는 눈 ^^ + 볼 발그레 · 질문하러 오면 초롱초롱 · 오래 기다리거나 멈춤이면 땀방울 · 사장님은 칭찬·감사 때 ^^
+   - 움직임 줄이기·회의 모드·🙈 눈치 모드(anim 꺼짐)면 시간으로 바뀌는 건 모두 멈춤(완료 ^^ 같은 상태 표정만 정지 그림으로). 그림은 sprite 캐시(포즈 JSON)라 프레임마다 새로 그리지 않음 */
+const LIFE_Q = {
+  ham: { p: [[8, 7, "L"], [8, 8, "L"], [7, 7, "N"], [7, 8, "N"]] }, hog: { p: [[7, 7, "L"], [7, 8, "L"], [6, 7, "N"], [6, 8, "N"]] },   // 코가 한 칸 위로
+  cat: { p: [[0, 12, "."], [0, 13, "."]] }, panda: { p: [[0, 12, "."], [0, 13, "."]] }, bvr: { p: [[0, 10, "."], [0, 11, "."]] }, otr: { p: [[0, 11, "."], [0, 12, "."]] },   // 오른쪽 귀 끝이 쏙
+  fox: { p: [[0, 13, "."], [0, 14, "."], [1, 13, "K"], [1, 14, "K"]] }, owl: { p: [[0, 13, "."], [0, 14, "."]] },
+  peng: { flap: 1 }, oct: { long: 1 }, bot: {},   // 🐧 한쪽 날개 파닥 · 🐙 1.4초 발그레
+};
+const LIFE = {
+  h: a => a.lh != null ? a.lh : (a.lh = fnv((a.sid || a.psid || "boss") + "|" + (a.bk || 0))),
+  blink(a, T) {   // 직원마다 다른 박자
+    const h = LIFE.h(a), per = 3.1 + (h % 23) / 10, t = T + (h >>> 8) % 97 / 10, cyc = Math.floor(t / per), u = t - cyc * per;
+    if (a.ch.id === "cat" && (cyc + h) % 4 === 0) return u < .5;   // 🐱 느린 깜빡
+    return u < .13 || ((cyc + (h >>> 4)) % 3 === 0 && u > .25 && u < .37);   // 가끔 두 번
+  },
+  quirk(a, T) {   // 0 = 없음 · 1 = 버릇 그림 켬 · "flap" = 🐧 팔 올림
+    const L = LIFE_Q[a.ch.id]; if (!L) return 0;
+    const h = LIFE.h(a), per = 9 + (h >>> 3) % 7, u = (T + (h >>> 11) % 53) % per;
+    if (L.long) return u < 1.4 ? 1 : 0;
+    if (u >= .6) return 0;
+    const on = Math.floor(u / .15) % 2 === 0;
+    return on ? (L.flap ? "flap" : 1) : 0;   // 0.15초 켜고 끄기 두 번(쫑긋쫑긋)
+  },
+  focus(a, T) { const h = LIFE.h(a), per = 17 + (h >>> 5) % 8; return (T + (h >>> 13) % 61) % per < 2.6; },   // 일하다 집중(2.6초)
+  happy(a, T) { const h = LIFE.h(a); return (T + (h >>> 7) % 7) % 6 < 2.4; },   // 완료: 6초 중 2.4초 ^^
+};
 const PAD = 6, PL = 6, S = 4, SB = 3;
 function lighten(h, k) { const n = parseInt(h.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255, f = v => Math.round(v + (255 - v) * k); return "#" + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2, "0")).join(""); }
 function palOf(ch, o) {
@@ -117,6 +147,9 @@ function palOf(ch, o) {
   if (o.specs) p.V = "#2e2040";   // 📋 퇴근 일보: 사장님 발표용 안경(프로바이더 소품 아님)
   if (o.aloha) { if (ALOHA[ch.id]) p.B = ALOHA[ch.id]; p.H = "#fff3a0"; p.h = "#ff5a8a"; }   // 🌺 꽃 H(노랑) · h(분홍)
   [o.ac, o.af].forEach(id => { if (GA_ACC[id]) Object.assign(p, GA_ACC[id].pal); });   // 🎰 액세서리 색(숫자 키)
+  p.d = "#5aa8ff"; p.e = "#dff4ff";   // 💧 땀방울(LIFE)
+  if (o.q && ch.id === "oct") p.F = "#d888dc";   // 🐙 문어 발그레(몸 색이 잠깐 분홍으로)
+  if (o.q && ch.id === "bot") p.A = "#fff6a0";   // 🤖 안테나 반짝
   if (o.baby) { for (const k in p) if (!"OPQWZ".includes(k) && !(ch.tint === k)) p[k] = lighten(p[k], .3); p.G = "#5fcf6a"; }
   if (o.sil) { for (const k in p) p[k] = "#3d3358"; p.O = "#241c3a"; }
   return p;
@@ -135,6 +168,13 @@ function mkGrid(ch, o) {
     g.forEach(r => r.forEach((c, i) => { if (c === "P") r[i] = cl; }));
     const er = ch.meta.er; [ch.meta.xl, ch.meta.xr].forEach(x => { set(er, x, cl); set(er, x + 1, cl); });
   }
+  /* 💗 생명감(LIFE): h = 웃는 눈 ^^(완료·감사) · f = 집중 실눈(일하다 가끔) · t = 초롱초롱(질문하러 와서 부탁) — 눈 2×2(P W / Q Q) 자리만 바꿈 */
+  const m = ch.meta, lid = ch.closed || "L";
+  if (o.eyes === "h") [m.xl, m.xr].forEach(x => { const hc = ch.hc || "P"; set(m.er, x, hc); set(m.er, x + 1, hc); set(m.er + 1, x, lid); set(m.er + 1, x + 1, lid); set(m.er + 1, x - 1, hc); set(m.er + 1, x + 2, hc); });
+  if (o.eyes === "f") [m.xl, m.xr].forEach((x, r) => { const hc = ch.hc || "P"; set(m.er, x, lid); set(m.er, x + 1, lid); set(m.er - 1, x, hc); set(m.er - 1, x + 1, hc); set(m.er - 2, r ? x + 2 : x - 1, hc); });   // 실눈 + 바깥이 올라간 눈썹 \ /
+  if (o.eyes === "t") [m.xl, m.xr].forEach(x => { set(m.er + 1, x, "W"); set(m.er + 2, x, "e"); set(m.er + 2, x + 1, "e"); });   // 반짝 두 점 + 눈 밑 글썽
+  if (o.sw) [[0, 0, "d"], [1, -1, "d"], [1, 0, "d"], [2, -1, "e"], [2, 0, "d"]].forEach(([dy, dx, c]) => set(m.er - 3 + dy, m.h1 + 4 + dx, c));   // 땀방울(머리 오른쪽 위, 한 칸 띄움)
+  if (o.q && LIFE_Q[ch.id] && LIFE_Q[ch.id].p) LIFE_Q[ch.id].p.forEach(([y, x, c]) => set(y, x, c));   // 귀 쫑긋 · 코 킁킁
   if (o.mouth === "o") g.forEach(r => r.forEach((c, i) => { if (c === "M") r[i] = "Z"; }));
   const a = ch.arm, arm = side => { for (let k = 1; k <= 5; k++) { const t = k >= 4 ? a.h : a.s;
     for (let d = 0; d < (k >= 4 ? 3 : 2); d++) { const x = a.x - k + d - (k >= 4 ? 1 : 0); set(a.y - k, side ? 15 - x : x, t); } } };
@@ -159,7 +199,11 @@ function mkG(ch, o) {
   const ah = GA_ACC[o.ac] && GA_ACC[o.ac].s === "h" ? o.ac : null, af = GA_ACC[o.af] && GA_ACC[o.af].s === "f" ? o.af : null;   // 🎰 머리 · 얼굴 액세서리
   const pa = o.prov && PROV[o.prov] ? PROV[o.prov].acc : "";
   acc(g, ch, (ah && pa === "hat") || (af && pa === "glass") ? null : o.prov);   // 같은 자리 프로바이더 소품은 액세서리가 대신
-  if (o.specs && !af) acc(g, ch, "gemini");   // 안경 모양만 빌려 씀(색은 palOf의 V)
+  if (o.specs && !af) acc(g, ch, "gemini");
+  const gl = (pa === "glass" && !af) || o.specs, mt = ch.meta;   // 💗 안경 테가 ^^ 양 끝을 덮으면 다시 찍고, 볼 발그레는 테 아래 한 줄로
+  if (o.eyes === "h" && gl) [mt.xl, mt.xr].forEach(x => { set(mt.er + 1, x - 1, ch.hc || "P"); set(mt.er + 1, x + 2, ch.hc || "P"); });
+  if (o.bl) [mt.xl - 1, mt.xl, mt.xr + 1, mt.xr + 2].forEach(x => set(mt.er + (gl ? 3 : 2), x, "C"));   // 볼 발그레
+  if (o.tg) { let ty = -1, tx = -1; ch.rows.forEach((r, y) => [...r].forEach((c, i) => { if (c === "M" && (y > ty || (y === ty && i > tx))) { ty = y; tx = i; } })); if (ty >= 0) set(ty + 1, tx, "C"); }   // 💗 혀 빼꼼(입 오른쪽 아래 · 목도리 위에도 보이게 소품 다음에)   // 안경 모양만 빌려 씀(색은 palOf의 V)
   if (o.aloha) {   // 🌺 몸통 칸에 띄엄띄엄 꽃 · 몸통(B)이 없으면 목에 꽃 목걸이
     let hit = false; g.forEach((r, y) => r.forEach((c, x) => { if (c !== "B") return; hit = true; const q = (x * 2 + y * 3) % 7; if (q === 0) r[x] = "H"; else if (q === 3) r[x] = "h"; }));
     if (!hit) for (let x = ch.meta.n0; x <= ch.meta.n1; x++) set(ch.meta.neck, x, x % 2 ? "H" : "h");
@@ -174,7 +218,8 @@ function mkG(ch, o) {
   if (o.baby && ch.id !== "bot") {   // 아기: 정수리 새싹
     let y = 0; while (y < g.length && g[y][PL + 7] === "." && g[y][PL + 8] === ".") y++;
     const need = Math.max(0, 2 - y); for (let i = 0; i < need; i++) g.unshift(Array(g[0].length).fill(".")); y += need; g.pre = (g.pre || 0) + need;
-    g[y - 1][PL + 7] = "G"; g[y - 1][PL + 8] = "G"; g[y - 2][PL + 6] = "G"; g[y - 2][PL + 9] = "G";
+    const sw = o.sp ? 1 : 0;   // 🌱 새싹 살랑(LIFE): 잎이 한 칸 오른쪽으로
+    g[y - 1][PL + 7] = "G"; g[y - 1][PL + 8] = "G"; g[y - 2][PL + 6 + sw] = "G"; g[y - 2][PL + 9 + sw] = "G";
   }
   return g;
 }
@@ -5020,7 +5065,7 @@ C.registerMode({
     }
     function setP(a, p) {
       const o = Object.assign({ prov: a.opt.prov, shiny: a.opt.shiny, baby: a.opt.baby, boss: a.opt.boss }, p, TINY.fri && !a.opt.boss ? { aloha: 1 } : null);   // 🌺 금요일 오후 셔츠
-      if (HABIT.night && a.ch.id === "owl" && o.eyes !== "c") o.eyes = "w";   // 🦉 밤엔 눈 크게(#85)
+      if (HABIT.night && a.ch.id === "owl" && (o.eyes === "o" || o.eyes == null)) o.eyes = "w";   // 🦉 밤엔 눈 크게(#85)
       const gw = !a.opt.boss && gaB.wearSid(a.sid || a.psid); if (gw) { if (gw.ac) o.ac = gw.ac; if (gw.af) o.af = gw.af; }   // 🎰 착용 액세서리(#86, 아기는 부모 것)
       const k = JSON.stringify(o);
       if (a.pose !== k) { a.pose = k; const s = sprite(doc, a.ch, o, a.scale); a.img.src = s.url; a.img.style.width = s.w + "px"; a.img.style.height = s.h + "px"; a.w = s.w; a.h = s.h; a.sp = s; }
@@ -5967,7 +6012,7 @@ C.registerMode({
         boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); sty(boss.el, "pointerEvents", ""); bubble(boss, esc(nb.say), true);
       }
       else if (ch) {   // 🎉 칭찬 한마디: 질문 감사 다음 · 전력 말풍선보다 먼저(5.5초짜리라 정전·리셋 안내를 잠깐만 가림)
-        setP(boss, { view: "front", seated: 1, legs: "s", eyes: ph.blink ? "c" : "o", mouth: "o", arms: anim && Math.floor((tc - ch.t0) * 3) % 2 ? "u" : "r" });
+        setP(boss, { view: "front", seated: 1, legs: "s", eyes: "h", bl: 1, mouth: "o", arms: anim && Math.floor((tc - ch.t0) * 3) % 2 ? "u" : "r" });   // 💗 칭찬할 땐 ^^ 발그레
         put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: anim && tc - ch.t0 < 1.2 ? -Math.round(ph.hop * 2) * 3 : 0 }); tagOn(boss, false);
         boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none");   // 사장님 오른쪽 옆(층 이름표·왼쪽 벽에 안 잘리게)
         const who = `${ch.shiny ? "✨" : ""}${EMO[ch.animal]} ${aName(ch.animal)}(${ch.pname})`;
@@ -5986,12 +6031,13 @@ C.registerMode({
         setP(boss, { view: "front", seated: 1, legs: "s", eyes: Math.floor(tc * 2) % 2 ? "c" : "o", mouth: "o", arms: Math.floor(tc * 3) % 2 ? "u" : "r" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP); tagOn(boss, false);
         boss.bub.classList.add("updb"); sty(boss.el, "zIndex", "61"); sty(boss.el, "pointerEvents", "none"); bubble(boss, esc(gagS), true);
       }
-      else if (thanker) { setP(boss, { view: "front", seated: 1, legs: "s", eyes: "o", mouth: "o", arms: "u" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: -ph.hop * 10 }); tagOn(boss, false); boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); bubble(boss, "✅ " + X("확인!", "Got it!"), true); }
+      else if (thanker) { setP(boss, { view: "front", seated: 1, legs: "s", eyes: "h", bl: 1, mouth: "o", arms: "u" }); put(boss, bf.F, bf.chx, BASE[n] - 6 - BOSS_UP, { dy: -ph.hop * 10 }); tagOn(boss, false); boss.bub.classList.remove("updb"); sty(boss.el, "zIndex", ""); bubble(boss, "✅ " + X("확인!", "Got it!"), true); }
       else {
         // 전력·날씨 연출(정전·리셋 말풍선)이 먼저, 없을 때 새 버전 알림(앱) → 누르면 업데이트 대화상자 (설치는 거기서 누를 때만)
         // 📋 퇴근 일보 알림은 그 아래: 사장님이 종이를 들고 "일보 나왔어요!"(누르면 발표) — 화면을 가로채지 않음
         const pq = pqB = pwB.boss(ph), upd = !(pq && pq.say) && ctx.core.update && ctx.core.update.available, dn = !(pq && pq.say) && !upd ? drB.notice() : null; updB = !!upd || !!dn;
-        setP(boss, pq ? pq.p : dn ? { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: "r", specs: 1 } : { view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }); tagOn(boss, !(pq && pq.say) && !dn);
+        const bb = anim && LIFE.blink(boss, T);   // 💗 사장님도 자기 박자로 깜빡 · 질문이 오면(사장실에 직원) 초롱초롱 귀 기울임
+        setP(boss, pq ? pq.p : dn ? { view: "front", seated: 1, eyes: bb ? "c" : "o", arms: "r", specs: 1 } : { view: "front", seated: 1, eyes: bb ? "c" : asker ? "t" : "o" }); tagOn(boss, !(pq && pq.say) && !dn);
         put(boss, bf.F, bf.chx + (pq ? pq.dx : 0), BASE[n] - 6 - BOSS_UP, { dy: !pq && ph.bob ? -1 : 0 });
         boss.bub.classList.toggle("updb", !!upd || !!dn);   // 사장님 오른쪽 옆 (층 이름표와 겹치지 않게), 모니터보다 위
         sty(boss.el, "zIndex", upd || dn ? "61" : ""); sty(boss.el, "pointerEvents", upd || dn ? "none" : "");   // 👆 누를 자리(z60) 위로 — 말풍선 버튼만 눌리고 사장님 몸은 아래 누를 자리로 통과
@@ -6056,6 +6102,8 @@ C.registerMode({
       if (a.bub && a.bub.classList.contains("lf") !== lfOn) a.bub.classList.toggle("lf", lfOn);   // 바뀔 때만 건드림
       const F = fl.F, B = fl.B, meet = f.layout === "meet", deskx = meet ? BOARD_X : DESK_X, k = f.kind, d = fl.desk;
       const lau = anim && a.launchUntil > tc;
+      ph = Object.assign({}, ph, { blink: anim && LIFE.blink(a, T) });   // 💗 직원마다 다른 박자로 깜빡(LIFE)
+      const qk = anim ? LIFE.quirk(a, T) : 0, life = o => (qk === "flap" ? Object.assign(o, { arms: "r" }) : qk ? Object.assign(o, { q: 1 }) : o);   // 💗 동물별 버릇
       const setScreen = (mode, tt) => { if (!d) return; const on = mode !== "off"; sty(d.sc, "background", on ? "#16213a" : "#1a1a28");
         d.sc.lines.forEach((l, j) => { sty(l, "display", on ? "block" : "none"); const sd = mode === "type" ? Math.floor(tt * 3) + j * 7 : j * 5 + 3; sty(l, "width", (8 + (sd * 37 % 36)) + "px"); sty(l, "left", (3 + ((sd * 13) % 3) * 4) + "px"); sty(l, "background", ["#7dff9c", "#ffd23f", "#5aa8ff", "#ff9ab0", "#c8b0ff"][(sd + j) % 5]); }); };
       const hands = (on, ty) => { if (!d) return; d.hands.forEach((h, j) => { sty(h, "display", on ? "block" : "none"); sty(h, "marginTop", ((ty + j) % 2 ? -4 : 0) + "px"); }); };
@@ -6138,7 +6186,8 @@ C.registerMode({
       const queued = k === "ask" && a.goal !== "boss" && a.loc === "home" && !a.moving;
       if (a.moving || onBoss || alert || queued) {
         const walking = a.moving;
-        setP(a, { view: "front", legs: walking ? (ph.wk ? "a" : "b") : "s", eyes: ph.blink ? "c" : "o", mouth: asking || thanks || alert || queued ? "o" : "", arms: asking ? "r" : thanks || alert || queued ? "u" : "" });
+        const wt = queued || alert ? Math.max(0, ctx.now() - (f.s.since || ctx.now())) : 0;   // ⏱ 기다린 시간 — 5분 넘으면 💧 땀방울(LIFE)
+        setP(a, { view: "front", legs: walking ? (ph.wk ? "a" : "b") : "s", eyes: thanks ? "h" : ph.blink ? "c" : asking ? "t" : "o", mouth: asking || thanks || alert || queued ? "o" : "", arms: asking ? "r" : thanks || alert || queued ? "u" : "", bl: thanks ? 1 : 0, sw: wt >= AGE5 ? 1 : 0 });   // 💗 부탁할 땐 초롱초롱 · 감사 인사는 ^^ 발그레
         tagOn(a, !(asking || thanks || alert || queued));
         let x = a.x == null ? deskx : a.x, feet = (onBoss ? BASE[nSess] : B) - 2, tgt;
         const dy = walking ? (ph.wk ? -4 : 0) : alert || queued ? -ph.hop * 16 : thanks ? -ph.hop * 14 : asking ? -Math.abs(Math.sin(T * 4)) * 6 : 0;
@@ -6156,7 +6205,7 @@ C.registerMode({
       if (k === "stall") {   // 💤 멈춤 의심: 눈 뜬 채 멈춘 모니터를 톡톡(예전엔 바닥에 누워 잠 — 자는 게 아니라 응답이 없는 것, 관제 인박스 B3)
         const h = f.s.health || { secs: 0 }, secs = h.secs + stateAge(), m = Math.max(1, Math.floor(secs / 60));
         const bt = anim ? Math.floor(T * 2.5) % 4 : 3, tap = !meet && (bt === 0 || bt === 1);   // 톡 · 톡 · (쉼) · (쉼) — 회의 배치(모니터 없음)는 화이트보드 앞에 멍하니 섬
-        setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", eyes: ph.blink ? "c" : "o", arms: tap ? "r" : "" }); put(a, F, sx, B - (meet ? 2 : 6 + SEAT_UP), { dy: tap ? -1 : 0 }); tagOn(a, true);
+        setP(a, { view: "front", seated: meet ? 0 : 1, legs: "s", eyes: ph.blink ? "c" : "o", arms: tap ? "r" : "", sw: 1 }); put(a, F, sx, B - (meet ? 2 : 6 + SEAT_UP), { dy: tap ? -1 : 0 }); tagOn(a, true);   // 💧 막혀서 땀(LIFE)
         html(fl.gb, `<span style="color:${PROV_COLOR[f.pk]}">${esc(aName(f.animal))} · ${esc(f.pname)}</span><br>💤 ${X("톡톡", "tap tap")} ${mmss(secs)}<br>${esc(h.tool ? X(`${cut(h.tool, 10)} ${m}분째`, `${cut(h.tool, 10)} ${m}m`) : X("응답 없음", "no reply"))}`); sty(fl.gb, "display", "block"); bubble(a, "", false);
         sty(fl.gb, "left", (meet ? sx + 44 : sx - 209) + "px"); if (fl.gb.classList.contains("gl") === meet) fl.gb.classList.toggle("gl", !meet);   // 책상: 직원 왼쪽(꼬리 오른쪽) · 회의: 직원 오른쪽
         sty(fl.tint, "display", "block"); setScreen("on"); hands(false, 0);   // 화면은 켜진 채 멈춤(코드 줄이 안 움직임)
@@ -6208,20 +6257,22 @@ C.registerMode({
         }
         {   // ☕ 커피 한 모금 — 쉰 지 오래되면 😴 napBig이 꾸벅·엎드림·🍱 점심으로 덮어씀(#106)
           const sip = Math.floor((T + variant) / 2) % 2 === 1;
-          setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: sip ? "r" : "" }); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
+          setP(a, sip ? { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: "r" } : life({ view: "front", seated: 1, eyes: ph.blink ? "c" : "o", arms: "" })); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
           cup(true, "☕"); sty(fl.sweat, "left", (sx + (sip ? 30 : 36)) + "px"); sty(fl.sweat, "top", (B - SEAT_UP - (sip ? 76 : 60)) + "px"); sty(fl.sweat, "opacity", "1");
         }
         setScreen("off"); hands(false, 0);
         return res;
       }
       if (k === "done") {
-        setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o", mouth: "o" }); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
+        const hp = !anim || LIFE.happy(a, T);   // 💗 다 끝내서 ^^ 발그레(정지 그림이면 늘 ^^)
+        setP(a, hp ? { view: "front", seated: 1, eyes: "h", mouth: "o", bl: 1 } : life({ view: "front", seated: 1, eyes: ph.blink ? "c" : "o", mouth: "o" })); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
         setScreen("on"); hands(false, 0);
         return res;
       }
       /* 작업 중: 타이핑 + 코드 조각 + 소리 */
       const slow = f.s.health && f.s.health.level === "slow";
-      setP(a, { view: "front", seated: 1, eyes: ph.blink ? "c" : "o" }); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
+      const fc = anim && !slow && LIFE.focus(a, T);   // 💗 가끔 집중: 실눈 + 혀 빼꼼
+      setP(a, fc ? { view: "front", seated: 1, eyes: "f", tg: 1 } : life({ view: "front", seated: 1, eyes: ph.blink ? "c" : "o" })); put(a, F, sx, B - 6 - SEAT_UP, { dy: ph.bob ? -1 : 0 }); tagOn(a, true);
       const owlN = f.animal === "owl" && HABIT.night && anim;   // 🦉 밤엔 타자가 빨라짐(#85)
       setScreen("type", owlN ? T * 1.8 : T); hands(true, owlN ? Math.floor(T * 14) % 2 : ph.ty);
       if (slow) { cup(true, "💧"); sty(fl.sweat, "left", (sx + 26) + "px"); sty(fl.sweat, "top", Math.round(B - 6 - SEAT_UP - a.h + 6 + ((T * 2) % 1) * 4) + "px"); sty(fl.sweat, "opacity", Math.floor(T * 2) % 2 ? "1" : ".5"); }
@@ -6333,7 +6384,7 @@ C.registerMode({
       const rest = m => dn(m) && !dlvOf(m);   // 자리: 일하는 아기·봉투 전달 중인 아기 먼저(4명+에서도 끝낸 아기가 건네기 전에 밀려나지 않게)
       const show = mem.slice().sort((p, q) => rest(p) - rest(q) || p.j - q.j).slice(0, 3).sort((p, q) => p.j - q.j);   // 일하는 아기 먼저 자리에
       const nB = show.length;
-      while (a.babies.length < nB) a.babies.push(Object.assign(mkActor(BYID[f.animal], { prov: f.pk, baby: 1, scale: SB, label: "#" + (a.babies.length + 1), color: "#ff8a3d" }), { psid: f.sid }));   // psid: 🎰 부모 액세서리
+      while (a.babies.length < nB) a.babies.push(Object.assign(mkActor(BYID[f.animal], { prov: f.pk, baby: 1, scale: SB, label: "#" + (a.babies.length + 1), color: "#ff8a3d" }), { psid: f.sid, bk: a.babies.length }));   // psid: 🎰 부모 액세서리 · bk: 💗 아기마다 다른 깜빡 박자
       const live = show.filter(m => !dn(m)), sp = live.length ? live[Math.floor(T / 3) % live.length] : null, talk = anim && (T % 3) < 2.6;
       const yw = Tm && anim ? WB.yawn(Tm, tc) : null;
       let top = B - 60, stallN = 0;
@@ -6347,7 +6398,8 @@ C.registerMode({
         const ag = m.a, d = dn(m), just = d && anim && tc - m.doneAt < .9, stall = !d && ag.health && ag.health.level === "stall";
         const speaking = talk && sp === m && !stall, yawning = yw === m;
         if (stall) stallN++;
-        setP(b, { view: "front", seated: 1, eyes: stall || yawning || (d && !just) ? "c" : ph.blink ? "c" : "o", mouth: just || speaking || yawning ? "o" : "", arms: just ? "u" : speaking ? "r" : "" });
+        const hb = d && !just && !stall && !yawning;   // 💗 끝낸 아기는 ^^ 발그레 · 일하는 아기는 새싹 살랑 + 제 박자로 깜빡
+        setP(b, { view: "front", seated: 1, eyes: hb ? "h" : stall || yawning ? "c" : anim && LIFE.blink(b, T) ? "c" : "o", mouth: just || speaking || yawning ? "o" : "", arms: just ? "u" : speaking ? "r" : "", bl: hb ? 1 : 0, sp: anim && !d && Math.floor((T + LIFE.h(b) % 13 / 10) / 1.3) % 2 ? 1 : 0 });
         tagOn(b, true); txt(b.tag, stall ? "💤" : d ? "✓" : "#" + (m.j + 1)); sty(b.tag, "background", d ? "#1f9a5a" : "#ff8a3d");
         const x = 430 + k * 88;
         /* ✉️ 결과 봉투: 이 창이 끝나는 걸 본 아기(doneAt > 0)만 — ✓ 깡충 뒤 보드 앞 부모에게 가서 건네고 돌아옴 */
