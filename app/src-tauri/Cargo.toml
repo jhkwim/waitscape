@@ -26,7 +26,7 @@ updater = ["dep:tauri-plugin-updater"]
 terminal-jump = []
 
 [build-dependencies]
-tauri-build = { version = "=2.7.4", features = [] }
+tauri-build = { version = "=2.7.6", features = [] }
 serde_json.workspace = true
 
 [dependencies]
@@ -36,7 +36,7 @@ serde_json.workspace = true
 # 파일 로그 시각(applog.rs, 로컬 시각). wr-core와 같은 워크스페이스 의존성
 chrono.workspace = true
 tauri = { version = "=2.12.5", features = ["tray-icon", "image-png", "macos-private-api"] }
-tauri-plugin-notification = "=2.8.0"
+tauri-plugin-notification = "=2.8.1"
 tauri-plugin-autostart = "=2.7.0"
 tauri-plugin-dialog = "=2.8.4"
 tauri-plugin-single-instance = "=2.5.5"
